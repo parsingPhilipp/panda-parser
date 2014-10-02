@@ -1,0 +1,35 @@
+Version 2014-08-25 
+
+Implementation that produced the data in:
+
+@InProceedings{nederhof-vogler:2014:Coling,
+  author    = {Nederhof, Mark-Jan  and  Vogler, Heiko},
+  title     = {Hybrid Grammars for Discontinuous Parsing},
+  booktitle = {Proceedings of COLING 2014, the 25th International Conference
+	on Computational Linguistics: Technical Papers},
+  month     = {August},
+  year      = {2014},
+  address   = {Dublin, Ireland},
+  publisher = {Dublin City University and Association for Computational
+	Linguistics},
+  pages     = {1370--1381},
+  url       = {http://www.aclweb.org/anthology/C14-1130}
+}
+
+==================================================================
+
+Instructions for use:
+
+Acquire the Tiger and/or the Negra corpus.
+
+In tiger_parse.py:
+Change the definitions of tiger_dir and tiger.
+
+In negra_parse.py:
+Change the definition of negra_dir.
+
+Uncomment the relevant lines of experiment.py to select 
+the desired experiments.
+
+Run (assuming Python 2.7.3):
+python experiment.py
