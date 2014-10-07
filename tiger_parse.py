@@ -8,7 +8,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-from hybridtree import HybridTree
+from constituency_tree import HybridTree
 
 # Location of Tiger corpus.
 tiger_dir = '~/UniProjects/ParsingOfNon-ProjectiveStructures/Coling2014'

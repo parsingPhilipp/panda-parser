@@ -23,8 +23,12 @@ class GeneralHybridTree:
         self.__id_to_pos = {}
         # list of node ids in ascending order
         self.__ordered_ids = []
+        # list of node ids in ascending order, including disconnected nodes
+        self.__full_yield = []
         # maps node id to position in the ordering
         self.__id_to_node_index = {}
+        # maps node_index (position in ordering) to node id
+        self.__node_index_to_id = {}
         # number of nodes in ordering
         self.__n_ordered_nodes = 0
 
@@ -53,15 +57,21 @@ class GeneralHybridTree:
     # pos: string (part of speech)
     # label: string (word, syntactic category)
     # order: bool (include node in linear ordering)
-    def add_node(self, id, label, pos = None, order = False):
+    # connected: bool (node is connected to other tree nodes)
+    # Set order = True and connected = False to include some token (e.g. punctuation)
+    # that appears in the yield but shall be ignored during tree operations.
+    def add_node(self, id, label, pos = None, order = False, connected = True):
         self.__nodes += [id]
         self.__id_to_label[id] = label
         if (pos is not None):
             self.__id_to_pos[id] = pos
         if (order is True):
-            self.__ordered_ids += [id]
-            self.__n_ordered_nodes += 1
-            self.__id_to_node_index[id] = self.__n_ordered_nodes
+            if (connected is True):
+                self.__ordered_ids += [id]
+                self.__n_ordered_nodes += 1
+                self.__id_to_node_index[id] = self.__n_ordered_nodes
+                self.__node_index_to_id[self.__n_ordered_nodes] = id
+            self.__full_yield += [id]
 
     # Add a pair of node ids in the parent-child relation.
     # parent: string
@@ -115,6 +125,18 @@ class GeneralHybridTree:
     def in_ordering(self, id):
         return id in self.__ordered_ids
 
+    # Get node id at index in ordering
+    # index: int
+    # return: string (id)
+    def index_node(self, index):
+        return self.__node_index_to_id[index]
+
+    # Get index of node in ordering
+    # id: string
+    # return: int
+    def node_index(self, id):
+        return self.__id_to_node_index[id]
+
     # Reorder children according to smallest node in subtree
     def reorder(self):
         self.__reorder(self.root())
@@ -152,6 +174,15 @@ class GeneralHybridTree:
     def n_spans(self, id):
         return len(join_spans(self.fringe(id)))
 
+    # Maximum number of spans of any node.
+    # return: int
+    def max_n_spans(self):
+        nums = [self.n_spans(id) for id in self.nodes()]
+        if len(nums) > 0:
+            return max(nums)
+        else:
+            return 1
+
     # Total number of gaps in any node.
     # return: int
     def n_gaps(self):
@@ -164,10 +195,46 @@ class GeneralHybridTree:
             n_gaps += self.__n_gaps_below(child)
         return n_gaps
 
+    # Create recursive partitioning
+    # return: pair consisting of (root and list of child nodes)
+    def recursive_partitioning(self):
+        return self.unlabelled_structure_recur(self.root())
+    def unlabelled_structure_recur(self, id):
+        head = set(self.fringe(id))
+        tail = [self.unlabelled_structure_recur(child) for \
+                child in self.children(id)]
+        # remove useless step
+        if len(tail) == 1 and head == tail[0][0]:
+            return tail[0]
+        else:
+            return (head, tail)
+
+    # Labelled spans.
+    # return: list of spans (each of which is string plus an even
+    # number of (integer) positions)
+    def labelled_spans(self):
+        spans = []
+        for id in self.nodes():
+            span = [self.node_label(id)]
+            for (low, high) in join_spans(self.fringe(id)):
+                span += [low, high]
+            spans += [span]
+        return sorted(spans, \
+                      cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
+                                           [y[1]] + [-y[2]] + y[3:] + [y[0]]))
+
     # Get yield as list of all labels of nodes, that are in the ordering
     # return: list of string
     def label_yield(self):
-	    return [self.node_label(id) for id in self.__ordered_ids]
+        return [self.node_label(id) for id in self.__ordered_ids]
+
+    #Get full yield (including disconnected nodes) as list of labels
+    def full_labeled_yield(self):
+        return [self.node_label(id) for id in self.__full_yield]
+
+    #Get full yield (including disconnected nodes) as list of ids
+    def full_yield(self):
+        return self.__full_yield
 
     # Get ids of all nodes.
     # return: list of string
@@ -179,6 +246,44 @@ class GeneralHybridTree:
     # return: string
     def node_label(self, id):
         return self.__id_to_label[id]
+
+    # Does yield cover whole string?
+    # return: bool
+    def complete(self):
+        return self.rooted() and \
+               len(self.fringe(self.root())) == self.__n_ordered_nodes
+
+    # Get POS of node
+    # id: string
+    def node_pos(self, id):
+        return self.__id_to_pos[id]
+
+    # Get POS-yield (omitting disconnected nodes)
+    def pos_yield(self):
+        return [self.node_pos(id) for id in self.__ordered_ids]
+
+    # Number of nodes in total tree (omitting disconnected nodes)
+    def n_nodes(self):
+        return self.__n_nodes_below(self.root()) + 1
+    # Number of nodes below node
+    # id: string
+    # return: int
+    def __n_nodes_below(self, id):
+        n = len(self.children(id))
+        for child in self.children(id):
+            n += self.__n_nodes_below(child)
+        return n
+
+    # Is there any non-ordered node without children?
+    # Includes the case the root has no children.
+    # return: bool
+    def empty_fringe(self):
+        for id in self.nodes():
+            if len(self.children(id)) == 0 and not id in self.__full_yield:
+                return True
+        return self.rooted() and len(self.fringe(self.root())) == 0
+
+
 #
 def test():
     print "Start"
