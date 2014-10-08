@@ -321,4 +321,4 @@ def test():
 
     print "labelled spans", tree.labelled_spans()
     print "POS yield", tree.pos_yield()
-test()
+# test()

@@ -15,26 +15,26 @@ from abc import ABCMeta, abstractmethod
 # Common interface for all objects that occur on rhs of DCP_rules
 class DCP_rhs_object:
     __metaclass__ = ABCMeta
-    # parser: DCP_parser
+    # evaluator: DCP_evaluator
     @abstractmethod
-    def parseMe(self, parser):
+    def parseMe(self, evaluator):
         pass
 
-class DCP_parser:
+class DCP_evaluator:
     __metaclass__ = ABCMeta
     # s: DCP_string
     @abstractmethod
-    def parseString(self, s):
+    def evaluateString(self, s):
         pass
 
     # index: DCP_index
     @abstractmethod
-    def parseIndex(self):
+    def evaluateIndex(self):
         pass
 
     # term: DCP_term
     @abstractmethod
-    def parseTerm(self, term):
+    def evaluateTerm(self, term):
         pass
 
 
@@ -85,16 +85,16 @@ class DCP_index(DCP_rhs_object):
     def __str__(self):
         return '[' + str(self.index()) + ']'
 
-    # Parser Invocation
-    def parseMe(self, parser):
-        parser.parseIndex(self)
+    # Evaluator Invocation
+    def parseMe(self, evaluator):
+        evaluator.evaluateIndex(self)
 
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
 class DCP_string(str, DCP_rhs_object):
-    # Parser Invocation
-    def parseMe(self, parser):
-        parser.parseString(self)
+    # Evaluator invocation
+    def parseMe(self, evaluator):
+        evaluator.evaluateString(self)
 
 # An index replaced by an input position, according to parsing of a string with 
 # the left (LCFRS) component of hybrid grammar.
@@ -142,9 +142,9 @@ class DCP_term(DCP_rhs_object):
     def __str__(self):
         return str(self.head()) + '(' + dcp_terms_to_str(self.arg()) + ')'
 
-    # Parser Invocation
-    def parseMe(self, parser):
-        parser.parseTerm(self)
+    # Evaluator invocation
+    def parseMe(self, evaluator):
+        evaluator.evaluateTerm(self)
 
 # Rule defining argument value by term.
 class DCP_rule:

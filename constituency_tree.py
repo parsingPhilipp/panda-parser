@@ -139,4 +139,4 @@ def test():
     print "labelled spans", tree.labelled_spans()
 
 
-test()
+# test()
