@@ -6,7 +6,8 @@ import time
 import negra_parse
 import tiger_parse
 from parse_accuracy import ParseAccuracy
-from hybridtree import *
+# from hybridtree import *
+from constituency_tree import *
 from induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
 	start as induction_start
 from lcfrs import *
@@ -464,7 +465,7 @@ def parse_tree_by_gram(tree, gram, accuracy):
 # parse_test(20, method=fanout_two_extraction)
 # parse_test(20, method=fanout_three_extraction)
 # parse_test(20, method=fanout_four_extraction)
-# parse_test(20, method=left_branch_extraction)
+parse_test(10, method=left_branch_extraction)
 # parse_test(20, method=right_branch_extraction)
 
 # parse_test(20, method=left_branch_extraction_child)
@@ -506,5 +507,5 @@ def parse_tree_by_gram_and_compare(tree, gram):
 	# tree.canvas()
 	# dcp_tree.canvas()
 # UNCOMMENT if desired
-parse_compare(20)
+# parse_compare(20)
 # parse_compare(20, method=basic_extraction)

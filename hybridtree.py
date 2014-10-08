@@ -59,7 +59,7 @@ class HybridTree:
 	leaf_descr = (id, pos, word)
 	self.__id_to_leaf[id] = leaf_descr
 	self.__leaves += [leaf_descr]
-	self.__id_to_leaf_index[id] = self.__n_real_leaves 
+	self.__id_to_leaf_index[id] = self.__n_real_leaves
 	self.__n_real_leaves += 1
 	self.__index_to_leaf[self.__n_real_leaves] = leaf_descr
 
@@ -212,6 +212,8 @@ class HybridTree:
     # return: int
     def n_nodes(self):
 	return self.__n_nodes_below(self.root()) + 1
+    # TODO (Kilian): root node seems to be counted twice
+
     # Number of nodes below node.
     # id: string
     # return: int
@@ -302,16 +304,17 @@ class HybridTree:
     # Labelled spans.
     # return: list of spans (each of which is string plus an even
     # number of (integer) positions)
+    # TODO (kilian) some spans occur multiple times
     def labelled_spans(self):
-	spans = []
-	for id in self.ids():
-	    span = [self.label(id)]
-	    for (low, high) in join_spans(self.fringe(id)):
-		span += [low, high]
-	    spans += [span]
-	return sorted(spans, \
-		cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
-					[y[1]] + [-y[2]] + y[3:] + [y[0]]))
+        spans = []
+        for id in self.ids():
+            span = [self.label(id)]
+            for (low, high) in join_spans(self.fringe(id)):
+                span += [low, high]
+                spans += [span]
+        return sorted(spans, \
+                      cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
+                                           [y[1]] + [-y[2]] + y[3:] + [y[0]]))
 
     # Produce canvas representing hybrid tree.
     # return: canvas
@@ -508,3 +511,61 @@ def canvas(graph):
 	c.create_text(x_real, y_real, \
 		text=label, anchor='w', font=graph.font)
     m.mainloop()
+
+
+#
+def test():
+    tree = HybridTree("s1")
+    tree.add_leaf("f1","VP","hat")
+    tree.add_leaf("f2","ADV","schnell")
+    tree.add_leaf("f3","VP","gearbeitet")
+    tree.add_punct("f4","PUNC",".")
+
+    tree.add_child("V","f1")
+    tree.add_child("V","f3")
+    tree.add_child("ADV","f2")
+
+    tree.add_child("VP","V")
+    tree.add_child("VP","ADV")
+
+    print "rooted", tree.rooted()
+    tree.set_root("VP")
+    print "rooted", tree.rooted()
+    tree.set_label("V","V")
+    tree.set_label("VP","VP")
+    tree.set_label("ADV","ADV")
+
+    print "sent label", tree.sent_label()
+
+    print "leaves", tree.leaves()
+
+    print "is leaf (leaves)", [(x, tree.is_leaf(x)) for (x,_,_) in tree.leaves()]
+    print "is leaf (internal)", [(x, tree.is_leaf(x)) for x in tree.ids()]
+    print "leaf index",  [(x, tree.leaf_index(x)) for x in ["f1","f2","f3"]]
+
+    print "pos yield", tree.pos_yield()
+    print "word yield", tree.word_yield()
+
+    # reentrant
+    # parent
+
+    print "ids", tree.ids()
+
+    # reorder
+    print "n nodes", tree.n_nodes()
+    print "n gaps", tree.n_gaps()
+
+    print "fringe VP", tree.fringe("VP")
+    print "fringe V", tree.fringe("V")
+
+    print "empty fringe", tree.empty_fringe()
+
+    print "complete?", tree.complete()
+
+    print "max n spans", tree.max_n_spans()
+
+    print "unlabelled structure", tree.unlabelled_structure()
+
+    print "labelled spans", tree.labelled_spans()
+
+test()

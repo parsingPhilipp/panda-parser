@@ -68,8 +68,8 @@ class GeneralHybridTree:
         if (order is True):
             if (connected is True):
                 self.__ordered_ids += [id]
-                self.__n_ordered_nodes += 1
                 self.__id_to_node_index[id] = self.__n_ordered_nodes
+                self.__n_ordered_nodes += 1
                 self.__node_index_to_id[self.__n_ordered_nodes] = id
             self.__full_yield += [id]
 
@@ -195,9 +195,9 @@ class GeneralHybridTree:
             n_gaps += self.__n_gaps_below(child)
         return n_gaps
 
-    # Create recursive partitioning
+    # Create unlabelled structure, only in terms of breakup of yield
     # return: pair consisting of (root and list of child nodes)
-    def recursive_partitioning(self):
+    def unlabelled_structure(self):
         return self.unlabelled_structure_recur(self.root())
     def unlabelled_structure_recur(self, id):
         head = set(self.fringe(id))
@@ -214,7 +214,7 @@ class GeneralHybridTree:
     # number of (integer) positions)
     def labelled_spans(self):
         spans = []
-        for id in self.nodes():
+        for id in [n for n in self.nodes() if not n in self.full_yield()]:
             span = [self.node_label(id)]
             for (low, high) in join_spans(self.fringe(id)):
                 span += [low, high]
@@ -225,11 +225,11 @@ class GeneralHybridTree:
 
     # Get yield as list of all labels of nodes, that are in the ordering
     # return: list of string
-    def label_yield(self):
+    def labelled_yield(self):
         return [self.node_label(id) for id in self.__ordered_ids]
 
     #Get full yield (including disconnected nodes) as list of labels
-    def full_labeled_yield(self):
+    def full_labelled_yield(self):
         return [self.node_label(id) for id in self.__full_yield]
 
     #Get full yield (including disconnected nodes) as list of ids
@@ -279,7 +279,7 @@ class GeneralHybridTree:
     # return: bool
     def empty_fringe(self):
         for id in self.nodes():
-            if len(self.children(id)) == 0 and not id in self.__full_yield:
+            if len(self.children(id)) == 0 and not id in self.full_yield():
                 return True
         return self.rooted() and len(self.fringe(self.root())) == 0
 
@@ -288,13 +288,14 @@ class GeneralHybridTree:
 def test():
     print "Start"
     tree = GeneralHybridTree()
-    tree.add_node("v1","Piet",None,True)
-    tree.add_node("v21","Marie",None,True)
-    tree.add_node("v","helpen",None,True)
-    tree.add_node("v2","lezen", None, True)
+    tree.add_node("v1","Piet","NP",True)
+    tree.add_node("v21","Marie","N",True)
+    tree.add_node("v","helpen","V",True)
+    tree.add_node("v2","lezen", "V", True)
     tree.add_child("v","v2")
     tree.add_child("v","v1")
     tree.add_child("v2","v21")
+    tree.add_node("v3",".","Punc",True,False)
     tree.set_root("v")
     print tree.children("v")
     tree.reorder()
@@ -307,9 +308,17 @@ def test():
     print "n spans v2", tree.n_spans("v2")
 
     print "n_gaps", tree.n_gaps()
-
     print "ids:", tree.nodes()
+    print "complete", tree.complete()
+    print "unlabeled structure", tree.unlabelled_structure()
 
-    print "label yield: ", tree.label_yield()
+    print "max n spans", tree.max_n_spans()
 
+    print "labelled yield", tree.labelled_yield()
+    print "full labelled yield", tree.full_labelled_yield()
+
+    print "full yield", tree.full_yield()
+
+    print "labelled spans", tree.labelled_spans()
+    print "POS yield", tree.pos_yield()
 test()

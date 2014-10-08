@@ -1,6 +1,7 @@
 # Extracting grammars out of hybrid trees.
 
-from hybridtree import *
+# from hybridtree import *
+from constituency_tree import *
 from lcfrs import *
 from dcp import *
 from decomposition import *
