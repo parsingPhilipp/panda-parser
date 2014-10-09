@@ -448,15 +448,16 @@ def parse_tree_by_gram(tree, gram, accuracy):
     # print tree.n_gaps() # for testing
     p = LCFRS_parser(gram, poss)
     if not p.recognized():
-	accuracy.add_failure()
-	# print 'failure', tree.sent_label() # for testing
+        accuracy.add_failure()
+    # print 'failure', tree.sent_label() # for testing
     else:
-	dcp_tree = p.dcp_hybrid_tree(poss, words)
-	retrieved = dcp_tree.labelled_spans()
-	relevant = tree.labelled_spans()
-	accuracy.add_accuracy(retrieved, relevant)
-	n_nodes_test += dcp_tree.n_nodes()
-	n_gaps_test += dcp_tree.n_gaps()
+        # dcp_tree = p.dcp_hybrid_tree(poss, words)
+        dcp_tree = p.new_DCP_Hybrid_Tree(poss, words)
+        retrieved = dcp_tree.labelled_spans()
+        relevant = tree.labelled_spans()
+        accuracy.add_accuracy(retrieved, relevant)
+        n_nodes_test += dcp_tree.n_nodes()
+        n_gaps_test += dcp_tree.n_gaps()
 	# print 'success', tree.sent_label() # for testing
 # UNCOMMENT one or more of the following for running experiments
 # parse_test(25)

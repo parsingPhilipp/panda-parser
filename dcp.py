@@ -16,32 +16,42 @@ from abc import ABCMeta, abstractmethod
 class DCP_rhs_object:
     __metaclass__ = ABCMeta
     # evaluator: DCP_evaluator
+    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
-    def parseMe(self, evaluator):
+    def evaluateMe(self, evaluator, id):
         pass
 
+# Interface for DCP_evaluation
 class DCP_evaluator:
     __metaclass__ = ABCMeta
     # s: DCP_string
+    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
-    def evaluateString(self, s):
+    def evaluateString(self, s, id):
         pass
 
     # index: DCP_index
+    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
-    def evaluateIndex(self):
+    def evaluateIndex(self, index, id):
         pass
 
     # term: DCP_term
+    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
-    def evaluateTerm(self, term):
+    def evaluateTerm(self, term, id):
         pass
 
+    # var: DCP_variable
+    # id: string (gorn term of LCFRS-Derivation tree)
+    @abstractmethod
+    def evaluateIndex(self, var, id):
+        pass
 
 # Variable identifying argument (synthesized or inherited).
 # In LHS this is (-1,j) and in RHS this is (i,j),
 # for i-th member in RHS, and j-th argument.
-class DCP_var:
+class DCP_var(DCP_rhs_object):
     # Constructor.
     # i: int
     # j: int
@@ -67,6 +77,9 @@ class DCP_var:
         else:
             return '<' + str(self.mem()) + ',' + str(self.arg()) + '>'
 
+    def evaluateMe(self, evaluator, id):
+        evaluator.evaluateVariable(self, id)
+
 # Index, pointing to terminal in left (LCFRS) component of hybrid grammar.
 # Terminals are indexed in left-to-right order.
 class DCP_index(DCP_rhs_object):
@@ -86,15 +99,15 @@ class DCP_index(DCP_rhs_object):
         return '[' + str(self.index()) + ']'
 
     # Evaluator Invocation
-    def parseMe(self, evaluator):
+    def evaluateMe(self, evaluator, id):
         evaluator.evaluateIndex(self)
 
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
 class DCP_string(str, DCP_rhs_object):
     # Evaluator invocation
-    def parseMe(self, evaluator):
-        evaluator.evaluateString(self)
+    def evaluateMe(self, evaluator, id):
+        evaluator.evaluateString(self, id)
 
 # An index replaced by an input position, according to parsing of a string with 
 # the left (LCFRS) component of hybrid grammar.
@@ -143,8 +156,8 @@ class DCP_term(DCP_rhs_object):
         return str(self.head()) + '(' + dcp_terms_to_str(self.arg()) + ')'
 
     # Evaluator invocation
-    def parseMe(self, evaluator):
-        evaluator.evaluateTerm(self)
+    def evaluateMe(self, evaluator, id):
+        evaluator.evaluateTerm(self, id)
 
 # Rule defining argument value by term.
 class DCP_rule:

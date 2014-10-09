@@ -375,6 +375,12 @@ def make_rule_instances_from_members(instance, members, args, inp, pos):
 
 #######################################################
 class Derivation:
+    def gorn_delimiter(self):
+        return '.'
+
+    def gorn_delimiter_regex(self):
+        return '\.'
+
     def __init__(self):
         self.__rules = {}
         self.__root = ''
@@ -393,11 +399,11 @@ class Derivation:
     # id : string
     # return: list of Rule_instance
     def children(self, id):
-        return [self.getRule(id + str(i))
+        return [self.getRule(id + self.gorn_delimiter() + str(i))
                 for i in range(self.getRule(id).rule().fanout())]
 
     def child_ids(self, id):
-        return [id + str(i+1) for i in range(self.getRule(id).rule().fanout())]
+        return [id + self.gorn_delimiter() + str(i+1) for i in range(self.getRule(id).rule().fanout())]
 
     def root_id(self):
         return self.__root
@@ -460,11 +466,12 @@ def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected = []):
         for position in der.terminal_positions(id):
             tree.add_child(id, "c" + str(position))
     tree.set_root('')
+    tree.reorder()
     return tree
 
 
 #######################################################
-# Derivation.
+# Old Derivation.
 # A derivation is (rule, children).
 
 # Get spans. So (rule, children) is turned into
@@ -588,30 +595,30 @@ def eval_dcp(der, ancestors, mem, arg):
 def eval_dcp_term(term, der, ancestors):
     (rule, spans, children) = der
     if isinstance(term, DCP_term):
-	head = term.head()
-	arg = term.arg()
-	ground = [t for arg_term in arg \
-			for t in eval_dcp_term(arg_term, der, ancestors)]
-	return [DCP_term(head, ground)]
+        head = term.head()
+        arg = term.arg()
+        ground = [t for arg_term in arg \
+                  for t in eval_dcp_term(arg_term, der, ancestors)]
+        return [DCP_term(head, ground)]
     elif isinstance(term, DCP_var):
-	mem = term.mem()
-	arg = term.arg()
-	if mem >= 0:
-	    return eval_dcp(children[mem], ancestors + [(der,mem)], -1, arg)
-	else:
-	    if ancestors != []:
-		prefix = ancestors[0:-1]
-		(last_der,last_mem) = ancestors[-1]
-		return eval_dcp(last_der, prefix, last_mem, arg)
-	    else:
-		raise Exception('value outside derivation ' + term)
+        mem = term.mem()
+        arg = term.arg()
+        if mem >= 0:
+            return eval_dcp(children[mem], ancestors + [(der,mem)], -1, arg)
+        else:
+            if ancestors != []:
+                prefix = ancestors[0:-1]
+                (last_der,last_mem) = ancestors[-1]
+                return eval_dcp(last_der, prefix, last_mem, arg)
+            else:
+                raise Exception('value outside derivation ' + term)
     elif isinstance(term, DCP_index):
-	i = term.index()
-	pos = position_of_terminal(i, rule, spans, 
-		[child_span for (_,child_span,_) in children])
-	return [DCP_pos(pos)]
+        i = term.index()
+        pos = position_of_terminal(i, rule, spans,
+                                   [child_span for (_,child_span,_) in children])
+        return [DCP_pos(pos)]
     else:
-	raise Exception('strange term ' + term)
+        raise Exception('strange term ' + term)
 
 # With spans, compute the position of the i-th terminal in the rule.
 # i: int
@@ -641,10 +648,11 @@ def position_of_terminal(i, rule, spans, child_spans):
 # words: list of string
 def dcp_to_hybridtree(dcp, poss, words):
     if len(dcp) != 1:
-	raise Exception('DCP has multiple roots')
-    tree = HybridTree()
+        raise Exception('DCP has multiple roots')
+    tree = GeneralHybridTree()
     for (i, (pos, word)) in enumerate(zip(poss, words)):
-        tree.add_leaf(str(i), pos, word)
+    #    tree.add_leaf(str(i), pos, word)
+        tree.add_node(str(i),word, pos, True, True)
     (id, _) = dcp_to_hybridtree_recur(dcp[0], tree, len(poss))
     tree.set_root(id)
     tree.reorder()
@@ -652,22 +660,89 @@ def dcp_to_hybridtree(dcp, poss, words):
 # As above, recur, with identifiers starting at next_id.
 # Return id of root node and next id.
 # dcp: list of DCP_term/DCP_pos
-# tree: HybridTree
+# tree: GeneralHybridTree
 # next_id: string
 # return: pair of string
 def dcp_to_hybridtree_recur(dcp, tree, next_id):
-    if isinstance(dcp, DCP_pos):
-	return (str(dcp.pos()), next_id)
+    head = dcp.head()
+    if isinstance(head, DCP_pos):
+        id = str(dcp.pos())
+    elif isinstance(head, DCP_string):
+        label = head
+        id = str(next_id)
+        next_id += 1
+        tree.add_node(id, label)
+        tree.set_label(id, label)
     else:
-	label = dcp.head()
-	id = str(next_id)
-	next_id += 1
-	tree.set_label(id, label)
-	for child in dcp.arg():
-	    (tree_child, next_id) = \
-		    dcp_to_hybridtree_recur(child, tree, next_id)
-	    tree.add_child(id, tree_child)
-	return (id, next_id)
+        raise Exception
+    for child in dcp.arg():
+        (tree_child, next_id) = \
+            dcp_to_hybridtree_recur(child, tree, next_id)
+        tree.add_child(id, tree_child)
+    return (id, next_id)
+
+#######################################################
+# New DCP evaluation
+
+class The_DCP_evaluator(DCP_evaluator):
+    # der: Derivation
+    def __init__(self, der):
+        self.__der = der
+        # self.__evaluate(der.root_id())
+
+    def getEvaluation(self):
+        return self.__evaluate("", -1, 0)
+
+    # General DCP evaluation.
+    # id : position in derivation tree
+    # mem: int
+    # arg: int
+    # return: list of DCP_term
+    def __evaluate(self, id, mem, arg):
+        rule = self.__der.getRule(id).rule()
+        for dcp_rule in rule.dcp():
+            lhs = dcp_rule.lhs()
+            rhs = dcp_rule.rhs()
+            if lhs.mem() == mem and lhs.arg() == arg:
+                return [t for term in rhs \
+			        for t in self.__eval_dcp_term(term, id)]
+
+    # term: DCP_term/DCP_var
+    # der: 'derivation'
+    # return: list of DCP_term/DCP_pos
+    def __eval_dcp_term(self, term, id):
+        return term.evaluateMe(self, id)
+
+    # Evaluation Methods for term-heads
+    # s: DCP_string
+    def evaluateString(self, s, id):
+        return s
+
+    # index: DCP_index
+    def evaluateIndex(self, index, id):
+        i = index.index()
+        pos = sorted(self.__der.terminal_positions(id))[i]
+        return DCP_pos(pos)
+
+    # term: DCP_term
+    def evaluateTerm(self, term, id):
+        head = term.head()
+        arg  = term.arg()
+        evaluated_head = head.evaluateMe(self, id)
+        ground = [t for arg_term in arg for t in self.__eval_dcp_term(arg_term, id)]
+        return [DCP_term(head, ground)]
+
+    def evaluateVariable(self, var, id):
+        mem = var.mem()
+        arg = var.arg()
+        if mem >= 0:
+            return self.__evaluate(id + self.__der.gorn_delimiter() + mem, -1, arg)
+        else:
+            match = re.search(r'^(.*)' + self.__der.gorn_delimiter_regex() + str(mem) + '$' ,id)
+            if match:
+                return self.__evaluate(match.group(1), arg)
+            else:
+                raise Exception('strange var ' + var)
 
 #######################################################
 # Parser.
@@ -855,6 +930,13 @@ class LCFRS_parser:
         else:
             return []
 
+    def newDCP(self):
+        der = self.newBestDerivation()
+        if der:
+            return The_DCP_evaluator.getEvaluation()
+        else:
+            return []
+
     # Make hybrid tree out of DCP value.
     # poss: list of string
     # words: list of string
@@ -864,6 +946,13 @@ class LCFRS_parser:
         if der:
             dcp = derivation_to_dcp(der)
             return dcp_to_hybridtree(dcp, poss, words)
+        else:
+            return None
+
+    def new_DCP_Hybrid_Tree(self, poss, words):
+        dcp_evaluation = self.newDCP()
+        if dcp_evaluation:
+            return dcp_to_hybridtree(dcp_evaluation, poss, words)
         else:
             return None
 
@@ -930,7 +1019,7 @@ class LCFRS_parser:
             # extract span of the passive item
             sub_span = extract_spans(elem[1])
             # extend tree at child position corresponding to the dot of active item
-            self.__newDerivationTreeRec(elem[1], tree, id + str(dot_position(elem[0])), w2, sub_span)
+            self.__newDerivationTreeRec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2, sub_span)
             # extend active item
             self.__newDerivationTreeRec(elem[0], tree, id, w1, spans)
         else:
@@ -1026,4 +1115,4 @@ def test_lcfrs():
     # p.print_parse()
     # print dcp_terms_to_str(p.dcp())
 
-test_lcfrs()
+# test_lcfrs()
