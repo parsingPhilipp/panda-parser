@@ -728,7 +728,11 @@ class The_DCP_evaluator(DCP_evaluator):
     def evaluateTerm(self, term, id):
         head = term.head()
         arg  = term.arg()
-        evaluated_head = head.evaluateMe(self, id)
+        # TODO: legacy fallback for old-style DCP-rules of constituency induction
+        if not isinstance(head, DCP_string) and isinstance(head, str):
+            evaluated_head = DCP_string(head)
+        else:
+            evaluated_head = head.evaluateMe(self, id)
         ground = [t for arg_term in arg for t in self.__eval_dcp_term(arg_term, id)]
         return [DCP_term(head, ground)]
 
@@ -736,7 +740,7 @@ class The_DCP_evaluator(DCP_evaluator):
         mem = var.mem()
         arg = var.arg()
         if mem >= 0:
-            return self.__evaluate(id + self.__der.gorn_delimiter() + mem, -1, arg)
+            return self.__evaluate(id + self.__der.gorn_delimiter() + str(mem), -1, arg)
         else:
             match = re.search(r'^(.*)' + self.__der.gorn_delimiter_regex() + str(mem) + '$' ,id)
             if match:
@@ -933,7 +937,7 @@ class LCFRS_parser:
     def newDCP(self):
         der = self.newBestDerivation()
         if der:
-            return The_DCP_evaluator.getEvaluation()
+            return The_DCP_evaluator(der).getEvaluation()
         else:
             return []
 
@@ -1034,15 +1038,15 @@ class LCFRS_parser:
 
 # FIXME: there must a better way to construct the Derivation tree
 # the position of the nonterminal no rhs that follows the dot
-# (counting started from 1)
+# (counting started from 0)
 # input: key-string of Rule_instance
 # return: int
 def dot_position(key):
     if isinstance(key, str) or isinstance(key, unicode):
         match = re.search(r'^.*->(.*)\*(.*)$', key)
-        return len([i for i in match.group(1).split(' ') if i != '']) + 1
+        return len([i for i in match.group(1).split(' ') if i != ''])
     else:
-        return 1
+        return 0
 
 # extract spans from key-string of passive item
 # key: string (e.g. "A([0-4]; [12-15])" )

@@ -100,7 +100,7 @@ class DCP_index(DCP_rhs_object):
 
     # Evaluator Invocation
     def evaluateMe(self, evaluator, id):
-        evaluator.evaluateIndex(self)
+        evaluator.evaluateIndex(self, id)
 
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
