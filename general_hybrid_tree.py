@@ -218,7 +218,9 @@ class GeneralHybridTree:
             span = [self.node_label(id)]
             for (low, high) in join_spans(self.fringe(id)):
                 span += [low, high]
-            spans += [span]
+            # TODO: this if-clause allows to handle trees, that have nodes with empty fringe
+            if len(span) >= 3:
+                spans += [span]
         return sorted(spans, \
                       cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
                                            [y[1]] + [-y[2]] + y[3:] + [y[0]]))

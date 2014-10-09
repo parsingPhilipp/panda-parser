@@ -11,6 +11,7 @@ from dcp import *
 # from hybridtree import HybridTree
 from constituency_tree import HybridTree
 from decomposition import expand_spans
+from general_hybrid_tree import GeneralHybridTree
 
 ############################################################
 # Parsing auxiliaries.
@@ -184,10 +185,10 @@ class LHS_instance:
     def replace(self, i, j, span):
         for argI in range(len(self.__args)):
             for memI in range(len(self.__args[argI])):
-                mem = self.__args[argI]
-                if isinstance(mem, LCFRS_var) and \
-                                 mem.mem() == i and mem.arg() == j:
-                    self.__args[argI][memI] = span
+                mem = self.__args[argI][memI]
+                if isinstance(mem, LCFRS_var):
+                    if mem.mem() == i and mem.arg() == j:
+                        self.__args[argI][memI] = span
 
     # TODO: Support for empty nonterminals (i.e. with fan-out 0)?
     # Assuming there are no variables left, the left-most position.
@@ -375,11 +376,91 @@ def make_rule_instances_from_members(instance, members, args, inp, pos):
 #######################################################
 class Derivation:
     def __init__(self):
-        __rules = {}
-        __root = ''
-        __children = {}
+        self.__rules = {}
+        self.__root = ''
+        self.__weights = {}
+
+    # add a rule to the derivation at position id
+    # id : string (Gorn position / identifier)
+    # rule: Rule_instance
+    def add_rule(self, id, rule, weight):
+        self.__rules[id] = rule
+        self.__weights[id] = weight
+
+    def getRule(self, id):
+        return self.__rules[id]
+
+    # id : string
+    # return: list of Rule_instance
+    def children(self, id):
+        return [self.getRule(id + str(i))
+                for i in range(self.getRule(id).rule().fanout())]
+
+    def child_ids(self, id):
+        return [id + str(i+1) for i in range(self.getRule(id).rule().fanout())]
+
+    def root_id(self):
+        return self.__root
+
+    def root(self):
+        return (self.getRule(''))
+
+    def __str__(self):
+        return der_to_str(self)
+
+    def terminal_positions(self, id):
+        child_positions = []
+        for child in self.child_ids(id):
+            child_positions += self.__all_positions(child)
+        return [p for p in self.__all_positions(id) if p not in child_positions]
+
+    def __all_positions(self, id):
+        rule = self.getRule(id)
+        positions = []
+        for i in range(rule.lhs().fanout()):
+            span = rule.lhs().arg(i)[0]
+            positions += range(span.low() + 1, span.high() + 1)
+        return positions
+
+    def ids(self):
+        return self.__rules.keys()
 
 
+# return string
+def der_to_str(der):
+    return der_to_str_rec(der, der.root_id())
+
+# return: string
+def der_to_str_rec(der, id):
+    s = ' ' * len(id) + str(der.getRule(id).rule()) + '\t(' + str(der.getRule(id).lhs()) + ')\n'
+    for child in der.child_ids(id):
+        s += der_to_str_rec(der, child)
+    return s
+
+# Turn a derivation tree into a hybrid tree.
+# Assuming poss and ordered_labels to have equal length.
+# der: Derivation
+# poss: list of string (POS-tags)
+# ordered_labels: list of words
+# disconnected: list of positions in ordered_labels that are disconnected
+# return: GeneralHybridTree
+def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected = []):
+    tree = GeneralHybridTree()
+    j = 1
+    for i in range(len(ordered_labels)):
+        if i in disconnected:
+            tree.add_node("d" + str(i), ordered_labels[i], poss[i], True, False)
+        else:
+            tree.add_node("c" + str(j), ordered_labels[i], poss[i], True, True)
+            j += 1
+    for id in der.ids():
+        tree.add_node(id, der.getRule(id).lhs().nont())
+        for child in der.child_ids(id):
+            tree.add_child(id,child)
+        for position in der.terminal_positions(id):
+            tree.add_child(id, "c" + str(position))
+    tree.set_root('')
+    return tree
 
 
 #######################################################
@@ -809,6 +890,84 @@ class LCFRS_parser:
         else:
             return (elem, children)
 
+
+    # Return best derivation or None.
+    # return: Derivation
+    def newBestDerivation(self):
+        start_lhs = self.__start_item()
+        elem = str(start_lhs)
+        trace = self.__trace[elem]
+        if len(trace) == 0:
+            return None
+        else:
+            w = self.best()
+            tree = Derivation()
+            self.__newDerivationTreeRec(elem, tree, tree.root_id(), w, [Span(0, len(self.__inp))])
+            return tree
+
+    # Get derivation tree of best parse. (includes Spans of sub derivations)
+    # elem: string or tuple (identifier in trace)
+    # tree: Derivation (tree that gets extended)
+    # id: string position (Gorn) in Derivation tree that is extended
+    # w: float (weight of best path in subderivation)
+    # spans: list of Span (of subderivation)
+    # return: Derivation
+    def __newDerivationTreeRec(self, elem, tree, id, w, spans):
+        if isinstance(elem, str) or isinstance(elem, unicode):
+            # passive item:
+            traces = self.__trace[elem]
+            for trace in traces:
+                if w == self.__find_best_from(trace):
+                    return self.__newDerivationTreeRec(trace, tree, id, w, spans)
+            print 'looking for', w, 'found:'
+            for trace in traces:
+                print self.__find_best_from(trace)
+            raise Exception('backtrace failed')
+        elif isinstance(elem, tuple):
+            # active item (elem[0]) was combined with passive item (elem[0])
+            w1 = self.__find_best_from(elem[0])
+            w2 = self.__find_best_from(elem[1])
+            # extract span of the passive item
+            sub_span = extract_spans(elem[1])
+            # extend tree at child position corresponding to the dot of active item
+            self.__newDerivationTreeRec(elem[1], tree, id + str(dot_position(elem[0])), w2, sub_span)
+            # extend active item
+            self.__newDerivationTreeRec(elem[0], tree, id, w1, spans)
+        else:
+            # it all children have been added to derivation, add parent rule
+            # as Rule_instance with detected spans
+            lhs = LHS_instance(elem.lhs().nont())
+            for span in spans:
+                lhs.add_arg()
+                lhs.add_mem(span)
+            ri = Rule_instance(elem, lhs, elem.fanout())
+            tree.add_rule(id, ri, w)
+
+# FIXME: there must a better way to construct the Derivation tree
+# the position of the nonterminal no rhs that follows the dot
+# (counting started from 1)
+# input: key-string of Rule_instance
+# return: int
+def dot_position(key):
+    if isinstance(key, str) or isinstance(key, unicode):
+        match = re.search(r'^.*->(.*)\*(.*)$', key)
+        return len([i for i in match.group(1).split(' ') if i != '']) + 1
+    else:
+        return 1
+
+# extract spans from key-string of passive item
+# key: string (e.g. "A([0-4]; [12-15])" )
+# return: list of Span
+def extract_spans(key):
+    spans = []
+    match = re.search(r'^\s*.*\((\s*\[.*\]\s*)\)\s*$',key)
+    for s in match.group(1).split('; '):
+        match1 = re.search(r'^\[([0-9]+)-([0-9]+)\];*$', s)
+        spans += [Span(int(match1.group(1)), int(match1.group(2)))]
+    return spans
+
+
+
 # Print derivation with indentation.
 # der: derivation
 def print_derivation(der):
@@ -838,10 +997,12 @@ def labelled_spans_recur(der, spans):
 
 def test_lcfrs():
     g = read_LCFRS('examples/testgram.gra')
-    inp = 'a f d g e f b c'.split()
+    # inp = 'a f d g e f b c'.split()
+    inp = 'a a b b c c d d'.split()
     # print str(g).encode('iso-8859-1')
     print g
     g.make_proper()
+    print g
     # print g
     # print inp
     # rules = g.epsilon_rules()
@@ -852,7 +1013,17 @@ def test_lcfrs():
 	# for inst in instances:
 	    # print inst
     p = LCFRS_parser(g, inp)
-    # p.print_parse()
-    print dcp_terms_to_str(p.dcp())
+    print "Recognized?", p.recognized()
+    if (p.recognized()):
+        print p.best()
+        p.print_parse()
 
-# test_lcfrs()
+        der = p.newBestDerivation()
+        tree = derivation_to_hybrid_tree(der, inp, inp, [])
+        print tree.labelled_spans()
+        print tree.labelled_yield()
+        print tree.unlabelled_structure()
+    # p.print_parse()
+    # print dcp_terms_to_str(p.dcp())
+
+test_lcfrs()
