@@ -704,8 +704,13 @@ class The_DCP_evaluator(DCP_evaluator):
             lhs = dcp_rule.lhs()
             rhs = dcp_rule.rhs()
             if lhs.mem() == mem and lhs.arg() == arg:
-                return [t for term in rhs \
-			        for t in self.__eval_dcp_term(term, id)]
+                # return [t for term in rhs \
+			     #    for t in self.__eval_dcp_term(term, id)]
+                result = []
+                for term in rhs:
+                    evaluation = self.__eval_dcp_term(term, id)
+                    result += evaluation
+                return evaluation
 
     # term: DCP_term/DCP_var
     # der: 'derivation'
@@ -742,9 +747,10 @@ class The_DCP_evaluator(DCP_evaluator):
         if mem >= 0:
             return self.__evaluate(id + self.__der.gorn_delimiter() + str(mem), -1, arg)
         else:
-            match = re.search(r'^(.*)' + self.__der.gorn_delimiter_regex() + str(mem) + '$' ,id)
+            match = re.search(r'^(.*)' + self.__der.gorn_delimiter_regex() + '([0-9]+)$' ,id)
+            print match.group(1), match.group(2)
             if match:
-                return self.__evaluate(match.group(1), arg)
+                return self.__evaluate(match.group(1), int(match.group(2)), arg)
             else:
                 raise Exception('strange var ' + var)
 
@@ -1036,6 +1042,7 @@ class LCFRS_parser:
             ri = Rule_instance(elem, lhs, elem.fanout())
             tree.add_rule(id, ri, w)
 
+# FIXME: This method only works, if nonterminals don't contain whitespace!!!
 # FIXME: there must a better way to construct the Derivation tree
 # the position of the nonterminal no rhs that follows the dot
 # (counting started from 0)

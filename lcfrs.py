@@ -390,14 +390,14 @@ class LCFRS:
     # Otherwise leave order unchanged.
     # return: string
     def __str__(self):
-	s = ''
-	for rule in self.__lhs_nont_to_rules[self.start()]:
-	    if rule.lhs().nont() == self.start():
-		s += str(rule) + '\n'
-	for rule in self.__rules:
-	    if rule.lhs().nont() != self.start():
-		s += str(rule) + '\n'
-	return s
+        s = ''
+        for rule in self.__lhs_nont_to_rules[self.start()]:
+            if rule.lhs().nont() == self.start():
+                s += str(rule) + '\n'
+        for rule in self.__rules:
+            if rule.lhs().nont() != self.start():
+                s += str(rule) + '\n'
+        return s
 	    
 ############################################################
 # Reading in grammar.

@@ -225,6 +225,10 @@ class GeneralHybridTree:
                       cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
                                            [y[1]] + [-y[2]] + y[3:] + [y[0]]))
 
+    #
+    def id_yield(self):
+        return self.__ordered_ids
+
     # Get yield as list of all labels of nodes, that are in the ordering
     # return: list of string
     def labelled_yield(self):
@@ -285,6 +289,17 @@ class GeneralHybridTree:
                 return True
         return self.rooted() and len(self.fringe(self.root())) == 0
 
+    # The siblings of id, i.e. the children of id's parent (including id),
+    # ordered from left to right.
+    # If id is the root, [root] is returned
+    # id: string
+    # return: list of string (node ids)
+    def siblings(self, id):
+        if self.root() == id:
+            return [id]
+        else:
+            parent = self.parent(id)
+            return self.children(parent)
 
 #
 def test():

@@ -78,7 +78,7 @@ class DCP_var(DCP_rhs_object):
             return '<' + str(self.mem()) + ',' + str(self.arg()) + '>'
 
     def evaluateMe(self, evaluator, id):
-        evaluator.evaluateVariable(self, id)
+        return evaluator.evaluateVariable(self, id)
 
 # Index, pointing to terminal in left (LCFRS) component of hybrid grammar.
 # Terminals are indexed in left-to-right order.
@@ -100,14 +100,14 @@ class DCP_index(DCP_rhs_object):
 
     # Evaluator Invocation
     def evaluateMe(self, evaluator, id):
-        evaluator.evaluateIndex(self, id)
+        return evaluator.evaluateIndex(self, id)
 
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
 class DCP_string(str, DCP_rhs_object):
     # Evaluator invocation
     def evaluateMe(self, evaluator, id):
-        evaluator.evaluateString(self, id)
+        return evaluator.evaluateString(self, id)
 
 # An index replaced by an input position, according to parsing of a string with 
 # the left (LCFRS) component of hybrid grammar.
@@ -157,7 +157,7 @@ class DCP_term(DCP_rhs_object):
 
     # Evaluator invocation
     def evaluateMe(self, evaluator, id):
-        evaluator.evaluateTerm(self, id)
+        return evaluator.evaluateTerm(self, id)
 
 # Rule defining argument value by term.
 class DCP_rule:
