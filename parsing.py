@@ -666,7 +666,8 @@ def dcp_to_hybridtree(dcp, poss, words):
 def dcp_to_hybridtree_recur(dcp, tree, next_id):
     head = dcp.head()
     if isinstance(head, DCP_pos):
-        id = str(dcp.pos())
+        # FIXME : inconsistent counting of positions in hybrid tree requires -1
+        id = str(head.pos() - 1)
     elif isinstance(head, DCP_string):
         label = head
         id = str(next_id)
@@ -710,7 +711,7 @@ class The_DCP_evaluator(DCP_evaluator):
                 for term in rhs:
                     evaluation = self.__eval_dcp_term(term, id)
                     result += evaluation
-                return evaluation
+                return result
 
     # term: DCP_term/DCP_var
     # der: 'derivation'
@@ -739,7 +740,7 @@ class The_DCP_evaluator(DCP_evaluator):
         else:
             evaluated_head = head.evaluateMe(self, id)
         ground = [t for arg_term in arg for t in self.__eval_dcp_term(arg_term, id)]
-        return [DCP_term(head, ground)]
+        return [DCP_term(evaluated_head, ground)]
 
     def evaluateVariable(self, var, id):
         mem = var.mem()

@@ -267,6 +267,9 @@ def test_dependency_induction():
     parser = LCFRS_parser(grammar, 'Piet Marie helpen lezen'.split(' '))
     parser.print_parse()
 
-    parser.new_DCP_Hybrid_Tree('P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))
+    hybrid_tree = parser.new_DCP_Hybrid_Tree('P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))
+    print hybrid_tree.full_labelled_yield()
+    print hybrid_tree
+
 
 test_dependency_induction()

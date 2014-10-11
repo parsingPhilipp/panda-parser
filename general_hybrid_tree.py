@@ -301,6 +301,15 @@ class GeneralHybridTree:
             parent = self.parent(id)
             return self.children(parent)
 
+    def __hybrid_tree_str(self, root, level):
+        s = level * ' ' + self.node_label(root) + '\n'
+        for child in self.children(root):
+            s += self.__hybrid_tree_str(child, level + 1)
+        return s
+
+    def __str__(self):
+        return self.__hybrid_tree_str(self.root(), 0)
+
 #
 def test():
     print "Start"
