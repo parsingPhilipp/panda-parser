@@ -88,7 +88,7 @@ class DCP_index(DCP_rhs_object):
     # dep_label: string
     def __init__(self, i, dep_label = None):
         self.__i = i
-        self.__dep_label = None
+        self.__dep_label = dep_label
 
     # The index.
     # return: int
@@ -110,6 +110,14 @@ class DCP_index(DCP_rhs_object):
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
 class DCP_string(str, DCP_rhs_object):
+    __dep_label = None
+
+    def set_dep_label(self, dep_label):
+        self.__dep_label = dep_label
+
+    def dep_label(self):
+        return self.__dep_label
+
     # Evaluator invocation
     def evaluateMe(self, evaluator, id):
         return evaluator.evaluateString(self, id)
@@ -119,13 +127,18 @@ class DCP_string(str, DCP_rhs_object):
 class DCP_pos:
     # Constructor.
     # pos: int
-    def __init__(self, pos):
+    # dep_label: string
+    def __init__(self, pos, dep_label = None):
         self.__pos = pos
+        self.__dep_label = dep_label
 
     # The position.
     # return: int
     def pos(self):
         return self.__pos
+
+    def dep_label(self):
+        return self.__dep_label
 
     # String representation.
     # return: string

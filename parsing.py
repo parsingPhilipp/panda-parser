@@ -675,6 +675,7 @@ def dcp_to_hybridtree_recur(dcp, tree, next_id):
         tree.set_label(id, label)
     else:
         raise Exception
+    tree.set_dep_label(id, head.dep_label())
     for child in dcp.arg():
         (tree_child, next_id) = \
             dcp_to_hybridtree_recur(child, tree, next_id)
@@ -727,7 +728,7 @@ class The_DCP_evaluator(DCP_evaluator):
     def evaluateIndex(self, index, id):
         i = index.index()
         pos = sorted(self.__der.terminal_positions(id))[i]
-        return DCP_pos(pos)
+        return DCP_pos(pos, index.dep_label())
 
     # term: DCP_term
     def evaluateTerm(self, term, id):

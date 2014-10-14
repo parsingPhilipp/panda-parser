@@ -151,13 +151,14 @@ def create_LCFRS_lhs(tree, node_ids, children):
 # Otherwise, there is no inherited argument, and the only synthesized argument
 # generates a DCP_term of the form "[0]( )".
 # bottom_max: list of list of string
-def create_leaf_DCP_rule(bottom_max):
+# dependency_label: dependency label linked to the corresponding terminal
+def create_leaf_DCP_rule(bottom_max, dependency_label):
     if bottom_max:
         arg = 1
     else:
         arg = 0
     lhs = DCP_var(-1, arg)
-    term_head = DCP_index(0)
+    term_head = DCP_index(0, dependency_label)
     if bottom_max:
         term_arg = [DCP_var(-1, 0)]
     else:
@@ -185,7 +186,8 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar):
         t_max = top_max(tree, node_ids)
         b_max = bottom_max(tree, node_ids)
 
-        dcp = [create_leaf_DCP_rule(b_max)]
+        dependency_label = tree.node_dep_label(node_ids[0])
+        dcp = [create_leaf_DCP_rule(b_max, dependency_label)]
         lhs = create_leaf_LCFRS_lhs(tree, node_ids)
 
         grammar.add_rule(lhs, [], 1.0, dcp)
@@ -234,8 +236,13 @@ def test_dependency_induction():
     tree.add_child("v","v1")
     tree.add_child("v2","v21")
     tree.set_root("v")
+    tree.set_dep_label('v','ROOT')
+    tree.set_dep_label('v1','SBJ')
+    tree.set_dep_label('v2','VBI')
+    tree.set_dep_label('v21','VFIN')
     tree.reorder()
     print tree.children("v")
+    print tree
 
     for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
                    'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
@@ -271,6 +278,11 @@ def test_dependency_induction():
     hybrid_tree = parser.new_DCP_Hybrid_Tree(hybrid_tree, 'P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))
     print hybrid_tree.full_labelled_yield()
     print hybrid_tree
+
+    string = "hallo"
+    dcp_string = DCP_string(string)
+    dcp_string.set_dep_label("dep")
+    print dcp_string, dcp_string.dep_label()
 
 
 test_dependency_induction()

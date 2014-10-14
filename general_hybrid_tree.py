@@ -269,7 +269,10 @@ class GeneralHybridTree:
     # Get dependency label (DEPREL) of node
     # id: string
     def node_dep_label(self, id):
-        return self.__id_to_dep_label[id]
+        if id in self.__id_to_dep_label.keys():
+            return self.__id_to_dep_label[id]
+        else:
+            return None
 
     # Set dependency label (DEPREL) of node
     # id: string
@@ -315,7 +318,12 @@ class GeneralHybridTree:
             return self.children(parent)
 
     def __hybrid_tree_str(self, root, level):
-        s = level * ' ' + self.node_label(root) + '\n'
+        dep = self.node_dep_label(root)
+        if dep:
+            dep = '\t('+dep+')\t'
+        else:
+            dep = ''
+        s = level * ' ' + self.node_label(root) + dep + '\n'
         for child in self.children(root):
             s += self.__hybrid_tree_str(child, level + 1)
         return s
