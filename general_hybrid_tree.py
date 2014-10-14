@@ -31,6 +31,8 @@ class GeneralHybridTree:
         self.__node_index_to_id = {}
         # number of nodes in ordering
         self.__n_ordered_nodes = 0
+        # store dependency labels (DEPREL in ConLL)
+        self.__id_to_dep_label = {}
 
      # Get label of sentence.
     # return: string
@@ -263,6 +265,17 @@ class GeneralHybridTree:
     # id: string
     def node_pos(self, id):
         return self.__id_to_pos[id]
+
+    # Get dependency label (DEPREL) of node
+    # id: string
+    def node_dep_label(self, id):
+        return self.__id_to_dep_label[id]
+
+    # Set dependency label (DEPREL) of node
+    # id: string
+    # dep_label: string
+    def set_dep_label(self, id, dep_label):
+        self.__id_to_dep_label[id] = dep_label
 
     # Get POS-yield (omitting disconnected nodes)
     def pos_yield(self):
