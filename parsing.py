@@ -646,10 +646,9 @@ def position_of_terminal(i, rule, spans, child_spans):
 # dcp: list of DCP_term/DCP_pos
 # poss: list of string
 # words: list of string
-def dcp_to_hybridtree(dcp, poss, words):
+def dcp_to_hybridtree(tree, dcp, poss, words):
     if len(dcp) != 1:
         raise Exception('DCP has multiple roots')
-    tree = GeneralHybridTree()
     for (i, (pos, word)) in enumerate(zip(poss, words)):
     #    tree.add_leaf(str(i), pos, word)
         tree.add_node(str(i),word, pos, True, True)
@@ -734,11 +733,7 @@ class The_DCP_evaluator(DCP_evaluator):
     def evaluateTerm(self, term, id):
         head = term.head()
         arg  = term.arg()
-        # TODO: legacy fallback for old-style DCP-rules of constituency induction
-        if not isinstance(head, DCP_string) and isinstance(head, str):
-            evaluated_head = DCP_string(head)
-        else:
-            evaluated_head = head.evaluateMe(self, id)
+        evaluated_head = head.evaluateMe(self, id)
         ground = [t for arg_term in arg for t in self.__eval_dcp_term(arg_term, id)]
         return [DCP_term(evaluated_head, ground)]
 
@@ -960,10 +955,10 @@ class LCFRS_parser:
         else:
             return None
 
-    def new_DCP_Hybrid_Tree(self, poss, words):
+    def new_DCP_Hybrid_Tree(self, tree, poss, words):
         dcp_evaluation = self.newDCP()
         if dcp_evaluation:
-            return dcp_to_hybridtree(dcp_evaluation, poss, words)
+            return dcp_to_hybridtree(tree, dcp_evaluation, poss, words)
         else:
             return None
 

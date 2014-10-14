@@ -19,7 +19,7 @@ def direct_extract_lcfrs(tree):
         lhs = LCFRS_lhs(start)
         pos = tree.leaf_pos(root)
         lhs.add_arg([pos])
-        dcp_rule = DCP_rule(DCP_var(-1,0), [DCP_index(0)])
+        dcp_rule = DCP_rule(DCP_var(-1,0), [DCP_term(DCP_index(0), [])])
         gram.add_rule(lhs, [], dcp=[dcp_rule])
     else:
         first = direct_extract_lcfrs_from(tree, root, gram)
@@ -233,7 +233,7 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos):
             if tree.is_leaf(elem):
                 k = tree.leaf_index(elem)
                 pos = term_to_pos[k]
-                terms += [DCP_index(pos)]
+                terms.append(DCP_term(DCP_index(pos), []))
             else:
                 lab = tree.label(elem)
                 arg = make_fringe_terms(tree, tree.children(elem), \

@@ -452,7 +452,8 @@ def parse_tree_by_gram(tree, gram, accuracy):
     # print 'failure', tree.sent_label() # for testing
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
-        dcp_tree = p.new_DCP_Hybrid_Tree(poss, words)
+        dcp_tree = HybridTree()
+        dcp_tree = p.new_DCP_Hybrid_Tree(dcp_tree, poss, words)
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
         accuracy.add_accuracy(retrieved, relevant)
@@ -466,7 +467,7 @@ def parse_tree_by_gram(tree, gram, accuracy):
 # parse_test(20, method=fanout_two_extraction)
 # parse_test(20, method=fanout_three_extraction)
 # parse_test(20, method=fanout_four_extraction)
-parse_test(10, method=left_branch_extraction)
+parse_test(20, method=left_branch_extraction)
 # parse_test(20, method=right_branch_extraction)
 
 # parse_test(20, method=left_branch_extraction_child)
@@ -497,16 +498,17 @@ def parse_tree_by_gram_and_compare(tree, gram):
     words = tree.word_yield()
     p = LCFRS_parser(gram, poss)
     if not p.recognized():
-	print 'failure', tree.sent_label()
+        print 'failure', tree.sent_label()
     else:
-	dcp_tree = p.dcp_hybrid_tree(poss, words)
-	# retrieved = normalize_labelled_spans(p.labelled_spans())
-	retrieved = dcp_tree.labelled_spans()
-	relevant = tree.labelled_spans()
-	print 'retrieved', retrieved
-	print 'relevant', relevant
-	# tree.canvas()
-	# dcp_tree.canvas()
+        # dcp_tree = p.dcp_hybrid_tree(poss, words)
+        dcp_tree = p.new_DCP_Hybrid_Tree(poss, words)
+        # retrieved = normalize_labelled_spans(p.labelled_spans())
+        retrieved = dcp_tree.labelled_spans()
+        relevant = tree.labelled_spans()
+        print 'retrieved', retrieved
+        print 'relevant', relevant
+        # tree.canvas()
+        # dcp_tree.canvas()
 # UNCOMMENT if desired
 # parse_compare(20)
 # parse_compare(20, method=basic_extraction)
