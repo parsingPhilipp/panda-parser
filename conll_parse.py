@@ -5,9 +5,8 @@ __author__ = 'kilian'
 from general_hybrid_tree import GeneralHybridTree
 import re
 
-def parse_word(s, grammar):
-    #re.search
-    return
+
+test_file = 'examples/Dependency_Corpus.conll'
 
 global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4       NK
 2       Göttinger       _       ADJA    ADJA    _       4       NK      4       NK
@@ -27,26 +26,67 @@ global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4 
 16      .       _       $.      $.      _       6       PUNC    6       PUNC"""
 
 
-def test_conll_parse():
-    s = global_s
-    ss = s.split('\n')
-    tree = GeneralHybridTree("s1")
-    tree.add_node("0", "ROOT", None, False, False)
-    tree.set_root("0")
+def match_line(line):
+    match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)$', line)
+    return match
 
-    for s in ss:
-        match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)$',s)
-        if match:
-            # s = match.group(11)
+# parses a conll file
+# file: path to file
+# return: list of GeneralHbyridTree
+def parse_conll_corpus(file):
+    file_content = open(file).readlines()
+
+    trees = []
+
+    i = 0;
+    tree_count = 0
+
+    while i < len(file_content):
+        tree = None
+        line = file_content[i]
+        match = match_line(line)
+        while match:
+            if match.group(1) == '1':
+                tree_count += 1
+                tree = GeneralHybridTree('tree' + str(tree_count))
+
             id = match.group(1)
             label = match.group(2)
             pos = match.group(4)
             parent = match.group(7)
             deprel = match.group(8)
+
             tree.add_node(id, label, pos, True, True)
             tree.add_child(parent, id)
-            # match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(.*$)',s)
-            print "adding", label, "with", id,"to parent", parent
-    print tree
 
+            if parent == '0':
+                tree.set_root(id)
+
+            if i < len(file_content):
+                line = file_content[i]
+                match = match_line(line)
+                i += 1
+            else:
+                match = None
+
+        # Assume empty line, otherwise raise exception
+        match = re.search(r'^[^\s]*$', line)
+        if not match:
+            raise Exception
+
+        if tree:
+            # basic sanity checks
+            if not tree.rooted():
+                raise Exception
+            elif tree.n_nodes() != len(tree.full_yield()):
+                raise Exception
+
+            trees.append(tree)
+            # print tree
+    return trees
+
+def test_conll_parse():
+    trees = parse_conll_corpus(test_file)
+    for tree in trees:
+        print tree
 test_conll_parse()
