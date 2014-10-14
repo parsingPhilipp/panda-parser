@@ -70,7 +70,7 @@ def direct_extract_lcfrs_from(tree, id, gram):
     dcp_lhs = DCP_var(-1, 0)
     dcp_indices = [DCP_index(i) for i in range(n_terms)]
     dcp_vars = [DCP_var(i, 0) for i in range(len(rhs))]
-    dcp_term = DCP_term(label, dcp_indices + dcp_vars)
+    dcp_term = DCP_term(DCP_string(label), dcp_indices + dcp_vars)
     dcp_rule = DCP_rule(dcp_lhs, [dcp_term])
     gram.add_rule(lhs, rhs, dcp=[dcp_rule])
     for (child, _) in children:
@@ -238,7 +238,7 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos):
                 lab = tree.label(elem)
                 arg = make_fringe_terms(tree, tree.children(elem), \
                                         child_seqss, term_to_pos)
-                terms += [DCP_term(lab, arg)]
+                terms.append(DCP_term(DCP_string(lab), arg))
     return terms
 
 # Turn span into LCFRS arg (variables and terminals).

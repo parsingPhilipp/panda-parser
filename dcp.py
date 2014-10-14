@@ -85,13 +85,18 @@ class DCP_var(DCP_rhs_object):
 class DCP_index(DCP_rhs_object):
     # Constructor.
     # i: int
-    def __init__(self, i):
+    # dep_label: string
+    def __init__(self, i, dep_label = None):
         self.__i = i
+        self.__dep_label = None
 
     # The index.
     # return: int
     def index(self):
         return self.__i
+
+    def dep_label(self):
+        return self.__dep_label
 
     # String representation.
     # return: string
