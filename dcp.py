@@ -101,7 +101,11 @@ class DCP_index(DCP_rhs_object):
     # String representation.
     # return: string
     def __str__(self):
-        return '[' + str(self.index()) + ']'
+        if self.__dep_label:
+            s = ':{' + self.__dep_label + '}'
+        else:
+            s = ''
+        return '[' + str(self.index()) + s + ']'
 
     # Evaluator Invocation
     def evaluateMe(self, evaluator, id):
