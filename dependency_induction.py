@@ -49,12 +49,21 @@ def max(tree, id_set):
 
     return max_list
 
+# Compute list of node ids that delimit id_set from the top.
+# and group maximal subsets of neighbouring nodes together.
+# tree: GeneralHybridTree
+# id_set: list of string
+# return: list of list of string
 def top_max(tree, id_set):
     return max(tree, top(tree, id_set))
 
+# Compute list of node ids that delimit id_set from the bottom.
+# and group maximal subsets of neighbouring nodes together.
+# tree: GeneralHybridTree
+# id_set: list of string
+# return: list of list of string
 def bottom_max(tree, id_set):
     return max(tree, bottom(tree, id_set))
-
 
 #   Create DCP equation for some synthesized attributes of LHS nont
 #   or inherited attributes of RHS nont of an LCFRS-sDCP-hybrid rule.
@@ -107,9 +116,15 @@ def create_DCP_rule(mem, arg, top_max, bottom_max, children):
             c_index += 1
         # Sanity check, that attribute was matched:
         if not match:
-            raise Exception
+            raise Exception('Expected ingredient for synthezized or inherited argument was not found.')
     return DCP_rule(lhs, rhs)
 
+# Create the LCFFRS_lhs of some LCFRS-DCP hybrid rule.
+# tree: GeneralHybridTree
+# node_ids: list of string (node in an recursive partitioning)
+# children: list of pairs of list of list of string
+#           (pairs of top_max / bottom_max of child nodes in recurisve partitioning)
+# return: LCFRS_lhs
 def create_LCFRS_lhs(tree, node_ids, children):
     positions = map(tree.node_index, node_ids)
     spans = join_spans(positions)
@@ -136,12 +151,10 @@ def create_LCFRS_lhs(tree, node_ids, children):
                 mem += 1
             # Sanity check
             if not match:
-                raise Exception
+                raise Exception('Expected ingredient for LCFRS argument was not found.')
         lhs.add_arg(arg)
 
     return lhs
-
-
 
 # Creates a DCP rule for a leaf of the recursive partitioning.
 # Note that the linked LCFRS-rule has an empty RHS.
@@ -166,6 +179,11 @@ def create_leaf_DCP_rule(bottom_max, dependency_label):
     rhs = [DCP_term(term_head, term_arg)]
     return DCP_rule(lhs, rhs)
 
+# Create LCFRS_lhs for a leaf of the recursive partitioning,
+# i.e. this LCFRS creates (consumes) exactly one terminal symbol.
+# tree: GeneralizedHybridTree
+# node_ids: list of string
+# return LCFRS_lhs
 def create_leaf_LCFRS_lhs(tree, node_ids):
     # Build LHS
     lhs = LCFRS_lhs(nonterminal_str(node_ids))
@@ -173,8 +191,14 @@ def create_leaf_LCFRS_lhs(tree, node_ids):
     arg = [tree.node_label(id)]
     lhs.add_arg(arg)
     return lhs
-#
+
+# Extract LCFRS/DCP-hybrid-rules from some hybrid tree, according to some recursive partitioning
+# and add them to some grammar.
+# tree: GeneralHybridTree
+# rec_par: pair of (list of string) and (list of rec_par))
+#       (recursive partitioning)
 # return: pair of list of list of string
+#       (top_max / bottom_max of top most node in the recursive partitioning)
 def add_rules_to_grammar_rec(tree, rec_par, grammar):
     (node_ids, children) = rec_par
 
@@ -226,22 +250,34 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar):
 def nonterminal_str(nont):
     return str(nont).replace('[','{').replace(']','}').replace(' ','')
 
-# create nonterminal label
-# return string
+# Create nonterminal label, according to strict labeling strategy.
+# tree: GeneralHybridTree
+# t_max / b_max: list of list of string
+#   (top max / bottom max of node in recursive partitioning, for
+#    which the name is computed.)
+# return: string
 def strict_labeling(tree, t_max, b_max):
-    name_seqs = b_max + t_max
-    arg_dep = argument_dependencies(tree, name_seqs)
-    strict_label = ','.join(['#'.join(map(tree.node_label, name_seq)) for name_seq in name_seqs])
+    id_seqs = b_max + t_max
+    arg_dep = argument_dependencies(tree, id_seqs)
+    strict_label = ','.join(['#'.join(map(tree.node_label, id_seq)) for id_seq in id_seqs])
 
     return '{' + strict_label + ',' + arg_dep + '}'
 
+# Create nonterminal label, according to child labeling strategy.
+# tree: GeneralHybridTree
+# t_max / b_max: list of list of string
+#   (top max / bottom max of node in recursive partitioning, for
+#    which the name is computed.)
+# return: string
 def child_labeling(tree, t_max, b_max):
-    name_seqs = b_max + t_max
-    arg_dep = argument_dependencies(tree, name_seqs)
-    strict_label = ','.join([child_of(tree, name_seq) for name_seq in name_seqs])
+    id_seqs = b_max + t_max
+    arg_dep = argument_dependencies(tree, id_seqs)
+    strict_label = ','.join([child_of(tree, id_seq) for id_seq in id_seqs])
 
     return '{' + strict_label + ',' + arg_dep + '}'
 
+# Auxiliary function, that replaces consecutive tree ids by the appropriate
+# string in child labeling.
 def child_of(tree, id_seq):
     if len(id_seq) == 1:
         return tree.node_label(id_seq[0])
@@ -251,14 +287,23 @@ def child_of(tree, id_seq):
     else:
         raise Exception('Empty components in top_max!')
 
-def argument_dependencies(tree, name_seqs):
+# Compute a string that represents, how the arguments of some dcp-nonterminal
+# depend on one another.
+# tree: GeneralizedHybridTree
+# id_seq: list of list of string (Concatenation of top_max and bottom_max)
+# return: string
+#   (of the form "1.4(0).2(3(5))": 1, 4 and 2 are independent, 4 depends on 0, etc.)
+def argument_dependencies(tree, id_seqs):
+
+    # Build a table with the dependency relation of arguments.
+    # The table holds the indices of a node in name_seqs.
     ancestor = {}
     descendants = {}
 
-    for i in range(len(name_seqs)):
-        name_seq = name_seqs[i]
-        for j in range(len(name_seqs)):
-            name_seq2 = name_seqs[j]
+    for i in range(len(id_seqs)):
+        name_seq = id_seqs[i]
+        for j in range(len(id_seqs)):
+            name_seq2 = id_seqs[j]
             if name_seq[0] in [descendant for id in name_seq2 for descendant in tree.descendants(id) ]:
                 ancestor[i] = j
                 if not j in descendants.keys():
@@ -266,27 +311,35 @@ def argument_dependencies(tree, name_seqs):
                 else:
                     descendants[j].append(i)
 
-    nonrelated = [i for i in range(len(name_seqs)) if i not in ancestor.keys()]
-    return argument_dependencies_rec(tree, name_seqs, descendants, nonrelated)
+    # compute the set of nodes that have no ancestors
+    topmost = [i for i in range(len(id_seqs)) if i not in ancestor.keys()]
 
-def argument_dependencies_rec(tree, name_seqs, descendants, arg_indices):
+    # recursively compute the dependency string
+    return argument_dependencies_rec(tree, id_seqs, descendants, topmost)
+
+# Recursively compute the string for the argument dependencies.
+# tree: GeneralizedHybridTree
+# id_seqs: list of list of string (concatenation of top_max and bottom_max)
+# descendants: map from (indices of id_seqs) to (list of (indices of id_seqs))
+# arg_indices: list of (indices of id_seqs)
+# return: string
+def argument_dependencies_rec(tree, id_seqs, descendants, arg_indices):
+    # skip nodes that are descendants of some other node in arg_indices
     skip = [i for j in arg_indices for i in arg_indices if j in descendants.keys() and i in descendants[j] ]
     arg_indices = [i for i in arg_indices if i not in skip]
+
+    # sort indices according to position in yield
     arg_indices = sorted(arg_indices,
-           cmp= lambda i, j: cmp(tree.node_index(name_seqs[i][0]),
-                                 tree.node_index(name_seqs[j][0])))
+           cmp= lambda i, j: cmp(tree.node_index(id_seqs[i][0]),
+                                 tree.node_index(id_seqs[j][0])))
     term = []
     for i in arg_indices:
         t = str(i)
         if i in descendants.keys():
-            t += '(' + argument_dependencies_rec(tree, name_seqs, descendants, descendants[i]) + ')'
+            t += '(' + argument_dependencies_rec(tree, id_seqs, descendants, descendants[i]) + ')'
         term.append(t)
 
     return '.'.join(term)
-
-
-
-
 
 def test_dependency_induction():
     tree = GeneralHybridTree()
