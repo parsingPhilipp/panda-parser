@@ -125,13 +125,13 @@ def create_DCP_rule(mem, arg, top_max, bottom_max, children):
 # children: list of pairs of list of list of string
 #           (pairs of top_max / bottom_max of child nodes in recurisve partitioning)
 # return: LCFRS_lhs
-def create_LCFRS_lhs(tree, node_ids, children):
+def create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, labelling):
     positions = map(tree.node_index, node_ids)
     spans = join_spans(positions)
 
     children_spans = map(join_spans, [map(tree.node_index, ids) for (ids,_) in children])
 
-    lhs = LCFRS_lhs(nonterminal_str(node_ids))
+    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, labelling))
     for (low, high) in spans:
         arg = []
         i = low
@@ -184,9 +184,9 @@ def create_leaf_DCP_rule(bottom_max, dependency_label):
 # tree: GeneralizedHybridTree
 # node_ids: list of string
 # return LCFRS_lhs
-def create_leaf_LCFRS_lhs(tree, node_ids):
+def create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling):
     # Build LHS
-    lhs = LCFRS_lhs(nonterminal_str(node_ids))
+    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, labelling))
     id = node_ids[0]
     arg = [tree.node_label(id)]
     lhs.add_arg(arg)
@@ -197,9 +197,10 @@ def create_leaf_LCFRS_lhs(tree, node_ids):
 # tree: GeneralHybridTree
 # rec_par: pair of (list of string) and (list of rec_par))
 #       (recursive partitioning)
+# labelling: string ('strict' or 'child' labelling of nonterminals)
 # return: pair of list of list of string
 #       (top_max / bottom_max of top most node in the recursive partitioning)
-def add_rules_to_grammar_rec(tree, rec_par, grammar):
+def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
     (node_ids, children) = rec_par
 
     # Sanity check
@@ -212,7 +213,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar):
 
         dependency_label = tree.node_dep_label(node_ids[0])
         dcp = [create_leaf_DCP_rule(b_max, dependency_label)]
-        lhs = create_leaf_LCFRS_lhs(tree, node_ids)
+        lhs = create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling)
 
         grammar.add_rule(lhs, [], 1.0, dcp)
 
@@ -222,7 +223,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar):
         # Create rules for children and obtain top_max and bottom_max of child nodes
         child_t_b_max = []
         for child in children:
-            child_t_b_max.append(add_rules_to_grammar_rec(tree, child, grammar))
+            child_t_b_max.append(add_rules_to_grammar_rec(tree, child, grammar, labelling))
 
         # construct dcp equations
         dcp = []
@@ -240,15 +241,20 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar):
                 dcp.append(create_DCP_rule(cI, arg, t_max, b_max, child_t_b_max))
 
          # create lcfrs-rule, attach dcp and add to grammar
-        lhs = create_LCFRS_lhs(tree, node_ids, children)
-        rhs = map(nonterminal_str,[ids for (ids, _) in children])
-
+        lhs = create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, labelling)
+        rhs = [nonterminal_str(tree, c_t_max, c_b_max, labelling) for (c_t_max, c_b_max) in child_t_b_max]
         grammar.add_rule(lhs, rhs, 1.0, dcp)
 
         return (t_max, b_max)
 
-def nonterminal_str(nont):
-    return str(nont).replace('[','{').replace(']','}').replace(' ','')
+def nonterminal_str(tree, t_max, b_max, labelling):
+    if labelling == 'strict':
+        return strict_labeling(tree, t_max, b_max)
+    elif labelling == 'child':
+        return child_labeling(tree, t_max, b_max)
+    else:
+        raise Exception('Unknown labelling scheme \'' + labelling +'\'')
+    # return str(nont).replace('[','{').replace(']','}').replace(' ','')
 
 # Create nonterminal label, according to strict labeling strategy.
 # tree: GeneralHybridTree
@@ -304,7 +310,7 @@ def argument_dependencies(tree, id_seqs):
         name_seq = id_seqs[i]
         for j in range(len(id_seqs)):
             name_seq2 = id_seqs[j]
-            if name_seq[0] in [descendant for id in name_seq2 for descendant in tree.descendants(id) ]:
+            if name_seq[0] in [descendant for id in name_seq2 for descendant in tree.descendants(id)]:
                 ancestor[i] = j
                 if not j in descendants.keys():
                     descendants[j] = [i]
@@ -418,9 +424,9 @@ def test_dependency_induction():
                    ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
                ])
 
-    grammar = LCFRS(nonterminal_str(rec_par[0]))
+    grammar = LCFRS(nonterminal_str(tree, top_max(tree, rec_par[0]), bottom_max(tree, rec_par[0]), 'strict'))
 
-    add_rules_to_grammar_rec(tree, rec_par, grammar)
+    add_rules_to_grammar_rec(tree, rec_par, grammar, 'child')
 
     grammar.make_proper()
     print grammar

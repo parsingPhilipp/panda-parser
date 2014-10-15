@@ -745,7 +745,7 @@ class The_DCP_evaluator(DCP_evaluator):
             return self.__evaluate(id + self.__der.gorn_delimiter() + str(mem), -1, arg)
         else:
             match = re.search(r'^(.*)' + self.__der.gorn_delimiter_regex() + '([0-9]+)$' ,id)
-            print match.group(1), match.group(2)
+            # print match.group(1), match.group(2)
             if match:
                 return self.__evaluate(match.group(1), int(match.group(2)), arg)
             else:
