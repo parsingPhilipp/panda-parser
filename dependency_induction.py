@@ -180,7 +180,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar):
 
     # Sanity check
     if children and len(node_ids) == 1:
-        raise Exception
+        raise Exception('A singleton in a recursive partitioning should not have children.')
 
     if len(node_ids) == 1:
         t_max = top_max(tree, node_ids)
@@ -226,6 +226,68 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar):
 def nonterminal_str(nont):
     return str(nont).replace('[','{').replace(']','}').replace(' ','')
 
+# create nonterminal label
+# return string
+def strict_labeling(tree, t_max, b_max):
+    name_seqs = b_max + t_max
+    arg_dep = argument_dependencies(tree, name_seqs)
+    strict_label = ','.join(['#'.join(map(tree.node_label, name_seq)) for name_seq in name_seqs])
+
+    return '{' + strict_label + ',' + arg_dep + '}'
+
+def child_labeling(tree, t_max, b_max):
+    name_seqs = b_max + t_max
+    arg_dep = argument_dependencies(tree, name_seqs)
+    strict_label = ','.join([child_of(tree, name_seq) for name_seq in name_seqs])
+
+    return '{' + strict_label + ',' + arg_dep + '}'
+
+def child_of(tree, id_seq):
+    if len(id_seq) == 1:
+        return tree.node_label(id_seq[0])
+    elif len(id_seq) > 1:
+        # assuming that id_seq are siblings in tree, and thus also not at root level
+        return 'children-of(' + tree.node_label(tree.parent(id_seq[0])) + ')'
+    else:
+        raise Exception('Empty components in top_max!')
+
+def argument_dependencies(tree, name_seqs):
+    ancestor = {}
+    descendants = {}
+
+    for i in range(len(name_seqs)):
+        name_seq = name_seqs[i]
+        for j in range(len(name_seqs)):
+            name_seq2 = name_seqs[j]
+            if name_seq[0] in [descendant for id in name_seq2 for descendant in tree.descendants(id) ]:
+                ancestor[i] = j
+                if not j in descendants.keys():
+                    descendants[j] = [i]
+                else:
+                    descendants[j].append(i)
+
+    nonrelated = [i for i in range(len(name_seqs)) if i not in ancestor.keys()]
+    return argument_dependencies_rec(tree, name_seqs, descendants, nonrelated)
+
+def argument_dependencies_rec(tree, name_seqs, descendants, arg_indices):
+    skip = [i for j in arg_indices for i in arg_indices if j in descendants.keys() and i in descendants[j] ]
+    arg_indices = [i for i in arg_indices if i not in skip]
+    arg_indices = sorted(arg_indices,
+           cmp= lambda i, j: cmp(tree.node_index(name_seqs[i][0]),
+                                 tree.node_index(name_seqs[j][0])))
+    term = []
+    for i in arg_indices:
+        t = str(i)
+        if i in descendants.keys():
+            t += '(' + argument_dependencies_rec(tree, name_seqs, descendants, descendants[i]) + ')'
+        term.append(t)
+
+    return '.'.join(term)
+
+
+
+
+
 def test_dependency_induction():
     tree = GeneralHybridTree()
     tree.add_node("v1",'Piet',"NP",True)
@@ -239,7 +301,7 @@ def test_dependency_induction():
     tree.set_dep_label('v','ROOT')
     tree.set_dep_label('v1','SBJ')
     tree.set_dep_label('v2','VBI')
-    tree.set_dep_label('v21','VFIN')
+    tree.set_dep_label('v21','OBJ')
     tree.reorder()
     print tree.children("v")
     print tree
@@ -252,17 +314,56 @@ def test_dependency_induction():
     print "some rule"
     for mem, arg in [(-1, 0), (0,0), (1,0)]:
         print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
-                   [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
+                              [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
+
 
     print "some other rule"
     for mem, arg in [(-1,1),(1,0)]:
         print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
-                   [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
+                              [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
+
+    print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
+    print 'child:' , child_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
+    print '---'
+    print 'strict: ', strict_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
+    print 'child: ', child_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
+    print '---'
+    print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
+    print 'child:' , child_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
+
+
+    tree2 = GeneralHybridTree()
+    tree2.add_node("v1",'Piet',"NP",True)
+    tree2.add_node("v21",'lezen',"V",True)
+    tree2.add_node("v211", 'Marie', 'N', True)
+    tree2.add_node("v",'helpen',"V",True)
+    tree2.add_node("v2",'leren', "V", True)
+    tree2.add_child("v","v2")
+    tree2.add_child("v","v1")
+    tree2.add_child("v2","v21")
+    tree2.add_child("v21","v211")
+    tree2.set_root("v")
+    tree2.set_dep_label('v','ROOT')
+    tree2.set_dep_label('v1','SBJ')
+    tree2.set_dep_label('v2','VBI')
+    tree2.set_dep_label('v21','VFIN')
+    tree2.set_dep_label('v211', 'OBJ')
+    tree2.reorder()
+    print tree2.children("v")
+    print tree2
+
+    print 'siblings v211', tree2.siblings('v211')
+    print top(tree2, ['v','v1', 'v211'])
+    print top_max(tree2, ['v','v1', 'v211'])
+
+    print '---'
+    print 'strict:' , strict_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
+    print 'child:' , child_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
 
     rec_par = ('v v1 v2 v21'.split(' '),
-                    [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
-                    ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
-                    ])
+               [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
+                   ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
+               ])
 
     grammar = LCFRS(nonterminal_str(rec_par[0]))
 

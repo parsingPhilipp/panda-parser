@@ -163,6 +163,9 @@ def test_conll_parse():
         if i < len(test_trees):
             print compare_dependency_trees(trees[i], test_trees[i])
             print score_cmp_dep_trees(trees[i], test_trees[i])
+
+    print compare_dependency_trees(trees[i], trees[i])
+    # print score_cmp_dep_trees(trees[i], test_trees[i])
         # print tree
         # print tree_to_conll_str(tree), '\n '
     # print node_to_conll_str(trees[0], trees[0].root())

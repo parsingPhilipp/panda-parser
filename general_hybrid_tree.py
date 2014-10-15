@@ -121,6 +121,17 @@ class GeneralHybridTree:
         else:
             return []
 
+    # Get the list of node ids of all "transitive" children
+    # id: string
+    # return: list of string
+    def descendants(self, id):
+        des = []
+        if id in self.__id_to_child_ids:
+            for id2 in self.__id_to_child_ids[id]:
+                des.append(id2)
+                des += self.descendants(id2)
+        return des
+
     # Is the node in the ordering?
     # id: string
     # return: bool
@@ -315,6 +326,8 @@ class GeneralHybridTree:
             return [id]
         else:
             parent = self.parent(id)
+            if not parent:
+                raise Exception('non-root node has no parent!')
             return self.children(parent)
 
     def __hybrid_tree_str(self, root, level):
