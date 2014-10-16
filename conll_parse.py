@@ -6,6 +6,7 @@ from general_hybrid_tree import GeneralHybridTree
 import re
 from dependency_induction import induce_grammar
 from parsing import LCFRS_parser
+import sys
 
 
 test_file = 'examples/Dependency_Corpus.conll'
@@ -36,7 +37,7 @@ def match_line(line):
 # parses a conll file
 # file: path to file
 # return: list of GeneralHbyridTree
-def parse_conll_corpus(file):
+def parse_conll_corpus(file, limit = sys.maxint):
     file_content = open(file).readlines()
 
     # trees = []
@@ -44,7 +45,7 @@ def parse_conll_corpus(file):
     i = 0;
     tree_count = 0
 
-    while i < len(file_content):
+    while i < len(file_content) and tree_count < limit:
         tree = None
         line = file_content[i]
         match = match_line(line)
