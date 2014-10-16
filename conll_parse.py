@@ -4,7 +4,7 @@ __author__ = 'kilian'
 
 from general_hybrid_tree import GeneralHybridTree
 import re
-from dependency_induction import induce_grammar
+from dependency_induction import induce_grammar, strict_pos, strict_word, child_pos, child_word
 from parsing import LCFRS_parser
 import sys
 
@@ -189,7 +189,7 @@ def test_conll_parse():
 
 def test_conll_grammar_induction():
     trees = parse_conll_corpus(test_file)
-    grammar = induce_grammar(trees, 'strict', 'START')
+    grammar = induce_grammar(trees, child_word, 'START')
 
     trees2 = parse_conll_corpus(test_file)
 

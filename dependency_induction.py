@@ -134,7 +134,7 @@ def create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, labelling):
 
     children_spans = map(join_spans, [map(tree.node_index, ids) for (ids,_) in children])
 
-    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, len(spans), labelling))
+    lhs = LCFRS_lhs(labelling(tree, t_max, b_max, len(spans)))
     for (low, high) in spans:
         arg = []
         i = low
@@ -189,7 +189,7 @@ def create_leaf_DCP_rule(bottom_max, dependency_label):
 # return LCFRS_lhs
 def create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling):
     # Build LHS
-    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, 1, labelling))
+    lhs = LCFRS_lhs(labelling(tree, t_max, b_max, 1))
     id = node_ids[0]
     arg = [tree.node_label(id)]
     lhs.add_arg(arg)
@@ -250,17 +250,18 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
 
         return (t_max, b_max, lhs.nont())
 
-def nonterminal_str(tree, t_max, b_max, fanout, labelling):
+def nonterminal_str(tree, t_max, b_max, fanout, labelling_strategy, node_name):
+    tree_node_name = lambda x: node_name(tree, x)
     if not lcfrs_fanout_in_nonterminal_name:
         fanout = ''
     else:
         fanout = str(fanout) + ':'
-    if labelling == 'strict':
-        return strict_labeling(tree, t_max, b_max, fanout).replace(' ', '').replace('*', '')
-    elif labelling == 'child':
-        return child_labeling(tree, t_max, b_max, fanout).replace(' ', '').replace('*', '')
+    if labelling_strategy == 'strict':
+        return strict_labeling(tree, t_max, b_max, fanout, tree_node_name).replace(' ', '').replace('*', '')
+    elif labelling_strategy == 'child':
+        return child_labeling(tree, t_max, b_max, fanout, tree_node_name).replace(' ', '').replace('*', '')
     else:
-        raise Exception('Unknown labelling scheme \'' + labelling +'\'')
+        raise Exception('Unknown labelling scheme \'' + labelling_strategy +'\'')
     # return str(nont).replace('[','{').replace(']','}').replace(' ','')
 
 # Create nonterminal label, according to strict labeling strategy.
@@ -269,10 +270,10 @@ def nonterminal_str(tree, t_max, b_max, fanout, labelling):
 #   (top max / bottom max of node in recursive partitioning, for
 #    which the name is computed.)
 # return: string
-def strict_labeling(tree, t_max, b_max, fanout):
+def strict_labeling(tree, t_max, b_max, fanout, tree_node_name):
     id_seqs = b_max + t_max
     arg_dep = argument_dependencies(tree, id_seqs)
-    strict_label = ','.join(['#'.join(map(tree.node_label, id_seq)) for id_seq in id_seqs])
+    strict_label = ','.join(['#'.join(map(tree_node_name, id_seq)) for id_seq in id_seqs])
 
     return '{' + fanout + strict_label + ',' + arg_dep + '}'
 
@@ -282,21 +283,21 @@ def strict_labeling(tree, t_max, b_max, fanout):
 #   (top max / bottom max of node in recursive partitioning, for
 #    which the name is computed.)
 # return: string
-def child_labeling(tree, t_max, b_max, fanout):
+def child_labeling(tree, t_max, b_max, fanout, tree_node_name):
     id_seqs = b_max + t_max
     arg_dep = argument_dependencies(tree, id_seqs)
-    strict_label = ','.join([child_of(tree, id_seq) for id_seq in id_seqs])
+    strict_label = ','.join([child_of(tree, id_seq, tree_node_name) for id_seq in id_seqs])
 
     return '{' + fanout +  strict_label + ',' + arg_dep + '}'
 
 # Auxiliary function, that replaces consecutive tree ids by the appropriate
 # string in child labeling.
-def child_of(tree, id_seq):
+def child_of(tree, id_seq, tree_node_name):
     if len(id_seq) == 1:
-        return tree.node_label(id_seq[0])
+        return tree_node_name(id_seq[0])
     elif len(id_seq) > 1:
         # assuming that id_seq are siblings in tree, and thus also not at root level
-        return 'children-of(' + tree.node_label(tree.parent(id_seq[0])) + ')'
+        return 'children-of(' + tree_node_name(tree.parent(id_seq[0])) + ')'
     else:
         raise Exception('Empty components in top_max!')
 
@@ -379,6 +380,11 @@ def induce_grammar(trees, labelling, start_nont = 'START'):
 
     grammar.make_proper()
     return grammar
+
+strict_pos = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_pos(y))
+strict_word = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_label(y))
+child_pos = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_pos(y))
+child_word = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_label(y))
 
 def test_dependency_induction():
     tree = GeneralHybridTree()
@@ -465,7 +471,7 @@ def test_dependency_induction():
     # grammar.make_proper()
     # print grammar
 
-    grammar = induce_grammar([tree, tree2], 'strict', 'START')
+    grammar = induce_grammar([tree, tree2], child_pos, 'START')
 
     parser = LCFRS_parser(grammar, 'Piet Marie helpen lezen'.split(' '))
     parser.print_parse()
@@ -479,6 +485,5 @@ def test_dependency_induction():
     dcp_string = DCP_string(string)
     dcp_string.set_dep_label("dep")
     print dcp_string, dcp_string.dep_label()
-
 
 # test_dependency_induction()
