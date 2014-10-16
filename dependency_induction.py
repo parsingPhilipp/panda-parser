@@ -6,6 +6,9 @@ from lcfrs import *
 from decomposition import join_spans
 from parsing import LCFRS_parser
 
+
+lcfrs_fanout_in_nonterminal_name = True
+
 # Compute list of node ids that delimit id_set from the top.
 # tree: GeneralHybridTree
 # id_set: list of string  (node ids)
@@ -131,7 +134,7 @@ def create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, labelling):
 
     children_spans = map(join_spans, [map(tree.node_index, ids) for (ids,_) in children])
 
-    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, labelling))
+    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, len(spans), labelling))
     for (low, high) in spans:
         arg = []
         i = low
@@ -186,7 +189,7 @@ def create_leaf_DCP_rule(bottom_max, dependency_label):
 # return LCFRS_lhs
 def create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling):
     # Build LHS
-    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, labelling))
+    lhs = LCFRS_lhs(nonterminal_str(tree, t_max, b_max, 1, labelling))
     id = node_ids[0]
     arg = [tree.node_label(id)]
     lhs.add_arg(arg)
@@ -198,8 +201,8 @@ def create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling):
 # rec_par: pair of (list of string) and (list of rec_par))
 #       (recursive partitioning)
 # labelling: string ('strict' or 'child' labelling of nonterminals)
-# return: pair of list of list of string
-#       (top_max / bottom_max of top most node in the recursive partitioning)
+# return: tuple (list of list of string, list of string, string)
+#       (top_max / bottom_max of top most node in the recursive partitioning and nont. name)
 def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
     (node_ids, children) = rec_par
 
@@ -217,7 +220,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
 
         grammar.add_rule(lhs, [], 1.0, dcp)
 
-        return (t_max, b_max)
+        return (t_max, b_max, lhs.nont())
 
     else:
         # Create rules for children and obtain top_max and bottom_max of child nodes
@@ -242,16 +245,20 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
 
          # create lcfrs-rule, attach dcp and add to grammar
         lhs = create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, labelling)
-        rhs = [nonterminal_str(tree, c_t_max, c_b_max, labelling) for (c_t_max, c_b_max) in child_t_b_max]
+        rhs = [nont_name for (_, _, nont_name) in child_t_b_max]
         grammar.add_rule(lhs, rhs, 1.0, dcp)
 
-        return (t_max, b_max)
+        return (t_max, b_max, lhs.nont())
 
-def nonterminal_str(tree, t_max, b_max, labelling):
+def nonterminal_str(tree, t_max, b_max, fanout, labelling):
+    if not lcfrs_fanout_in_nonterminal_name:
+        fanout = ''
+    else:
+        fanout = str(fanout) + ':'
     if labelling == 'strict':
-        return strict_labeling(tree, t_max, b_max)
+        return strict_labeling(tree, t_max, b_max, fanout).replace(' ', '').replace('*', '')
     elif labelling == 'child':
-        return child_labeling(tree, t_max, b_max)
+        return child_labeling(tree, t_max, b_max, fanout).replace(' ', '').replace('*', '')
     else:
         raise Exception('Unknown labelling scheme \'' + labelling +'\'')
     # return str(nont).replace('[','{').replace(']','}').replace(' ','')
@@ -262,12 +269,12 @@ def nonterminal_str(tree, t_max, b_max, labelling):
 #   (top max / bottom max of node in recursive partitioning, for
 #    which the name is computed.)
 # return: string
-def strict_labeling(tree, t_max, b_max):
+def strict_labeling(tree, t_max, b_max, fanout):
     id_seqs = b_max + t_max
     arg_dep = argument_dependencies(tree, id_seqs)
     strict_label = ','.join(['#'.join(map(tree.node_label, id_seq)) for id_seq in id_seqs])
 
-    return '{' + strict_label + ',' + arg_dep + '}'
+    return '{' + fanout + strict_label + ',' + arg_dep + '}'
 
 # Create nonterminal label, according to child labeling strategy.
 # tree: GeneralHybridTree
@@ -275,12 +282,12 @@ def strict_labeling(tree, t_max, b_max):
 #   (top max / bottom max of node in recursive partitioning, for
 #    which the name is computed.)
 # return: string
-def child_labeling(tree, t_max, b_max):
+def child_labeling(tree, t_max, b_max, fanout):
     id_seqs = b_max + t_max
     arg_dep = argument_dependencies(tree, id_seqs)
     strict_label = ','.join([child_of(tree, id_seq) for id_seq in id_seqs])
 
-    return '{' + strict_label + ',' + arg_dep + '}'
+    return '{' + fanout +  strict_label + ',' + arg_dep + '}'
 
 # Auxiliary function, that replaces consecutive tree ids by the appropriate
 # string in child labeling.
@@ -347,6 +354,32 @@ def argument_dependencies_rec(tree, id_seqs, descendants, arg_indices):
 
     return '.'.join(term)
 
+
+# Top level method to induce an LCFRS/DCP-hybrid grammar for dependency parsing.
+# trees: Iterator of GeneralHybridTree (list of Generator for lazy IO)
+# labelling: string ('strict' or 'child')
+# return: LCFRS
+def induce_grammar(trees, labelling, start_nont = 'START'):
+    grammar = LCFRS(start_nont)
+    for tree in trees:
+        # TODO: obtain recursive partitioning
+        rec_par = tree.recursive_partitioning()
+
+        # print rec_par
+
+        (_, _, nont_name) = add_rules_to_grammar_rec(tree, rec_par, grammar, labelling)
+
+        # Add rule from top start symbol to top most nont for hybrid tree
+        lhs = LCFRS_lhs(start_nont)
+        lhs.add_arg([LCFRS_var(0,0)])
+        rhs = [nont_name]
+        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0,0)])
+
+        grammar.add_rule(lhs, rhs, 1.0, [dcp_rule])
+
+    grammar.make_proper()
+    return grammar
+
 def test_dependency_induction():
     tree = GeneralHybridTree()
     tree.add_node("v1",'Piet',"NP",True)
@@ -362,41 +395,41 @@ def test_dependency_induction():
     tree.set_dep_label('v2','VBI')
     tree.set_dep_label('v21','OBJ')
     tree.reorder()
-    print tree.children("v")
-    print tree
-
-    for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
-                   'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
-        print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
-        print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
-
-    print "some rule"
-    for mem, arg in [(-1, 0), (0,0), (1,0)]:
-        print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
-                              [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
-
-
-    print "some other rule"
-    for mem, arg in [(-1,1),(1,0)]:
-        print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
-                              [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
-
-    print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
-    print 'child:' , child_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
-    print '---'
-    print 'strict: ', strict_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
-    print 'child: ', child_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
-    print '---'
-    print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
-    print 'child:' , child_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
+    # print tree.children("v")
+    # print tree
+    #
+    # for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
+    #                'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
+    #     print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
+    #     print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
+    #
+    # print "some rule"
+    # for mem, arg in [(-1, 0), (0,0), (1,0)]:
+    #     print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
+    #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
+    #
+    #
+    # print "some other rule"
+    # for mem, arg in [(-1,1),(1,0)]:
+    #     print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
+    #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
+    #
+    # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
+    # print 'child:' , child_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
+    # print '---'
+    # print 'strict: ', strict_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
+    # print 'child: ', child_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
+    # print '---'
+    # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
+    # print 'child:' , child_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
 
 
     tree2 = GeneralHybridTree()
     tree2.add_node("v1",'Piet',"NP",True)
-    tree2.add_node("v21",'lezen',"V",True)
     tree2.add_node("v211", 'Marie', 'N', True)
     tree2.add_node("v",'helpen',"V",True)
     tree2.add_node("v2",'leren', "V", True)
+    tree2.add_node("v21",'lezen',"V",True)
     tree2.add_child("v","v2")
     tree2.add_child("v","v1")
     tree2.add_child("v2","v21")
@@ -408,28 +441,31 @@ def test_dependency_induction():
     tree2.set_dep_label('v21','VFIN')
     tree2.set_dep_label('v211', 'OBJ')
     tree2.reorder()
-    print tree2.children("v")
-    print tree2
 
-    print 'siblings v211', tree2.siblings('v211')
-    print top(tree2, ['v','v1', 'v211'])
-    print top_max(tree2, ['v','v1', 'v211'])
+    # print tree2.children("v")
+    # print tree2
+    #
+    # print 'siblings v211', tree2.siblings('v211')
+    # print top(tree2, ['v','v1', 'v211'])
+    # print top_max(tree2, ['v','v1', 'v211'])
+    #
+    # print '---'
+    # print 'strict:' , strict_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
+    # print 'child:' , child_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
 
-    print '---'
-    print 'strict:' , strict_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
-    print 'child:' , child_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
+    # rec_par = ('v v1 v2 v21'.split(' '),
+    #            [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
+    #                ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
+    #            ])
+    #
+    # grammar = LCFRS(nonterminal_str(tree, top_max(tree, rec_par[0]), bottom_max(tree, rec_par[0]), 'strict'))
+    #
+    # add_rules_to_grammar_rec(tree, rec_par, grammar, 'child')
+    #
+    # grammar.make_proper()
+    # print grammar
 
-    rec_par = ('v v1 v2 v21'.split(' '),
-               [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
-                   ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
-               ])
-
-    grammar = LCFRS(nonterminal_str(tree, top_max(tree, rec_par[0]), bottom_max(tree, rec_par[0]), 'strict'))
-
-    add_rules_to_grammar_rec(tree, rec_par, grammar, 'child')
-
-    grammar.make_proper()
-    print grammar
+    grammar = induce_grammar([tree, tree2], 'strict', 'START')
 
     parser = LCFRS_parser(grammar, 'Piet Marie helpen lezen'.split(' '))
     parser.print_parse()
@@ -445,4 +481,4 @@ def test_dependency_induction():
     print dcp_string, dcp_string.dep_label()
 
 
-test_dependency_induction()
+# test_dependency_induction()

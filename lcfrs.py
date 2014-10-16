@@ -273,38 +273,38 @@ class LCFRS:
     # dcp: list of DCP_rule
     # return: LCFRS_rule
     def add_rule(self, lhs, nonts, weight=None, dcp=None):
-	if weight is None:
-	    weight = self.__unit
-	rule = LCFRS_rule(lhs, weight=weight, dcp=dcp)
-	for nont in nonts:
-	    rule.add_rhs_nont(nont)
-	if rule.key() in self.__key_to_rule:
-	    rule = self.__key_to_rule[rule.key()]
-	    rule.add_weight(weight)
-	    return rule
-	if not lhs.nont() in self.__nont_to_fanout or \
-		self.__nont_to_fanout[lhs.nont()] == lhs.fanout():
-	    self.__nont_to_fanout[lhs.nont()] = lhs.fanout()
-	else:
-	    raise Exception('unexpected fanout in ' + str(rule))
-	if lhs.fanout() == 0:
-	    raise Exception('0 fanout in ' + str(rule))
-	self.__rules += [rule]
-	self.__key_to_rule[rule.key()] = rule
-	self.__lhs_nont_to_rules[rule.lhs().nont()] += [rule]
-	if rule.rank() == 0:
-	    terms = rule.terms()
-	    if len(terms) > 0:
-		self.__first_term_of[terms[0]] += [rule]
-	    else:
-		self.__epsilon_rules += [rule]
-	else:
-	    self.__nont_corner_of[rule.rhs_nont(0)] += [rule]
-	if self.__start is None:
-	    self.__start = lhs.nont()
-	    if lhs.fanout() != 1:
-		raise Exception('start symbol should have fanout 1')
-	return rule
+        if weight is None:
+            weight = self.__unit
+        rule = LCFRS_rule(lhs, weight=weight, dcp=dcp)
+        for nont in nonts:
+            rule.add_rhs_nont(nont)
+        if rule.key() in self.__key_to_rule:
+            rule = self.__key_to_rule[rule.key()]
+            rule.add_weight(weight)
+            return rule
+        if not lhs.nont() in self.__nont_to_fanout or \
+                        self.__nont_to_fanout[lhs.nont()] == lhs.fanout():
+            self.__nont_to_fanout[lhs.nont()] = lhs.fanout()
+        else:
+            raise Exception('unexpected fanout in ' + str(rule))
+        if lhs.fanout() == 0:
+            raise Exception('0 fanout in ' + str(rule))
+        self.__rules += [rule]
+        self.__key_to_rule[rule.key()] = rule
+        self.__lhs_nont_to_rules[rule.lhs().nont()] += [rule]
+        if rule.rank() == 0:
+            terms = rule.terms()
+            if len(terms) > 0:
+                self.__first_term_of[terms[0]] += [rule]
+            else:
+                self.__epsilon_rules += [rule]
+        else:
+            self.__nont_corner_of[rule.rhs_nont(0)] += [rule]
+        if self.__start is None:
+            self.__start = lhs.nont()
+            if lhs.fanout() != 1:
+                raise Exception('start symbol should have fanout 1')
+        return rule
 
     # Get unit element.
     # return: real

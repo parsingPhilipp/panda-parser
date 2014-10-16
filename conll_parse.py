@@ -4,6 +4,8 @@ __author__ = 'kilian'
 
 from general_hybrid_tree import GeneralHybridTree
 import re
+from dependency_induction import induce_grammar
+from parsing import LCFRS_parser
 
 
 test_file = 'examples/Dependency_Corpus.conll'
@@ -37,7 +39,7 @@ def match_line(line):
 def parse_conll_corpus(file):
     file_content = open(file).readlines()
 
-    trees = []
+    # trees = []
 
     i = 0;
     tree_count = 0
@@ -83,9 +85,10 @@ def parse_conll_corpus(file):
             elif tree.n_nodes() != len(tree.full_yield()):
                 raise Exception
 
-            trees.append(tree)
+            # trees.append(tree)
             # print tree
-    return trees
+            yield tree
+    # return trees
 
 
 # Output a hybrid tree, that models the dependency structure of some sentence, in conll format.
@@ -159,12 +162,22 @@ def score_cmp_dep_trees(reference, test):
 def test_conll_parse():
     trees = parse_conll_corpus(test_file)
     test_trees = parse_conll_corpus(test_file_modified)
-    for i in range (len(trees)):
-        if i < len(test_trees):
-            print compare_dependency_trees(trees[i], test_trees[i])
-            print score_cmp_dep_trees(trees[i], test_trees[i])
 
-    print compare_dependency_trees(trees[i], trees[i])
+    # for i in range (len(trees)):
+    #     if i < len(test_trees):
+    #         print compare_dependency_trees(trees[i], test_trees[i])
+    #         print score_cmp_dep_trees(trees[i], test_trees[i])
+    try:
+        while True:
+            t1 = trees.next()
+            t2 = test_trees.next()
+            print compare_dependency_trees(t1, t2)
+            print score_cmp_dep_trees(t1, t2)
+            print compare_dependency_trees(t1, t1)
+            print score_cmp_dep_trees(t1, t1)
+    except StopIteration:
+        pass
+
     # print score_cmp_dep_trees(trees[i], test_trees[i])
         # print tree
         # print tree_to_conll_str(tree), '\n '
@@ -173,4 +186,18 @@ def test_conll_parse():
     # print tree_to_conll_str(trees[0])
 
 
-test_conll_parse()
+def test_conll_grammar_induction():
+    trees = parse_conll_corpus(test_file)
+    grammar = induce_grammar(trees, 'strict', 'START')
+
+    trees2 = parse_conll_corpus(test_file)
+
+    for tree in trees2:
+        parser = LCFRS_parser(grammar, tree.labelled_yield())
+        h_tree = GeneralHybridTree()
+        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.pos_yield(), tree.labelled_yield())
+        print h_tree
+
+
+# test_conll_grammar_induction()
+# test_conll_parse()
