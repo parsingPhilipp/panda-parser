@@ -128,13 +128,13 @@ def create_DCP_rule(mem, arg, top_max, bottom_max, children):
 # children: list of pairs of list of list of string
 #           (pairs of top_max / bottom_max of child nodes in recurisve partitioning)
 # return: LCFRS_lhs
-def create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, labelling):
+def create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
     positions = map(tree.node_index, node_ids)
     spans = join_spans(positions)
 
     children_spans = map(join_spans, [map(tree.node_index, ids) for (ids,_) in children])
 
-    lhs = LCFRS_lhs(labelling(tree, t_max, b_max, len(spans)))
+    lhs = LCFRS_lhs(nont_labelling(tree, t_max, b_max, len(spans)))
     for (low, high) in spans:
         arg = []
         i = low
@@ -187,11 +187,11 @@ def create_leaf_DCP_rule(bottom_max, dependency_label):
 # tree: GeneralizedHybridTree
 # node_ids: list of string
 # return LCFRS_lhs
-def create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling):
+def create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_labelling):
     # Build LHS
-    lhs = LCFRS_lhs(labelling(tree, t_max, b_max, 1))
+    lhs = LCFRS_lhs(nont_labelling(tree, t_max, b_max, 1))
     id = node_ids[0]
-    arg = [tree.node_label(id)]
+    arg = [term_labelling(tree, id)]
     lhs.add_arg(arg)
     return lhs
 
@@ -203,7 +203,7 @@ def create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling):
 # labelling: string ('strict' or 'child' labelling of nonterminals)
 # return: tuple (list of list of string, list of string, string)
 #       (top_max / bottom_max of top most node in the recursive partitioning and nont. name)
-def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
+def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labelling):
     (node_ids, children) = rec_par
 
     # Sanity check
@@ -216,7 +216,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
 
         dependency_label = tree.node_dep_label(node_ids[0])
         dcp = [create_leaf_DCP_rule(b_max, dependency_label)]
-        lhs = create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, labelling)
+        lhs = create_leaf_LCFRS_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_labelling)
 
         grammar.add_rule(lhs, [], 1.0, dcp)
 
@@ -226,7 +226,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
         # Create rules for children and obtain top_max and bottom_max of child nodes
         child_t_b_max = []
         for child in children:
-            child_t_b_max.append(add_rules_to_grammar_rec(tree, child, grammar, labelling))
+            child_t_b_max.append(add_rules_to_grammar_rec(tree, child, grammar, nont_labelling, term_labelling))
 
         # construct dcp equations
         dcp = []
@@ -244,7 +244,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, labelling):
                 dcp.append(create_DCP_rule(cI, arg, t_max, b_max, child_t_b_max))
 
          # create lcfrs-rule, attach dcp and add to grammar
-        lhs = create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, labelling)
+        lhs = create_LCFRS_lhs(tree, node_ids, t_max, b_max, children, nont_labelling)
         rhs = [nont_name for (_, _, nont_name) in child_t_b_max]
         grammar.add_rule(lhs, rhs, 1.0, dcp)
 
@@ -360,7 +360,7 @@ def argument_dependencies_rec(tree, id_seqs, descendants, arg_indices):
 # trees: Iterator of GeneralHybridTree (list of Generator for lazy IO)
 # labelling: string ('strict' or 'child')
 # return: LCFRS
-def induce_grammar(trees, labelling, start_nont = 'START'):
+def induce_grammar(trees, nont_labelling, term_labelling, start_nont = 'START'):
     grammar = LCFRS(start_nont)
     for tree in trees:
         # TODO: obtain recursive partitioning
@@ -368,7 +368,7 @@ def induce_grammar(trees, labelling, start_nont = 'START'):
 
         # print rec_par
 
-        (_, _, nont_name) = add_rules_to_grammar_rec(tree, rec_par, grammar, labelling)
+        (_, _, nont_name) = add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labelling)
 
         # Add rule from top start symbol to top most nont for hybrid tree
         lhs = LCFRS_lhs(start_nont)
@@ -385,6 +385,9 @@ strict_pos = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'strict', lambda x,y
 strict_word = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_label(y))
 child_pos = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_pos(y))
 child_word = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_label(y))
+
+term_word = lambda tree, id: tree.node_label(id)
+term_pos  = lambda tree, id: tree.node_pos(id)
 
 def test_dependency_induction():
     tree = GeneralHybridTree()
@@ -471,7 +474,7 @@ def test_dependency_induction():
     # grammar.make_proper()
     # print grammar
 
-    grammar = induce_grammar([tree, tree2], child_pos, 'START')
+    grammar = induce_grammar([tree, tree2], child_pos, term_word, 'START')
 
     parser = LCFRS_parser(grammar, 'Piet Marie helpen lezen'.split(' '))
     parser.print_parse()
