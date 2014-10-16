@@ -257,7 +257,7 @@ class Rule_instance:
     # Dot is at end.
     # return: bool
     def complete(self):
-        return self.dot() == self.rule().fanout()
+        return self.dot() == self.rule().rank()
 
     # Is consistent if LHS is.
     # return: bool
@@ -283,13 +283,13 @@ class Rule_instance:
     # return: string
     def __str__(self):
         s = '[' + str(self.rule().weight()) + '] ' + str(self.lhs()) + ' -> '
-        for i in range(self.rule().fanout()):
+        for i in range(self.rule().rank()):
             if self.dot() == i:
                 s += '*'
             s += self.rule().rhs_nont(i)
-            if i < self.rule().fanout()-1:
+            if i < self.rule().rank()-1:
                 s += ' '
-        if self.dot() == self.rule().fanout():
+        if self.dot() == self.rule().rank():
             s += '*'
         return s
 
@@ -297,13 +297,13 @@ class Rule_instance:
     # return: string
     def key(self):
         s = str(self.lhs()) + '->'
-        for i in range(self.rule().fanout()):
+        for i in range(self.rule().rank()):
             if self.dot() == i:
                 s += '*'
             s += self.rule().rhs_nont(i)
-            if i < self.rule().fanout()-1:
+            if i < self.rule().rank()-1:
                 s += ' '
-        if self.dot() == self.rule().fanout():
+        if self.dot() == self.rule().rank():
             s += '*'
         return s
 
@@ -400,10 +400,10 @@ class Derivation:
     # return: list of Rule_instance
     def children(self, id):
         return [self.getRule(id + self.gorn_delimiter() + str(i))
-                for i in range(self.getRule(id).rule().fanout())]
+                for i in range(self.getRule(id).rule().rank())]
 
     def child_ids(self, id):
-        return [id + self.gorn_delimiter() + str(i+1) for i in range(self.getRule(id).rule().fanout())]
+        return [id + self.gorn_delimiter() + str(i) for i in range(self.getRule(id).rule().rank())]
 
     def root_id(self):
         return self.__root
@@ -628,7 +628,7 @@ def eval_dcp_term(term, der, ancestors):
 # return: int
 def position_of_terminal(i, rule, spans, child_spans):
     n_terms = 0
-    for arg in range(rule.lhs().fanout()):
+    for arg in range(rule.lhs().rank()):
 	(low, high) = spans[arg]
 	pos = low
 	for mem in rule.lhs().arg(arg):
@@ -1036,7 +1036,7 @@ class LCFRS_parser:
             for span in spans:
                 lhs.add_arg()
                 lhs.add_mem(span)
-            ri = Rule_instance(elem, lhs, elem.fanout())
+            ri = Rule_instance(elem, lhs, elem.rank())
             tree.add_rule(id, ri, w)
 
 # FIXME: This method only works, if nonterminals don't contain whitespace!!!

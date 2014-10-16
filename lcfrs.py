@@ -149,9 +149,9 @@ class LCFRS_rule:
     def lhs(self):
 	return self.__lhs
 
-    # Get fanout (length of RHS).
+    # Get rank (length of RHS).
     # return: int
-    def fanout(self):
+    def rank(self):
 	return len(self.__rhs)
 
     # Get all RHS nonterminals.
@@ -183,7 +183,7 @@ class LCFRS_rule:
     # fanout: mapping from nonterminals (string) to fanout (int).
     # return: string or None
     def well_formed(self, fanout):
-	for i in range(self.fanout()):
+	for i in range(self.rank()):
 	    nont = self.rhs_nont(i)
 	    if not nont in fanout:
 		return 'lacks definition of nonterminal ' + nont
@@ -197,7 +197,7 @@ class LCFRS_rule:
     # return: list of int (argument numbers).
     def __get_vars(self, i):
 	variables = []
-	for j in range(self.lhs().fanout()):
+	for j in range(self.lhs().rank()):
 	    for elem in self.lhs().arg(j):
 		if isinstance(elem, LCFRS_var) and elem.mem() == i:
 		    variables += [elem.arg()]
@@ -207,9 +207,9 @@ class LCFRS_rule:
     # return: string
     def __str__(self):
 	s = '[' + str(self.weight()) + '] ' + str(self.lhs()) + ' -> '
-	for i in range(self.fanout()):
+	for i in range(self.rank()):
 	    s += self.rhs_nont(i) 
-	    if i < self.fanout()-1:
+	    if i < self.rank()-1:
 		s += ' '
 	if self.dcp() is not None:
 	    s += '\n:: ' + dcp_rules_to_str(self.dcp())
@@ -219,9 +219,9 @@ class LCFRS_rule:
     # return: string
     def key(self):
 	s = self.lhs().key() + '->'
-	for i in range(self.fanout()):
+	for i in range(self.rank()):
 	    s += self.rhs_nont(i) 
-	    if i < self.fanout()-1:
+	    if i < self.rank()-1:
 		s += ' '
 	if self.dcp() is not None:
 	    s += '::' + dcp_rules_to_key(self.dcp())
@@ -292,7 +292,7 @@ class LCFRS:
 	self.__rules += [rule]
 	self.__key_to_rule[rule.key()] = rule
 	self.__lhs_nont_to_rules[rule.lhs().nont()] += [rule]
-	if rule.fanout() == 0:
+	if rule.rank() == 0:
 	    terms = rule.terms()
 	    if len(terms) > 0:
 		self.__first_term_of[terms[0]] += [rule]
