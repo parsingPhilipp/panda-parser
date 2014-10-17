@@ -4,11 +4,13 @@
 from collections import defaultdict
 from decomposition import *
 
-class GeneralHybridTree:
 
-    # Constructor
-    # sent_label: string
-    def __init__(self, sent_label = None):
+class GeneralHybridTree:
+    def __init__(self, sent_label=None):
+        """
+        :param sent_label: name of the sentence
+        :type: str
+        """
         # label of sentence (identifier in corpus)
         self.__sent_label = sent_label
         # id of root node
@@ -34,35 +36,55 @@ class GeneralHybridTree:
         # store dependency labels (DEPREL in ConLL)
         self.__id_to_dep_label = {}
 
-     # Get label of sentence.
-    # return: string
+        # Get label of sentence.
+
     def sent_label(self):
+        """
+        :rtype: str
+        :return: name of the sentence
+        """
         return self.__sent_label
 
-    # Set root to node given by id.
-    # id: string
     def set_root(self, id):
+        """
+        Set root to node given by id.
+        :param id: node id
+        :type id: str
+        """
         self.__root = id
 
-    # Has root been determined?
-    # return: bool
+    # @property
     def rooted(self):
+        """
+        :rtype: bool
+        :return: Has root been determined?
+        """
         return self.__root is not None
 
-    # Get id of root.
-    # return: string
+    # @property
     def root(self):
+        """
+        :rtype: str
+        :return: Id of root.
+        """
         return self.__root
 
-    # Add next node. Order is significant for ordering
-    # id: string
-    # pos: string (part of speech)
-    # label: string (word, syntactic category)
-    # order: bool (include node in linear ordering)
-    # connected: bool (node is connected to other tree nodes)
-    # Set order = True and connected = False to include some token (e.g. punctuation)
-    # that appears in the yield but shall be ignored during tree operations.
-    def add_node(self, id, label, pos = None, order = False, connected = True):
+    def add_node(self, id, label, pos=None, order=False, connected=True):
+        """
+        Add next node. Order of adding nodes is significant for ordering.
+        Set order = True and connected = False to include some token (e.g. punctuation)
+        that appears in the yield but shall be ignored during tree operations.
+        :param id: node id
+        :type id: str
+        :param label: word, syntactic category
+        :type label: str
+        :param pos: part of speech
+        :type pos: str
+        :param order: include node in linear ordering
+        :type order: bool
+        :param connected: should the node be connected to other nodes
+        :type connected: bool
+        """
         self.__nodes += [id]
         self.__id_to_label[id] = label
         if (pos is not None):
@@ -75,22 +97,34 @@ class GeneralHybridTree:
                 self.__node_index_to_id[self.__n_ordered_nodes] = id
             self.__full_yield += [id]
 
-    # Add a pair of node ids in the parent-child relation.
-    # parent: string
-    # child: string
     def add_child(self, parent, child):
+        """
+        Add a pair of node ids in the tree's parent-child relation.
+        :param parent: id of parent node
+        :type parent: str
+        :param child: id of child node
+        :type child: str
+        """
         if not parent in self.__id_to_child_ids:
             self.__id_to_child_ids[parent] = []
         self.__id_to_child_ids[parent] += [child]
 
-    # Get id of parent node, or None.
-    # id: string
-    # return: string
     def parent(self, id):
+        """
+        :rtype: str
+        :param id: node id
+        :type id: str
+        :return: id of parent node, or None.
+        """
         return self.__parent_recur(id, self.root())
-    # child: the node, whose parent is searched
-    # id: potential parent
+
     def __parent_recur(self, child, id):
+        """
+        :rtype: str
+        :param child: str (the node, whose parent is searched)
+        :param id: (potential parent)
+        :return:  id of parent node, or None.
+        """
         if child in self.children(id):
             return id
         else:
@@ -100,9 +134,12 @@ class GeneralHybridTree:
                     return parent
         return None
 
-    # Is there node that is child of two nodes?
-    # return: bool
+    # @property
     def reentrant(self):
+        """
+        :rtype: bool
+        :return: Is there node that is child of two nodes?
+        """
         parent = defaultdict(list)
         for id in self.__id_to_child_ids:
             for child in self.children(id):
@@ -112,19 +149,24 @@ class GeneralHybridTree:
                 return True
         return False
 
-    # Get the list of node ids of child nodes, or the empty list.
-    # id: string
-    # return: list of string
     def children(self, id):
+        """
+        :rtype: list[str]
+        :param id: str
+        :return: Get the list of node ids of child nodes, or the empty list.
+        """
         if id in self.__id_to_child_ids:
             return self.__id_to_child_ids[id]
         else:
             return []
 
-    # Get the list of node ids of all "transitive" children
-    # id: string
-    # return: list of string
     def descendants(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: the list of node ids of all "transitive" children
+        :rtype: list[str]
+        """
         des = []
         if id in self.__id_to_child_ids:
             for id2 in self.__id_to_child_ids[id]:
@@ -132,35 +174,51 @@ class GeneralHybridTree:
                 des += self.descendants(id2)
         return des
 
-    # Is the node in the ordering?
-    # id: string
-    # return: bool
     def in_ordering(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: Is the node in the ordering?
+        :rtype: bool
+        """
         return id in self.__ordered_ids
 
-    # Get node id at index in ordering
-    # index: int
-    # return: string (id)
     def index_node(self, index):
+        """
+        :param index: index in ordering
+        :type index: int
+        :return: node id at index in ordering
+        :rtype: str
+        """
         return self.__node_index_to_id[index]
 
-    # Get index of node in ordering
-    # id: string
-    # return: int
     def node_index(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: index of node in ordering
+        :rtype: int
+        """
         return self.__id_to_node_index[id]
 
-    # Reorder children according to smallest node in subtree
     def reorder(self):
+        """
+        Reorder children according to smallest node (w.r.t. ordering) in subtree.
+        """
         self.__reorder(self.root())
-    # id: string
-    # return: int (index or -1)
+
     def __reorder(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: index of smallest node in sub tree (or -1 if none exists)
+        :rtype: int
+        """
         min_indices = {}
         if self.children(id).__len__() > 0:
             for child in self.children(id):
                 min_indices[child] = self.__reorder(child)
-            self.__id_to_child_ids[id] = sorted(self.children(id), key = lambda i : min_indices[i])
+            self.__id_to_child_ids[id] = sorted(self.children(id), key=lambda i: min_indices[i])
         if self.in_ordering(id):
             min_indices[id] = self.__id_to_node_index[id]
         min_index = -1
@@ -169,11 +227,13 @@ class GeneralHybridTree:
                 min_index = index
         return min_index
 
-    # indices (w.r.t. ordering) of all nodes under some node
-    # cf. \Pi^{-1} in paper
-    # id: string
-    # return: list of int
     def fringe(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: indices (w.r.t. ordering) of all nodes under some node, cf. \Pi^{-1} in paper
+        :rtype: list[int]
+        """
         y = []
         if self.in_ordering(id):
             y = [self.__id_to_node_index[id]]
@@ -200,6 +260,7 @@ class GeneralHybridTree:
     # return: int
     def n_gaps(self):
         return self.__n_gaps_below(self.root())
+
     # id: string
     # return: int
     def __n_gaps_below(self, id):
@@ -212,6 +273,7 @@ class GeneralHybridTree:
     # return: pair consisting of (root and list of child nodes)
     def unlabelled_structure(self):
         return self.unlabelled_structure_recur(self.root())
+
     def unlabelled_structure_recur(self, id):
         head = set(self.fringe(id))
         tail = [self.unlabelled_structure_recur(child) for \
@@ -224,6 +286,7 @@ class GeneralHybridTree:
 
     def recursive_partitioning(self):
         return self.recursive_partitioning_rec(self.root())
+
     def recursive_partitioning_rec(self, id):
         head = set(self.fringe(id))
         tail = [(set([self.node_index(id)]), [])]
@@ -268,11 +331,11 @@ class GeneralHybridTree:
     def labelled_yield(self):
         return [self.node_label(id) for id in self.__ordered_ids]
 
-    #Get full yield (including disconnected nodes) as list of labels
+    # Get full yield (including disconnected nodes) as list of labels
     def full_labelled_yield(self):
         return [self.node_label(id) for id in self.__full_yield]
 
-    #Get full yield (including disconnected nodes) as list of ids
+    # Get full yield (including disconnected nodes) as list of ids
     def full_yield(self):
         return self.__full_yield
 
@@ -319,6 +382,7 @@ class GeneralHybridTree:
     # Number of nodes in total tree (omitting disconnected nodes)
     def n_nodes(self):
         return self.__n_nodes_below(self.root()) + 1
+
     # Number of nodes below node
     # id: string
     # return: int
@@ -354,7 +418,7 @@ class GeneralHybridTree:
     def __hybrid_tree_str(self, root, level):
         dep = self.node_dep_label(root)
         if dep:
-            dep = '\t('+dep+')\t'
+            dep = '\t(' + dep + ')\t'
         else:
             dep = ''
         s = level * ' ' + self.node_label(root) + dep + '\n'
@@ -369,14 +433,14 @@ class GeneralHybridTree:
 def test():
     print "Start"
     tree = GeneralHybridTree()
-    tree.add_node("v1","Piet","NP",True)
-    tree.add_node("v21","Marie","N",True)
-    tree.add_node("v","helpen","V",True)
-    tree.add_node("v2","lezen", "V", True)
-    tree.add_child("v","v2")
-    tree.add_child("v","v1")
-    tree.add_child("v2","v21")
-    tree.add_node("v3",".","Punc",True,False)
+    tree.add_node("v1", "Piet", "NP", True)
+    tree.add_node("v21", "Marie", "N", True)
+    tree.add_node("v", "helpen", "V", True)
+    tree.add_node("v2", "lezen", "V", True)
+    tree.add_child("v", "v2")
+    tree.add_child("v", "v1")
+    tree.add_child("v2", "v21")
+    tree.add_node("v3", ".", "Punc", True, False)
     tree.set_root("v")
     print tree.children("v")
     tree.reorder()
@@ -402,4 +466,4 @@ def test():
 
     print "labelled spans", tree.labelled_spans()
     print "POS yield", tree.pos_yield()
-# test()
+    # test()

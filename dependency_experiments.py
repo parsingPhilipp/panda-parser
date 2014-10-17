@@ -133,9 +133,9 @@ def test_conll_grammar_induction():
         for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
             for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
                            , d_i.left_branching, d_i.right_branching]:
-                grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, 100
+                grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, sys.maxint
                                                    , False, 'START', ignore_punctuation)
                 print
-                parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 10, 20, False, ignore_punctuation)
+                parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
 
 test_conll_grammar_induction()
