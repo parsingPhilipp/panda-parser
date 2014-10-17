@@ -35,81 +35,95 @@ global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4 
 
 
 def match_line(line):
-    match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)$', line)
+    match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)'
+                      r'\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)$', line)
     return match
 
-# parses a conll file
-# file: path to file
-# return: list of GeneralHbyridTree
-def parse_conll_corpus(file, ignore_punctuation, limit = sys.maxint):
-    file_content = open(file).readlines()
 
-    # trees = []
+def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
+    """
+    Lazily parses a dependency corpus (in CoNLL format) and generates GeneralHybridTrees.
+    :param path: path to corpus
+    :param ignore_punctuation: bool (exclude punctuation from tree structure)
+    :param limit: stop generation after limit trees
+    :raise Exception: unexpected input in corpus file
+    """
 
-    i = 0
+    file_content = open(path)
     tree_count = 0
 
-    while i < len(file_content) and tree_count < limit:
+    while tree_count < limit:
         tree = None
-        line = file_content[i]
-        i += 1
+
+        try:
+            line = file_content.next()
+        except StopIteration:
+            break
+
         match = match_line(line)
         while match:
             if match.group(1) == '1':
                 tree_count += 1
                 tree = GeneralHybridTree('tree' + str(tree_count))
 
-            id = match.group(1)
+            node_id = match.group(1)
             label = match.group(2)
             pos = match.group(4)
             parent = match.group(7)
             deprel = match.group(8)
 
             if not ignore_punctuation or (not re.search(r'^\$.*$', pos) or parent == '0'):
-                tree.add_node(id, label, pos, True, True)
-                tree.add_child(parent, id)
+                tree.add_node(node_id, label, pos, True, True)
+                tree.add_child(parent, node_id)
             else:
-                tree.add_node(id, label, pos, True, False)
+                tree.add_node(node_id, label, pos, True, False)
 
-            tree.set_dep_label(id, deprel)
+            tree.set_dep_label(node_id, deprel)
 
             if parent == '0':
-                tree.set_root(id)
+                tree.set_root(node_id)
 
-            if i < len(file_content):
-                line = file_content[i]
+            try:
+                line = file_content.next()
                 match = match_line(line)
-                i += 1
-            else:
+            except StopIteration:
+                line = ''
                 match = None
 
         # Assume empty line, otherwise raise exception
         match = re.search(r'^[^\s]*$', line)
         if not match:
-            raise Exception
+            raise Exception("Unexpected input in CoNLL corpus file.")
 
         if tree:
             # basic sanity checks
             if not tree.rooted():
                 raise Exception
-            elif tree.n_nodes() !=  len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
-                raise Exception('connected nodes: ' + str(tree.n_nodes()) + ', total nodes: ' + str(len(tree.nodes())) + ', full yield: '
-                                + str(len(tree.full_yield())) + ', connected yield: ' + str(len(tree.id_yield())))
-
-            # trees.append(tree)
-            # print tree
+            elif tree.n_nodes() != len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
+                raise Exception('connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
+                    str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
+                    str(len(tree.id_yield()))))
             yield tree
-            # return trees
 
 
-# Output a hybrid tree, that models the dependency structure of some sentence, in conll format.
-# tree: GeneralHybridTree
-# return: string (multiple lines!)
 def tree_to_conll_str(tree):
+    """
+    Output a hybrid tree, that models the dependency structure of some sentence, in CoNLL format.
+    :param tree: GeneralHybridTree
+    :return: str (multiple lines!)
+    """
+
     s = '\n'.join([node_to_conll_str(tree, id) for id in tree.full_yield()])
     return s
 
+
 def node_to_conll_str(tree, id):
+    """
+
+    :param tree: GeneralHybridTree
+    :param id:   str (node id)
+    :return:     dependency string of this tree
+    """
     delimiter = '\t'
     s = ''
     s += str(tree.node_index(id) + 1) + delimiter
@@ -127,12 +141,14 @@ def node_to_conll_str(tree, id):
     s += dependency_info + delimiter + dependency_info
     return s
 
-# Compute UAS, LAS, UEM, LEM, length (of front) for the parsed dependency tree,
-# given some reference tree.
-# reference: GeneralHybridTree
-# test: GeneralHybridTree
-# return : 5-tuple of int
+
 def compare_dependency_trees(reference, test):
+    """
+    Compute UAS, LAS, UEM, LEM, length (of front) for the parsed dependency tree, given some reference tree.
+    :param reference: GeneralHybridTree
+    :param test: GeneralHybridTree
+    :return: 5-tuple of int :raise Exception:
+    """
     UAS = 0
     LAS = 0
     UEM = 0
@@ -140,8 +156,8 @@ def compare_dependency_trees(reference, test):
 
     # sanity check
     if reference.labelled_yield() != test.labelled_yield():
-        raise Exception("yield of trees differs: \'" + ' '.join(reference.labelled_yield())
-            + '\' vs. \'' + ' '.join(test.labelled_yield()) + '\'')
+        raise Exception("yield of trees differs: \'{0}\' vs. \'{1}\'".format(' '.join(reference.labelled_yield()),
+                                                                             ' '.join(test.labelled_yield())))
 
     for i in range(1, len(reference.labelled_yield()) + 1):
         ref_id = reference.index_node(i)
@@ -166,9 +182,17 @@ def compare_dependency_trees(reference, test):
 
     return (UAS, LAS, UEM, LEM, reference.n_nodes())
 
+
 def score_cmp_dep_trees(reference, test):
+    """
+    Compute UAS, LAS, UEM, LEM for the parsed dependency tree, given some reference tree,
+    normalized to length of front.
+    :param reference: GeneralHybridTree
+    :param test: GeneralHybridTree
+    :return: 4-tuple of int :raise Exception:
+    """
     (UAS, LAS, UEM, LEM, length) = compare_dependency_trees(reference, test)
-    return (UAS * 1.0 / length, LAS * 1.0 / length, UEM, LEM)
+    return UAS * 1.0 / length, LAS * 1.0 / length, UEM, LEM
 
 
 def test_conll_parse():
