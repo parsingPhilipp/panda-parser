@@ -72,7 +72,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             parent = match.group(7)
             deprel = match.group(8)
 
-            if not ignore_punctuation or (not re.search(r'^\$.*$', pos) or parent == '0'):
+            if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
                 tree.add_node(node_id, label, pos, True, True)
                 tree.add_child(parent, node_id)
             else:
@@ -98,11 +98,18 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
         if tree:
             # basic sanity checks
             if not tree.rooted():
+                # FIXME: ignoring punctuation may leads to malformed trees
+                print "non-rooted"
+                if ignore_punctuation:
+                    continue
                 raise Exception
             elif tree.n_nodes() != len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
+                # FIXME: ignoring punctuation may leads to malformed trees
+                if ignore_punctuation:
+                    continue
                 raise Exception('connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
-                    str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
-                    str(len(tree.id_yield()))))
+                     str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
+                     str(len(tree.id_yield()))))
             yield tree
 
 

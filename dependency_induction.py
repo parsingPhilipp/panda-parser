@@ -625,10 +625,14 @@ def test_dependency_induction():
     # grammar.make_proper()
     # print grammar
 
-    grammar = induce_grammar([tree, tree2], child_pos, term_word, 'START')
+    print tree.recursive_partitioning()
 
-    parser = LCFRS_parser(grammar, 'Piet Marie helpen lezen'.split(' '))
+    (_, grammar) = induce_grammar([tree, tree2], child_pos, term_pos, direct_extraction, 'START')
+    print max([grammar.fanout(nont) for nont in grammar.nonts()])
+
+    parser = LCFRS_parser(grammar, 'NP N V V'.split(' '))
     parser.print_parse()
+
 
     hybrid_tree = GeneralHybridTree()
     hybrid_tree = parser.new_DCP_Hybrid_Tree(hybrid_tree, 'P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))

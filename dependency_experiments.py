@@ -45,7 +45,7 @@ def induce_grammar_from_file(  path
     start_at = time.time()
 
     trees = parse_conll_corpus(path, ignore_punctuation, limit)
-    (n_trees, grammar) = d_i.induce_grammar(trees, d_i.child_pos, d_i.term_pos, d_i.right_branching, start)
+    (n_trees, grammar) = d_i.induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning, start)
 
     end_at = time.time()
     if not quiet:
@@ -129,13 +129,22 @@ def parse_sentences_from_file( grammar
         print
 
 def test_conll_grammar_induction():
-    for ignore_punctuation in [True, False]:
-        for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
-            for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
-                           , d_i.left_branching, d_i.right_branching]:
-                grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, sys.maxint
-                                                   , False, 'START', ignore_punctuation)
-                print
-                parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
+    if 'ignore_punctuation' in sys.argv:
+        ignore_punctuation = True
+    else:
+        ignore_punctuation = False
+    if 'strict' in sys.argv:
+        nont_labelling = d_i.strict_pos
+    else:
+        nont_labelling = d_i.child_pos
+    # for ignore_punctuation in [True, False]:
+    #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
+    for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
+                   , d_i.left_branching, d_i.right_branching]:
+
+        grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, sys.maxint
+                                           , False, 'START', ignore_punctuation)
+        print
+        parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
 
 test_conll_grammar_induction()
