@@ -68,7 +68,8 @@ def parse_sentences_from_file( grammar
                              , ignore_punctuation=True
                              ):
     """
-
+    Parse sentences from corpus and compare derived dependency structure with gold standard information.
+    :rtype: None
     :param grammar: LCFRS
     :param path:    file path for test corpus (dependency grammar in CoNLL format)
     :param tree_yield: GeneralHybridTree -> [string] (parse on words or POS)
@@ -79,7 +80,7 @@ def parse_sentences_from_file( grammar
     """
     if not quiet:
         if max_length != sys.maxint:
-            s = ' ignoring sentences with length > ' + str(max_length)
+            s = ', ignoring sentences with length > ' + str(max_length)
         else:
             s = ''
         print 'Start parsing sentences' + s
@@ -116,6 +117,7 @@ def parse_sentences_from_file( grammar
     total = parse + no_parse
     if not quiet:
         print 'Parsed ' + str(parse) + ' out of ' + str(total) + ' (skipped ' + str(skipped) +')'
+        print 'fail: ', no_parse
         if parse > 0:
             print 'UAS: ', UAS / parse
             print 'LAS: ', LAS / parse
@@ -124,9 +126,16 @@ def parse_sentences_from_file( grammar
             print 'n gaps (gold): ', n_gaps_gold * 1.0 / parse
             print 'n gaps (test): ', n_gaps_test * 1.0 / parse
         print 'parse time: ', end_at - start_at, 's'
+        print
 
 def test_conll_grammar_induction():
-    grammar = induce_grammar_from_file(conll_train, d_i.child_pos, d_i.term_pos, d_i.direct_extraction, 200)
-    parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 20, 20)
+    for ignore_punctuation in [True, False]:
+        for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
+            for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
+                           , d_i.left_branching, d_i.right_branching]:
+                grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, 100
+                                                   , False, 'START', ignore_punctuation)
+                print
+                parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 10, 20, False, ignore_punctuation)
 
 test_conll_grammar_induction()

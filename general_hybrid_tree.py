@@ -365,7 +365,7 @@ class GeneralHybridTree:
     def __str__(self):
         return self.__hybrid_tree_str(self.root(), 0)
 
-#
+
 def test():
     print "Start"
     tree = GeneralHybridTree()
