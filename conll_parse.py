@@ -4,13 +4,17 @@ __author__ = 'kilian'
 
 from general_hybrid_tree import GeneralHybridTree
 import re
-from dependency_induction import induce_grammar, strict_pos, strict_word, child_pos, child_word, term_word, term_pos
+import dependency_induction as d_i
 from parsing import LCFRS_parser
 import sys
 
 
 test_file = 'examples/Dependency_Corpus.conll'
 test_file_modified = 'examples/Dependency_Corpus_modified.conll'
+
+conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
+conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
+
 
 global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4       NK
 2       Göttinger       _       ADJA    ADJA    _       4       NK      4       NK
@@ -37,12 +41,12 @@ def match_line(line):
 # parses a conll file
 # file: path to file
 # return: list of GeneralHbyridTree
-def parse_conll_corpus(file, limit = sys.maxint):
+def parse_conll_corpus(file, ignore_punctuation, limit = sys.maxint):
     file_content = open(file).readlines()
 
     # trees = []
 
-    i = 0;
+    i = 0
     tree_count = 0
 
     while i < len(file_content) and tree_count < limit:
@@ -61,8 +65,12 @@ def parse_conll_corpus(file, limit = sys.maxint):
             parent = match.group(7)
             deprel = match.group(8)
 
-            tree.add_node(id, label, pos, True, True)
-            tree.add_child(parent, id)
+            if not ignore_punctuation or (not re.search(r'^\$.*$', pos) or parent == '0'):
+                tree.add_node(id, label, pos, True, True)
+                tree.add_child(parent, id)
+            else:
+                tree.add_node(id, label, pos, True, False)
+
             tree.set_dep_label(id, deprel)
 
             if parent == '0':
@@ -84,8 +92,9 @@ def parse_conll_corpus(file, limit = sys.maxint):
             # basic sanity checks
             if not tree.rooted():
                 raise Exception
-            elif tree.n_nodes() != len(tree.full_yield()):
-                raise Exception
+            elif tree.n_nodes() !=  len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
+                raise Exception('connected nodes: ' + str(tree.n_nodes()) + ', total nodes: ' + str(len(tree.nodes())) + ', full yield: '
+                                + str(len(tree.full_yield())) + ', connected yield: ' + str(len(tree.id_yield())))
 
             # trees.append(tree)
             # print tree
@@ -130,11 +139,11 @@ def compare_dependency_trees(reference, test):
     LEM = 0
 
     # sanity check
-    if reference.full_labelled_yield() != test.full_labelled_yield():
-        raise Exception("yield of trees differs: \'" + ' '.join(reference.full_labelled_yield())
-            + '\ vs. \'' + ' '.join(test.full_labelled_yield()) + '\'')
+    if reference.labelled_yield() != test.labelled_yield():
+        raise Exception("yield of trees differs: \'" + ' '.join(reference.labelled_yield())
+            + '\' vs. \'' + ' '.join(test.labelled_yield()) + '\'')
 
-    for i in range(1, len(reference.full_yield()) + 1):
+    for i in range(1, len(reference.labelled_yield()) + 1):
         ref_id = reference.index_node(i)
         test_id = test.index_node(i)
         if reference.root() == ref_id:
@@ -163,8 +172,8 @@ def score_cmp_dep_trees(reference, test):
 
 
 def test_conll_parse():
-    trees = parse_conll_corpus(test_file)
-    test_trees = parse_conll_corpus(test_file_modified)
+    trees = parse_conll_corpus(conll_test, True)
+    test_trees = parse_conll_corpus(conll_test, True)
 
     # for i in range (len(trees)):
     #     if i < len(test_trees):
@@ -191,10 +200,10 @@ def test_conll_parse():
 
 
 def test_conll_grammar_induction():
-    trees = parse_conll_corpus(test_file)
-    grammar = induce_grammar(trees, child_word, term_pos, 'START')
+    trees = parse_conll_corpus(test_file, True)
+    (_, grammar) = d_i.induce_grammar(trees, d_i.child_word, d_i.term_pos, d_i.right_branching, 'START')
 
-    trees2 = parse_conll_corpus(test_file)
+    trees2 = parse_conll_corpus(test_file, False)
 
     for tree in trees2:
         parser = LCFRS_parser(grammar, tree.pos_yield())

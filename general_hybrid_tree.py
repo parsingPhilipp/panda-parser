@@ -225,15 +225,23 @@ class GeneralHybridTree:
     def recursive_partitioning(self):
         return self.recursive_partitioning_rec(self.root())
     def recursive_partitioning_rec(self, id):
-        descendants = self.descendants(id)
-        descendants.append(id)
-        head = filter(self.in_ordering, descendants)
-        tail = [([id], [])]
+        head = set(self.fringe(id))
+        tail = [(set([self.node_index(id)]), [])]
+        # descendants = self.descendants(id)
+        # descendants.append(id)
+        # head = filter(self.in_ordering, descendants)
+        # tail = [([id], [])]
         tail += map(self.recursive_partitioning_rec, self.children(id))
         if len(tail) == 1 and head == tail[0][0]:
             return tail[0]
         else:
             return (head, tail)
+
+    def node_id_rec_par(self, rec_par):
+        (head, tail) = rec_par
+        head = map(lambda x: self.index_node(x + 1), head)
+        tail = map(self.node_id_rec_par, tail)
+        return (head, tail)
 
     # Labelled spans.
     # return: list of spans (each of which is string plus an even

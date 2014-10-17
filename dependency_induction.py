@@ -3,7 +3,7 @@ __author__ = 'kilian'
 from general_hybrid_tree import GeneralHybridTree
 from dcp import *
 from lcfrs import *
-from decomposition import join_spans
+from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, right_branching_partitioning
 from parsing import LCFRS_parser
 
 
@@ -360,15 +360,17 @@ def argument_dependencies_rec(tree, id_seqs, descendants, arg_indices):
 # trees: Iterator of GeneralHybridTree (list of Generator for lazy IO)
 # labelling: string ('strict' or 'child')
 # return: LCFRS
-def induce_grammar(trees, nont_labelling, term_labelling, start_nont = 'START'):
+def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning, start_nont = 'START'):
     grammar = LCFRS(start_nont)
+    n_trees = 0
     for tree in trees:
-        # TODO: obtain recursive partitioning
-        rec_par = tree.recursive_partitioning()
+        n_trees += 1
 
-        # print rec_par
+        rec_par_int = recursive_partitioning(tree)
 
-        (_, _, nont_name) = add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labelling)
+        rec_par_nodes = tree.node_id_rec_par(rec_par_int)
+
+        (_, _, nont_name) = add_rules_to_grammar_rec(tree, rec_par_nodes, grammar, nont_labelling, term_labelling)
 
         # Add rule from top start symbol to top most nont for hybrid tree
         lhs = LCFRS_lhs(start_nont)
@@ -379,15 +381,57 @@ def induce_grammar(trees, nont_labelling, term_labelling, start_nont = 'START'):
         grammar.add_rule(lhs, rhs, 1.0, [dcp_rule])
 
     grammar.make_proper()
-    return grammar
+    return (n_trees, grammar)
 
-strict_pos = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_pos(y))
-strict_word = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_label(y))
-child_pos = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_pos(y))
-child_word = lambda a, b, c, d: nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_label(y))
+# Nonterminal labelling strategies
+def strict_pos( a, b, c, d):
+    return nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_pos(y))
+def strict_word( a, b, c, d):
+    return nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_label(y))
+def child_pos ( a, b, c, d):
+    return nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_pos(y))
+def child_word( a, b, c, d):
+    return nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_label(y))
 
-term_word = lambda tree, id: tree.node_label(id)
-term_pos  = lambda tree, id: tree.node_pos(id)
+# Terminal labelling strategies
+def term_word( tree, id):
+    return tree.node_label(id)
+def term_pos(tree, id):
+    return tree.node_pos(id)
+
+# and corresponding tree-yield strategies for parsing
+def word_yield(tree):
+    return tree.labelled_yield()
+def pos_yield(tree):
+    return tree.pos_yield()
+
+# Recursive partitioning strategies
+def left_branching(tree):
+    return left_branching_partitioning(len(tree.id_yield()))
+def right_branching(tree):
+    return right_branching_partitioning(len(tree.id_yield()))
+def direct_extraction(tree):
+    return tree.recursive_partitioning()
+fanout_k = lambda tree, k: fanout_limited_partitioning(tree.recursive_partitioning(), k)
+def fanout_1(tree):
+    return fanout_k(tree, 1)
+def fanout_1(tree):
+    return fanout_k(tree, 2)
+def fanout_1(tree):
+    return fanout_k(tree, 3)
+def fanout_1(tree):
+    return fanout_k(tree, 4)
+def fanout_1(tree):
+    return fanout_k(tree, 5)
+def fanout_1(tree):
+    return fanout_k(tree, 6)
+def fanout_1(tree):
+    return fanout_k(tree, 7)
+def fanout_1(tree):
+    return fanout_k(tree, 8)
+
+
+
 
 def test_dependency_induction():
     tree = GeneralHybridTree()
