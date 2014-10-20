@@ -42,11 +42,16 @@ def match_line(line):
 
 def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
     """
-    Lazily parses a dependency corpus (in CoNLL format) and generates GeneralHybridTrees.
     :param path: path to corpus
-    :param ignore_punctuation: bool (exclude punctuation from tree structure)
+    :type: str
+    :param ignore_punctuation: exclude punctuation from tree structure
+    :type ignore_punctuation: bool
     :param limit: stop generation after limit trees
+    :type: int
+    :return: a series of hybrid trees read from file
+    :rtype: __generator[GeneralHybridTree]
     :raise Exception: unexpected input in corpus file
+    Lazily parses a dependency corpus (in CoNLL format) and generates GeneralHybridTrees.
     """
 
     file_content = open(path)
@@ -115,9 +120,11 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 
 def tree_to_conll_str(tree):
     """
+    :param tree: hybrid tree
+    :type tree: GeneralHybridTree
+    :return: ConLL format of tree!
+    :rtype: str
     Output a hybrid tree, that models the dependency structure of some sentence, in CoNLL format.
-    :param tree: GeneralHybridTree
-    :return: str (multiple lines!)
     """
 
     s = '\n'.join([node_to_conll_str(tree, id) for id in tree.full_yield()])
@@ -126,10 +133,11 @@ def tree_to_conll_str(tree):
 
 def node_to_conll_str(tree, id):
     """
-
-    :param tree: GeneralHybridTree
-    :param id:   str (node id)
-    :return:     dependency string of this tree
+    :type tree: GeneralHybridTree
+    :type id:   str
+    :param id: node id
+    :return: line for this tree node in CoNLL format
+    :rtype: str
     """
     delimiter = '\t'
     s = ''
@@ -151,10 +159,11 @@ def node_to_conll_str(tree, id):
 
 def compare_dependency_trees(reference, test):
     """
-    Compute UAS, LAS, UEM, LEM, length (of front) for the parsed dependency tree, given some reference tree.
     :param reference: GeneralHybridTree
     :param test: GeneralHybridTree
     :return: 5-tuple of int :raise Exception:
+    :rtype: int,int,int,int,int
+    Compute UAS, LAS, UEM, LEM, length (of front) for the parsed dependency tree, given some reference tree.
     """
     UAS = 0
     LAS = 0
@@ -192,11 +201,12 @@ def compare_dependency_trees(reference, test):
 
 def score_cmp_dep_trees(reference, test):
     """
-    Compute UAS, LAS, UEM, LEM for the parsed dependency tree, given some reference tree,
-    normalized to length of front.
     :param reference: GeneralHybridTree
     :param test: GeneralHybridTree
-    :return: 4-tuple of int :raise Exception:
+    :rtype: float,float,float,float
+    :raise Exception:
+    Compute UAS, LAS, UEM, LEM for the parsed dependency tree, given some reference tree,
+    normalized to length of front.
     """
     (UAS, LAS, UEM, LEM, length) = compare_dependency_trees(reference, test)
     return UAS * 1.0 / length, LAS * 1.0 / length, UEM, LEM
