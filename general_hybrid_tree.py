@@ -71,9 +71,6 @@ class GeneralHybridTree:
 
     def add_node(self, id, label, pos=None, order=False, connected=True):
         """
-        Add next node. Order of adding nodes is significant for ordering.
-        Set order = True and connected = False to include some token (e.g. punctuation)
-        that appears in the yield but shall be ignored during tree operations.
         :param id: node id
         :type id: str
         :param label: word, syntactic category
@@ -84,6 +81,9 @@ class GeneralHybridTree:
         :type order: bool
         :param connected: should the node be connected to other nodes
         :type connected: bool
+        Add next node. Order of adding nodes is significant for ordering.
+        Set order = True and connected = False to include some token (e.g. punctuation)
+        that appears in the yield but shall be ignored during tree operations.
         """
         self.__nodes += [id]
         self.__id_to_label[id] = label
@@ -99,11 +99,11 @@ class GeneralHybridTree:
 
     def add_child(self, parent, child):
         """
-        Add a pair of node ids in the tree's parent-child relation.
         :param parent: id of parent node
         :type parent: str
         :param child: id of child node
         :type child: str
+        Add a pair of node ids in the tree's parent-child relation.
         """
         if not parent in self.__id_to_child_ids:
             self.__id_to_child_ids[parent] = []
@@ -241,37 +241,51 @@ class GeneralHybridTree:
             y += self.fringe(child)
         return y
 
-    # Number of contiguous spans of node.
-    # id: string
-    # return: int
     def n_spans(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: Number of contiguous spans of node.
+        :rtype : int
+        """
         return len(join_spans(self.fringe(id)))
 
-    # Maximum number of spans of any node.
-    # return: int
     def max_n_spans(self):
+        """
+        :return: Maximum number of spans of any node.
+        :rtype: int
+        """
         nums = [self.n_spans(id) for id in self.nodes()]
         if len(nums) > 0:
             return max(nums)
         else:
             return 1
 
-    # Total number of gaps in any node.
-    # return: int
     def n_gaps(self):
+        """
+        :return: Total number of gaps in any node.
+        :rtype: int
+        """
         return self.__n_gaps_below(self.root())
 
-    # id: string
-    # return: int
     def __n_gaps_below(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: gaps below some node
+        :rtype: int
+        """
         n_gaps = self.n_spans(id) - 1
         for child in self.children(id):
             n_gaps += self.__n_gaps_below(child)
         return n_gaps
 
-    # Create unlabelled structure, only in terms of breakup of yield
-    # return: pair consisting of (root and list of child nodes)
     def unlabelled_structure(self):
+        """
+        :return: pair consisting of (root and list of child nodes)
+        :rtype: tuple[list[str], list]
+        Create unlabelled structure, only in terms of breakup of yield
+        """
         return self.unlabelled_structure_recur(self.root())
 
     def unlabelled_structure_recur(self, id):
@@ -306,10 +320,11 @@ class GeneralHybridTree:
         tail = map(self.node_id_rec_par, tail)
         return (head, tail)
 
-    # Labelled spans.
-    # return: list of spans (each of which is string plus an even
-    # number of (integer) positions)
     def labelled_spans(self):
+        """
+        :return: list of spans (each of which is string plus an even number of (integer) positions)
+        Labelled spans.
+        """
         spans = []
         for id in [n for n in self.nodes() if not n in self.full_yield()]:
             span = [self.node_label(id)]
@@ -322,91 +337,140 @@ class GeneralHybridTree:
                       cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
                                            [y[1]] + [-y[2]] + y[3:] + [y[0]]))
 
-    #
     def id_yield(self):
+        """
+        :return: list of node ids that are in the ordering and connected to root
+        :rtype: list[str]
+        """
         return self.__ordered_ids
 
-    # Get yield as list of all labels of nodes, that are in the ordering
-    # return: list of string
-    def labelled_yield(self):
-        return [self.node_label(id) for id in self.__ordered_ids]
 
-    # Get full yield (including disconnected nodes) as list of labels
-    def full_labelled_yield(self):
-        return [self.node_label(id) for id in self.__full_yield]
-
-    # Get full yield (including disconnected nodes) as list of ids
     def full_yield(self):
+        """
+        :return: list of node ids that are in the ordering (including disconnected nodes)
+        :rtype: list[str]
+        """
         return self.__full_yield
 
-    # Get ids of all nodes.
-    # return: list of string
+    def labelled_yield(self):
+        """
+        :return: Get yield as list of all labels of nodes, that are in the ordering and connected to the root.
+        :rtype: list[str]
+        """
+        return [self.node_label(id) for id in self.__ordered_ids]
+
+    def full_labelled_yield(self):
+        """
+        :return: Get yield as list of labels of nodes, that are in the ordering (including disconnected nodes).
+        :rtype: list[str]
+        """
+        return [self.node_label(id) for id in self.__full_yield]
+
     def nodes(self):
+        """
+        :return: ids of all nodes.
+        :rtype: list[str]
+        """
         return self.__nodes
 
-    # Get the label of some node.
-    # id: string
-    # return: string
     def node_label(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: label of the node
+        :rtype: str
+        Query the label of some node.
+        """
         return self.__id_to_label[id]
 
-    # Does yield cover whole string?
-    # return: bool
     def complete(self):
+        """
+        :return: Does yield cover whole string?
+        :rtype: bool
+        """
         return self.rooted() and \
                len(self.fringe(self.root())) == self.__n_ordered_nodes
 
-    # Get POS of node
-    # id: string
     def node_pos(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: POS-tag of node
+        :rtype: str
+        Get POS-tag of node.
+        """
         return self.__id_to_pos[id]
 
-    # Get dependency label (DEPREL) of node
-    # id: string
     def node_dep_label(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: dependency label of node or None, if none was assigned.
+        :rtype: str
+        Get dependency label (DEPREL) of node.
+        """
         if id in self.__id_to_dep_label.keys():
             return self.__id_to_dep_label[id]
         else:
             return None
 
-    # Set dependency label (DEPREL) of node
-    # id: string
-    # dep_label: string
     def set_dep_label(self, id, dep_label):
+        """
+        :param id: node id
+        :type id: str
+        :param dep_label: a label that describes the relation of the node to its parent
+        :type dep_label: str
+        Set dependency label (DEPREL) of node
+        """
         self.__id_to_dep_label[id] = dep_label
 
-    # Get POS-yield (omitting disconnected nodes)
     def pos_yield(self):
+        """
+        :return: list of pos-TAGs
+        :rtype: list[str]
+        Get ordered POS tags, for ordered nodes that are connected to the root
+        """
         return [self.node_pos(id) for id in self.__ordered_ids]
 
-    # Number of nodes in total tree (omitting disconnected nodes)
     def n_nodes(self):
+        """
+        :return: Number of nodes in tree that are connected to the root (or the root itself).
+        :rtype: int
+        """
         return self.__n_nodes_below(self.root()) + 1
 
-    # Number of nodes below node
-    # id: string
-    # return: int
     def __n_nodes_below(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: Number of nodes below node.
+        :rtype: int
+        """
         n = len(self.children(id))
         for child in self.children(id):
             n += self.__n_nodes_below(child)
         return n
 
-    # Is there any non-ordered node without children?
-    # Includes the case the root has no children.
-    # return: bool
     def empty_fringe(self):
+        """
+        :rtype: bool
+        Is there any non-ordered node without children?
+        Includes the case the root has no children.
+        """
         for id in self.nodes():
             if len(self.children(id)) == 0 and not id in self.full_yield():
                 return True
         return self.rooted() and len(self.fringe(self.root())) == 0
 
-    # The siblings of id, i.e. the children of id's parent (including id),
-    # ordered from left to right.
-    # If id is the root, [root] is returned
-    # id: string
-    # return: list of string (node ids)
     def siblings(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: list of node ids
+        :rtype: list[str]
+        The siblings of id, i.e. the children of id's parent (including id),
+        ordered from left to right. If id is the root, then [root] is returned
+        """
         if self.root() == id:
             return [id]
         else:
