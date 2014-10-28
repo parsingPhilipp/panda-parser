@@ -678,4 +678,4 @@ def test_dependency_induction():
     dcp_string.set_dep_label("dep")
     print dcp_string, dcp_string.dep_label()
 
-test_dependency_induction()
+# test_dependency_induction()

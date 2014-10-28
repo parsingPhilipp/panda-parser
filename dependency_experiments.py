@@ -129,19 +129,22 @@ def parse_sentences_from_file( grammar
         print
 
 def test_conll_grammar_induction():
-    if 'ignore_punctuation' in sys.argv:
-        ignore_punctuation = True
-    else:
-        ignore_punctuation = False
-    if 'strict' in sys.argv:
-        nont_labelling = d_i.strict_pos
-    else:
-        nont_labelling = d_i.child_pos
+    # if 'ignore_punctuation' in sys.argv:
+    #     ignore_punctuation = True
+    # else:
+    #     ignore_punctuation = False
+    # if 'strict' in sys.argv:
+    #     nont_labelling = d_i.strict_pos
+    # else:
+    #     nont_labelling = d_i.child_pos
     # for ignore_punctuation in [True, False]:
     #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
-    for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
-                   , d_i.left_branching, d_i.right_branching]:
-
+    # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
+    #                , d_i.left_branching, d_i.right_branching]:
+    for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, False)
+                                                        , (d_i.strict_pos_dep, d_i.left_branching, False)
+                                                        , (d_i.child_pos_dep, d_i.direct_extraction, False)
+                                                        , (d_i.child_pos_dep, d_i.left_branching, False)]:
         grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, sys.maxint
                                            , False, 'START', ignore_punctuation)
         print
