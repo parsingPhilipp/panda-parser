@@ -1,8 +1,5 @@
 # Definite clause program rules. A list of such rules is
 # part of a LCFRS/DCP hybrid grammar rule.
-# We assume terminals linked to the LCFRS component do not have
-# children, which is appropriate for constituent parsing (rather than
-# dependency parsing).
 
 import re
 
@@ -19,31 +16,50 @@ class DCP_rhs_object:
     # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
     def evaluateMe(self, evaluator, id):
+        """
+        :type evaluator: DCP_evaluator
+        :param id: node id (gorn term) in LCFRS-derivation tree
+        :type id: str
+        :return: evaluated DCP_rhs object
+        """
         pass
 
 # Interface for DCP_evaluation
 class DCP_evaluator:
     __metaclass__ = ABCMeta
-    # s: DCP_string
-    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
     def evaluateString(self, s, id):
+        """
+        :type s: DCP_string
+        :param id: node id (gorn term) in LCFRS-derivation tree
+        :type id: str
+        :return: evaluated DCP_string
+        :rtype: DCP_string
+        """
         pass
 
-    # index: DCP_index
-    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
     def evaluateIndex(self, index, id):
+        """
+        :type index: DCP_index
+        :param id: node id (gorn term) in LCFRS-derivation tree
+        :type id: str
+        :return: the input position to which the index points
+        :rtype: DCP_pos
+        """
         pass
 
-    # term: DCP_term
-    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
     def evaluateTerm(self, term, id):
+        """
+        :type term: DCP_term
+        :param id: node id (gorn term) in LCFRS-derivation tree
+        :type id: str
+        :return: evaluated DCP_term
+        :rtype: DCP_term
+        """
         pass
 
-    # var: DCP_variable
-    # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
     def evaluateIndex(self, var, id):
         pass
@@ -217,36 +233,18 @@ class DCP_rule:
 # return: string
 def dcp_terms_to_str(l):
     return ' '.join([str(o) for o in l])
-    # s = ''
-    # for (i, t) in enumerate(l):
-    #     s += str(t)
-    #     if i < len(l)-1:
-    #         s += ' '
-    # return s
 
 # Turn list of DCP_rules into string. The rules are separated by semicolons.
 # l: list of DCP_rule
 # return: string
 def dcp_rules_to_str(l):
     return ('; '.join([str(r) for r in l]))
-    # s = ''
-    # for (i, r) in enumerate(l):
-    # s += str(r)
-    # if i < len(l)-1:
-	 #    s += '; '
-    # return s
 
 # As above, but more compact, omitting whitespace.
 # l: list of DCP_rule
 # return: string
 def dcp_rules_to_key(l):
     return ';'.join([str(r) for r in l])
-    # s = ''
-    # for (i, r) in enumerate(l):
-    # s += str(r)
-    # if i < len(l)-1:
-	 #    s += ';'
-    # return s
 
 ##################################################
 # Parsing of the DCP part of hybrid-grammar rules.
@@ -296,7 +294,6 @@ def parse_dcp_var(s):
 # Read terms, separated by whitespace, until bracket close or until nothing
 # left.
 # s: string
-# return: pair of list of DCP_term/DCP_index and string (remainder). #TODO: outdated
 # return: pair of list of DCP_rhs_object and string (remainder).
 def parse_dcp_terms(s):
     terms = []
@@ -309,7 +306,7 @@ def parse_dcp_terms(s):
         #     terms += [index]
         else:
             # try to match a term starting with DCP_index at root
-            match = re.search(r'^\s*(\[[0-9]+\])\s*\((.*)', s)
+            match = re.search(r'^\s*(\[[0-9]+(:{.*})?\])\s*\((.*)', s)
             if match:
                 (head, s) = parse_dcp_index(s)
             else:
@@ -330,11 +327,16 @@ def parse_dcp_terms(s):
 # line: s
 # return: pair of DCP_var and remainder of string
 def parse_dcp_index(s):
-    match = re.search(r'^\s*\[([0-9]+)\]\s*\((.*)$', s)
+    match = re.search(r'^\s*\[([0-9]+)(:{\w*})?\]\s*\((.*)$', s)
     if match:
         i = int(match.group(1))
-        rest = match.group(2)
-        return (DCP_index(i), rest)
+        rest = match.group(3)
+        dep_label = None
+        if match.group(2):
+            match2 = re.search(r'^:{(\w*)}$', match.group(2))
+            if match2:
+                dep_label = match2.group(1)
+        return (DCP_index(i, dep_label), rest)
     else:
         raise Exception('strange DCP index: ' + s)
 
@@ -353,8 +355,8 @@ def parse_dcp_string(s):
 # Testing.
 
 def test_dcp():
-    inp = '<1>=NP(VP(<0,1> a()[0]( )<0,1>)Det()) [1](); <2>= [2]() <1,0> '
+    inp = '<1>=NP(VP(<0,1> a()[0:{142_abAB}]( )<0,1>)Det()) [1](); <2>= [2:{}]() <1,0> '
     rules = parse_dcp(inp)
     print dcp_rules_to_str(rules)
 
-# test_dcp()
+test_dcp()

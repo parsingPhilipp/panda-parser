@@ -15,7 +15,7 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     Top level method to induce an LCFRS/DCP-hybrid grammar for dependency parsing.
     :rtype: LCFRS
     :param trees: Iterator over GeneralHybridTree (i.e. list (or Generator for lazy IO))
-    :param nont_labelling: GeneralHybridTree, Top_max, Bottom_max, Fanout -> str
+    :param nont_labelling: GeneralHybridTree, NodeIds, Top_max, Bottom_max, Fanout -> str
     :param term_labelling: GeneralHybridTree, NodeId -> str
     :param recursive_partitioning: GeneralHybridTree -> RecursivePartitioning
     :param start_nont: str
@@ -44,14 +44,25 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     return (n_trees, grammar)
 
 # Nonterminal labelling strategies
-def strict_pos( a, b, c, d):
-    return nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_pos(y))
-def strict_word( a, b, c, d):
-    return nonterminal_str(a, b, c, d, 'strict', lambda x,y: x.node_label(y))
-def child_pos ( a, b, c, d):
-    return nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_pos(y))
-def child_word( a, b, c, d):
-    return nonterminal_str(a, b, c, d, 'child', lambda x,y: x.node_label(y))
+def strict_pos( a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'strict', lambda tree, id, dep: tree.node_pos(id))
+def strict_pos_dep( a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'strict'
+                           , lambda tree, id, dep:
+        tree.node_pos(id) + ':' + tree.node_dep_label(id) if dep
+        else tree.node_pos(id))
+def strict_word( a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'strict', lambda tree, id, dep: tree.node_label(id))
+def child_pos ( a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'child', lambda tree, id, dep: tree.node_pos(id))
+def child_pos_dep( a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'child'
+                           , lambda tree, id, dep:
+        tree.node_pos(id) + ':' + tree.node_dep_label(id) if dep
+        else tree.node_pos(id))
+def child_word( a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'child', lambda tree, id, dep: tree.node_label(id))
+
 
 # Terminal labelling strategies
 def term_word( tree, id):
@@ -231,7 +242,7 @@ def create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
 
     children_spans = map(join_spans, [map(tree.node_index, ids) for (ids,_) in children])
 
-    lhs = LCFRS_lhs(nont_labelling(tree, t_max, b_max, len(spans)))
+    lhs = LCFRS_lhs(nont_labelling(tree, node_ids, t_max, b_max, len(spans)))
     for (low, high) in spans:
         arg = []
         i = low
@@ -299,7 +310,7 @@ def create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_lab
     """
 
     # Build LHS
-    lhs = LCFRS_lhs(nont_labelling(tree, t_max, b_max, 1))
+    lhs = LCFRS_lhs(nont_labelling(tree, node_ids, t_max, b_max, 1))
     id = node_ids[0]
     arg = [term_labelling(tree, id)]
     lhs.add_arg(arg)
@@ -395,11 +406,12 @@ def maximize(tree, id_set):
 lcfrs_fanout_in_nonterminal_name = True
 
 
-def nonterminal_str(tree, t_max, b_max, fanout, labelling_strategy, node_name):
+def nonterminal_str(tree, node_ids, t_max, b_max, fanout, labelling_strategy, node_name):
     """
     Auxiliary function to implement nonterminal labelling strategies.
     :rtype: str
     :param tree:    GeneralHybridTree
+    :param node_ids: NodeIds
     :param t_max:   top_max
     :param b_max:   bottom_max
     :param fanout:  int
@@ -407,56 +419,77 @@ def nonterminal_str(tree, t_max, b_max, fanout, labelling_strategy, node_name):
     :param node_name: GeneralHybridTree, NodeId -> String
     :return: :raise Exception:
     """
-    tree_node_name = lambda x: node_name(tree, x)
+    tree_node_name = lambda id, dep: node_name(tree, id, dep)
     if not lcfrs_fanout_in_nonterminal_name:
         fanout = ''
     else:
         fanout = str(fanout) + ':'
     if labelling_strategy == 'strict':
-        return strict_labeling(tree, t_max, b_max, fanout, tree_node_name).replace(' ', '').replace('*', '')
+        return strict_labeling(tree, node_ids, t_max, b_max, fanout, tree_node_name).replace(' ', '').replace('*', '')
     elif labelling_strategy == 'child':
-        return child_labeling(tree, t_max, b_max, fanout, tree_node_name).replace(' ', '').replace('*', '')
+        return child_labeling(tree, node_ids, t_max, b_max, fanout, tree_node_name).replace(' ', '').replace('*', '')
     else:
         raise Exception('Unknown labelling scheme \'' + labelling_strategy +'\'')
 
 
-def strict_labeling(tree, t_max, b_max, fanout, tree_node_name):
+def strict_labeling(tree, node_ids, t_max, b_max, fanout, tree_node_name):
     """
     Create nonterminal label, according to strict labeling strategy.
     :rtype: str
     :param tree:   GeneralHybridTree
+    :param node_ids: Node Ids
     :param t_max:  top_max
     :param b_max:  bottom_max
     :param fanout: int
     :param tree_node_name: NodeId -> string
     :return: string
     """
-    id_seqs = b_max + t_max
-    arg_dep = argument_dependencies(tree, id_seqs)
-    strict_label = ','.join(['#'.join(map(tree_node_name, id_seq)) for id_seq in id_seqs])
+    with_dep_label = []
+    if len(node_ids) == 1:
+        id_seqs = b_max
+        with_dep_label = t_max
+    else:
+        id_seqs = b_max + t_max
+
+    arg_dep = argument_dependencies(tree, id_seqs + with_dep_label)
+    strict_label = ','.join(
+        ['#'.join(map(lambda id: tree_node_name(id, False), id_seq)) for id_seq in id_seqs]
+        +
+        ['#'.join(map(lambda id: tree_node_name(id, True), id_seq)) for id_seq in with_dep_label]
+    )
 
     return '{' + fanout + strict_label + ',' + arg_dep + '}'
 
 
-def child_labeling(tree, t_max, b_max, fanout, tree_node_name):
+def child_labeling(tree, node_ids, t_max, b_max, fanout, tree_node_name):
     """
     Create nonterminal label, according to child labeling strategy.
     :rtype: str
     :param tree:  GeneralHybridTree
+    :param node_ids: NodeIds
     :param t_max: top_max
     :param b_max: top_max
     :param fanout: int
     :param tree_node_name: NodeId -> string
     :return: string
     """
-    id_seqs = b_max + t_max
-    arg_dep = argument_dependencies(tree, id_seqs)
-    strict_label = ','.join([child_of(tree, id_seq, tree_node_name) for id_seq in id_seqs])
+    with_dep_label = []
+    if len(node_ids) == 1:
+        id_seqs = b_max
+        with_dep_label = t_max
+    else:
+        id_seqs = b_max + t_max
+    arg_dep = argument_dependencies(tree, id_seqs + with_dep_label)
 
-    return '{' + fanout +  strict_label + ',' + arg_dep + '}'
+    child_label = ','.join([child_of(tree, node_ids, id_seq, tree_node_name) for id_seq in id_seqs]
+        +
+        ['#'.join(map(lambda id: tree_node_name(id, True), id_seq)) for id_seq in with_dep_label]
+    )
+
+    return '{' + fanout + child_label + ',' + arg_dep + '}'
 
 
-def child_of(tree, id_seq, tree_node_name):
+def child_of(tree, node_ids, id_seq, tree_node_name):
     """
     Auxiliary function, that replaces consecutive tree ids by the appropriate
     string in child labeling.
@@ -466,10 +499,10 @@ def child_of(tree, id_seq, tree_node_name):
     :return: string :raise Exception:
     """
     if len(id_seq) == 1:
-        return tree_node_name(id_seq[0])
+        return tree_node_name(id_seq[0], False)
     elif len(id_seq) > 1:
         # assuming that id_seq are siblings in tree, and thus also not at root level
-        return 'children-of(' + tree_node_name(tree.parent(id_seq[0])) + ')'
+        return 'children-of(' + tree_node_name(tree.parent(id_seq[0]), False) + ')'
     else:
         raise Exception('Empty components in top_max!')
 
@@ -627,8 +660,9 @@ def test_dependency_induction():
 
     print tree.recursive_partitioning()
 
-    (_, grammar) = induce_grammar([tree, tree2], child_pos, term_pos, direct_extraction, 'START')
+    (_, grammar) = induce_grammar([tree, tree2], strict_pos_dep, term_pos, direct_extraction, 'START')
     print max([grammar.fanout(nont) for nont in grammar.nonts()])
+    print grammar
 
     parser = LCFRS_parser(grammar, 'NP N V V'.split(' '))
     parser.print_parse()
@@ -644,4 +678,4 @@ def test_dependency_induction():
     dcp_string.set_dep_label("dep")
     print dcp_string, dcp_string.dep_label()
 
-# test_dependency_induction()
+test_dependency_induction()
