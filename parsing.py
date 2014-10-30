@@ -646,12 +646,19 @@ def position_of_terminal(i, rule, spans, child_spans):
 # dcp: list of DCP_term/DCP_pos
 # poss: list of string
 # words: list of string
-def dcp_to_hybridtree(tree, dcp, poss, words):
+def dcp_to_hybridtree(tree, dcp, poss, words, ignore_punctuation):
     if len(dcp) != 1:
         raise Exception('DCP has multiple roots')
+    j = 0
     for (i, (pos, word)) in enumerate(zip(poss, words)):
     #    tree.add_leaf(str(i), pos, word)
-        tree.add_node(str(i),word, pos, True, True)
+        if ignore_punctuation and re.search('^\$.*$',pos):
+            tree.add_node(str(i)+'p', word, pos, True, False)
+        elif ignore_punctuation:
+            tree.add_node(str(j), word, pos, True, True)
+            j += 1
+        else:
+            tree.add_node(str(i), word, pos, True, True)
     (id, _) = dcp_to_hybridtree_recur(dcp[0], tree, len(poss))
     tree.set_root(id)
     tree.reorder()
@@ -948,18 +955,18 @@ class LCFRS_parser:
     # poss: list of string
     # words: list of string
     # return: HybridTree
-    def dcp_hybrid_tree(self, poss, words):
+    def dcp_hybrid_tree(self, poss, words, ignore_punctuation):
         der = self.__best_der()
         if der:
             dcp = derivation_to_dcp(der)
-            return dcp_to_hybridtree(dcp, poss, words)
+            return dcp_to_hybridtree(dcp, poss, words, ignore_punctuation)
         else:
             return None
 
-    def new_DCP_Hybrid_Tree(self, tree, poss, words):
+    def new_DCP_Hybrid_Tree(self, tree, poss, words, ignore_punctuation):
         dcp_evaluation = self.newDCP()
         if dcp_evaluation:
-            return dcp_to_hybridtree(tree, dcp_evaluation, poss, words)
+            return dcp_to_hybridtree(tree, dcp_evaluation, poss, words, ignore_punctuation)
         else:
             return None
 

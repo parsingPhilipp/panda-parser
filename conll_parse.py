@@ -141,18 +141,24 @@ def node_to_conll_str(tree, id):
     """
     delimiter = '\t'
     s = ''
-    s += str(tree.node_index(id) + 1) + delimiter
+    s += str(tree.node_index_full(id) + 1) + delimiter
     s += tree.node_label(id) + delimiter
     s += '_' + delimiter
     s += tree.node_pos(id) + delimiter
     s += tree.node_pos(id) + delimiter
     s += '_' + delimiter
     dependency_info = ''
-    if (tree.root() == id):
+    if tree.root() == id:
         dependency_info += '0' + delimiter
+    # Connect disconnected tokens (i.e. punctuation) to the root.
+    elif tree.disconnected(id):
+        dependency_info += str(tree.node_index_full(tree.root()) + 1) + delimiter
     else:
-        dependency_info += str(tree.node_index(tree.parent(id)) + 1) + delimiter
-    dependency_info += tree.node_dep_label(id)
+        dependency_info += str(tree.node_index_full(tree.parent(id)) + 1) + delimiter
+    if tree.disconnected(id):
+        dependency_info += 'PUNC'
+    else:
+        dependency_info += tree.node_dep_label(id)
     s += dependency_info + delimiter + dependency_info
     return s
 
@@ -242,15 +248,18 @@ def test_conll_parse():
 
 def test_conll_grammar_induction():
     trees = parse_conll_corpus(test_file, True)
-    (_, grammar) = d_i.induce_grammar(trees, d_i.child_word, d_i.term_pos, d_i.right_branching, 'START')
+    (_, grammar) = d_i.induce_grammar(trees, d_i.child_word, d_i.term_pos, d_i.direct_extraction, 'START')
 
-    trees2 = parse_conll_corpus(test_file, False)
+    trees2 = parse_conll_corpus(test_file, True)
 
     for tree in trees2:
         parser = LCFRS_parser(grammar, tree.pos_yield())
         h_tree = GeneralHybridTree()
-        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.pos_yield(), tree.labelled_yield())
-        print h_tree
+        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), True)
+        #print h_tree
+        print h_tree.full_labelled_yield()
+        print tree_to_conll_str(h_tree)
+
 
 
 # test_conll_grammar_induction()

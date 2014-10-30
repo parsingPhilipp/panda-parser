@@ -669,7 +669,7 @@ def test_dependency_induction():
 
 
     hybrid_tree = GeneralHybridTree()
-    hybrid_tree = parser.new_DCP_Hybrid_Tree(hybrid_tree, 'P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))
+    hybrid_tree = parser.new_DCP_Hybrid_Tree(hybrid_tree, 'P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '), True)
     print hybrid_tree.full_labelled_yield()
     print hybrid_tree
 

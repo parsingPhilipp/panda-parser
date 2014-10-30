@@ -359,4 +359,4 @@ def test_dcp():
     rules = parse_dcp(inp)
     print dcp_rules_to_str(rules)
 
-test_dcp()
+# test_dcp()

@@ -183,6 +183,15 @@ class GeneralHybridTree:
         """
         return id in self.__ordered_ids
 
+    def disconnected(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: Is the node in the yield, but not connected to the root?
+        :rtype: bool
+        """
+        return id in self.__full_yield and not id in self.__ordered_ids
+
     def index_node(self, index):
         """
         :param index: index in ordering
@@ -200,6 +209,15 @@ class GeneralHybridTree:
         :rtype: int
         """
         return self.__id_to_node_index[id]
+
+    def node_index_full(self, id):
+        """
+        :param id: node id
+        :type id: str
+        :return: index of node in full_yield
+        :rtype: int
+        """
+        return self.__full_yield.index(id)
 
     def reorder(self):
         """
@@ -431,6 +449,16 @@ class GeneralHybridTree:
         Get ordered POS tags, for ordered nodes that are connected to the root
         """
         return [self.node_pos(id) for id in self.__ordered_ids]
+
+
+    def full_pos_yield(self):
+        """
+        :return: list of pos-TAGs
+        :rtype: list[str]
+        Get ordered POS tags, for all ordered nodes.
+        """
+        return [self.node_pos(id) for id in self.__full_yield]
+
 
     def n_nodes(self):
         """
