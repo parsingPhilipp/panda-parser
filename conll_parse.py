@@ -7,6 +7,7 @@ import re
 import dependency_induction as d_i
 from parsing import LCFRS_parser
 import sys
+import experiment_database
 
 
 test_file = 'examples/Dependency_Corpus.conll'
@@ -54,6 +55,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
     Lazily parses a dependency corpus (in CoNLL format) and generates GeneralHybridTrees.
     """
 
+    print path
     file_content = open(path)
     tree_count = 0
 
@@ -116,7 +118,6 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
                      str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
                      str(len(tree.id_yield()))))
             yield tree
-
 
 def tree_to_conll_str(tree):
     """

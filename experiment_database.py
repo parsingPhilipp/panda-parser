@@ -3,6 +3,7 @@ __author__ = 'kilian'
 import sqlite3
 import time
 from general_hybrid_tree import GeneralHybridTree
+from lcfrs import LCFRS
 import conll_parse
 
 dbfile = 'examples/example.db'
@@ -47,19 +48,55 @@ def create_result_tree_node_table(connection):
 def create_grammar_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS grammar (g_id int primary key, experiment integer, nonterminals int, terminals int, rules int, size int, UNIQUE(experiment))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS grammar (g_id integer primary key autoincrement, experiment integer, nonterminals integer, rules integer, size integer , UNIQUE(experiment))''')
     connection.commit()
 
 def create_fanouts_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS fanouts (g_id int primary key, experiment integer, nonterminals int, terminals int, rules int, size int, UNIQUE(experiment))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS fanouts (g_id integer, fanout integer, nonterminals integer, UNIQUE(g_id, fanout))''')
     connection.commit()
 
-def add_grammar(LCFRS):
-    pass
+def add_grammar(connection, grammar, experiment):
+    """
+    :type grammar: LCFRS
+    :type experiment: int
+    """
+    nont = len(grammar.nonts())
+    rules = len(grammar.rules())
+    size = grammar.size()
+    cursor = connection.cursor()
+    print experiment, nont, rules, size
+    cursor.execute('''INSERT INTO grammar VALUES (?, ?, ?, ?, ?)''', (None, experiment, nont, rules, size))
+    g_id = cursor.lastrowid
+
+    fanout_nonterminals = {}
+    for nont in grammar.nonts():
+        fanout = grammar.fanout(nont)
+        fanout_nonterminals[fanout] = fanout_nonterminals.get(fanout, 0) + 1
+    connection.commit()
+
+    for fanout in fanout_nonterminals.keys():
+        nont = fanout_nonterminals[fanout]
+        print g_id, fanout, nont
+        cursor.execute('''INSERT INTO fanouts VALUES (?, ?, ?)''', (g_id, fanout, nont))
+    connection.commit()
+
 
 def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, corpus, started, cpu_time):
+    """
+    :type connection: Connection
+    :param term_label:
+    :param nont_label:
+    :param rec_par:
+    :param ignore_punctuation: ignore punctuation in the grammar
+    :type ignore_punctuation: bool
+    :param corpus: corpus path
+    :param started: start time
+    :param cpu_time: total cpu time for parsing
+    :return: experiment id
+    :rtype: int
+    """
     cursor = connection.cursor()
     cursor.execute('''INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (None, term_label, nont_label, rec_par, ignore_punctuation, corpus, started, cpu_time))
     experiment = cursor.lastrowid
@@ -196,4 +233,33 @@ def dbtest():
 
     connection.close()
 
-dbtest()
+# dbtest()
+
+def initalize_database(dbfile):
+    """
+    Opens existing or creates new experiment database and returns Connection object to it.
+    :param dbfile:
+    :type dbfile: str
+    :return: connection to database
+    :rtype: Connection
+    """
+    connection = openDatabase(dbfile)
+    connection.text_factory = str
+
+    create_experiment_table(connection)
+    create_tree_table(connection)
+    create_tree_node_table(connection)
+    create_result_tree_table(connection)
+    create_result_tree_node_table(connection)
+    create_grammar_table(connection)
+    create_fanouts_table(connection)
+
+    return connection
+
+def finalize_database(connection):
+    """
+    :param connection:
+    :type connection: Connection
+    :return:
+    """
+    connection.close()

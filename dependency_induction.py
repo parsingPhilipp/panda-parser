@@ -19,7 +19,7 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     :param term_labelling: GeneralHybridTree, NodeId -> str
     :param recursive_partitioning: GeneralHybridTree -> RecursivePartitioning
     :param start_nont: str
-    :return: LCFRS
+    :rtype: int, LCFRS
     """
     grammar = LCFRS(start_nont)
     n_trees = 0
