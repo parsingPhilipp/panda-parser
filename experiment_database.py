@@ -20,8 +20,15 @@ def create_experiment_table(connection):
 def create_tree_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS trees (t_id integer primary key, corpus text, name text, length integer, gaps integer)''')
-    cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_idx ON trees(corpus, name)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS trees (t_id integer primary key autoincrement, corpus text, name text, length integer, gaps integer, unique(corpus, name))''')
+    # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_idx ON trees(corpus, name)''')
+    connection.commit()
+
+def create_result_tree_table(connection):
+    # Create Table
+    cursor = connection.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS result_trees (rt_id integer primary key autoincrement, t_id integer, exp_id integer, k_best integer, score double, UNIQUE(t_id, exp_id, k_best))''')
+    # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_node_idx ON tree_nodes(t_id, sent_position)''')
     connection.commit()
 
 def create_tree_node_table(connection):
@@ -34,8 +41,24 @@ def create_tree_node_table(connection):
 def create_result_tree_node_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS result_tree_nodes (exp_id int, t_id integer, sent_position INTEGER, deprel text, head integer)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS result_tree_nodes (rt_id INTEGER, sent_position INTEGER, deprel text, head integer, unique(rt_id, sent_position))''')
     connection.commit()
+
+
+def create_grammar_table(connection):
+    # Create Table
+    cursor = connection.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS grammar (g_id int primary key, experiment integer, nonterminals int, terminals int, rules int, size int, UNIQUE(experiment))''')
+    connection.commit()
+
+def create_fanouts_table(connection):
+    # Create Table
+    cursor = connection.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS fanouts (g_id int primary key, experiment integer, nonterminals int, terminals int, rules int, size int, UNIQUE(experiment))''')
+    connection.commit()
+
+def add_grammar(LCFRS):
+    pass
 
 def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, corpus, started, cpu_time):
     cursor = connection.cursor()
@@ -81,7 +104,7 @@ def add_tree(connection, tree, corpus):
     connection.commit()
 
 
-def add_result_tree(connection, tree, corpus, experiment):
+def add_result_tree(connection, tree, corpus, experiment, k_best, score):
     """
     :param connection:
     :type tree: GeneralHybridTree
@@ -97,7 +120,12 @@ def add_result_tree(connection, tree, corpus, experiment):
         assert("tree not found")
 
     # unique tree key
-    # tree_id = cursor.lastrowid
+    cursor.execute('''INSERT INTO result_trees VALUES (?, ?, ?, ?, ?)''', ( None
+                                                                        , tree_id
+                                                                        , experiment
+                                                                        , k_best
+                                                                        , score))
+    result_tree_id = cursor.lastrowid
 
     for id in tree.full_yield():
         # set root head
@@ -111,8 +139,7 @@ def add_result_tree(connection, tree, corpus, experiment):
         else:
             head = tree.node_index_full(tree.parent(id)) + 1
             deprel = tree.node_dep_label(id)
-        cursor.execute('''INSERT INTO result_tree_nodes VALUES (?, ?, ?, ?, ?)''', (experiment
-                                                                                       , tree_id
+        cursor.execute('''INSERT INTO result_tree_nodes VALUES (?, ?, ?, ?)''', (result_tree_id
                                                                                        , tree.node_index_full(id) + 1
                                                                                        , deprel
                                                                                        , head))
@@ -150,9 +177,10 @@ def dbtest():
 
     print
 
+    create_result_tree_table(connection)
     create_result_tree_node_table(connection)
     for tree in conll_parse.parse_conll_corpus(test_file_modified, False):
-        add_result_tree(connection, tree, corpus, experiment)
+        add_result_tree(connection, tree, corpus, experiment, 1, 0.142)
 
     for row3 in c.execute('SELECT  * FROM result_tree_nodes'):
         print row3, type(row3[0]).__name__
@@ -161,7 +189,7 @@ def dbtest():
 
     print experiment, type(experiment).__name__
 
-    for row4 in c.execute('''SELECT * FROM result_tree_nodes WHERE exp_id = ?''', (experiment,)):
+    for row4 in c.execute('''SELECT * FROM result_trees INNER JOIN result_tree_nodes ON result_trees.rt_id = result_tree_nodes.rt_id WHERE exp_id = ?''', (experiment,)):
         print row4
 
     connection.close()
