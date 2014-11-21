@@ -27,7 +27,7 @@ def create_tree_table(connection):
 def create_result_tree_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS result_trees (rt_id integer primary key autoincrement, t_id integer, exp_id integer, k_best integer, score double, UNIQUE(t_id, exp_id, k_best))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS result_trees (rt_id integer primary key autoincrement, t_id integer, exp_id integer, k_best integer, score double, parse_time time, UNIQUE(t_id, exp_id, k_best))''')
     # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_node_idx ON tree_nodes(t_id, sent_position)''')
     connection.commit()
 
@@ -43,7 +43,6 @@ def create_result_tree_node_table(connection):
     cursor = connection.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS result_tree_nodes (rt_id INTEGER, sent_position INTEGER, deprel text, head integer, unique(rt_id, sent_position))''')
     connection.commit()
-
 
 def create_grammar_table(connection):
     # Create Table
@@ -104,7 +103,7 @@ def add_tree(connection, tree, corpus):
     connection.commit()
 
 
-def add_result_tree(connection, tree, corpus, experiment, k_best, score):
+def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_time):
     """
     :param connection:
     :type tree: GeneralHybridTree
@@ -120,11 +119,12 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score):
         assert("tree not found")
 
     # unique tree key
-    cursor.execute('''INSERT INTO result_trees VALUES (?, ?, ?, ?, ?)''', ( None
+    cursor.execute('''INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?)''', ( None
                                                                         , tree_id
                                                                         , experiment
                                                                         , k_best
-                                                                        , score))
+                                                                        , score
+                                                                        , parse_time))
     result_tree_id = cursor.lastrowid
 
     for id in tree.full_yield():
@@ -179,8 +179,10 @@ def dbtest():
 
     create_result_tree_table(connection)
     create_result_tree_node_table(connection)
+    time_stamp = time.clock()
     for tree in conll_parse.parse_conll_corpus(test_file_modified, False):
-        add_result_tree(connection, tree, corpus, experiment, 1, 0.142)
+        add_result_tree(connection, tree, corpus, experiment, 1, 0.142, time.clock() - time_stamp)
+        time_stamp = time.clock()
 
     for row3 in c.execute('SELECT  * FROM result_tree_nodes'):
         print row3, type(row3[0]).__name__
