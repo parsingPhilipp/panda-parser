@@ -66,7 +66,7 @@ def add_grammar(connection, grammar, experiment):
     rules = len(grammar.rules())
     size = grammar.size()
     cursor = connection.cursor()
-    print experiment, nont, rules, size
+    # print experiment, nont, rules, size
     cursor.execute('''INSERT INTO grammar VALUES (?, ?, ?, ?, ?)''', (None, experiment, nont, rules, size))
     g_id = cursor.lastrowid
 
@@ -78,7 +78,7 @@ def add_grammar(connection, grammar, experiment):
 
     for fanout in fanout_nonterminals.keys():
         nont = fanout_nonterminals[fanout]
-        print g_id, fanout, nont
+        # print g_id, fanout, nont
         cursor.execute('''INSERT INTO fanouts VALUES (?, ?, ?)''', (g_id, fanout, nont))
     connection.commit()
 

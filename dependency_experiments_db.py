@@ -103,8 +103,8 @@ def induce_grammar_from_file(  path
                                        , recursive_partitioning.func_name
                                        , ignore_punctuation
                                        , path
-                                       , None
-                                       , time.time())
+                                       , time.time()
+                                       , None)
 
     if not quiet:
         print 'Inducing grammar'
@@ -188,11 +188,11 @@ def parse_sentences_from_file( grammar
             continue
         time_stamp = time.clock()
         parser = LCFRS_parser(grammar, tree_yield(tree))
-        h_tree = GeneralHybridTree()
+        h_tree = GeneralHybridTree(tree.sent_label())
         h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.pos_yield(), tree.labelled_yield(), ignore_punctuation)
         time_stamp = time.clock() - time_stamp
         if h_tree:
-            experiment_database.add_result_tree(connection, h_tree, experiment, path, 1, parser.best(), time_stamp)
+            experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp)
             n_gaps_gold += tree.n_gaps()
             n_gaps_test += h_tree.n_gaps()
             parse += 1
