@@ -189,7 +189,7 @@ def parse_sentences_from_file( grammar
         time_stamp = time.clock()
         parser = LCFRS_parser(grammar, tree_yield(tree))
         h_tree = GeneralHybridTree(tree.sent_label())
-        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.pos_yield(), tree.labelled_yield(), ignore_punctuation)
+        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), ignore_punctuation)
         time_stamp = time.clock() - time_stamp
         if h_tree:
             experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp)
@@ -235,14 +235,17 @@ def test_conll_grammar_induction():
     #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
     # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
     #                , d_i.left_branching, d_i.right_branching]:
-    for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, True)
-                                                        , (d_i.strict_pos_dep, d_i.left_branching, True)
-                                                        , (d_i.child_pos_dep, d_i.direct_extraction, True)
-                                                        , (d_i.child_pos_dep, d_i.left_branching, True)]:
-        grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling, d_i.term_pos, rec_par, 200
-                                           , False, 'START', ignore_punctuation)
-        print
-        parse_sentences_from_file(grammar, experiment, db_connection, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
+    # for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, True)
+    #                                                     , (d_i.strict_pos_dep, d_i.left_branching, True)
+    #                                                     , (d_i.child_pos_dep, d_i.direct_extraction, True)
+    #                                                     , (d_i.child_pos_dep, d_i.left_branching, True)]:
+    for ignore_punctuation in [True, False]:
+        for nont_labelling in [d_i.strict_pos, d_i.child_pos, d_i.strict_pos_dep, d_i.child_pos_dep]:
+            for rec_par in [d_i.direct_extraction, d_i.left_branching, d_i.right_branching, d_i.fanout_1, d_i.fanout_2]:
+                grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling, d_i.term_pos, rec_par, sys.maxint
+                                                   , False, 'START', ignore_punctuation)
+                print
+                parse_sentences_from_file(grammar, experiment, db_connection, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
 
     experiment_database.finalize_database(db_connection)
 
