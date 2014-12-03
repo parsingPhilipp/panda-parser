@@ -259,11 +259,11 @@ def initalize_database(dbfile):
 def create_latex_table_from_database(connection, experiments):
     columns_style = {}
     table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
-        , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total'
+        , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
     selected_columns = ['punc', 'nont_labelling', 'rec_par', 'f1', 'f2', 'f3', 'f4', 'f5'
         #, 'fail'
-        , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'fail', 'parse_time'
+        , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'parse_time', 'fail', 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
         #, 'n_gaps_test', 'parse_time'
         ]
     header = {}
@@ -290,19 +290,27 @@ def create_latex_table_from_database(connection, experiments):
     columns_style['test_succ'] = 'r'
     header['fail'] = 'fail'
     columns_style['fail'] = 'r'
-    header['UAS_avg'] = 'UAS(a)'
+    header['UAS_avg'] = '$UAS_a$'
     columns_style['UAS_avg'] = 'r'
-    header['LAS_avg'] = 'LAS(a)'
+    header['LAS_avg'] = '$LAS_a$'
     columns_style['LAS_avg'] = 'r'
-    header['UAS_t'] = 'UAS(t)'
+    header['UAS_t'] = '$UAS_t$'
     columns_style['UAS_t'] = 'r'
-    header['LAS_t'] = 'LAS(t)'
+    header['LAS_t'] = '$LAS_t$'
     columns_style['LAS_t'] = 'r'
+    header['UAS^c_avg'] = '$UAS^c_a$'
+    columns_style['UAS^c_avg'] = 'r'
+    header['LAS^c_avg'] = '$LAS^c_a$'
+    columns_style['LAS^c_avg'] = 'r'
+    header['UAS^c_t'] = '$UAS^c_t$'
+    columns_style['UAS^c_t'] = 'r'
+    header['LAS^c_t'] = '$LAS^c_t$'
+    columns_style['LAS^c_t'] = 'r'
     header['n_gaps_test'] = '\\# gaps (test)'
     columns_style['n_gaps_test'] = 'r'
     header['n_gaps_gold'] = '\\# gaps (gold)'
     columns_style['n_gaps_gold'] = 'r'
-    header['parse_time']  = 'parse time (sec)'
+    header['parse_time']  = 'time (s)'
     columns_style['parse_time'] = 'r'
 
     common_results = common_recognised_sentences(connection, experiments)
@@ -374,6 +382,22 @@ def compute_line(connection, ids, exp):
     UAS_t = 1.0 * UAS_t / LEN
     LAS_t = 1.0 * LAS_t / LEN
 
+    recogn_ids = recognised_sentences_lesseq_than(connection, exp, 20)
+    UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, LEN_c = 0, 0, 0, 0, 0
+    for id in recogn_ids:
+        c, l , uas_a = uas(connection, id, exp)
+        UAS_c_a = UAS_c_a + uas_a
+        LEN_c = LEN_c + l
+        UAS_c_t = UAS_c_t + c
+
+        cl, _, las_a = las(connection, id, exp)
+        LAS_c_a += las_a
+        LAS_c_t += cl
+    UAS_c_a = UAS_c_a / len(recogn_ids)
+    LAS_c_a = LAS_c_a / len(recogn_ids)
+    UAS_c_t = 1.0 * UAS_c_t / LEN_c
+    LAS_c_t = 1.0 * LAS_c_t / LEN_c
+
     # line['test_total'] = 'test sent.'
     # line['test_succ'] = 'succ'
     line['fail'] = test_sentences_length_lesseq_than(connection, 20) - all_recognised_sentences_lesseq_than(connection, exp, 20)
@@ -382,6 +406,10 @@ def compute_line(connection, ids, exp):
     line['LAS_avg'] = percentify(LAS_a, precicion)
     line['UAS_t'] = percentify(UAS_t, precicion)
     line['LAS_t'] = percentify(LAS_t, precicion)
+    line['UAS^c_avg'] = percentify(UAS_c_a, precicion)
+    line['LAS^c_avg'] = percentify(LAS_c_a, precicion)
+    line['UAS^c_t'] = percentify(UAS_c_t, precicion)
+    line['LAS^c_t'] = percentify(LAS_c_t, precicion)
     # line['n_gaps_test'] = '\\# gaps (test)'
     # line['n_gaps_gold'] = '\\# gaps (gold)'
     line['parse_time']  = "{:.0f}".format(time)
@@ -434,6 +462,18 @@ def all_recognised_sentences_lesseq_than(connection, exp_id, length):
       and result_trees.exp_id = ?''', (length, exp_id, )).fetchone()[0]
     return number
 
+def recognised_sentences_lesseq_than(connection, exp_id, length):
+    cursor = connection.cursor()
+    ids = cursor.execute('''
+    select trees.t_id
+    from trees join result_trees
+      on trees.t_id = result_trees.t_id
+    where trees.corpus like "%test.conll"
+      and trees.length <= ?
+      and result_trees.exp_id = ?''', (length, exp_id, )).fetchall()
+    ids = map(lambda x: x[0], ids)
+    return ids
+
 def percentify(value, precicion):
     p = value * 100
     return ("{:." + str(precicion) + "f}").format(p)
@@ -452,7 +492,7 @@ def recpac_stategies(rec_par):
     if rec_par == 'direct_extraction':
         return 'direct'
     else:
-        return rec_par.replace('_', ' ')
+        return rec_par.replace('_', ' ').replace('branching','branch.')
 
 def uas(connection, tree_id, e_id):
     cursor = connection.cursor()
@@ -495,7 +535,7 @@ def las(connection, tree_id, e_id):
     cursor = connection.cursor()
     try:
         correct, length = cursor.execute('''
-        select count(tree_nodes.head), trees.length
+        select count(distinct tree_nodes.sent_position), trees.length
         from tree_nodes join trees join result_trees join result_tree_nodes
         on tree_nodes.t_id =  trees.t_id
             and trees.t_id = result_trees.t_id
