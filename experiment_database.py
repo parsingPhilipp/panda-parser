@@ -9,7 +9,7 @@ import conll_parse
 dbfile = 'examples/example.db'
 test_file = 'examples/Dependency_Corpus.conll'
 test_file_modified = 'examples/Dependency_Corpus_modified.conll'
-
+sampledb = '/home/kilian/sampledb.db'
 
 def create_experiment_table(connection):
     # Create Table
@@ -256,6 +256,285 @@ def initalize_database(dbfile):
 
     return connection
 
+def create_latex_table_from_database(connection, experiments):
+    columns_style = {}
+    table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
+        , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total'
+        , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
+    selected_columns = ['punc', 'nont_labelling', 'rec_par', 'f1', 'f2', 'f3', 'f4', 'f5'
+        #, 'fail'
+        , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'fail', 'parse_time'
+        #, 'n_gaps_test', 'parse_time'
+        ]
+    header = {}
+    header['nont_labelling'] = 'nont.~lab.'
+    columns_style['nont_labelling'] = 'l'
+    header['rec_par'] = 'extraction'
+    columns_style['rec_par'] ='l'
+    header['training_corpus'] = 'training sent.'
+    columns_style['training_corpus'] = 'r'
+    header['punc'] = 'punct.'
+    columns_style['punc'] = 'l'
+    header['n_nonterminals'] = 'nont.'
+    columns_style['n_nonterminals'] = 'r'
+    header['n_rules'] = 'rules'
+    columns_style['n_rules'] ='r'
+    header['fanout'] = 'fanout'
+    columns_style['fanout'] = 'r'
+    for i in range(1,6,1):
+        header['f'+str(i)] = 'f '+str(i)
+        columns_style['f'+str(i)] = 'r'
+    header['test_total'] = 'test sent.'
+    columns_style['test_total'] = 'r'
+    header['test_succ'] = 'succ'
+    columns_style['test_succ'] = 'r'
+    header['fail'] = 'fail'
+    columns_style['fail'] = 'r'
+    header['UAS_avg'] = 'UAS(a)'
+    columns_style['UAS_avg'] = 'r'
+    header['LAS_avg'] = 'LAS(a)'
+    columns_style['LAS_avg'] = 'r'
+    header['UAS_t'] = 'UAS(t)'
+    columns_style['UAS_t'] = 'r'
+    header['LAS_t'] = 'LAS(t)'
+    columns_style['LAS_t'] = 'r'
+    header['n_gaps_test'] = '\\# gaps (test)'
+    columns_style['n_gaps_test'] = 'r'
+    header['n_gaps_gold'] = '\\# gaps (gold)'
+    columns_style['n_gaps_gold'] = 'r'
+    header['parse_time']  = 'parse time (sec)'
+    columns_style['parse_time'] = 'r'
+
+    common_results = common_recognised_sentences(connection, experiments)
+
+    print '''
+    \\documentclass[a4paper,10pt, fullpage]{scrartcl}
+    \\usepackage[utf8]{inputenc}
+    \\usepackage{booktabs}
+    \\usepackage[landscape, left = 1em, right = 1cm]{geometry}
+    %opening
+    \\author{Kilian Gebhardt}
+
+    \\begin{document}
+    \\centering
+    \\begin{table}
+    \\centering
+    '''
+    print '\\begin{tabular}{' + ''.join(columns_style[id] for id in selected_columns) + '}'
+    print '\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ 20: ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection,20))+ '}\\\\'
+    print '\t\\toprule'
+    print '\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\'
+    for exp in experiments:
+        line = compute_line(connection, common_results, exp)
+        print '\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\'
+    print '\t\\bottomrule'
+    print '\\end{tabular}'
+    print '''
+    \\end{table}
+
+\\end{document}
+    '''
+
+def compute_line(connection, ids, exp):
+    line = {}
+
+    cursor = connection.cursor()
+    experiment = cursor.execute('select nont_label, rec_par, corpus, ignore_punctuation from experiments where e_id = ?', (exp, )).fetchone()
+    g_id, nont, rules    = cursor.execute('select g_id, nonterminals, rules from grammar where experiment = ?', (exp,)).fetchone()
+    fanouts = cursor.execute('select fanout, nonterminals from fanouts where g_id = ?', (g_id, )).fetchall()
+
+    line['nont_labelling'] = nontlabelling_strategies(experiment[0])
+    line['rec_par'] = recpac_stategies(experiment[1])
+    line['training_corpus'] = experiment[2]
+    line['punc'] = punct(experiment[3])
+    line['n_nonterminals'] = nont
+    line['n_rules'] = rules
+    # line['fanout'] = 'fanout'
+    line['f1'] = fanout(fanouts, 1)
+    line['f2'] = fanout(fanouts, 2)
+    line['f3'] = fanout(fanouts, 3)
+    line['f4'] = fanout(fanouts, 4)
+    line['f5'] = fanout(fanouts, 5)
+
+    UAS_a, LAS_a, UAS_t, LAS_t, LEN = 0, 0, 0, 0, 0
+    time = 0
+    for id in ids:
+        time = time + parsetime(connection, id, exp)
+
+        c, l , uas_a = uas(connection, id, exp)
+        UAS_a = UAS_a + uas_a
+        LEN = LEN + l
+        UAS_t = UAS_t + c
+
+        cl, _, las_a = las(connection, id, exp)
+        LAS_a = LAS_a + las_a
+        LAS_t = LAS_t + cl
+    UAS_a = UAS_a / len(ids)
+    LAS_a = LAS_a / len(ids)
+    UAS_t = 1.0 * UAS_t / LEN
+    LAS_t = 1.0 * LAS_t / LEN
+
+    # line['test_total'] = 'test sent.'
+    # line['test_succ'] = 'succ'
+    line['fail'] = test_sentences_length_lesseq_than(connection, 20) - all_recognised_sentences_lesseq_than(connection, exp, 20)
+    precicion = 2
+    line['UAS_avg'] = percentify(UAS_a, precicion)
+    line['LAS_avg'] = percentify(LAS_a, precicion)
+    line['UAS_t'] = percentify(UAS_t, precicion)
+    line['LAS_t'] = percentify(LAS_t, precicion)
+    # line['n_gaps_test'] = '\\# gaps (test)'
+    # line['n_gaps_gold'] = '\\# gaps (gold)'
+    line['parse_time']  = "{:.0f}".format(time)
+    return line
+
+def fanout(fanouts, f):
+    for fi, ni in fanouts:
+        if f == fi:
+            return ni
+    return 0
+
+def punct(p):
+    if p == 1:
+        return 'ignore'
+    elif p == 0:
+        return 'consider'
+    else:
+        assert()
+
+def common_recognised_sentences(connection, experiments):
+    statement = '''
+      select trees.t_id
+      from trees inner join result_trees
+      on trees.t_id = result_trees.t_id
+      where result_trees.exp_id in ({0})
+      group by trees.t_id
+      having count (distinct result_trees.exp_id) = ?
+    '''.format(', '.join('?' * len(experiments)))
+    # statement = "SELECT * FROM tab WHERE obj IN ({0})".format(', '.join(['?' * len(list_of_vars)]))
+    # print statement
+    cursor = connection.cursor()
+    ids = cursor.execute(statement, experiments + [len(experiments)]).fetchall()
+    ids = map(lambda x: x[0], ids)
+    # print ids
+    return ids
+
+def test_sentences_length_lesseq_than(connection, length):
+    cursor = connection.cursor()
+    number = cursor.execute('select count(t_id) from trees where corpus like "%test.conll" and length <= ?', (length, )).fetchone()[0]
+    return number
+
+def all_recognised_sentences_lesseq_than(connection, exp_id, length):
+    cursor = connection.cursor()
+    number = cursor.execute('''
+    select count(trees.t_id)
+    from trees join result_trees
+      on trees.t_id = result_trees.t_id
+    where trees.corpus like "%test.conll"
+      and trees.length <= ?
+      and result_trees.exp_id = ?''', (length, exp_id, )).fetchone()[0]
+    return number
+
+def percentify(value, precicion):
+    p = value * 100
+    return ("{:." + str(precicion) + "f}").format(p)
+
+def nontlabelling_strategies(nont_labelling):
+    if nont_labelling == 'strict_pos':
+        return 'strict'
+    elif nont_labelling == 'child_pos':
+        return'child'
+    elif nont_labelling == 'child_pos_dep':
+        return 'child + dep'
+    elif nont_labelling == 'strict_pos_dep':
+        return 'strict + dep'
+
+def recpac_stategies(rec_par):
+    if rec_par == 'direct_extraction':
+        return 'direct'
+    else:
+        return rec_par.replace('_', ' ')
+
+def uas(connection, tree_id, e_id):
+    cursor = connection.cursor()
+    try:
+        correct, length = cursor.execute('''
+        select count(tree_nodes.head), trees.length
+        from tree_nodes join trees join result_trees join result_tree_nodes
+        on tree_nodes.t_id =  trees.t_id
+            and trees.t_id = result_trees.t_id
+            and result_trees.rt_id = result_tree_nodes.rt_id
+            and result_tree_nodes.sent_position = tree_nodes.sent_position
+        where result_trees.exp_id = ? and trees.t_id = ?
+            and tree_nodes.head = result_tree_nodes.head
+            --and tree_nodes.deprel = result_tree_nodes.deprel
+        ''', (e_id, tree_id)).fetchone()
+        return correct, length, 1.0 * correct/ length
+    except TypeError:
+        try:
+            incorrect, length = cursor.execute('''
+            select count(tree_nodes.head), trees.length
+            from tree_nodes join trees join result_trees join result_tree_nodes
+            on tree_nodes.t_id =  trees.t_id
+                and trees.t_id = result_trees.t_id
+                and result_trees.rt_id = result_tree_nodes.rt_id
+                and result_tree_nodes.sent_position = tree_nodes.sent_position
+            where result_trees.exp_id = ? and trees.t_id = ?
+                and tree_nodes.head != result_tree_nodes.head
+                --and tree_nodes.deprel = result_tree_nodes.deprel
+            ''', (e_id, tree_id)).fetchone()
+            if incorrect == length:
+                return 0, length, 0
+            else:
+                assert()
+        except TypeError:
+            print tree_id, e_id
+            assert()
+
+
+def las(connection, tree_id, e_id):
+    cursor = connection.cursor()
+    try:
+        correct, length = cursor.execute('''
+        select count(tree_nodes.head), trees.length
+        from tree_nodes join trees join result_trees join result_tree_nodes
+        on tree_nodes.t_id =  trees.t_id
+            and trees.t_id = result_trees.t_id
+            and result_trees.rt_id = result_tree_nodes.rt_id
+            and result_tree_nodes.sent_position = tree_nodes.sent_position
+        where result_trees.exp_id = ? and trees.t_id = ?
+            and tree_nodes.head = result_tree_nodes.head
+            and tree_nodes.deprel = result_tree_nodes.deprel
+        ''', (e_id, tree_id)).fetchone()
+        return correct, length, 1.0 * correct/ length
+    except TypeError:
+        try:
+            incorrect, length = cursor.execute('''
+            select count(tree_nodes.head), trees.length
+            from tree_nodes join trees join result_trees join result_tree_nodes
+            on tree_nodes.t_id =  trees.t_id
+                and trees.t_id = result_trees.t_id
+                and result_trees.rt_id = result_tree_nodes.rt_id
+                and result_tree_nodes.sent_position = tree_nodes.sent_position
+            where result_trees.exp_id = ? and trees.t_id = ?
+                and (tree_nodes.head != result_tree_nodes.head
+                or tree_nodes.deprel != result_tree_nodes.deprel)
+            ''', (e_id, tree_id)).fetchone()
+            if incorrect == length:
+                return 0, length, 0
+            else:
+                assert()
+        except TypeError:
+            print tree_id, e_id
+            assert()
+
+def parsetime(connection, tree_id, e_id):
+    cursor = connection.cursor()
+    t = cursor.execute('''
+    select parse_time from result_trees where t_id = ? and exp_id = ?
+    ''', (tree_id, e_id)).fetchone()[0]
+    return t
+
+
 def finalize_database(connection):
     """
     :param connection:
@@ -263,3 +542,11 @@ def finalize_database(connection):
     :return:
     """
     connection.close()
+
+
+def result_table():
+    connection = openDatabase(sampledb)
+    create_latex_table_from_database(connection, range(1,30,1))
+    finalize_database(connection)
+
+result_table()

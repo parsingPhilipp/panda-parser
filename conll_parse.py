@@ -7,7 +7,6 @@ import re
 import dependency_induction as d_i
 from parsing import LCFRS_parser
 import sys
-import experiment_database
 
 
 test_file = 'examples/Dependency_Corpus.conll'
