@@ -251,6 +251,7 @@ class GeneralHybridTree:
         :type id: str
         :return: indices (w.r.t. ordering) of all nodes under some node, cf. \Pi^{-1} in paper
         :rtype: list[int]
+        List of indices (w.r.t. ordering) obtained by pre-order traversal over the subtree starting at id.
         """
         y = []
         if self.in_ordering(id):
@@ -522,40 +523,5 @@ class GeneralHybridTree:
         return self.__hybrid_tree_str(self.root(), 0)
 
 
-def test():
-    print "Start"
-    tree = GeneralHybridTree()
-    tree.add_node("v1", "Piet", "NP", True)
-    tree.add_node("v21", "Marie", "N", True)
-    tree.add_node("v", "helpen", "V", True)
-    tree.add_node("v2", "lezen", "V", True)
-    tree.add_child("v", "v2")
-    tree.add_child("v", "v1")
-    tree.add_child("v2", "v21")
-    tree.add_node("v3", ".", "Punc", True, False)
-    tree.set_root("v")
-    print tree.children("v")
-    tree.reorder()
-    print tree.children("v")
 
-    print "fringe v", tree.fringe("v")
-    print "fringe v2", tree.fringe("v2")
-
-    print "n spans v", tree.n_spans("v")
-    print "n spans v2", tree.n_spans("v2")
-
-    print "n_gaps", tree.n_gaps()
-    print "ids:", tree.nodes()
-    print "complete", tree.complete()
-    print "unlabeled structure", tree.unlabelled_structure()
-
-    print "max n spans", tree.max_n_spans()
-
-    print "labelled yield", tree.labelled_yield()
-    print "full labelled yield", tree.full_labelled_yield()
-
-    print "full yield", tree.full_yield()
-
-    print "labelled spans", tree.labelled_spans()
-    print "POS yield", tree.pos_yield()
     # test()
