@@ -182,6 +182,56 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
                                                                                        , head))
     connection.commit()
 
+
+def query_result_tree(connection, exp, tree_id):
+    cursor = connection.cursor()
+    result_tree_ids = cursor.execute('''select rt_id from result_trees where exp_id = ? and t_id = ?''', (exp, tree_id)).fetchall()
+
+    # parse:
+    if result_tree_ids:
+        assert(len(result_tree_ids) == 1)
+        result_tree_id = result_tree_ids[0][0]
+        tree_nodes = cursor.execute(
+        ''' select tree_nodes.sent_position, label, pos, result_tree_nodes.head, result_tree_nodes.deprel from result_tree_nodes
+	        join result_trees
+		      on result_tree_nodes.rt_id = result_trees.rt_id
+	        join tree_nodes
+		      on result_trees.t_id = tree_nodes.t_id
+		      and result_tree_nodes.sent_position = tree_nodes.sent_position
+            where result_tree_nodes.rt_id = ?''', (result_tree_id,))
+        tree = GeneralHybridTree()
+        for i, label, pos, head, deprel in tree_nodes:
+            tree.add_node(str(i), label, pos, True, True)
+            tree.set_dep_label(str(i), deprel)
+            if head == 0:
+                tree.set_root(str(i))
+            else:
+                tree.add_child(str(head), str(i))
+        assert(tree.rooted())
+        return ('parse', tree)
+
+    # fallback
+    else:
+        tree_nodes = cursor.execute(
+        ''' select tree_nodes.sent_position, label, pos from tree_nodes
+            where tree_nodes.t_id = ?''', (tree_id,)).fetchall()
+
+        left_branch = lambda x: x-1
+        right_branch = lambda x: x+1
+        strategy = left_branch
+
+        length = len(tree_nodes)
+        tree = GeneralHybridTree()
+        for i, label, pos in tree_nodes:
+            tree.add_node(str(i), label, pos, True, True)
+            parent = strategy(i)
+            if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
+                tree.set_root(str(i))
+            else:
+                tree.add_child(str(parent), str(i))
+        assert(tree.rooted())
+        return ('fallback', tree)
+
 def openDatabase(file):
     connection = sqlite3.connect(file)
     return connection
@@ -319,12 +369,13 @@ def create_latex_table_from_database(connection, experiments):
     \\documentclass[a4paper,10pt, fullpage]{scrartcl}
     \\usepackage[utf8]{inputenc}
     \\usepackage{booktabs}
-    \\usepackage[landscape, left = 1em, right = 1cm]{geometry}
+    \\usepackage[landscape, left = 1em, right = 1cm, top = 1cm, bottom = 1cm]{geometry}
     %opening
     \\author{Kilian Gebhardt}
 
     \\begin{document}
     \\centering
+    \\thispagestyle{empty}
     \\begin{table}
     \\centering
     '''
@@ -585,8 +636,9 @@ def finalize_database(connection):
 
 
 def result_table():
-    connection = openDatabase(sampledb)
-    create_latex_table_from_database(connection, range(1,30,1))
-    finalize_database(connection)
+	connection = openDatabase(sampledb)
+    # create_latex_table_from_database(connection, range(1,41,1))
+	create_latex_table_from_database(connection, [4,5,6,7,8,9,10,15,19,20,27,28,29,30,39,40])
+	finalize_database(connection)
 
-result_table()
+# result_table()
