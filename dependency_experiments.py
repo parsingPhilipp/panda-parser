@@ -150,4 +150,5 @@ def test_conll_grammar_induction():
         print
         parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
 
-test_conll_grammar_induction()
+if __name__ == '__main__':
+    test_conll_grammar_induction()

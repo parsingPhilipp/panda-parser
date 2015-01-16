@@ -182,6 +182,18 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
                                                                                        , head))
     connection.commit()
 
+def query_tree_id(connection, corpus, name):
+    cursor = connection.cursor()
+
+    rows = cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', ( corpus, name)).fetchall()
+
+    # There should be at most one entry for every name and corpus.
+    assert(len(rows) <= 1)
+
+    if rows:
+        return rows[0][0]
+    else:
+        return None
 
 def query_result_tree(connection, exp, tree_id):
     cursor = connection.cursor()
@@ -218,12 +230,13 @@ def query_result_tree(connection, exp, tree_id):
 
         left_branch = lambda x: x-1
         right_branch = lambda x: x+1
-        strategy = left_branch
+        strategy = right_branch
 
         length = len(tree_nodes)
         tree = GeneralHybridTree()
         for i, label, pos in tree_nodes:
             tree.add_node(str(i), label, pos, True, True)
+            tree.set_dep_label(str(i), '_')
             parent = strategy(i)
             if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
                 tree.set_root(str(i))
