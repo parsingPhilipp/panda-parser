@@ -73,7 +73,7 @@ def hypothesis_test_path(prefix, experiment):
     :param experiment: experiment id in database
     :return: path of system output file
     """
-    return '%s-%d.conll'.format(prefix, experiment)
+    return '{:s}-{:d}.conll'.format(prefix, experiment)
 
 
 def CoNLL_string_for_tree(connection, corpus, tree_name, experiment):
