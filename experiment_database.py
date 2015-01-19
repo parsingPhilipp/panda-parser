@@ -182,6 +182,14 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
                                                                                        , head))
     connection.commit()
 
+
+def list_experiments(connection):
+    cursor = connection.cursor()
+    rows = cursor.execute('''SELECT * FROM experiments''',()).fetchall()
+    return rows
+
+
+
 def query_tree_id(connection, corpus, name):
     cursor = connection.cursor()
 
