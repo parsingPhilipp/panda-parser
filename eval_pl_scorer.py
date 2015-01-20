@@ -8,13 +8,13 @@ import subprocess
 import re
 
 hypothesis_prefix = 'examples/sys-output'
+gold_prefix = 'examples/gold-output'
 eval_pl = 'util/eval.pl'
 
 
-def eval_pl_scores(db_file, corpus, experiment):
+def eval_pl_scores(connection, corpus, experiment, filter = []):
     """
-    :param db_file: path to the sqlite database file
-    :type db_file: str
+    :param connection: database connection
     :param corpus:  path to the gold standard corpus (CoNLL)
     :type corpus: str
     :param experiment: id of the experiment in the database
@@ -23,7 +23,10 @@ def eval_pl_scores(db_file, corpus, experiment):
     :rtype: float, float, float
     """
     test_file_path = hypothesis_test_path(hypothesis_prefix, experiment)
-    connection = experiment_database.initalize_database(db_file)
+    if not filter:
+        gold_file_path = corpus
+    else:
+        gold_file_path = hypothesis_test_path(gold_prefix, experiment)
 
     trees = dependency_experiments_db.parse_conll_corpus(corpus, False)
 
@@ -33,19 +36,38 @@ def eval_pl_scores(db_file, corpus, experiment):
     except OSError:
         pass
 
+    if filter:
+        gold_CoNLL_strings = []
+
+        try:
+            os.remove(gold_file_path)
+        except OSError:
+            pass
+
     CoNLL_strings = []
     recognised = 0
 
     for tree in trees:
         tree_name = tree.sent_label()
-        CoNLL_strings.append(CoNLL_string_for_tree(connection, corpus, tree_name, experiment))
+        tree_id = experiment_database.query_tree_id(connection, corpus, tree_name)
+        assert(tree_id)
+        if not filter or tree_id in filter:
+            CoNLL_strings.append(CoNLL_string_for_tree(connection, tree_id, experiment))
+            if filter:
+                gold_CoNLL_strings.append(conll_parse.tree_to_conll_str(tree))
 
     CoNLL_strings.append('')
     test_file = open(test_file_path, 'a+')
     test_file.write('\n\n'.join(CoNLL_strings))
     test_file.close()
 
-    eval_pl_call_strings = ["-g {!s}".format(corpus), "-s {!s}".format(test_file_path), "-q"]
+    if filter:
+        gold_CoNLL_strings.append('')
+        gold_file = open(gold_file_path, 'a+')
+        gold_file.write('\n\n'.join(gold_CoNLL_strings))
+        gold_file.close()
+
+    eval_pl_call_strings = ["-g {!s}".format(gold_file_path), "-s {!s}".format(test_file_path), "-q"]
     p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
 
@@ -76,17 +98,13 @@ def hypothesis_test_path(prefix, experiment):
     return '{:s}-{:d}.conll'.format(prefix, experiment)
 
 
-def CoNLL_string_for_tree(connection, corpus, tree_name, experiment):
+def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
     """
     :param connection: database connection
-    :param corpus: path to corpus
-    :param tree_name: name of tree (in database)
-    :param experiment: experiment id (in database)
     :return: (multiline) string with system output for tree in CoNLL format
     Retrieves the system output for a test tree in some experiment in the database.
     If none exists, a fallback strategy is used (hidden in the database module).
     """
-    tree_id_in_db = experiment_database.query_tree_id(connection, corpus, tree_name)
     assert(tree_id_in_db)
 
     flag, hypothesis_tree = experiment_database.query_result_tree(connection, experiment, tree_id_in_db)
@@ -101,7 +119,10 @@ if __name__ == '__main__':
     db_file = sample_db
     corpus = conll_test
     experiment = 40
-    las, uas, la = eval_pl_scores(db_file, corpus, experiment)
+    connection = experiment_database.initalize_database(db_file)
+    common = experiment_database.common_recognised_sentences(connection, [experiment])
+    las, uas, la = eval_pl_scores(connection, corpus, experiment, common)
+    experiment_database.finalize_database(connection)
     print "Labeled attachment score {:.2f}".format(las)
     print "Unlabeled attachment score {:.2f}".format(uas)
     print "Label accuracy {:.2f}".format(la)
