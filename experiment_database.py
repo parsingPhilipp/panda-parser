@@ -5,6 +5,8 @@ import time
 from general_hybrid_tree import GeneralHybridTree
 from lcfrs import LCFRS
 import conll_parse
+import sys
+from eval_pl_scorer import eval_pl_scores
 
 dbfile = 'examples/example.db'
 test_file = 'examples/Dependency_Corpus.conll'
@@ -182,6 +184,77 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
                                                                                        , head))
     connection.commit()
 
+
+def list_experiments(connection):
+    cursor = connection.cursor()
+    rows = cursor.execute('''SELECT * FROM experiments''',()).fetchall()
+    return rows
+
+
+
+def query_tree_id(connection, corpus, name):
+    cursor = connection.cursor()
+
+    rows = cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', ( corpus, name)).fetchall()
+
+    # There should be at most one entry for every name and corpus.
+    assert(len(rows) <= 1)
+
+    if rows:
+        return rows[0][0]
+    else:
+        return None
+
+def query_result_tree(connection, exp, tree_id):
+    cursor = connection.cursor()
+    result_tree_ids = cursor.execute('''select rt_id from result_trees where exp_id = ? and t_id = ?''', (exp, tree_id)).fetchall()
+
+    # parse:
+    if result_tree_ids:
+        assert(len(result_tree_ids) == 1)
+        result_tree_id = result_tree_ids[0][0]
+        tree_nodes = cursor.execute(
+        ''' select tree_nodes.sent_position, label, pos, result_tree_nodes.head, result_tree_nodes.deprel from result_tree_nodes
+	        join result_trees
+		      on result_tree_nodes.rt_id = result_trees.rt_id
+	        join tree_nodes
+		      on result_trees.t_id = tree_nodes.t_id
+		      and result_tree_nodes.sent_position = tree_nodes.sent_position
+            where result_tree_nodes.rt_id = ?''', (result_tree_id,))
+        tree = GeneralHybridTree()
+        for i, label, pos, head, deprel in tree_nodes:
+            tree.add_node(str(i), label, pos, True, True)
+            tree.set_dep_label(str(i), deprel)
+            if head == 0:
+                tree.set_root(str(i))
+            else:
+                tree.add_child(str(head), str(i))
+        assert(tree.rooted())
+        return ('parse', tree)
+
+    # fallback
+    else:
+        tree_nodes = cursor.execute(
+        ''' select tree_nodes.sent_position, label, pos from tree_nodes
+            where tree_nodes.t_id = ?''', (tree_id,)).fetchall()
+
+        left_branch = lambda x: x-1
+        right_branch = lambda x: x+1
+        strategy = right_branch
+
+        length = len(tree_nodes)
+        tree = GeneralHybridTree()
+        for i, label, pos in tree_nodes:
+            tree.add_node(str(i), label, pos, True, True)
+            tree.set_dep_label(str(i), '_')
+            parent = strategy(i)
+            if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
+                tree.set_root(str(i))
+            else:
+                tree.add_child(str(parent), str(i))
+        assert(tree.rooted())
+        return ('fallback', tree)
+
 def openDatabase(file):
     connection = sqlite3.connect(file)
     return connection
@@ -256,14 +329,18 @@ def initalize_database(dbfile):
 
     return connection
 
-def create_latex_table_from_database(connection, experiments):
+def create_latex_table_from_database(connection, experiments, pipe = sys.stdout):
     columns_style = {}
     table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
     selected_columns = ['punc', 'nont_labelling', 'rec_par', 'f1', 'f2', 'f3', 'f4', 'f5'
         #, 'fail'
-        , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'parse_time', 'fail', 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
+        # , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t'
+        , 'parse_time', 'fail'
+        # , 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
+        , 'UAS_e', 'LAS_e', 'LAc_e'
+        , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
         #, 'n_gaps_test', 'parse_time'
         ]
     header = {}
@@ -313,35 +390,42 @@ def create_latex_table_from_database(connection, experiments):
     header['parse_time']  = 'time (s)'
     columns_style['parse_time'] = 'r'
 
+    # eval_pl evaluation
+    for prefix in ['LAS', 'UAS', 'LAc']:
+        for center in ['', '^c', '^t']:
+            header[prefix + center + '_e'] = '$' + prefix + center + '_e$'
+            columns_style[prefix + center + '_e'] = 'r'
+
     common_results = common_recognised_sentences(connection, experiments)
 
-    print '''
+    pipe.write('''
     \\documentclass[a4paper,10pt, fullpage]{scrartcl}
     \\usepackage[utf8]{inputenc}
     \\usepackage{booktabs}
-    \\usepackage[landscape, left = 1em, right = 1cm]{geometry}
+    \\usepackage[landscape, left = 1em, right = 1cm, top = 1cm, bottom = 1cm]{geometry}
     %opening
     \\author{Kilian Gebhardt}
 
     \\begin{document}
     \\centering
+    \\thispagestyle{empty}
     \\begin{table}
     \\centering
-    '''
-    print '\\begin{tabular}{' + ''.join(columns_style[id] for id in selected_columns) + '}'
-    print '\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ 20: ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection,20))+ '}\\\\'
-    print '\t\\toprule'
-    print '\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\'
+    \n''')
+    pipe.write('\\begin{tabular}{' + ''.join(columns_style[id] for id in selected_columns) + '}\n')
+    pipe.write('\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ 20: ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection,20))+ '}\\\\\n')
+    pipe.write('\t\\toprule\n')
+    pipe.write('\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\\n')
     for exp in experiments:
         line = compute_line(connection, common_results, exp)
-        print '\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\'
-    print '\t\\bottomrule'
-    print '\\end{tabular}'
-    print '''
+        pipe.write('\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\\n')
+    pipe.write('\t\\bottomrule\n')
+    pipe.write('\\end{tabular}\n')
+    pipe.write('''
     \\end{table}
 
 \\end{document}
-    '''
+    \n''')
 
 def compute_line(connection, ids, exp):
     line = {}
@@ -354,6 +438,8 @@ def compute_line(connection, ids, exp):
     line['nont_labelling'] = nontlabelling_strategies(experiment[0])
     line['rec_par'] = recpac_stategies(experiment[1])
     line['training_corpus'] = experiment[2]
+    # TODO: there should be a field for the test corpus in the database
+    test_corpus = experiment[2].replace("train","test")
     line['punc'] = punct(experiment[3])
     line['n_nonterminals'] = nont
     line['n_rules'] = rules
@@ -364,39 +450,29 @@ def compute_line(connection, ids, exp):
     line['f4'] = fanout(fanouts, 4)
     line['f5'] = fanout(fanouts, 5)
 
-    UAS_a, LAS_a, UAS_t, LAS_t, LEN = 0, 0, 0, 0, 0
-    time = 0
-    for id in ids:
-        time = time + parsetime(connection, id, exp)
-
-        c, l , uas_a = uas(connection, id, exp)
-        UAS_a = UAS_a + uas_a
-        LEN = LEN + l
-        UAS_t = UAS_t + c
-
-        cl, _, las_a = las(connection, id, exp)
-        LAS_a = LAS_a + las_a
-        LAS_t = LAS_t + cl
-    UAS_a = UAS_a / len(ids)
-    LAS_a = LAS_a / len(ids)
-    UAS_t = 1.0 * UAS_t / LEN
-    LAS_t = 1.0 * LAS_t / LEN
+    UAS_a, LAS_a, UAS_t, LAS_t, time = scores_and_parse_time(connection, ids, exp)
 
     recogn_ids = recognised_sentences_lesseq_than(connection, exp, 20)
-    UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, LEN_c = 0, 0, 0, 0, 0
-    for id in recogn_ids:
-        c, l , uas_a = uas(connection, id, exp)
-        UAS_c_a = UAS_c_a + uas_a
-        LEN_c = LEN_c + l
-        UAS_c_t = UAS_c_t + c
+    UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, _ = scores_and_parse_time(connection, recogn_ids, exp)
 
-        cl, _, las_a = las(connection, id, exp)
-        LAS_c_a += las_a
-        LAS_c_t += cl
-    UAS_c_a = UAS_c_a / len(recogn_ids)
-    LAS_c_a = LAS_c_a / len(recogn_ids)
-    UAS_c_t = 1.0 * UAS_c_t / LEN_c
-    LAS_c_t = 1.0 * LAS_c_t / LEN_c
+    line['LAS_e'], line['UAS_e'], line['LAc_e'] = eval_pl_scores(connection, test_corpus, exp, ids)
+    line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = eval_pl_scores(connection, test_corpus, exp)
+    line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = eval_pl_scores(connection, test_corpus, exp, ids)
+
+    # UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, LEN_c = 0, 0, 0, 0, 0
+    # for id in recogn_ids:
+    #     c, l , uas_a = uas(connection, id, exp)
+    #     UAS_c_a = UAS_c_a + uas_a
+    #     LEN_c = LEN_c + l
+    #     UAS_c_t = UAS_c_t + c
+    #
+    #     cl, _, las_a = las(connection, id, exp)
+    #     LAS_c_a += las_a
+    #     LAS_c_t += cl
+    # UAS_c_a = UAS_c_a / len(recogn_ids)
+    # LAS_c_a = LAS_c_a / len(recogn_ids)
+    # UAS_c_t = 1.0 * UAS_c_t / LEN_c
+    # LAS_c_t = 1.0 * LAS_c_t / LEN_c
 
     # line['test_total'] = 'test sent.'
     # line['test_succ'] = 'succ'
@@ -414,6 +490,26 @@ def compute_line(connection, ids, exp):
     # line['n_gaps_gold'] = '\\# gaps (gold)'
     line['parse_time']  = "{:.0f}".format(time)
     return line
+
+def scores_and_parse_time(connection, ids, exp):
+    UAS_a, LAS_a, UAS_t, LAS_t, LEN = 0, 0, 0, 0, 0
+    time = 0
+    for id in ids:
+        time = time + parsetime(connection, id, exp)
+
+        c, l , uas_a = uas(connection, id, exp)
+        UAS_a = UAS_a + uas_a
+        LEN = LEN + l
+        UAS_t = UAS_t + c
+
+        cl, _, las_a = las(connection, id, exp)
+        LAS_a = LAS_a + las_a
+        LAS_t = LAS_t + cl
+    UAS_a = UAS_a / len(ids)
+    LAS_a = LAS_a / len(ids)
+    UAS_t = 1.0 * UAS_t / LEN
+    LAS_t = 1.0 * LAS_t / LEN
+    return UAS_a, LAS_a, UAS_t, LAS_t, time
 
 def fanout(fanouts, f):
     for fi, ni in fanouts:
@@ -585,8 +681,9 @@ def finalize_database(connection):
 
 
 def result_table():
-    connection = openDatabase(sampledb)
-    create_latex_table_from_database(connection, range(1,30,1))
-    finalize_database(connection)
+	connection = openDatabase(sampledb)
+    # create_latex_table_from_database(connection, range(1,41,1))
+	create_latex_table_from_database(connection, [4,5,6,7,8,9,10,15,19,20,27,28,29,30,39,40])
+	finalize_database(connection)
 
-result_table()
+# result_table()

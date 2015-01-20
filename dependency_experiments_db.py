@@ -249,5 +249,6 @@ def test_conll_grammar_induction():
 
     experiment_database.finalize_database(db_connection)
 
-test_conll_grammar_induction()
+if __name__ == '__main__':
+    test_conll_grammar_induction()
 
