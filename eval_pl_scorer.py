@@ -79,13 +79,13 @@ def eval_pl_scores(connection, corpus, experiment, filter = []):
     for line in lines:
         m = re.search(r'^\s*Labeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
         if m:
-            las = float(m.group(1))
+            las = float(m.group(1)) / 100
         m = re.search(r'^\s*Unlabeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
         if m:
-            uas = float(m.group(1))
+            uas = float(m.group(1)) / 100
         m = re.search(r'^\s*Label\s*accuracy\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
         if m:
-            la = float(m.group(1))
+            la = float(m.group(1)) / 100
     return las, uas, la
 
 

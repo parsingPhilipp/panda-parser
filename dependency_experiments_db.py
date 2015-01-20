@@ -103,6 +103,7 @@ def induce_grammar_from_file(  path
                                        , recursive_partitioning.func_name
                                        , ignore_punctuation
                                        , path
+                                       , ''
                                        , time.time()
                                        , None)
 
@@ -163,6 +164,9 @@ def parse_sentences_from_file( grammar
     :type ignore_punctuation: bool
     Parse sentences from corpus and compare derived dependency structure with gold standard information.
     """
+
+    experiment_database.set_experiment_test_corpus(connection, experiment, path)
+
     if not quiet:
         if max_length != sys.maxint:
             s = ', ignoring sentences with length > ' + str(max_length)

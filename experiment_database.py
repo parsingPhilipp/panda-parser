@@ -7,6 +7,7 @@ from lcfrs import LCFRS
 import conll_parse
 import sys
 from eval_pl_scorer import eval_pl_scores
+from collections import OrderedDict
 
 dbfile = 'examples/example.db'
 test_file = 'examples/Dependency_Corpus.conll'
@@ -16,47 +17,84 @@ sampledb = '/home/kilian/sampledb.db'
 def create_experiment_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS experiments (e_id integer primary key autoincrement, term_label text, nont_label text, rec_par text, ignore_punctuation boolean, corpus text, started time, cpu_time time)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS experiments ( e_id integer primary key autoincrement
+                                                              , term_label text
+                                                              , nont_label text
+                                                              , rec_par text
+                                                              , ignore_punctuation boolean
+                                                              , training_corpus text
+                                                              , test_corpus text
+                                                              , started time
+                                                              , cpu_time time)''')
     connection.commit()
 
 
 def create_tree_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS trees (t_id integer primary key autoincrement, corpus text, name text, length integer, gaps integer, unique(corpus, name))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS trees (t_id integer primary key autoincrement
+                                                        , corpus text
+                                                        , name text
+                                                        , length integer
+                                                        , gaps integer
+                                                        , unique(corpus, name))''')
     # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_idx ON trees(corpus, name)''')
     connection.commit()
 
 def create_result_tree_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS result_trees (rt_id integer primary key autoincrement, t_id integer, exp_id integer, k_best integer, score double, parse_time time, UNIQUE(t_id, exp_id, k_best))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS result_trees (rt_id integer primary key autoincrement
+                                                              , t_id integer
+                                                              , exp_id integer
+                                                              , k_best integer
+                                                              , score double
+                                                              , parse_time time
+                                                              , UNIQUE(t_id, exp_id, k_best))''')
     # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_node_idx ON tree_nodes(t_id, sent_position)''')
     connection.commit()
 
 def create_tree_node_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS tree_nodes (t_id integer, sent_position INTEGER, label text, pos text, deprel text, head integer, UNIQUE(t_id, sent_position))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS tree_nodes (t_id integer
+                                                            , sent_position INTEGER
+                                                            , label text
+                                                            , pos text
+                                                            , deprel text
+                                                            , head integer
+                                                            , UNIQUE(t_id, sent_position))''')
     # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_node_idx ON tree_nodes(t_id, sent_position)''')
     connection.commit()
 
 def create_result_tree_node_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS result_tree_nodes (rt_id INTEGER, sent_position INTEGER, deprel text, head integer, unique(rt_id, sent_position))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS result_tree_nodes (rt_id INTEGER
+                                                                   , sent_position INTEGER
+                                                                   , deprel text
+                                                                   , head integer
+                                                                   , unique(rt_id, sent_position))''')
     connection.commit()
 
 def create_grammar_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS grammar (g_id integer primary key autoincrement, experiment integer, nonterminals integer, rules integer, size integer , UNIQUE(experiment))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS grammar (g_id integer primary key autoincrement
+                                                          , experiment integer
+                                                          , nonterminals integer
+                                                          , rules integer
+                                                          , size integer
+                                                          , UNIQUE(experiment))''')
     connection.commit()
 
 def create_fanouts_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS fanouts (g_id integer, fanout integer, nonterminals integer, UNIQUE(g_id, fanout))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS fanouts (g_id integer
+                                                         , fanout integer
+                                                         , nonterminals integer
+                                                         , UNIQUE(g_id, fanout))''')
     connection.commit()
 
 def add_grammar(connection, grammar, experiment):
@@ -85,7 +123,7 @@ def add_grammar(connection, grammar, experiment):
     connection.commit()
 
 
-def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, corpus, started, cpu_time):
+def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus, started, cpu_time):
     """
     :type connection: Connection
     :param term_label:
@@ -93,17 +131,23 @@ def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuati
     :param rec_par:
     :param ignore_punctuation: ignore punctuation in the grammar
     :type ignore_punctuation: bool
-    :param corpus: corpus path
+    :param training_corpus: training corpus path
+    :param test_corpus: test corpus path
     :param started: start time
     :param cpu_time: total cpu time for parsing
     :return: experiment id
     :rtype: int
     """
     cursor = connection.cursor()
-    cursor.execute('''INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (None, term_label, nont_label, rec_par, ignore_punctuation, corpus, started, cpu_time))
+    cursor.execute('''INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (None, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus, started, cpu_time))
     experiment = cursor.lastrowid
     connection.commit()
     return experiment
+
+def set_experiment_test_corpus(connection, exp_id, test_corpus):
+    cursor = connection.cursor()
+    cursor.execute('UPDATE TABLE experiments SET test_corpus =? WHERE e_id = ?', (test_corpus, exp_id,))
+    connection.commit()
 
 def add_tree(connection, tree, corpus):
     """
@@ -265,8 +309,9 @@ def dbtest():
 
     create_experiment_table(connection)
 
-    corpus = test_file
-    experiment = add_experiment(connection, 'term_pos', 'child_pos', 'direct_extraction', False, corpus, time.time(), None)
+    training_corpus = test_file
+    test_corpus = test_file
+    experiment = add_experiment(connection, 'term_pos', 'child_pos', 'direct_extraction', False, training_corpus, test_corpus, time.time(), None)
 
     c = connection.cursor()
     for row in c.execute('SELECT * FROM experiments'):
@@ -275,8 +320,8 @@ def dbtest():
     create_tree_table(connection)
     create_tree_node_table(connection)
 
-    for tree in conll_parse.parse_conll_corpus(test_file, False):
-        add_tree(connection, tree, test_file)
+    for tree in conll_parse.parse_conll_corpus(test_corpus, False):
+        add_tree(connection, tree, test_corpus)
 
     for row in c.execute('SELECT * FROM trees'):
         print row
@@ -291,7 +336,7 @@ def dbtest():
     create_result_tree_node_table(connection)
     time_stamp = time.clock()
     for tree in conll_parse.parse_conll_corpus(test_file_modified, False):
-        add_result_tree(connection, tree, corpus, experiment, 1, 0.142, time.clock() - time_stamp)
+        add_result_tree(connection, tree, test_corpus, experiment, 1, 0.142, time.clock() - time_stamp)
         time_stamp = time.clock()
 
     for row3 in c.execute('SELECT  * FROM result_tree_nodes'):
@@ -330,6 +375,7 @@ def initalize_database(dbfile):
     return connection
 
 def create_latex_table_from_database(connection, experiments, pipe = sys.stdout):
+    max_length = 20
     columns_style = {}
     table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
@@ -396,7 +442,7 @@ def create_latex_table_from_database(connection, experiments, pipe = sys.stdout)
             header[prefix + center + '_e'] = '$' + prefix + center + '_e$'
             columns_style[prefix + center + '_e'] = 'r'
 
-    common_results = common_recognised_sentences(connection, experiments)
+    common_results = common_recognised_sentences(connection, experiments, max_length)
 
     pipe.write('''
     \\documentclass[a4paper,10pt, fullpage]{scrartcl}
@@ -413,11 +459,14 @@ def create_latex_table_from_database(connection, experiments, pipe = sys.stdout)
     \\centering
     \n''')
     pipe.write('\\begin{tabular}{' + ''.join(columns_style[id] for id in selected_columns) + '}\n')
-    pipe.write('\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ 20: ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection,20))+ '}\\\\\n')
+
+    test_corpus = connection.cursor().execute('SELECT test_corpus FROM experiments WHERE e_id = ?', (experiments[0],)).fetchone()[0]
+
+    pipe.write('\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ ' + str(max_length) +': ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection, test_corpus, max_length))+ '}\\\\\n')
     pipe.write('\t\\toprule\n')
     pipe.write('\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\\n')
     for exp in experiments:
-        line = compute_line(connection, common_results, exp)
+        line = compute_line(connection, common_results, exp, max_length)
         pipe.write('\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\\n')
     pipe.write('\t\\bottomrule\n')
     pipe.write('\\end{tabular}\n')
@@ -427,11 +476,11 @@ def create_latex_table_from_database(connection, experiments, pipe = sys.stdout)
 \\end{document}
     \n''')
 
-def compute_line(connection, ids, exp):
+def compute_line(connection, ids, exp, max_length):
     line = {}
 
     cursor = connection.cursor()
-    experiment = cursor.execute('select nont_label, rec_par, corpus, ignore_punctuation from experiments where e_id = ?', (exp, )).fetchone()
+    experiment = cursor.execute('select nont_label, rec_par, training_corpus, test_corpus, ignore_punctuation from experiments where e_id = ?', (exp, )).fetchone()
     g_id, nont, rules    = cursor.execute('select g_id, nonterminals, rules from grammar where experiment = ?', (exp,)).fetchone()
     fanouts = cursor.execute('select fanout, nonterminals from fanouts where g_id = ?', (g_id, )).fetchall()
 
@@ -439,8 +488,9 @@ def compute_line(connection, ids, exp):
     line['rec_par'] = recpac_stategies(experiment[1])
     line['training_corpus'] = experiment[2]
     # TODO: there should be a field for the test corpus in the database
-    test_corpus = experiment[2].replace("train","test")
-    line['punc'] = punct(experiment[3])
+    # test_corpus = experiment[2].replace("train","test")
+    test_corpus = experiment[3]
+    line['punc'] = punct(experiment[4])
     line['n_nonterminals'] = nont
     line['n_rules'] = rules
     # line['fanout'] = 'fanout'
@@ -452,12 +502,14 @@ def compute_line(connection, ids, exp):
 
     UAS_a, LAS_a, UAS_t, LAS_t, time = scores_and_parse_time(connection, ids, exp)
 
-    recogn_ids = recognised_sentences_lesseq_than(connection, exp, 20)
+    recogn_ids = recognised_sentences_lesseq_than(connection, exp, max_length, test_corpus)
     UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, _ = scores_and_parse_time(connection, recogn_ids, exp)
+    precicion = 2
 
-    line['LAS_e'], line['UAS_e'], line['LAc_e'] = eval_pl_scores(connection, test_corpus, exp, ids)
-    line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = eval_pl_scores(connection, test_corpus, exp)
-    line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = eval_pl_scores(connection, test_corpus, exp, ids)
+    percent = lambda x: percentify(x, precicion)
+    line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
+    line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp)))
+    line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
 
     # UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, LEN_c = 0, 0, 0, 0, 0
     # for id in recogn_ids:
@@ -476,8 +528,8 @@ def compute_line(connection, ids, exp):
 
     # line['test_total'] = 'test sent.'
     # line['test_succ'] = 'succ'
-    line['fail'] = test_sentences_length_lesseq_than(connection, 20) - all_recognised_sentences_lesseq_than(connection, exp, 20)
-    precicion = 2
+    line['fail'] = test_sentences_length_lesseq_than(connection, test_corpus, max_length) - all_recognised_sentences_lesseq_than(connection, exp, max_length, test_corpus)
+
     line['UAS_avg'] = percentify(UAS_a, precicion)
     line['LAS_avg'] = percentify(LAS_a, precicion)
     line['UAS_t'] = percentify(UAS_t, precicion)
@@ -525,48 +577,49 @@ def punct(p):
     else:
         assert()
 
-def common_recognised_sentences(connection, experiments):
+def common_recognised_sentences(connection, experiments, max_length = sys.maxint):
     statement = '''
       select trees.t_id
       from trees inner join result_trees
       on trees.t_id = result_trees.t_id
       where result_trees.exp_id in ({0})
+      and   trees.length <= ?
       group by trees.t_id
       having count (distinct result_trees.exp_id) = ?
     '''.format(', '.join('?' * len(experiments)))
     # statement = "SELECT * FROM tab WHERE obj IN ({0})".format(', '.join(['?' * len(list_of_vars)]))
     # print statement
     cursor = connection.cursor()
-    ids = cursor.execute(statement, experiments + [len(experiments)]).fetchall()
+    ids = cursor.execute(statement, experiments + [max_length, len(experiments)]).fetchall()
     ids = map(lambda x: x[0], ids)
     # print ids
     return ids
 
-def test_sentences_length_lesseq_than(connection, length):
+def test_sentences_length_lesseq_than(connection, test_corpus, length):
     cursor = connection.cursor()
-    number = cursor.execute('select count(t_id) from trees where corpus like "%test.conll" and length <= ?', (length, )).fetchone()[0]
+    number = cursor.execute('select count(t_id) from trees where corpus = ? and length <= ?', (test_corpus, length,)).fetchone()[0]
     return number
 
-def all_recognised_sentences_lesseq_than(connection, exp_id, length):
+def all_recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
     cursor = connection.cursor()
     number = cursor.execute('''
     select count(trees.t_id)
     from trees join result_trees
       on trees.t_id = result_trees.t_id
-    where trees.corpus like "%test.conll"
+    where trees.corpus = ?
       and trees.length <= ?
-      and result_trees.exp_id = ?''', (length, exp_id, )).fetchone()[0]
+      and result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchone()[0]
     return number
 
-def recognised_sentences_lesseq_than(connection, exp_id, length):
+def recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
     cursor = connection.cursor()
     ids = cursor.execute('''
     select trees.t_id
     from trees join result_trees
       on trees.t_id = result_trees.t_id
-    where trees.corpus like "%test.conll"
+    where trees.corpus = ?
       and trees.length <= ?
-      and result_trees.exp_id = ?''', (length, exp_id, )).fetchall()
+      and result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchall()
     ids = map(lambda x: x[0], ids)
     return ids
 

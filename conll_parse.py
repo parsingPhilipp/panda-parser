@@ -54,7 +54,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
     Lazily parses a dependency corpus (in CoNLL format) and generates GeneralHybridTrees.
     """
 
-    print path
+    # print path
     file_content = open(path)
     tree_count = 0
 

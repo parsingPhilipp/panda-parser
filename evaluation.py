@@ -17,9 +17,9 @@ def list_experiments(exp_db):
         connection = experiment_database.initalize_database(exp_db)
         rows = experiment_database.list_experiments(connection)
         tab = tt.Texttable()
-        header = ['Id', 'Terminals', 'Nonterminals', 'Rec. Part.', 'Punct.', 'Corpus', 'Date (start)']
+        header = ['Id', 'Terminals', 'Nonterminals', 'Rec. Part.', 'Punct.', 'Corpus train', 'Corpus test', 'Date (start)']
         tab.header(header)
-        tab.set_cols_width([4, 9, 15, 10, 6, 30, 20])
+        tab.set_cols_width([4, 9, 15, 10, 6, 26, 26, 20])
         for row in rows:
             t_row = []
             t_row.append(row[0])
@@ -46,7 +46,14 @@ def list_experiments(exp_db):
             else:
                 t_row.append(row[5])
 
-            time_string = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(row[6]))
+            # t_row.append(row[5])
+            match = re.search(r'^.*/([^/]+)$', row[6])
+            if match:
+                t_row.append(match.group(1))
+            else:
+                t_row.append(row[6])
+
+            time_string = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(row[7]))
             t_row.append(time_string)
             # print(t_row)
 
