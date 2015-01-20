@@ -5,6 +5,7 @@ import time
 from general_hybrid_tree import GeneralHybridTree
 from lcfrs import LCFRS
 import conll_parse
+import sys
 
 dbfile = 'examples/example.db'
 test_file = 'examples/Dependency_Corpus.conll'
@@ -327,7 +328,7 @@ def initalize_database(dbfile):
 
     return connection
 
-def create_latex_table_from_database(connection, experiments):
+def create_latex_table_from_database(connection, experiments, pipe = sys.stdout):
     columns_style = {}
     table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
@@ -386,7 +387,7 @@ def create_latex_table_from_database(connection, experiments):
 
     common_results = common_recognised_sentences(connection, experiments)
 
-    print '''
+    pipe.write('''
     \\documentclass[a4paper,10pt, fullpage]{scrartcl}
     \\usepackage[utf8]{inputenc}
     \\usepackage{booktabs}
@@ -399,21 +400,21 @@ def create_latex_table_from_database(connection, experiments):
     \\thispagestyle{empty}
     \\begin{table}
     \\centering
-    '''
-    print '\\begin{tabular}{' + ''.join(columns_style[id] for id in selected_columns) + '}'
-    print '\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ 20: ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection,20))+ '}\\\\'
-    print '\t\\toprule'
-    print '\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\'
+    \n''')
+    pipe.write('\\begin{tabular}{' + ''.join(columns_style[id] for id in selected_columns) + '}\n')
+    pipe.write('\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ 20: ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection,20))+ '}\\\\\n')
+    pipe.write('\t\\toprule\n')
+    pipe.write('\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\\n')
     for exp in experiments:
         line = compute_line(connection, common_results, exp)
-        print '\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\'
-    print '\t\\bottomrule'
-    print '\\end{tabular}'
-    print '''
+        pipe.write('\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\\n')
+    pipe.write('\t\\bottomrule\n')
+    pipe.write('\\end{tabular}\n')
+    pipe.write('''
     \\end{table}
 
 \\end{document}
-    '''
+    \n''')
 
 def compute_line(connection, ids, exp):
     line = {}

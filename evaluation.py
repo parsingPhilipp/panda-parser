@@ -60,7 +60,6 @@ def list_experiments(exp_db):
 
 
 def plot_table(exp_db):
-    print sys.argv
     experiments = []
     outfile = ''
     for arg in sys.argv:
@@ -104,12 +103,15 @@ def plot_table(exp_db):
     # remove duplicates
     experiments = list(OrderedDict.fromkeys(experiments))
 
+    # TODO: print information on what table was created
     print "exp: ", experiments
     print "out: ", outfile
 
+    file = open(path, 'w')
     connection = experiment_database.initalize_database(exp_db)
-    experiment_database.create_latex_table_from_database(connection, experiments)
+    experiment_database.create_latex_table_from_database(connection, experiments, file)
     experiment_database.finalize_database(connection)
+    file.close()
 
 if __name__ == '__main__':
     # print "List of command line options:"
