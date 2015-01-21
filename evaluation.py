@@ -14,7 +14,7 @@ from sqlite3 import DatabaseError
 
 def list_experiments(exp_db):
     try:
-        connection = experiment_database.initalize_database(exp_db)
+        connection = experiment_database.initialize_database(exp_db)
         rows = experiment_database.list_experiments(connection)
         tab = tt.Texttable()
         header = ['Id', 'Terminals', 'Nonterminals', 'Rec. Part.', 'Punct.', 'Corpus train', 'Corpus test', 'Date (start)']
@@ -69,6 +69,7 @@ def list_experiments(exp_db):
 def plot_table(exp_db):
     experiments = []
     outfile = ''
+    max_length = sys.maxint
     for arg in sys.argv:
         match = re.search(r'^--experiments=((?:[0-9]|,|-)+)$', arg)
         if match:
@@ -107,16 +108,24 @@ def plot_table(exp_db):
 
             outfile = path
 
+        match = re.search(r'^--max-sentence-length=(\d+)$', arg)
+        if match:
+            max_length = int(match.group(1))
+
     # remove duplicates
     experiments = list(OrderedDict.fromkeys(experiments))
 
     # TODO: print information on what table was created
     print "exp: ", experiments
     print "out: ", outfile
+    print "max_length: ", max_length
+    if not outfile:
+        print "No outfile specified!"
+        exit(1)
 
-    file = open(path, 'w')
-    connection = experiment_database.initalize_database(exp_db)
-    experiment_database.create_latex_table_from_database(connection, experiments, file)
+    file = open(outfile, 'w')
+    connection = experiment_database.initialize_database(exp_db)
+    experiment_database.create_latex_table_from_database(connection, experiments, max_length, file)
     experiment_database.finalize_database(connection)
     file.close()
 

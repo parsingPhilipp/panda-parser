@@ -148,7 +148,7 @@ def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuati
     :rtype: int
     """
     cursor = connection.cursor()
-    cursor.execute('''INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (
+    cursor.execute('''INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (
         None, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus, started, cpu_time))
     experiment = cursor.lastrowid
     connection.commit()
@@ -166,7 +166,8 @@ def add_tree(connection, tree, corpus):
     :param connection:
     :type tree: GeneralHybridTree
     :type corpus: str
-    :return:
+    :return: tree_id
+    :rtype: int
     """
 
     cursor = connection.cursor()
@@ -196,6 +197,7 @@ def add_tree(connection, tree, corpus):
                                                                                 , head))
 
     connection.commit()
+    return tree_id
 
 
 def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_time, status, root_default = None, disconnect_default = None):
@@ -383,7 +385,7 @@ def dbtest():
 
 # dbtest()
 
-def initalize_database(dbfile):
+def initialize_database(dbfile):
     """
     Opens existing or creates new experiment database and returns Connection object to it.
     :param dbfile:
@@ -393,6 +395,8 @@ def initalize_database(dbfile):
     """
     connection = openDatabase(dbfile)
     connection.text_factory = str
+    # Faster concurrent read/write access
+    connection.cursor().execute('PRAGMA journal_mode=WAL')
 
     create_experiment_table(connection)
     create_tree_table(connection)
@@ -405,8 +409,7 @@ def initalize_database(dbfile):
     return connection
 
 
-def create_latex_table_from_database(connection, experiments, pipe=sys.stdout):
-    max_length = 20
+def create_latex_table_from_database(connection, experiments, max_length = sys.maxint, pipe=sys.stdout):
     columns_style = {}
     table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
@@ -496,7 +499,10 @@ def create_latex_table_from_database(connection, experiments, pipe=sys.stdout):
             0]
 
     pipe.write(
-        '\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ ' + str(max_length) + ': ' + str(
+        '\t \multicolumn{8}{l}{Intersection of recognised sentences')
+    if max_length < sys.maxint:
+        pipe.write(' of length $\leq$ ' + str(max_length))
+    pipe.write(': ' + str(
             len(common_results)) + ' / ' + str(
             test_sentences_length_lesseq_than(connection, test_corpus, max_length)) + '}\\\\\n')
     pipe.write('\t\\toprule\n')
@@ -631,6 +637,7 @@ def common_recognised_sentences(connection, experiments, max_length=sys.maxint):
       ON trees.t_id = result_trees.t_id
       WHERE result_trees.exp_id IN ({0})
       AND   trees.length <= ?
+      AND status = "parse"
       GROUP BY trees.t_id
       HAVING count (DISTINCT result_trees.exp_id) = ?
     '''.format(', '.join('?' * len(experiments)))
@@ -733,6 +740,7 @@ def uas(connection, tree_id, e_id):
             if incorrect == length:
                 return 0, length, 0
             else:
+                # print "Error:", tree_id, e_id, incorrect, length
                 assert ()
         except TypeError:
             print tree_id, e_id

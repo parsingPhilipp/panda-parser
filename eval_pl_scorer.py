@@ -50,7 +50,8 @@ def eval_pl_scores(connection, corpus, experiment, filter = []):
     for tree in trees:
         tree_name = tree.sent_label()
         tree_id = experiment_database.query_tree_id(connection, corpus, tree_name)
-        assert(tree_id)
+        if not tree_id:
+            tree_id = experiment_database.add_tree(connection, tree, corpus)
         if not filter or tree_id in filter:
             CoNLL_strings.append(CoNLL_string_for_tree(connection, tree_id, experiment))
             if filter:
@@ -119,7 +120,7 @@ if __name__ == '__main__':
     db_file = sample_db
     corpus = conll_test
     experiment = 40
-    connection = experiment_database.initalize_database(db_file)
+    connection = experiment_database.initialize_database(db_file)
     common = experiment_database.common_recognised_sentences(connection, [experiment])
     las, uas, la = eval_pl_scores(connection, corpus, experiment, common)
     experiment_database.finalize_database(connection)

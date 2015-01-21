@@ -12,6 +12,7 @@ import time
 import sys
 import experiment_database
 import re
+import os
 
 
 def add_trees_to_db(path, connection, trees):
@@ -146,9 +147,8 @@ def parse_sentences_from_file(grammar
                               , limit=sys.maxint
                               , quiet=False
                               , ignore_punctuation=True
-                              , root_default_deprel = None
-                              , disconnected_default_deprel = None
-):
+                              , root_default_deprel=None
+                              , disconnected_default_deprel=None):
     """
     :rtype: None
     :type grammar: LCFRS
@@ -230,12 +230,12 @@ def parse_sentences_from_file(grammar
 
 
 def test_conll_grammar_induction():
-    db_connection = experiment_database.initalize_database(sample_db)
+    db_connection = experiment_database.initialize_database(sample_db)
 
     # if 'ignore_punctuation' in sys.argv:
     # ignore_punctuation = True
     # else:
-    #     ignore_punctuation = False
+    # ignore_punctuation = False
     # if 'strict' in sys.argv:
     #     nont_labelling = d_i.strict_pos
     # else:
@@ -265,6 +265,198 @@ def test_conll_grammar_induction():
     experiment_database.finalize_database(db_connection)
 
 
-if __name__ == '__main__':
-    test_conll_grammar_induction()
+def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, length_limit, labeling, partitioning,
+                   root_default_deprel, disconnected_default_deprel, max_training, max_test):
+    if labeling == 'strict-dep':
+        nont_labelling = d_i.strict_pos_dep
+    elif labeling == 'strict':
+        nont_labelling = d_i.strict_pos
+    elif labeling == 'child-dep':
+        nont_labelling = d_i.child_pos_dep
+    elif labeling == 'child':
+        nont_labelling = d_i.child_pos
+    else:
+        print("Error: Invalid labeling strategy: " + labeling)
+        exit(1)
 
+    if partitioning == 'left-branching':
+        rec_par = d_i.left_branching
+    elif partitioning == 'right-branching':
+        rec_par = d_i.right_branching
+    elif partitioning == 'direct-extraction':
+        rec_par = d_i.direct_extraction
+    elif partitioning == 'fanout-1':
+        rec_par = d_i.fanout_1
+    elif partitioning == 'fanout-2':
+        rec_par = d_i.fanout_2
+    elif partitioning == 'fanout-3':
+        rec_par = d_i.fanout_3
+    elif partitioning == 'fanout-4':
+        rec_par = d_i.fanout_4
+    elif partitioning == 'fanout-5':
+        rec_par = d_i.fanout_5
+    elif partitioning == 'fanout-6':
+        rec_par = d_i.fanout_6
+    elif partitioning == 'fanout-7':
+        rec_par = d_i.fanout_7
+    elif partitioning == 'fanout-8':
+        rec_par = d_i.fanout_8
+    else:
+        print("Error: Invalid recursive partitioning strategy: " + partitioning)
+        exit(1)
+
+    connection = experiment_database.initialize_database(db_file)
+    grammar, experiment = induce_grammar_from_file(conll_train, connection, nont_labelling, d_i.term_pos, rec_par,
+                                                   max_training, False, 'START', ignore_punctuation)
+    parse_sentences_from_file(grammar, experiment, connection, conll_test, d_i.pos_yield, length_limit, max_test, False,
+                              ignore_punctuation, root_default_deprel, disconnected_default_deprel)
+    experiment_database.finalize_database(connection)
+
+
+def single_experiment_from_config_file(config_path):
+    if not os.path.isfile(config_path):
+        print "Error: File not found: " + config_path
+        exit(1)
+
+    db_file = ''
+    training_corpus = ''
+    test_corpus = ''
+    labeling = ''
+    partitioning = ''
+    ignore_punctuation = False
+    root_default_deprel = None
+    disconnected_default_deprel = None
+    max_train = sys.maxint
+    max_test = sys.maxint
+    max_length = sys.maxint
+    max_parse_time = sys.maxint
+    max_parse_memory = sys.maxint
+    line_nr = 0
+    config = open(config_path, "r")
+    for line in config.readlines():
+        line_nr += 1
+        # remove comments
+        line = line.split('#')[0]
+        if re.search(r'^\s*$', line):
+            continue
+
+        match = match_string_argument("Database", line)
+        if match:
+            db_file = match
+            continue
+
+        match = match_string_argument("Training Corpus", line)
+        if match:
+            training_corpus = match
+            continue
+
+        match = match_string_argument("Test Corpus", line)
+        if match:
+            test_corpus = match
+            continue
+
+        match = match_string_argument("Nonterminal Labeling", line)
+        if match:
+            labeling = match
+            continue
+
+        match = match_string_argument("Recursive Partitioning", line)
+        if match:
+            partitioning = match
+            continue
+
+        match = match_string_argument("Nonterminal Labeling", line)
+        if match:
+            labeling = match
+            continue
+
+        match = match_string_argument("Default Root DEPREL", line)
+        if match:
+            root_default_deprel = match
+            continue
+
+        match = match_string_argument("Default Disconnected DEPREL", line)
+        if match:
+            disconnected_default_deprel = match
+            continue
+
+        match = match_string_argument("Ignore Punctuation", line)
+        if match:
+            if match == "YES":
+                ignore_punctuation = True
+            elif match == "NO":
+                ignore_punctuation = False
+            continue
+
+        match = match_integer_argument("Training Limit", line)
+        if match is not None:
+            max_train = match
+            continue
+
+        match = match_integer_argument("Test Limit", line)
+        if match is not None:
+            max_test = match
+            continue
+
+        match = match_integer_argument("Test Length Limit", line)
+        if match is not None:
+            max_length = match
+            continue
+
+        match = match_integer_argument("Parse Memory Limit", line)
+        if match is not None:
+            max_parse_memory = match
+            continue
+
+        match = match_integer_argument("Parse Time Limit", line)
+        if match is not None:
+            max_parse_time = match
+            continue
+
+        print "Error: could not parse line " + str(line_nr) + ": " + line
+        exit(1)
+
+    if not db_file:
+        print "Error: no database file specified."
+        exit(1)
+    if not test_corpus:
+        print "Error: no test corpus specified."
+        exit(1)
+    if not training_corpus:
+        print "Error: no training corpus specified."
+        exit(1)
+    if not labeling:
+        print "Error: no nonterminal labeling strategy specified."
+        exit(1)
+    if not partitioning:
+        print "Error: no recursive partitioning strategy specified."
+        exit(1)
+
+    run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, max_length, labeling, partitioning,
+                   root_default_deprel, disconnected_default_deprel, max_train, max_test)
+
+
+def match_string_argument(keyword, line):
+    match = re.search(r'^' + keyword + ':\s*(\S+)\s*$', line)
+    if match:
+        return match.group(1)
+    else:
+        return None
+
+
+def match_integer_argument(keyword, line):
+    match = re.search(r'^' + keyword + ':\s*(\d+)\s*$', line)
+    if match:
+        return int(match.group(1))
+    else:
+        return None
+
+
+if __name__ == '__main__':
+    print sys.argv
+    if len(sys.argv) > 2 and sys.argv[1] == "run-experiment":
+        config = sys.argv[2]
+        if os.path.isfile(config):
+            single_experiment_from_config_file(config)
+        else:
+            print "File not found: " + config
