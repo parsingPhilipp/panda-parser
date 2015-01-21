@@ -13,6 +13,7 @@ import sys
 import experiment_database
 import re
 
+
 def add_trees_to_db(path, connection, trees):
     """
     :param path: name (path) of the corpus in database
@@ -63,7 +64,7 @@ def disconnect_punctuation(trees):
             yield tree2
 
 
-def induce_grammar_from_file(  path
+def induce_grammar_from_file(path
                              , connection
                              , nont_labelling
                              , term_labelling
@@ -72,8 +73,7 @@ def induce_grammar_from_file(  path
                              , quiet=False
                              , start='START'
                              , ignore_punctuation=True
-                            ):
-
+):
     """
     :param path: path to dependency corpus in CoNLL format
     :type path: str
@@ -98,14 +98,14 @@ def induce_grammar_from_file(  path
     """
 
     experiment = experiment_database.add_experiment(connection
-                                       , term_labelling.func_name
-                                       , nont_labelling.func_name
-                                       , recursive_partitioning.func_name
-                                       , ignore_punctuation
-                                       , path
-                                       , ''
-                                       , time.time()
-                                       , None)
+                                                    , term_labelling.func_name
+                                                    , nont_labelling.func_name
+                                                    , recursive_partitioning.func_name
+                                                    , ignore_punctuation
+                                                    , path
+                                                    , ''
+                                                    , time.time()
+                                                    , None)
 
     if not quiet:
         print 'Inducing grammar'
@@ -137,16 +137,18 @@ def induce_grammar_from_file(  path
     return grammar, experiment
 
 
-def parse_sentences_from_file( grammar
-                             , experiment
-                             , connection
-                             , path
-                             , tree_yield
-                             , max_length = sys.maxint
-                             , limit=sys.maxint
-                             , quiet=False
-                             , ignore_punctuation=True
-                             ):
+def parse_sentences_from_file(grammar
+                              , experiment
+                              , connection
+                              , path
+                              , tree_yield
+                              , max_length=sys.maxint
+                              , limit=sys.maxint
+                              , quiet=False
+                              , ignore_punctuation=True
+                              , root_default_deprel = None
+                              , disconnected_default_deprel = None
+):
     """
     :rtype: None
     :type grammar: LCFRS
@@ -193,10 +195,12 @@ def parse_sentences_from_file( grammar
         time_stamp = time.clock()
         parser = LCFRS_parser(grammar, tree_yield(tree))
         h_tree = GeneralHybridTree(tree.sent_label())
-        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), ignore_punctuation)
+        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(),
+                                            ignore_punctuation)
         time_stamp = time.clock() - time_stamp
         if h_tree:
-            experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp)
+            experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp,
+                                                'parse', root_default_deprel, disconnected_default_deprel)
             n_gaps_gold += tree.n_gaps()
             n_gaps_test += h_tree.n_gaps()
             parse += 1
@@ -206,12 +210,13 @@ def parse_sentences_from_file( grammar
             UEM += dUEM
             LEM += dLEM
         else:
+            experiment_database.no_parse_result(connection, tree.sent_label(), path, experiment, time_stamp)
             no_parse += 1
 
     end_at = time.clock()
     total = parse + no_parse
     if not quiet:
-        print 'Parsed ' + str(parse) + ' out of ' + str(total) + ' (skipped ' + str(skipped) +')'
+        print 'Parsed ' + str(parse) + ' out of ' + str(total) + ' (skipped ' + str(skipped) + ')'
         print 'fail: ', no_parse
         if parse > 0:
             print 'UAS: ', UAS / parse
@@ -223,12 +228,12 @@ def parse_sentences_from_file( grammar
         print 'parse time: ', end_at - start_at, 's'
         print
 
-def test_conll_grammar_induction():
 
+def test_conll_grammar_induction():
     db_connection = experiment_database.initalize_database(sample_db)
 
     # if 'ignore_punctuation' in sys.argv:
-    #     ignore_punctuation = True
+    # ignore_punctuation = True
     # else:
     #     ignore_punctuation = False
     # if 'strict' in sys.argv:
@@ -243,15 +248,22 @@ def test_conll_grammar_induction():
     #                                                     , (d_i.strict_pos_dep, d_i.left_branching, True)
     #                                                     , (d_i.child_pos_dep, d_i.direct_extraction, True)
     #                                                     , (d_i.child_pos_dep, d_i.left_branching, True)]:
+
+    root_default_deprel = 'ROOT'
+    disconnected_default_deprel = 'PUNC'
+
     for ignore_punctuation in [True, False]:
         for nont_labelling in [d_i.strict_pos, d_i.child_pos, d_i.strict_pos_dep, d_i.child_pos_dep]:
             for rec_par in [d_i.direct_extraction, d_i.left_branching, d_i.right_branching, d_i.fanout_1, d_i.fanout_2]:
-                grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling, d_i.term_pos, rec_par, sys.maxint
-                                                   , False, 'START', ignore_punctuation)
+                grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling, d_i.term_pos,
+                                                               rec_par, sys.maxint
+                                                               , False, 'START', ignore_punctuation)
                 print
-                parse_sentences_from_file(grammar, experiment, db_connection, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
+                parse_sentences_from_file(grammar, experiment, db_connection, conll_test, d_i.pos_yield, 20, sys.maxint,
+                                          False, ignore_punctuation, root_default_deprel, disconnected_default_deprel)
 
     experiment_database.finalize_database(db_connection)
+
 
 if __name__ == '__main__':
     test_conll_grammar_induction()

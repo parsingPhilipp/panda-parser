@@ -14,16 +14,17 @@ test_file = 'examples/Dependency_Corpus.conll'
 test_file_modified = 'examples/Dependency_Corpus_modified.conll'
 sampledb = '/home/kilian/sampledb.db'
 
+
 def create_experiment_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS experiments ( e_id integer primary key autoincrement
-                                                              , term_label text
-                                                              , nont_label text
-                                                              , rec_par text
-                                                              , ignore_punctuation boolean
-                                                              , training_corpus text
-                                                              , test_corpus text
+    cursor.execute('''CREATE TABLE IF NOT EXISTS experiments ( e_id INTEGER PRIMARY KEY AUTOINCREMENT
+                                                              , term_label TEXT
+                                                              , nont_label TEXT
+                                                              , rec_par TEXT
+                                                              , ignore_punctuation BOOLEAN
+                                                              , training_corpus TEXT
+                                                              , test_corpus TEXT
                                                               , started time
                                                               , cpu_time time)''')
     connection.commit()
@@ -32,70 +33,77 @@ def create_experiment_table(connection):
 def create_tree_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS trees (t_id integer primary key autoincrement
-                                                        , corpus text
-                                                        , name text
-                                                        , length integer
-                                                        , gaps integer
-                                                        , unique(corpus, name))''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS trees (t_id INTEGER PRIMARY KEY AUTOINCREMENT
+                                                        , corpus TEXT
+                                                        , name TEXT
+                                                        , length INTEGER
+                                                        , gaps INTEGER
+                                                        , UNIQUE(corpus, name))''')
     # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_idx ON trees(corpus, name)''')
     connection.commit()
+
 
 def create_result_tree_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS result_trees (rt_id integer primary key autoincrement
-                                                              , t_id integer
-                                                              , exp_id integer
-                                                              , k_best integer
-                                                              , score double
+    cursor.execute('''CREATE TABLE IF NOT EXISTS result_trees (rt_id INTEGER PRIMARY KEY AUTOINCREMENT
+                                                              , t_id INTEGER
+                                                              , exp_id INTEGER
+                                                              , k_best INTEGER
+                                                              , score DOUBLE
                                                               , parse_time time
+                                                              , status TEXT
                                                               , UNIQUE(t_id, exp_id, k_best))''')
     # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_node_idx ON tree_nodes(t_id, sent_position)''')
     connection.commit()
 
+
 def create_tree_node_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS tree_nodes (t_id integer
+    cursor.execute('''CREATE TABLE IF NOT EXISTS tree_nodes (t_id INTEGER
                                                             , sent_position INTEGER
-                                                            , label text
-                                                            , pos text
-                                                            , deprel text
-                                                            , head integer
+                                                            , label TEXT
+                                                            , pos TEXT
+                                                            , deprel TEXT
+                                                            , head INTEGER
                                                             , UNIQUE(t_id, sent_position))''')
     # cursor.execute('''CREATE UNIQUE INDEX IF NOT EXISTS tree_node_idx ON tree_nodes(t_id, sent_position)''')
     connection.commit()
+
 
 def create_result_tree_node_table(connection):
     # Create Table
     cursor = connection.cursor()
     cursor.execute('''CREATE TABLE IF NOT EXISTS result_tree_nodes (rt_id INTEGER
                                                                    , sent_position INTEGER
-                                                                   , deprel text
-                                                                   , head integer
-                                                                   , unique(rt_id, sent_position))''')
+                                                                   , deprel TEXT
+                                                                   , head INTEGER
+                                                                   , UNIQUE(rt_id, sent_position))''')
     connection.commit()
+
 
 def create_grammar_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS grammar (g_id integer primary key autoincrement
-                                                          , experiment integer
-                                                          , nonterminals integer
-                                                          , rules integer
-                                                          , size integer
+    cursor.execute('''CREATE TABLE IF NOT EXISTS grammar (g_id INTEGER PRIMARY KEY AUTOINCREMENT
+                                                          , experiment INTEGER
+                                                          , nonterminals INTEGER
+                                                          , rules INTEGER
+                                                          , size INTEGER
                                                           , UNIQUE(experiment))''')
     connection.commit()
+
 
 def create_fanouts_table(connection):
     # Create Table
     cursor = connection.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS fanouts (g_id integer
-                                                         , fanout integer
-                                                         , nonterminals integer
+    cursor.execute('''CREATE TABLE IF NOT EXISTS fanouts (g_id INTEGER
+                                                         , fanout INTEGER
+                                                         , nonterminals INTEGER
                                                          , UNIQUE(g_id, fanout))''')
     connection.commit()
+
 
 def add_grammar(connection, grammar, experiment):
     """
@@ -123,7 +131,8 @@ def add_grammar(connection, grammar, experiment):
     connection.commit()
 
 
-def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus, started, cpu_time):
+def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus,
+                   started, cpu_time):
     """
     :type connection: Connection
     :param term_label:
@@ -139,15 +148,18 @@ def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuati
     :rtype: int
     """
     cursor = connection.cursor()
-    cursor.execute('''INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (None, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus, started, cpu_time))
+    cursor.execute('''INSERT INTO experiments VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', (
+        None, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus, started, cpu_time))
     experiment = cursor.lastrowid
     connection.commit()
     return experiment
 
+
 def set_experiment_test_corpus(connection, exp_id, test_corpus):
     cursor = connection.cursor()
-    cursor.execute('UPDATE TABLE experiments SET test_corpus =? WHERE e_id = ?', (test_corpus, exp_id,))
+    cursor.execute('UPDATE experiments SET test_corpus =? WHERE e_id = ?', (test_corpus, exp_id,))
     connection.commit()
+
 
 def add_tree(connection, tree, corpus):
     """
@@ -157,17 +169,17 @@ def add_tree(connection, tree, corpus):
     :return:
     """
 
-
     cursor = connection.cursor()
-    for row in cursor.execute('''SELECT EXISTS (SELECT * FROM trees WHERE corpus = ? AND name = ?)''',(corpus, tree.sent_label())):
+    for row in cursor.execute('''SELECT EXISTS (SELECT * FROM trees WHERE corpus = ? AND name = ?)''',
+                              (corpus, tree.sent_label())):
         if row[0]:
             return
     cursor.execute('''INSERT OR IGNORE INTO trees VALUES (?, ?, ?, ?, ?)''', (None
-                                                                                  , corpus
-                                                                                  , tree.sent_label()
-                                                                                  , len(tree.full_yield())
-                                                                                  , tree.n_gaps()
-                                                                                 ))
+                                                                              , corpus
+                                                                              , tree.sent_label()
+                                                                              , len(tree.full_yield())
+                                                                              , tree.n_gaps()
+    ))
 
     # unique tree key
     tree_id = cursor.lastrowid
@@ -177,16 +189,16 @@ def add_tree(connection, tree, corpus):
         else:
             head = tree.node_index_full(tree.parent(id)) + 1
         cursor.execute('''INSERT INTO tree_nodes VALUES (?, ?, ?, ?, ?, ?)''', (tree_id
-                                                                                               , tree.node_index_full(id) + 1
-                                                                                               , tree.node_label(id)
-                                                                                               , tree.node_pos(id)
-                                                                                               , tree.node_dep_label(id)
-                                                                                               , head))
+                                                                                , tree.node_index_full(id) + 1
+                                                                                , tree.node_label(id)
+                                                                                , tree.node_pos(id)
+                                                                                , tree.node_dep_label(id)
+                                                                                , head))
 
     connection.commit()
 
 
-def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_time):
+def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_time, status, root_default = None, disconnect_default = None):
     """
     :param connection:
     :type tree: GeneralHybridTree
@@ -199,109 +211,124 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
     for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', ( corpus, tree.sent_label())):
         tree_id = row[0]
     if tree_id == None:
-        assert("tree not found")
+        assert ("tree not found")
 
     # unique tree key
-    cursor.execute('''INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?)''', ( None
-                                                                        , tree_id
-                                                                        , experiment
-                                                                        , k_best
-                                                                        , score
-                                                                        , parse_time))
+    cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None
+                                                                              , tree_id
+                                                                              , experiment
+                                                                              , k_best
+                                                                              , score
+                                                                              , parse_time
+                                                                              , status))
     result_tree_id = cursor.lastrowid
 
     for id in tree.full_yield():
         # set root head
         if tree.root() == id:
             head = 0
-            deprel = "ROOT"
+            if root_default:
+                deprel = root_default
+            else:
+                deprel = tree.node_dep_label(id)
         # connect disconnected nodes to root
         elif tree.disconnected(id):
             head = tree.node_index_full(tree.root()) + 1
-            deprel = "PUNC"
+            if disconnect_default:
+                deprel = disconnect_default
+            else:
+                deprel = tree.node_dep_label(id)
         else:
             head = tree.node_index_full(tree.parent(id)) + 1
             deprel = tree.node_dep_label(id)
         cursor.execute('''INSERT INTO result_tree_nodes VALUES (?, ?, ?, ?)''', (result_tree_id
-                                                                                       , tree.node_index_full(id) + 1
-                                                                                       , deprel
-                                                                                       , head))
+                                                                                 , tree.node_index_full(id) + 1
+                                                                                 , deprel
+                                                                                 , head))
     connection.commit()
 
 
 def list_experiments(connection):
     cursor = connection.cursor()
-    rows = cursor.execute('''SELECT * FROM experiments''',()).fetchall()
+    rows = cursor.execute('''SELECT * FROM experiments''', ()).fetchall()
     return rows
-
 
 
 def query_tree_id(connection, corpus, name):
     cursor = connection.cursor()
 
-    rows = cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', ( corpus, name)).fetchall()
+    rows = cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', (corpus, name)).fetchall()
 
     # There should be at most one entry for every name and corpus.
-    assert(len(rows) <= 1)
+    assert (len(rows) <= 1)
 
     if rows:
         return rows[0][0]
     else:
         return None
 
+
 def query_result_tree(connection, exp, tree_id):
     cursor = connection.cursor()
-    result_tree_ids = cursor.execute('''select rt_id from result_trees where exp_id = ? and t_id = ?''', (exp, tree_id)).fetchall()
+    result_tree_ids = cursor.execute('''SELECT rt_id, status FROM result_trees WHERE exp_id = ? AND t_id = ?''',
+                                     (exp, tree_id)).fetchall()
 
     # parse:
     if result_tree_ids:
-        assert(len(result_tree_ids) == 1)
-        result_tree_id = result_tree_ids[0][0]
-        tree_nodes = cursor.execute(
-        ''' select tree_nodes.sent_position, label, pos, result_tree_nodes.head, result_tree_nodes.deprel from result_tree_nodes
-	        join result_trees
-		      on result_tree_nodes.rt_id = result_trees.rt_id
-	        join tree_nodes
-		      on result_trees.t_id = tree_nodes.t_id
-		      and result_tree_nodes.sent_position = tree_nodes.sent_position
-            where result_tree_nodes.rt_id = ?''', (result_tree_id,))
-        tree = GeneralHybridTree()
-        for i, label, pos, head, deprel in tree_nodes:
-            tree.add_node(str(i), label, pos, True, True)
-            tree.set_dep_label(str(i), deprel)
-            if head == 0:
-                tree.set_root(str(i))
-            else:
-                tree.add_child(str(head), str(i))
-        assert(tree.rooted())
-        return ('parse', tree)
-
-    # fallback
+        assert (len(result_tree_ids) == 1)
+        result_tree_id, status = result_tree_ids[0]
+        if status in ["parse", "fallback"]:
+            tree_nodes = cursor.execute(
+                (
+                    ' SELECT tree_nodes.sent_position, label, pos, result_tree_nodes.head, result_tree_nodes.deprel FROM result_tree_nodes\n'
+                    '                JOIN result_trees\n'
+                    '                  ON result_tree_nodes.rt_id = result_trees.rt_id\n'
+                    '                JOIN tree_nodes\n'
+                    '                  ON result_trees.t_id = tree_nodes.t_id\n'
+                    '                  AND result_tree_nodes.sent_position = tree_nodes.sent_position\n'
+                    '                WHERE result_tree_nodes.rt_id = ?'
+                ), (result_tree_id,))
+            tree = GeneralHybridTree()
+            for i, label, pos, head, deprel in tree_nodes:
+                tree.add_node(str(i), label, pos, True, True)
+                tree.set_dep_label(str(i), deprel)
+                if head == 0:
+                    tree.set_root(str(i))
+                else:
+                    tree.add_child(str(head), str(i))
+            assert (tree.rooted())
+            return status, tree
+    # legacy: no entry found
     else:
-        tree_nodes = cursor.execute(
-        ''' select tree_nodes.sent_position, label, pos from tree_nodes
-            where tree_nodes.t_id = ?''', (tree_id,)).fetchall()
+        status = "simple_fallback"
 
-        left_branch = lambda x: x-1
-        right_branch = lambda x: x+1
-        strategy = right_branch
+    # Create a left branching tree without labels as default strategy
+    tree_nodes = cursor.execute(
+        ''' SELECT tree_nodes.sent_position, label, pos FROM tree_nodes
+        WHERE tree_nodes.t_id = ?''', (tree_id,)).fetchall()
 
-        length = len(tree_nodes)
-        tree = GeneralHybridTree()
-        for i, label, pos in tree_nodes:
-            tree.add_node(str(i), label, pos, True, True)
-            tree.set_dep_label(str(i), '_')
-            parent = strategy(i)
-            if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
-                tree.set_root(str(i))
-            else:
-                tree.add_child(str(parent), str(i))
-        assert(tree.rooted())
-        return ('fallback', tree)
+    left_branch = lambda x: x - 1
+    right_branch = lambda x: x + 1
+    strategy = left_branch
+
+    length = len(tree_nodes)
+    tree = GeneralHybridTree()
+    for i, label, pos in tree_nodes:
+        tree.add_node(str(i), label, pos, True, True)
+        tree.set_dep_label(str(i), '_')
+        parent = strategy(i)
+        if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
+            tree.set_root(str(i))
+        else:
+            tree.add_child(str(parent), str(i))
+    assert (tree.rooted())
+    return status, tree
+
 
 def openDatabase(file):
     connection = sqlite3.connect(file)
     return connection
+
 
 def dbtest():
     connection = openDatabase(dbfile)
@@ -311,7 +338,8 @@ def dbtest():
 
     training_corpus = test_file
     test_corpus = test_file
-    experiment = add_experiment(connection, 'term_pos', 'child_pos', 'direct_extraction', False, training_corpus, test_corpus, time.time(), None)
+    experiment = add_experiment(connection, 'term_pos', 'child_pos', 'direct_extraction', False, training_corpus,
+                                test_corpus, time.time(), None)
 
     c = connection.cursor()
     for row in c.execute('SELECT * FROM experiments'):
@@ -329,14 +357,13 @@ def dbtest():
     for row2 in c.execute('SELECT * FROM tree_nodes'):
         print row2
 
-
     print
 
     create_result_tree_table(connection)
     create_result_tree_node_table(connection)
     time_stamp = time.clock()
     for tree in conll_parse.parse_conll_corpus(test_file_modified, False):
-        add_result_tree(connection, tree, test_corpus, experiment, 1, 0.142, time.clock() - time_stamp)
+        add_result_tree(connection, tree, test_corpus, experiment, 1, 0.142, time.clock() - time_stamp, "parse")
         time_stamp = time.clock()
 
     for row3 in c.execute('SELECT  * FROM result_tree_nodes'):
@@ -346,10 +373,13 @@ def dbtest():
 
     print experiment, type(experiment).__name__
 
-    for row4 in c.execute('''SELECT * FROM result_trees INNER JOIN result_tree_nodes ON result_trees.rt_id = result_tree_nodes.rt_id WHERE exp_id = ?''', (experiment,)):
+    for row4 in c.execute(
+            '''SELECT * FROM result_trees INNER JOIN result_tree_nodes ON result_trees.rt_id = result_tree_nodes.rt_id WHERE exp_id = ?''',
+            (experiment,)):
         print row4
 
     connection.close()
+
 
 # dbtest()
 
@@ -374,26 +404,27 @@ def initalize_database(dbfile):
 
     return connection
 
-def create_latex_table_from_database(connection, experiments, pipe = sys.stdout):
+
+def create_latex_table_from_database(connection, experiments, pipe=sys.stdout):
     max_length = 20
     columns_style = {}
     table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
     selected_columns = ['punc', 'nont_labelling', 'rec_par', 'f1', 'f2', 'f3', 'f4', 'f5'
-        #, 'fail'
-        # , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t'
+                        # , 'fail'
+                        # , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t'
         , 'parse_time', 'fail'
-        # , 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
+                        # , 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
         , 'UAS_e', 'LAS_e', 'LAc_e'
         , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
-        #, 'n_gaps_test', 'parse_time'
-        ]
+                        # , 'n_gaps_test', 'parse_time'
+    ]
     header = {}
     header['nont_labelling'] = 'nont.~lab.'
     columns_style['nont_labelling'] = 'l'
     header['rec_par'] = 'extraction'
-    columns_style['rec_par'] ='l'
+    columns_style['rec_par'] = 'l'
     header['training_corpus'] = 'training sent.'
     columns_style['training_corpus'] = 'r'
     header['punc'] = 'punct.'
@@ -401,12 +432,12 @@ def create_latex_table_from_database(connection, experiments, pipe = sys.stdout)
     header['n_nonterminals'] = 'nont.'
     columns_style['n_nonterminals'] = 'r'
     header['n_rules'] = 'rules'
-    columns_style['n_rules'] ='r'
+    columns_style['n_rules'] = 'r'
     header['fanout'] = 'fanout'
     columns_style['fanout'] = 'r'
-    for i in range(1,6,1):
-        header['f'+str(i)] = 'f '+str(i)
-        columns_style['f'+str(i)] = 'r'
+    for i in range(1, 6, 1):
+        header['f' + str(i)] = 'f ' + str(i)
+        columns_style['f' + str(i)] = 'r'
     header['test_total'] = 'test sent.'
     columns_style['test_total'] = 'r'
     header['test_succ'] = 'succ'
@@ -433,7 +464,7 @@ def create_latex_table_from_database(connection, experiments, pipe = sys.stdout)
     columns_style['n_gaps_test'] = 'r'
     header['n_gaps_gold'] = '\\# gaps (gold)'
     columns_style['n_gaps_gold'] = 'r'
-    header['parse_time']  = 'time (s)'
+    header['parse_time'] = 'time (s)'
     columns_style['parse_time'] = 'r'
 
     # eval_pl evaluation
@@ -460,9 +491,14 @@ def create_latex_table_from_database(connection, experiments, pipe = sys.stdout)
     \n''')
     pipe.write('\\begin{tabular}{' + ''.join(columns_style[id] for id in selected_columns) + '}\n')
 
-    test_corpus = connection.cursor().execute('SELECT test_corpus FROM experiments WHERE e_id = ?', (experiments[0],)).fetchone()[0]
+    test_corpus = \
+        connection.cursor().execute('SELECT test_corpus FROM experiments WHERE e_id = ?', (experiments[0],)).fetchone()[
+            0]
 
-    pipe.write('\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ ' + str(max_length) +': ' + str(len(common_results)) + ' / ' + str(test_sentences_length_lesseq_than(connection, test_corpus, max_length))+ '}\\\\\n')
+    pipe.write(
+        '\t \multicolumn{8}{l}{Intersection of recognised sentences of length $\leq$ ' + str(max_length) + ': ' + str(
+            len(common_results)) + ' / ' + str(
+            test_sentences_length_lesseq_than(connection, test_corpus, max_length)) + '}\\\\\n')
     pipe.write('\t\\toprule\n')
     pipe.write('\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\\n')
     for exp in experiments:
@@ -476,19 +512,21 @@ def create_latex_table_from_database(connection, experiments, pipe = sys.stdout)
 \\end{document}
     \n''')
 
+
 def compute_line(connection, ids, exp, max_length):
     line = {}
 
     cursor = connection.cursor()
-    experiment = cursor.execute('select nont_label, rec_par, training_corpus, test_corpus, ignore_punctuation from experiments where e_id = ?', (exp, )).fetchone()
-    g_id, nont, rules    = cursor.execute('select g_id, nonterminals, rules from grammar where experiment = ?', (exp,)).fetchone()
-    fanouts = cursor.execute('select fanout, nonterminals from fanouts where g_id = ?', (g_id, )).fetchall()
+    experiment = cursor.execute(
+        'SELECT nont_label, rec_par, training_corpus, test_corpus, ignore_punctuation FROM experiments WHERE e_id = ?',
+        (exp, )).fetchone()
+    g_id, nont, rules = cursor.execute('SELECT g_id, nonterminals, rules FROM grammar WHERE experiment = ?',
+                                       (exp,)).fetchone()
+    fanouts = cursor.execute('SELECT fanout, nonterminals FROM fanouts WHERE g_id = ?', (g_id, )).fetchall()
 
     line['nont_labelling'] = nontlabelling_strategies(experiment[0])
     line['rec_par'] = recpac_stategies(experiment[1])
     line['training_corpus'] = experiment[2]
-    # TODO: there should be a field for the test corpus in the database
-    # test_corpus = experiment[2].replace("train","test")
     test_corpus = experiment[3]
     line['punc'] = punct(experiment[4])
     line['n_nonterminals'] = nont
@@ -508,13 +546,15 @@ def compute_line(connection, ids, exp, max_length):
 
     percent = lambda x: percentify(x, precicion)
     line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
-    line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp)))
-    line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
+    line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(
+        map(percent, eval_pl_scores(connection, test_corpus, exp)))
+    line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(
+        map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
 
     # UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, LEN_c = 0, 0, 0, 0, 0
     # for id in recogn_ids:
-    #     c, l , uas_a = uas(connection, id, exp)
-    #     UAS_c_a = UAS_c_a + uas_a
+    # c, l , uas_a = uas(connection, id, exp)
+    # UAS_c_a = UAS_c_a + uas_a
     #     LEN_c = LEN_c + l
     #     UAS_c_t = UAS_c_t + c
     #
@@ -528,7 +568,10 @@ def compute_line(connection, ids, exp, max_length):
 
     # line['test_total'] = 'test sent.'
     # line['test_succ'] = 'succ'
-    line['fail'] = test_sentences_length_lesseq_than(connection, test_corpus, max_length) - all_recognised_sentences_lesseq_than(connection, exp, max_length, test_corpus)
+    line['fail'] = test_sentences_length_lesseq_than(connection, test_corpus,
+                                                     max_length) - all_recognised_sentences_lesseq_than(connection, exp,
+                                                                                                        max_length,
+                                                                                                        test_corpus)
 
     line['UAS_avg'] = percentify(UAS_a, precicion)
     line['LAS_avg'] = percentify(LAS_a, precicion)
@@ -540,8 +583,9 @@ def compute_line(connection, ids, exp, max_length):
     line['LAS^c_t'] = percentify(LAS_c_t, precicion)
     # line['n_gaps_test'] = '\\# gaps (test)'
     # line['n_gaps_gold'] = '\\# gaps (gold)'
-    line['parse_time']  = "{:.0f}".format(time)
+    line['parse_time'] = "{:.0f}".format(time)
     return line
+
 
 def scores_and_parse_time(connection, ids, exp):
     UAS_a, LAS_a, UAS_t, LAS_t, LEN = 0, 0, 0, 0, 0
@@ -549,7 +593,7 @@ def scores_and_parse_time(connection, ids, exp):
     for id in ids:
         time = time + parsetime(connection, id, exp)
 
-        c, l , uas_a = uas(connection, id, exp)
+        c, l, uas_a = uas(connection, id, exp)
         UAS_a = UAS_a + uas_a
         LEN = LEN + l
         UAS_t = UAS_t + c
@@ -563,11 +607,13 @@ def scores_and_parse_time(connection, ids, exp):
     LAS_t = 1.0 * LAS_t / LEN
     return UAS_a, LAS_a, UAS_t, LAS_t, time
 
+
 def fanout(fanouts, f):
     for fi, ni in fanouts:
         if f == fi:
             return ni
     return 0
+
 
 def punct(p):
     if p == 1:
@@ -575,17 +621,18 @@ def punct(p):
     elif p == 0:
         return 'consider'
     else:
-        assert()
+        assert ()
 
-def common_recognised_sentences(connection, experiments, max_length = sys.maxint):
+
+def common_recognised_sentences(connection, experiments, max_length=sys.maxint):
     statement = '''
-      select trees.t_id
-      from trees inner join result_trees
-      on trees.t_id = result_trees.t_id
-      where result_trees.exp_id in ({0})
-      and   trees.length <= ?
-      group by trees.t_id
-      having count (distinct result_trees.exp_id) = ?
+      SELECT trees.t_id
+      FROM trees INNER JOIN result_trees
+      ON trees.t_id = result_trees.t_id
+      WHERE result_trees.exp_id IN ({0})
+      AND   trees.length <= ?
+      GROUP BY trees.t_id
+      HAVING count (DISTINCT result_trees.exp_id) = ?
     '''.format(', '.join('?' * len(experiments)))
     # statement = "SELECT * FROM tab WHERE obj IN ({0})".format(', '.join(['?' * len(list_of_vars)]))
     # print statement
@@ -595,131 +642,144 @@ def common_recognised_sentences(connection, experiments, max_length = sys.maxint
     # print ids
     return ids
 
+
 def test_sentences_length_lesseq_than(connection, test_corpus, length):
     cursor = connection.cursor()
-    number = cursor.execute('select count(t_id) from trees where corpus = ? and length <= ?', (test_corpus, length,)).fetchone()[0]
+    number = \
+        cursor.execute('SELECT count(t_id) FROM trees WHERE corpus = ? AND length <= ?',
+                       (test_corpus, length,)).fetchone()[
+            0]
     return number
+
 
 def all_recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
     cursor = connection.cursor()
     number = cursor.execute('''
-    select count(trees.t_id)
-    from trees join result_trees
-      on trees.t_id = result_trees.t_id
-    where trees.corpus = ?
-      and trees.length <= ?
-      and result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchone()[0]
+    SELECT count(trees.t_id)
+    FROM trees JOIN result_trees
+      ON trees.t_id = result_trees.t_id
+    WHERE trees.corpus = ?
+      AND trees.length <= ?
+      AND status = "parse"
+      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchone()[0]
     return number
+
 
 def recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
     cursor = connection.cursor()
     ids = cursor.execute('''
-    select trees.t_id
-    from trees join result_trees
-      on trees.t_id = result_trees.t_id
-    where trees.corpus = ?
-      and trees.length <= ?
-      and result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchall()
+    SELECT trees.t_id
+    FROM trees JOIN result_trees
+      ON trees.t_id = result_trees.t_id
+    WHERE trees.corpus = ?
+      AND trees.length <= ?
+      AND status = "parse"
+      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchall()
     ids = map(lambda x: x[0], ids)
     return ids
+
 
 def percentify(value, precicion):
     p = value * 100
     return ("{:." + str(precicion) + "f}").format(p)
 
+
 def nontlabelling_strategies(nont_labelling):
     if nont_labelling == 'strict_pos':
         return 'strict'
     elif nont_labelling == 'child_pos':
-        return'child'
+        return 'child'
     elif nont_labelling == 'child_pos_dep':
         return 'child + dep'
     elif nont_labelling == 'strict_pos_dep':
         return 'strict + dep'
 
+
 def recpac_stategies(rec_par):
     if rec_par == 'direct_extraction':
         return 'direct'
     else:
-        return rec_par.replace('_', ' ').replace('branching','branch.')
+        return rec_par.replace('_', ' ').replace('branching', 'branch.')
+
 
 def uas(connection, tree_id, e_id):
     cursor = connection.cursor()
     try:
         correct, length = cursor.execute('''
-        select count(tree_nodes.head), trees.length
-        from tree_nodes join trees join result_trees join result_tree_nodes
-        on tree_nodes.t_id =  trees.t_id
-            and trees.t_id = result_trees.t_id
-            and result_trees.rt_id = result_tree_nodes.rt_id
-            and result_tree_nodes.sent_position = tree_nodes.sent_position
-        where result_trees.exp_id = ? and trees.t_id = ?
-            and tree_nodes.head = result_tree_nodes.head
+        SELECT count(tree_nodes.head), trees.length
+        FROM tree_nodes JOIN trees JOIN result_trees JOIN result_tree_nodes
+        ON tree_nodes.t_id =  trees.t_id
+            AND trees.t_id = result_trees.t_id
+            AND result_trees.rt_id = result_tree_nodes.rt_id
+            AND result_tree_nodes.sent_position = tree_nodes.sent_position
+        WHERE result_trees.exp_id = ? AND trees.t_id = ?
+            AND tree_nodes.head = result_tree_nodes.head
             --and tree_nodes.deprel = result_tree_nodes.deprel
         ''', (e_id, tree_id)).fetchone()
-        return correct, length, 1.0 * correct/ length
+        return correct, length, 1.0 * correct / length
     except TypeError:
         try:
             incorrect, length = cursor.execute('''
-            select count(tree_nodes.head), trees.length
-            from tree_nodes join trees join result_trees join result_tree_nodes
-            on tree_nodes.t_id =  trees.t_id
-                and trees.t_id = result_trees.t_id
-                and result_trees.rt_id = result_tree_nodes.rt_id
-                and result_tree_nodes.sent_position = tree_nodes.sent_position
-            where result_trees.exp_id = ? and trees.t_id = ?
-                and tree_nodes.head != result_tree_nodes.head
+            SELECT count(tree_nodes.head), trees.length
+            FROM tree_nodes JOIN trees JOIN result_trees JOIN result_tree_nodes
+            ON tree_nodes.t_id =  trees.t_id
+                AND trees.t_id = result_trees.t_id
+                AND result_trees.rt_id = result_tree_nodes.rt_id
+                AND result_tree_nodes.sent_position = tree_nodes.sent_position
+            WHERE result_trees.exp_id = ? AND trees.t_id = ?
+                AND tree_nodes.head != result_tree_nodes.head
                 --and tree_nodes.deprel = result_tree_nodes.deprel
             ''', (e_id, tree_id)).fetchone()
             if incorrect == length:
                 return 0, length, 0
             else:
-                assert()
+                assert ()
         except TypeError:
             print tree_id, e_id
-            assert()
+            assert ()
 
 
 def las(connection, tree_id, e_id):
     cursor = connection.cursor()
     try:
         correct, length = cursor.execute('''
-        select count(distinct tree_nodes.sent_position), trees.length
-        from tree_nodes join trees join result_trees join result_tree_nodes
-        on tree_nodes.t_id =  trees.t_id
-            and trees.t_id = result_trees.t_id
-            and result_trees.rt_id = result_tree_nodes.rt_id
-            and result_tree_nodes.sent_position = tree_nodes.sent_position
-        where result_trees.exp_id = ? and trees.t_id = ?
-            and tree_nodes.head = result_tree_nodes.head
-            and tree_nodes.deprel = result_tree_nodes.deprel
+        SELECT count(DISTINCT tree_nodes.sent_position), trees.length
+        FROM tree_nodes JOIN trees JOIN result_trees JOIN result_tree_nodes
+        ON tree_nodes.t_id =  trees.t_id
+            AND trees.t_id = result_trees.t_id
+            AND result_trees.rt_id = result_tree_nodes.rt_id
+            AND result_tree_nodes.sent_position = tree_nodes.sent_position
+        WHERE result_trees.exp_id = ? AND trees.t_id = ?
+            AND tree_nodes.head = result_tree_nodes.head
+            AND tree_nodes.deprel = result_tree_nodes.deprel
         ''', (e_id, tree_id)).fetchone()
-        return correct, length, 1.0 * correct/ length
+        return correct, length, 1.0 * correct / length
     except TypeError:
         try:
             incorrect, length = cursor.execute('''
-            select count(tree_nodes.head), trees.length
-            from tree_nodes join trees join result_trees join result_tree_nodes
-            on tree_nodes.t_id =  trees.t_id
-                and trees.t_id = result_trees.t_id
-                and result_trees.rt_id = result_tree_nodes.rt_id
-                and result_tree_nodes.sent_position = tree_nodes.sent_position
-            where result_trees.exp_id = ? and trees.t_id = ?
-                and (tree_nodes.head != result_tree_nodes.head
-                or tree_nodes.deprel != result_tree_nodes.deprel)
+            SELECT count(tree_nodes.head), trees.length
+            FROM tree_nodes JOIN trees JOIN result_trees JOIN result_tree_nodes
+            ON tree_nodes.t_id =  trees.t_id
+                AND trees.t_id = result_trees.t_id
+                AND result_trees.rt_id = result_tree_nodes.rt_id
+                AND result_tree_nodes.sent_position = tree_nodes.sent_position
+            WHERE result_trees.exp_id = ? AND trees.t_id = ?
+                AND (tree_nodes.head != result_tree_nodes.head
+                OR tree_nodes.deprel != result_tree_nodes.deprel)
             ''', (e_id, tree_id)).fetchone()
             if incorrect == length:
                 return 0, length, 0
             else:
-                assert()
+                assert ()
         except TypeError:
             print tree_id, e_id
-            assert()
+            assert ()
+
 
 def parsetime(connection, tree_id, e_id):
     cursor = connection.cursor()
     t = cursor.execute('''
-    select parse_time from result_trees where t_id = ? and exp_id = ?
+    SELECT parse_time FROM result_trees WHERE t_id = ? AND exp_id = ?
     ''', (tree_id, e_id)).fetchone()[0]
     return t
 
@@ -734,9 +794,27 @@ def finalize_database(connection):
 
 
 def result_table():
-	connection = openDatabase(sampledb)
+    connection = openDatabase(sampledb)
     # create_latex_table_from_database(connection, range(1,41,1))
-	create_latex_table_from_database(connection, [4,5,6,7,8,9,10,15,19,20,27,28,29,30,39,40])
-	finalize_database(connection)
+    create_latex_table_from_database(connection, [4, 5, 6, 7, 8, 9, 10, 15, 19, 20, 27, 28, 29, 30, 39, 40])
+    finalize_database(connection)
 
 # result_table()
+def no_parse_result(connection, tree_name, corpus, experiment, parse_time):
+    cursor = connection.cursor()
+
+    tree_id = None
+    for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', (corpus, tree_name)):
+        tree_id = row[0]
+    if tree_id == None:
+        assert ("tree not found")
+
+    # unique tree key
+    cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None
+                                                                              , tree_id
+                                                                              , experiment
+                                                                              , None
+                                                                              , None
+                                                                              , parse_time
+                                                                              , "no_parse"))
+    connection.commit()
