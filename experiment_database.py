@@ -808,7 +808,7 @@ def result_table():
     finalize_database(connection)
 
 # result_table()
-def no_parse_result(connection, tree_name, corpus, experiment, parse_time):
+def no_parse_result(connection, tree_name, corpus, experiment, parse_time, message):
     cursor = connection.cursor()
 
     tree_id = None
@@ -824,5 +824,5 @@ def no_parse_result(connection, tree_name, corpus, experiment, parse_time):
                                                                               , None
                                                                               , None
                                                                               , parse_time
-                                                                              , "no_parse"))
+                                                                              , message))
     connection.commit()

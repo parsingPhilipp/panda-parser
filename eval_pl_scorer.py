@@ -4,7 +4,9 @@ import experiment_database
 import conll_parse
 import dependency_experiments_db
 import os
-import subprocess
+# use the subprocess32 module (python3 backport) instead of subprocess
+# import subprocess
+import subprocess32 as subprocess
 import re
 
 hypothesis_prefix = 'examples/sys-output'
