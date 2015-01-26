@@ -147,6 +147,10 @@ class LCFRS_rule:
     # Get LHS.
     # return: LCFRS_lhs
     def lhs(self):
+        """
+        :return:
+        :rtype: LCFRS_lhs
+        """
 	return self.__lhs
 
     # Get rank (length of RHS).
