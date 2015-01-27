@@ -231,6 +231,11 @@ class LCFRS_rule:
 	    s += '::' + dcp_rules_to_key(self.dcp())
 	return s
 
+    # def __hash__(self):
+    #     # TODO: there might be collisions. Since the number of rules is finite,
+    #     # TODO: we can give every rule a unique number during training.
+    #     return hash(self.key())
+
 ###########################################################################
 # The grammar.
 
