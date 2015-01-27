@@ -38,6 +38,15 @@ class LCFRS_var:
     def __str__(self):
 	return '<' + str(self.mem()) + ',' + str(self.arg()) + '>'
 
+    def __eq__(self, other):
+        if isinstance(other, LCFRS_var):
+            return self.arg() == other.arg() and self.mem() == other.mem()
+        else:
+            return False
+
+    def __hash__(self):
+        return hash((self.__i, self.__j))
+
 # LHS of LCFRS rule.
 class LCFRS_lhs:
     # Constructor.
@@ -407,7 +416,14 @@ class LCFRS:
             if rule.lhs().nont() != self.start():
                 s += str(rule) + '\n'
         return s
-	    
+
+    def lhs_nont_to_rules(self, nont):
+        """
+        :param nont:
+        :rtype: list[LCFRS_rule]
+        """
+        return self.__lhs_nont_to_rules[nont]
+
 ############################################################
 # Reading in grammar.
 
