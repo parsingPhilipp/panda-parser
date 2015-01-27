@@ -320,9 +320,9 @@ def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, le
         exit(1)
 
     connection = experiment_database.initialize_database(db_file)
-    grammar, experiment = induce_grammar_from_file(conll_train, connection, nont_labelling, d_i.term_pos, rec_par,
+    grammar, experiment = induce_grammar_from_file(training_corpus, connection, nont_labelling, d_i.term_pos, rec_par,
                                                    max_training, False, 'START', ignore_punctuation)
-    parse_sentences_from_file(grammar, experiment, connection, conll_test, d_i.pos_yield, length_limit, max_test, False,
+    parse_sentences_from_file(grammar, experiment, connection, test_corpus, d_i.pos_yield, length_limit, max_test, False,
                               ignore_punctuation, root_default_deprel, disconnected_default_deprel, max_parse_time, max_parse_memory)
     experiment_database.finalize_database(connection)
 
@@ -344,7 +344,7 @@ def single_experiment_from_config_file(config_path):
     max_test = sys.maxint
     max_length = sys.maxint
     max_parse_time = sys.maxint
-    max_parse_memory = sys.maxint
+    max_parse_memory = resource_limits.unlimited_memory
     line_nr = 0
     config = open(config_path, "r")
     for line in config.readlines():
