@@ -39,13 +39,13 @@ class memoryout:
     def __enter__(self):
         # TODO: the signal handler does not seem to be effective,
         # TODO: instead a MemoryError is catched in run(..)
-        if self.kb != unlimited_memory:
+        if self.soft != unlimited_memory:
             signal.signal(signal.SIGSEGV, self.handle_memoryout)
             hard = resource.getrlimit(self.res)[1]
             print "Memory soft limit: ", self.soft
             resource.setrlimit(self.res, (self.soft, hard))
     def __exit__(self, type, value, traceback):
-        if self.kb != unlimited_memory:
+        if self.soft != unlimited_memory:
             hard = resource.getrlimit(self.res)[1]
             resource.setrlimit(self.res, (hard, hard))
             print "Memory soft limit R", hard
