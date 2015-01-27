@@ -71,6 +71,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             if match.group(1) == '1':
                 tree_count += 1
                 tree = GeneralHybridTree('tree' + str(tree_count))
+                root = 0
 
             node_id = match.group(1)
             label = match.group(2)
@@ -88,6 +89,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 
             if parent == '0':
                 tree.set_root(node_id)
+                root += 1
 
             try:
                 line = file_content.next()
@@ -109,13 +111,17 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
                 if ignore_punctuation:
                     continue
                 raise Exception
+            elif root > 1:
+                # FIXME: turkish corpus contains trees with more than one root
+                # FIXME: currently, they are ignored
+                continue
             elif tree.n_nodes() != len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
                 # FIXME: ignoring punctuation may leads to malformed trees
                 if ignore_punctuation:
                     continue
-                raise Exception('connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
+                raise Exception('{4}: connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
                      str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
-                     str(len(tree.id_yield()))))
+                     str(len(tree.id_yield()))), tree.sent_label())
             yield tree
 
 def tree_to_conll_str(tree):
