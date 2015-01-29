@@ -211,7 +211,7 @@ class CombineItem(ActiveItem):
         # add end of range right to dot
         range_constraints += [current_position.right()]
 
-        nont = self._rule.rhs_nont(current_component.mem())
+        nont = self._rule.rhs_nont(variable.mem() - 1)
         passive_items = parser.query_passive_items(nont, range_constraints)
 
         for item in passive_items:
@@ -319,6 +319,7 @@ class Parser():
         self.__word = word
         self.__active_items = defaultdict()
         self.__passive_items = defaultdict()
+        self.__process_counter = 0
 
         self.__scan_agenda = deque()
         self.__combine_agenda = deque()
@@ -342,7 +343,7 @@ class Parser():
         else:
             self.__passive_items[key] = [item]
         if self.__debug:
-            print " recorded ", item
+            print " recorded   ", item
 
     def record_active_item(self, item):
         """
@@ -356,7 +357,7 @@ class Parser():
         if key in self.__active_items:
             pass
             if self.__debug:
-                print " skipped  ", item
+                print " skipped    ", item
         else:
             self.__active_items[key] = None
             if isinstance(item, CombineItem):
@@ -365,7 +366,7 @@ class Parser():
                 assert isinstance(item, ScanItem)
                 self.__scan_agenda.append(item)
             if self.__debug:
-                print " recorded ", item
+                print " recorded   ", item
 
     def query_passive_items(self, nont, range_constraints):
         """
@@ -385,12 +386,15 @@ class Parser():
             while self.__scan_agenda:
                 item = self.__scan_agenda.popleft()
                 if self.__debug:
-                    print "process   ", item
+                    self.__process_counter += 1
+                    print "process  {:>3d}".format(self.__process_counter), item
+
                 item.process(self)
             if self.__combine_agenda:
                 item = self.__combine_agenda.pop()
                 if self.__debug:
-                    print "process   ", item
+                    self.__process_counter += 1
+                    print "process  {:>3d}".format(self.__process_counter), item
                 item.process(self)
 
     def predict(self, nont, component, input_position, remaining_input, found_variables):
