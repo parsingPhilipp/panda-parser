@@ -6,6 +6,7 @@ from parser.parser_interface import AbstractParser
 from derivation import Derivation
 from parse_items import *
 
+
 class ActiveItem:
     def __init__(self, rule, children, variables, dot_component, dot_position, remaining_input):
         """
@@ -62,7 +63,7 @@ class ActiveItem:
         :rtype: PassiveItem
         """
         # since our grammar is ordered, we can assumed all components up to the dot component to be found
-        ranges = [self.range(LCFRS_var(0, comp)) for comp in range(self._dot_component + 1)]
+        ranges = [self.range(LCFRS_var(-1, comp)) for comp in range(self._dot_component + 1)]
 
         item = PassiveItem(self._rule, ranges, self._children)
         return item
@@ -76,9 +77,9 @@ class ActiveItem:
 
     def __str__(self):
         s = '{' + ','.join(
-            ['{' + ','.join([str(self.range(LCFRS_var(0, arg))) for arg in range(self._dot_component + 1)]) + '}']
+            ['{' + ','.join([str(self.range(LCFRS_var(-1, arg))) for arg in range(self._dot_component + 1)]) + '}']
             + ['{' + ','.join([str(child.range(i)) for i in range(child.complete_to())]) for child in
-               self._children]) + '}'
+               self._children if isinstance(child, PassiveItem)]) + '}'
         return '[' + self.action_id() + ':' + str(self._rule) + ':' + s + ': ' + str(self._remaining_input) + ']'
 
     def remaining_input(self):
@@ -93,17 +94,18 @@ class ScanItem(ActiveItem):
         c_index, j = self.dot_position()
         word_tuple_string = self._rule.lhs().arg(c_index)
         obj = word_tuple_string[j]
-        current_component = LCFRS_var(0, c_index)
+        current_component = LCFRS_var(-1, c_index)
         current_range = self.range(current_component)
 
         if isinstance(obj, LCFRS_var):
             arg = obj.mem()
             index = obj.arg()
-            nont = self._rule.rhs_nont(arg - 1)  # FIXME: ugly interface of LCFRS_clause
+            nont = self._rule.rhs_nont(arg)  # FIXME: ugly interface of LCFRS_clause
             # TODO
-            found_variables = [self.range(LCFRS_var(arg, j)) for j in range(0, obj.arg())]
+            found_variables = [self.range(LCFRS_var(arg, j)) for j in range(obj.arg())]
 
-            remaining_input = self._remaining_input - number_of_consumed_terminals(self._rule, c_index, self._dot_position)
+            remaining_input = self._remaining_input - number_of_consumed_terminals(self._rule, c_index,
+                                                                                   self._dot_position)
 
             parser.predict(nont, index, current_range.right(), remaining_input, found_variables)
 
@@ -139,15 +141,15 @@ class CombineItem(ActiveItem):
         word_tuple_string = self._rule.lhs().arg(c_index)
         variable = word_tuple_string[j]
         assert isinstance(variable, LCFRS_var)
-        current_component = LCFRS_var(0, c_index)
-        current_position = self.range(LCFRS_var(0, c_index))
+        current_component = LCFRS_var(-1, c_index)
+        current_position = self.range(LCFRS_var(-1, c_index))
 
         # start positions of strings
         range_constraints = [self.range(LCFRS_var(variable.mem(), comp)).left() for comp in range(variable.arg())]
         # add end of range right to dot
         range_constraints += [current_position.right()]
 
-        nont = self._rule.rhs_nont(variable.mem() - 1)
+        nont = self._rule.rhs_nont(variable.mem())
         passive_items = parser.query_passive_items(nont, range_constraints)
 
         for item in passive_items:
@@ -166,7 +168,7 @@ class CombineItem(ActiveItem):
                     continue
 
                 # new child vector
-                children = self._children[0:variable.mem() - 1] + [item] + self._children[variable.mem():]
+                children = self._children[0:variable.mem()] + [item] + self._children[variable.mem() + 1:]
 
                 # new variables dict, set ranges for found variables
                 variables = dict(self._variables)
@@ -248,7 +250,7 @@ class Parser(AbstractParser):
         :return:
         """
         key = tuple([item.action_id(), item.nont(), item.rule_id(), item.dot_position(), item.remaining_input()] + [
-            item.range(LCFRS_var(0, c_index)).to_tuple() for c_index in range(item.dot_position()[0] + 1)])
+            item.range(LCFRS_var(-1, c_index)).to_tuple() for c_index in range(item.dot_position()[0] + 1)])
         if key in self.__active_items:
             pass
             if self.__debug:
@@ -282,6 +284,8 @@ class Parser(AbstractParser):
                 item = self.__scan_agenda.popleft()
                 if self.__debug:
                     self.__process_counter += 1
+                    if self.__process_counter % 100 == 0:
+                        pass
                     print "process  {:>3d}".format(self.__process_counter), item
 
                 item.process(self)
@@ -289,6 +293,8 @@ class Parser(AbstractParser):
                 item = self.__combine_agenda.pop()
                 if self.__debug:
                     self.__process_counter += 1
+                    if self.__process_counter % 100 == 0:
+                        pass
                     print "process  {:>3d}".format(self.__process_counter), item
                 item.process(self)
 
@@ -311,8 +317,8 @@ class Parser(AbstractParser):
                 # TODO: filtering end
                 initial_range = Range(input_position, input_position)
                 variables = defaultdict()
-                variables[LCFRS_var(0, 0)] = initial_range
-                item = ScanItem(rule, [], variables, 0, 0, remaining_input)
+                variables[LCFRS_var(-1, 0)] = initial_range
+                item = ScanItem(rule, ['?'] * rule.rank(), variables, 0, 0, remaining_input)
                 self.record_active_item(item)
         else:
             range_constraints = map(lambda x: x.left(), found_variables)
@@ -332,11 +338,13 @@ class Parser(AbstractParser):
                     # TODO: filtering end
                     variables = defaultdict()
                     for c_index, r in enumerate(found_variables + [Range(input_position, input_position)]):
-                        variables[LCFRS_var(0, c_index)] = r
+                        variables[LCFRS_var(-1, c_index)] = r
                     for arg, child in enumerate(passive_item.children()):
-                        assert isinstance(child, PassiveItem)
-                        for c_index in range(child.complete_to()):
-                            variables[LCFRS_var(arg + 1, c_index)] = child.range(c_index)
+                        if isinstance(child, PassiveItem):
+                            for c_index in range(child.complete_to()):
+                                variables[LCFRS_var(arg, c_index)] = child.range(c_index)
+                        else:
+                            assert child == '?'
 
                     item = ScanItem(passive_item.rule(), list(passive_item.children()), variables, component, 0,
                                     remaining_input)

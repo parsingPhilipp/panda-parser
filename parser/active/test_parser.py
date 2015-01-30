@@ -8,14 +8,17 @@ from parser.derivation_interface import derivation_to_hybrid_tree
 from general_hybrid_tree import GeneralHybridTree
 from dependency_induction import induce_grammar, strict_pos_dep, term_pos, direct_extraction
 
+
 class MyTestCase(unittest.TestCase):
     def setUp(self):
         self.grammar_ab_copy = create_copy_grammar()
+        self.assertEqual(self.grammar_ab_copy.ordered()[0], True)
         self.grammar_ab_copy_2 = create_copy_grammar_2()
+        self.assertEqual(self.grammar_ab_copy_2.ordered()[0], True)
 
     def test_a4(self):
         word = ['a'] * 4
-        parser = Parser(self.grammar_ab_copy, word)
+        parser = Parser(self.grammar_ab_copy, word, True)
         print "Parse", word
         counter = 0
         print "Found items:"
@@ -24,7 +27,7 @@ class MyTestCase(unittest.TestCase):
                 print passive_item
                 derivation = print_derivation_tree(passive_item)
                 print derivation
-                poss = ['P' + str(i) for i in range (1, len(word) + 1)]
+                poss = ['P' + str(i) for i in range(1, len(word) + 1)]
                 tree = derivation_to_hybrid_tree(derivation, poss, word)
                 print tree
                 counter += 1
@@ -131,7 +134,9 @@ class MyTestCase(unittest.TestCase):
                 print passive_item
                 counter += 1
                 derivation = print_derivation_tree(passive_item)
+                print derivation
                 hybrid_tree = derivation_to_hybrid_tree(derivation, word, word)
+                # print hybrid_tree
         self.assertEqual(counter, 1)
         print
 
@@ -153,7 +158,7 @@ class MyTestCase(unittest.TestCase):
     def test_kallmayer_pos(self):
         for n in range(4):
             for m in range(4):
-                word = ((['c'] + ['a'] * 2 * n + ['b'] * m) * 2 + ['c'] + ['a'] * 2 * n )
+                word = ((['c'] + ['a'] * 2 * n + ['b'] * m) * 2 + ['c'] + ['a'] * 2 * n)
                 counter = self._kallmayer(word)
                 if n > 0:
                     self.assertEqual(counter, 1)
@@ -181,20 +186,19 @@ class MyTestCase(unittest.TestCase):
         print
         return counter
 
-
     def test_dcp_evaluation_with_induced_dependency_grammar(self):
 
         # print tree.children("v")
         # print tree
         #
         # for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
-        #                'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
-        #     print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
-        #     print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
+        # 'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
+        # print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
+        # print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
         #
         # print "some rule"
         # for mem, arg in [(-1, 0), (0,0), (1,0)]:
-        #     print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
+        # print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
         #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
         #
         #
@@ -211,7 +215,6 @@ class MyTestCase(unittest.TestCase):
         # print '---'
         # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
         # print 'child:' , child_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
-
 
         # print tree2.children("v")
         # print tree2
@@ -250,6 +253,7 @@ class MyTestCase(unittest.TestCase):
         print grammar
 
         self.assertEqual(grammar.well_formed(), None)
+        self.assertEqual(grammar.ordered()[0], True)
         print max([grammar.fanout(nont) for nont in grammar.nonts()])
         print grammar
 
@@ -262,14 +266,21 @@ class MyTestCase(unittest.TestCase):
                 der = Derivation()
                 derivation_tree(der, item, None)
 
+                # print
+                # print der
+
                 hybrid_tree = derivation_to_hybrid_tree(der, 'P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))
-                print hybrid_tree.full_labelled_yield()
+                # print hybrid_tree.full_labelled_yield()
                 print hybrid_tree
-        #
-        # string = "hallo"
-        # dcp_string = DCP_string(string)
-        # dcp_string.set_dep_label("dep")
-        # print dcp_string, dcp_string.dep_label()
+
+                # TODO: TEST DCP evaluation!
+
+                #
+                # string = "hallo"
+                # dcp_string = DCP_string(string)
+                # dcp_string.set_dep_label("dep")
+                # print dcp_string, dcp_string.dep_label()
+
 
 if __name__ == '__main__':
     unittest.main()
@@ -278,8 +289,8 @@ if __name__ == '__main__':
 def create_copy_grammar():
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1, 0)
-    x2 = LCFRS_var(1, 1)
+    x1 = LCFRS_var(0, 0)
+    x2 = LCFRS_var(0, 1)
 
     lhs1 = LCFRS_lhs('S')
     lhs1.add_arg([x1, x2])
@@ -319,8 +330,8 @@ def create_copy_grammar():
 def create_copy_grammar_2():
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1, 0)
-    x2 = LCFRS_var(1, 1)
+    x1 = LCFRS_var(0, 0)
+    x2 = LCFRS_var(0, 1)
 
     lhs1 = LCFRS_lhs('S')
     lhs1.add_arg([x1, x2])
@@ -360,11 +371,11 @@ def create_copy_grammar_2():
 def kaeshhammer_grammar():
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1, 0)
-    x2 = LCFRS_var(1, 1)
+    x1 = LCFRS_var(0, 0)
+    x2 = LCFRS_var(0, 1)
 
-    y1 = LCFRS_var(2, 0)
-    y2 = LCFRS_var(2, 1)
+    y1 = LCFRS_var(1, 0)
+    y2 = LCFRS_var(1, 1)
 
     lhs1 = LCFRS_lhs('A')
     lhs1.add_arg(['a'])
@@ -387,9 +398,9 @@ def kaeshhammer_grammar():
     grammar.add_rule(lhs4, ['B'])
 
     lhs5 = LCFRS_lhs('S')
-    lhs5.add_arg([x1, y1, x2, y2])
-    grammar.add_rule(lhs5, ['A', 'B'])
-
+    lhs5.add_arg([y1, x1, y2, x2])
+    grammar.add_rule(lhs5, ['B', 'A'])
+    assert grammar.ordered()[0]
     return grammar
 
 
@@ -398,12 +409,12 @@ def kallmayar_grammar():
     # made epsilon free
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1, 0)
-    x2 = LCFRS_var(1, 1)
-    x3 = LCFRS_var(1, 2)
+    x1 = LCFRS_var(0, 0)
+    x2 = LCFRS_var(0, 1)
+    x3 = LCFRS_var(0, 2)
 
-    y1 = LCFRS_var(2, 0)
-    y2 = LCFRS_var(2, 1)
+    y1 = LCFRS_var(1, 0)
+    y2 = LCFRS_var(1, 1)
 
     lhs1 = LCFRS_lhs('S')
     lhs1.add_arg(['c', x1, 'c', x2, 'c', x3])
@@ -415,7 +426,7 @@ def kallmayar_grammar():
 
     lhs3 = LCFRS_lhs('A')
     for i in range(3):
-        lhs3.add_arg(['a', LCFRS_var(1, i), 'a'])
+        lhs3.add_arg(['a', LCFRS_var(0, i), 'a'])
     grammar.add_rule(lhs3, ['A'])
 
     lhs4 = LCFRS_lhs('A')
@@ -433,46 +444,50 @@ def kallmayar_grammar():
     lhs6.add_arg(['b'])
     grammar.add_rule(lhs6, [])
 
+    assert (grammar.ordered()[0])
     return grammar
+
 
 def print_derivation_tree(root_element):
     derivation = Derivation()
     derivation_tree(derivation, root_element, None)
     return derivation
 
+
 def hybrid_tree_1():
     tree = GeneralHybridTree()
-    tree.add_node("v1",'Piet',"NP",True)
-    tree.add_node("v21",'Marie',"N",True)
-    tree.add_node("v",'helpen',"V",True)
-    tree.add_node("v2",'lezen', "V", True)
-    tree.add_child("v","v2")
-    tree.add_child("v","v1")
-    tree.add_child("v2","v21")
+    tree.add_node("v1", 'Piet', "NP", True)
+    tree.add_node("v21", 'Marie', "N", True)
+    tree.add_node("v", 'helpen', "V", True)
+    tree.add_node("v2", 'lezen', "V", True)
+    tree.add_child("v", "v2")
+    tree.add_child("v", "v1")
+    tree.add_child("v2", "v21")
     tree.set_root("v")
-    tree.set_dep_label('v','ROOT')
-    tree.set_dep_label('v1','SBJ')
-    tree.set_dep_label('v2','VBI')
-    tree.set_dep_label('v21','OBJ')
+    tree.set_dep_label('v', 'ROOT')
+    tree.set_dep_label('v1', 'SBJ')
+    tree.set_dep_label('v2', 'VBI')
+    tree.set_dep_label('v21', 'OBJ')
     tree.reorder()
     return tree
 
+
 def hybrid_tree_2():
     tree2 = GeneralHybridTree()
-    tree2.add_node("v1",'Piet',"NP",True)
+    tree2.add_node("v1", 'Piet', "NP", True)
     tree2.add_node("v211", 'Marie', 'N', True)
-    tree2.add_node("v",'helpen',"V",True)
-    tree2.add_node("v2",'leren', "V", True)
-    tree2.add_node("v21",'lezen',"V",True)
-    tree2.add_child("v","v2")
-    tree2.add_child("v","v1")
-    tree2.add_child("v2","v21")
-    tree2.add_child("v21","v211")
+    tree2.add_node("v", 'helpen', "V", True)
+    tree2.add_node("v2", 'leren', "V", True)
+    tree2.add_node("v21", 'lezen', "V", True)
+    tree2.add_child("v", "v2")
+    tree2.add_child("v", "v1")
+    tree2.add_child("v2", "v21")
+    tree2.add_child("v21", "v211")
     tree2.set_root("v")
-    tree2.set_dep_label('v','ROOT')
-    tree2.set_dep_label('v1','SBJ')
-    tree2.set_dep_label('v2','VBI')
-    tree2.set_dep_label('v21','VFIN')
+    tree2.set_dep_label('v', 'ROOT')
+    tree2.set_dep_label('v1', 'SBJ')
+    tree2.set_dep_label('v2', 'VBI')
+    tree2.set_dep_label('v21', 'VFIN')
     tree2.set_dep_label('v211', 'OBJ')
     tree2.reorder()
     return tree2

@@ -1,15 +1,8 @@
 # Parsing of string with LCFRS/DCP hybrid grammar.
 
-from collections import defaultdict
-import codecs
-import re
-import math
-import sys
-
 from lcfrs import *
 from dcp import *
 from constituency_tree import HybridTree
-from decomposition import expand_spans
 from derivation import Derivation
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from general_hybrid_tree import GeneralHybridTree
@@ -134,7 +127,6 @@ class LHS_instance:
             return low, inp_len
         else:
             return 0, inp_len
-
 
     # Replace all occurrences of LCFRS_var [i,j] by span
     # (Improved version, without reconstructing the lists.)
@@ -466,7 +458,6 @@ class LCFRS_parser:
         trace = self.__trace[elem]
         return len(trace) > 0
 
-
     def newDCP(self):
         der = self.newBestDerivation()
         if der:
@@ -474,14 +465,12 @@ class LCFRS_parser:
         else:
             return []
 
-
     def new_DCP_Hybrid_Tree(self, tree, poss, words, ignore_punctuation):
         dcp_evaluation = self.newDCP()
         if dcp_evaluation:
             return dcp_to_hybridtree(tree, dcp_evaluation, poss, words, ignore_punctuation)
         else:
             return None
-
 
     # Return best derivation or None.
     # return: Derivation

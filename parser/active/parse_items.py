@@ -3,6 +3,7 @@ __author__ = 'kilian'
 nonterminal_type = str
 terminal_type = str
 
+
 class Range:
     def __init__(self, left, right):
         """
@@ -65,7 +66,6 @@ class Range:
         return self.__right - self.__left
 
 
-
 class PassiveItem:
     __rule = None
     __children = None
@@ -102,6 +102,8 @@ class PassiveItem:
         :return:
         :rtype: Range
         """
+        if len(self.__ranges) <= c_index:
+            pass
         return self.__ranges[c_index]
 
     def children(self):

@@ -5,13 +5,12 @@
 from collections import defaultdict
 import codecs
 import re
-import math
-import sys
 
 from dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
 
 # ##########################################################################
 # Parts of the grammar.
+
 
 # Variable of LCFRS rule. 
 # Represents i-th member in RHS and j-th argument thereof.
@@ -210,6 +209,22 @@ class LCFRS_rule:
                 return 'wrong variables in ' + str(self)
         return None
 
+    def ordered(self):
+        """
+        :rtype: Bool
+        :return: Do the variables of each rhs nonterminal occur in ascending order in the components on the lhs.
+        """
+        for mem in range(self.rank()):
+            arg = -1
+            for comp in range(self.lhs().fanout()):
+                for obj in self.lhs().arg(comp):
+                    if isinstance(obj, LCFRS_var):
+                        if obj.mem() == mem and arg + 1 != obj.arg():
+                            return False
+                        elif obj.mem() == mem and arg + 1 == obj.arg():
+                            arg += 1
+        return True
+
     # Get variables from i-th member.
     # i: int 
     # return: list of int (argument numbers).
@@ -382,6 +397,12 @@ class LCFRS:
             if check is not None:
                 return check
         return None
+
+    def ordered(self):
+        for rule in self.rules():
+            if not rule.ordered():
+                return False, rule
+        return True, None
 
     # Get zero-fanout rules in which terminal is first terminal.
     # term: string
