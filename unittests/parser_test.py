@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 import unittest
-from lcfrs_parser_new import *
+from parser.active.lcfrs_parser_new import *
 from lcfrs import *
 
 

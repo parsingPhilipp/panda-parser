@@ -1,6 +1,5 @@
 # The code to run experiments.
 
-import re
 import time
 
 import negra_parse
@@ -11,7 +10,7 @@ from constituency_tree import *
 from induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
 	start as induction_start
 from lcfrs import *
-from parsing import *
+from parser.naive.parsing import *
 from decomposition import *
 
 # Different corpora and subsets of the corpora

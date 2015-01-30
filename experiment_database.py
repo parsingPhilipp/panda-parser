@@ -134,7 +134,7 @@ def add_grammar(connection, grammar, experiment):
 def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus,
                    started, cpu_time):
     """
-    :type connection: Connection
+    :type connection: sqlite3.Connection
     :param term_label:
     :param nont_label:
     :param rec_par:
@@ -795,7 +795,7 @@ def parsetime(connection, tree_id, e_id):
 def finalize_database(connection):
     """
     :param connection:
-    :type connection: Connection
+    :type connection: sqlite3.Connection
     :return:
     """
     connection.close()

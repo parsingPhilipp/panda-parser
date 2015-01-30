@@ -210,7 +210,7 @@ class LCFRS_rule:
     # return: list of int (argument numbers).
     def __get_vars(self, i):
 	variables = []
-	for j in range(self.lhs().rank()):
+	for j in range(self.rank()):
 	    for elem in self.lhs().arg(j):
 		if isinstance(elem, LCFRS_var) and elem.mem() == i:
 		    variables += [elem.arg()]

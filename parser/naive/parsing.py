@@ -374,7 +374,34 @@ def make_rule_instances_from_members(instance, members, args, inp, pos):
                                                     rest_mems, args, inp, pos)
 
 #######################################################
-class Derivation:
+
+class AbstractDerivation:
+    def root_id(self):
+        assert False
+
+    def add_rule(self, id, rule, weight):
+        assert False
+
+    def getRule(self, id):
+        assert False
+
+    def child_ids(self, id):
+        assert False
+
+    def children(self, id):
+        assert False
+
+    def terminal_positions(self):
+        assert  False
+
+    def ids(self):
+        assert  False
+
+    def __str__(self):
+        assert False
+
+
+class Derivation(AbstractDerivation):
     def gorn_delimiter(self):
         return '.'
 
@@ -397,7 +424,7 @@ class Derivation:
         return self.__rules[id]
 
     # id : string
-    # return: list of Rule_instance
+    # return: list of rules
     def children(self, id):
         return [self.getRule(id + self.gorn_delimiter() + str(i))
                 for i in range(self.getRule(id).rule().rank())]
@@ -451,6 +478,15 @@ def der_to_str_rec(der, id):
 # disconnected: list of positions in ordered_labels that are disconnected
 # return: GeneralHybridTree
 def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected = []):
+    """
+
+    :param der:
+    :type der: AbstractDerivation
+    :param poss:
+    :param ordered_labels:
+    :param disconnected:
+    :return:
+    """
     tree = GeneralHybridTree()
     j = 1
     for i in range(len(ordered_labels)):
@@ -465,7 +501,7 @@ def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected = []):
             tree.add_child(id,child)
         for position in der.terminal_positions(id):
             tree.add_child(id, "c" + str(position))
-    tree.set_root('')
+    tree.set_root(der.root())
     tree.reorder()
     return tree
 
@@ -695,6 +731,12 @@ def dcp_to_hybridtree_recur(dcp, tree, next_id):
 class The_DCP_evaluator(DCP_evaluator):
     # der: Derivation
     def __init__(self, der):
+        """
+
+        :param der:
+        :type der: AbstractDerivation
+        :return:
+        """
         self.__der = der
         # self.__evaluate(der.root_id())
 
