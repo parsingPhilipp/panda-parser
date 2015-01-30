@@ -1,7 +1,9 @@
 __author__ = 'kilian'
 
 from dcp import DCP_evaluator, DCP_term, DCP_pos, DCP_string
+from parser.derivation_interface import AbstractDerivation
 import re
+
 
 class The_DCP_evaluator(DCP_evaluator):
     # der: Derivation
@@ -23,13 +25,13 @@ class The_DCP_evaluator(DCP_evaluator):
     # arg: int
     # return: list of DCP_term
     def __evaluate(self, id, mem, arg):
-        rule = self.__der.getRule(id).rule()
+        rule = self.__der.getRule(id)
         for dcp_rule in rule.dcp():
             lhs = dcp_rule.lhs()
             rhs = dcp_rule.rhs()
             if lhs.mem() == mem and lhs.arg() == arg:
                 # return [t for term in rhs \
-			     #    for t in self.__eval_dcp_term(term, id)]
+                # for t in self.__eval_dcp_term(term, id)]
                 result = []
                 for term in rhs:
                     evaluation = self.__eval_dcp_term(term, id)
@@ -56,7 +58,7 @@ class The_DCP_evaluator(DCP_evaluator):
     # term: DCP_term
     def evaluateTerm(self, term, id):
         head = term.head()
-        arg  = term.arg()
+        arg = term.arg()
         evaluated_head = head.evaluateMe(self, id)
         ground = [t for arg_term in arg for t in self.__eval_dcp_term(arg_term, id)]
         return [DCP_term(evaluated_head, ground)]
@@ -65,14 +67,10 @@ class The_DCP_evaluator(DCP_evaluator):
         mem = var.mem()
         arg = var.arg()
         if mem >= 0:
-            return self.__evaluate(id + self.__der.gorn_delimiter() + str(mem), -1, arg)
+            return self.__evaluate(self.__der.child_id(id, mem), -1, arg)
         else:
-            match = re.search(r'^(.*)' + self.__der.gorn_delimiter_regex() + '([0-9]+)$', id)
-            # print match.group(1), match.group(2)
-            if match:
-                return self.__evaluate(match.group(1), int(match.group(2)), arg)
-            else:
-                raise Exception('strange var ' + var)
+            parent, ith_child = self.__der.position_relative_to_parent(id)
+            return self.__evaluate(parent, ith_child, arg)
 
 
 # Turn DCP value into hybrid tree.
@@ -84,9 +82,9 @@ def dcp_to_hybridtree(tree, dcp, poss, words, ignore_punctuation):
         raise Exception('DCP has multiple roots')
     j = 0
     for (i, (pos, word)) in enumerate(zip(poss, words)):
-    #    tree.add_leaf(str(i), pos, word)
-        if ignore_punctuation and re.search('^\$.*$',pos):
-            tree.add_node(str(i)+'p', word, pos, True, False)
+        # tree.add_leaf(str(i), pos, word)
+        if ignore_punctuation and re.search('^\$.*$', pos):
+            tree.add_node(str(i) + 'p', word, pos, True, False)
         elif ignore_punctuation:
             tree.add_node(str(j), word, pos, True, True)
             j += 1
@@ -122,4 +120,4 @@ def dcp_to_hybridtree_recur(dcp, tree, next_id):
         (tree_child, next_id) = \
             dcp_to_hybridtree_recur(child, tree, next_id)
         tree.add_child(id, tree_child)
-    return (id, next_id)
+    return id, next_id

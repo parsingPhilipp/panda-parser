@@ -3,6 +3,7 @@ __author__ = 'kilian'
 from abc import ABCMeta, abstractmethod
 from lcfrs import *
 
+
 class AbstractParser:
     __metaclass__ = ABCMeta
 

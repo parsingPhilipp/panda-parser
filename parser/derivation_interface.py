@@ -3,7 +3,10 @@ __author__ = 'kilian'
 from abc import ABCMeta, abstractmethod
 from general_hybrid_tree import GeneralHybridTree
 
+
 class AbstractDerivation:
+    __metaclass__ = ABCMeta
+
     @abstractmethod
     def root_id(self):
         """
@@ -11,9 +14,6 @@ class AbstractDerivation:
         """
         pass
 
-    @abstractmethod
-    def add_rule(self, id, rule, weight):
-        pass
 
     @abstractmethod
     def getRule(self, id):
@@ -21,20 +21,40 @@ class AbstractDerivation:
 
     @abstractmethod
     def child_ids(self, id):
+        """
+        :param id:
+        :rtype: list[object]
+        """
+        pass
+
+
+    @abstractmethod
+    def child_id(self, id, i):
         pass
 
     @abstractmethod
-    def children(self, id):
+    def position_relative_to_parent(self, id):
+        """
+        :param id:
+        :type id: object
+        :rtype: (object, int)
+        """
         pass
 
     @abstractmethod
-    def terminal_positions(self):
+    def terminal_positions(self, id):
+        """
+        :param id:
+        :type id: object
+        :return:
+        :rtype: list[object]
+        """
         pass
 
     @abstractmethod
     def ids(self):
         """
-        :rtype: list[T]
+        :rtype: list[object]
         """
         pass
 
@@ -43,22 +63,21 @@ class AbstractDerivation:
         pass
 
 
-# Turn a derivation tree into a hybrid tree.
-# Assuming poss and ordered_labels to have equal length.
-# der: Derivation
-# poss: list of string (POS-tags)
-# ordered_labels: list of words
-# disconnected: list of positions in ordered_labels that are disconnected
-# return: GeneralHybridTree
-def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected = []):
+def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected=None):
     """
     :param der:
     :type der: AbstractDerivation
-    :param poss:
-    :param ordered_labels:
-    :param disconnected:
-    :return:
+    :param poss: list of POS-tags
+    :type poss: list[str]
+    :param ordered_labels: list of words
+    :type ordered_labels: list[str]
+    :param disconnected: list of positions in ordered_labels that are disconnected
+    :type disconnected: list[object]
+    :rtype: GeneralHybridTree
+    Turn a derivation tree into a hybrid tree. Assuming poss and ordered_labels to have equal length.
     """
+    if not disconnected:
+        disconnected = []
     tree = GeneralHybridTree()
     j = 1
     for i in range(len(ordered_labels)):
@@ -70,7 +89,7 @@ def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected = []):
     for id in der.ids():
         tree.add_node(id, der.getRule(id).lhs().nont())
         for child in der.child_ids(id):
-            tree.add_child(id,child)
+            tree.add_child(id, child)
         for position in der.terminal_positions(id):
             tree.add_child(id, "c" + str(position))
     tree.set_root(der.root_id())

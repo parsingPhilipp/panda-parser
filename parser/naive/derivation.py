@@ -1,12 +1,28 @@
 __author__ = 'kilian'
 
 from parser.derivation_interface import AbstractDerivation
+import re
+
 
 class Derivation(AbstractDerivation):
-    def gorn_delimiter(self):
+    def child_id(self, id, i):
+        return id + self.gorn_delimiter() + str(i)
+
+    def position_relative_to_parent(self, id):
+        match = re.search(r'^(.*)' + self.__gorn_delimiter_regex() + '([0-9]+)$', id)
+        if match:
+            parent = match.group(1)
+            ith_child = int(match.group(2))
+            return parent, ith_child
+        else:
+            raise Exception("Id " + str(id) + " has no parent.")
+
+    @staticmethod
+    def gorn_delimiter():
         return '.'
 
-    def gorn_delimiter_regex(self):
+    @staticmethod
+    def __gorn_delimiter_regex():
         return '\.'
 
     def __init__(self):
@@ -21,23 +37,26 @@ class Derivation(AbstractDerivation):
         self.__rules[id] = rule
         self.__weights[id] = weight
 
-    def getRule(self, id):
+    def __getRuleInstance(self, id):
         return self.__rules[id]
+
+    def getRule(self, id):
+        return self.__getRuleInstance(id).rule()
 
     # id : string
     # return: list of rules
-    def children(self, id):
-        return [self.getRule(id + self.gorn_delimiter() + str(i))
-                for i in range(self.getRule(id).rule().rank())]
+    # def children(self, id):
+    #     return [self.__getRuleInstance(id + self.gorn_delimiter() + str(i))
+    #             for i in range(self.getRule(id).rank())]
 
     def child_ids(self, id):
-        return [id + self.gorn_delimiter() + str(i) for i in range(self.getRule(id).rule().rank())]
+        return [id + self.gorn_delimiter() + str(i) for i in range(self.getRule(id).rank())]
 
     def root_id(self):
         return self.__root
 
     def root(self):
-        return (self.getRule(''))
+        return self.__getRuleInstance('')
 
     def __str__(self):
         return der_to_str(self)
@@ -49,7 +68,7 @@ class Derivation(AbstractDerivation):
         return [p for p in self.__all_positions(id) if p not in child_positions]
 
     def __all_positions(self, id):
-        rule = self.getRule(id)
+        rule = self.__getRuleInstance(id)
         positions = []
         for i in range(rule.lhs().fanout()):
             span = rule.lhs().arg(i)[0]
@@ -59,13 +78,15 @@ class Derivation(AbstractDerivation):
     def ids(self):
         return self.__rules.keys()
 
+
 # return string
 def der_to_str(der):
     return der_to_str_rec(der, der.root_id())
 
+
 # return: string
 def der_to_str_rec(der, id):
-    s = ' ' * len(id) + str(der.getRule(id).rule()) + '\t(' + str(der.getRule(id).lhs()) + ')\n'
+    s = ' ' * len(id) + str(der.getRule(id)) + '\t(' + str(der.__getRuleInstance(id).lhs()) + ')\n'
     for child in der.child_ids(id):
         s += der_to_str_rec(der, child)
     return s

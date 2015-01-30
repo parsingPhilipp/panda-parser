@@ -1,9 +1,12 @@
 __author__ = 'kilian'
 
 import unittest
-from parser.active.lcfrs_parser_new import *
+from parsing import *
 from lcfrs import *
-
+from derivation import Derivation
+from parser.derivation_interface import derivation_to_hybrid_tree
+from general_hybrid_tree import GeneralHybridTree
+from dependency_induction import induce_grammar, strict_pos_dep, term_pos, direct_extraction
 
 class MyTestCase(unittest.TestCase):
     def setUp(self):
@@ -19,13 +22,18 @@ class MyTestCase(unittest.TestCase):
         for passive_item in parser.query_passive_items('S', [0]):
             if passive_item.range(0) == Range(0, len(word)):
                 print passive_item
+                derivation = print_derivation_tree(passive_item)
+                print derivation
+                poss = ['P' + str(i) for i in range (1, len(word) + 1)]
+                tree = derivation_to_hybrid_tree(derivation, poss, word)
+                print tree
                 counter += 1
         self.assertEqual(counter, 2)
         print
 
     def test_aabaab(self):
         word = ['a', 'a', 'b'] * 2
-        parser = Parser(self.grammar_ab_copy, word )
+        parser = Parser(self.grammar_ab_copy, word)
         print "Parse", word
         counter = 0
         print "Found items:"
@@ -38,7 +46,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_abba(self):
         word = ['a', 'b', 'b', 'a']
-        parser = Parser(self.grammar_ab_copy, word )
+        parser = Parser(self.grammar_ab_copy, word)
         print "Parse", word
         counter = 0
         print "Found items:"
@@ -51,7 +59,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_a4_2(self):
         word = ['a'] * 4
-        parser = Parser(self.grammar_ab_copy_2, word )
+        parser = Parser(self.grammar_ab_copy_2, word)
         print "Parse", word
         counter = 0
         print "Found items:"
@@ -90,7 +98,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_abba_2(self):
         word = ['a', 'b', 'b', 'a']
-        parser = Parser(self.grammar_ab_copy_2, word )
+        parser = Parser(self.grammar_ab_copy_2, word)
         print "Parse", word
         counter = 0
         print "Found items:"
@@ -102,8 +110,8 @@ class MyTestCase(unittest.TestCase):
         print
 
     def test_remaining_terminal_function(self):
-        x1 = LCFRS_var(1,0)
-        x2 = LCFRS_var(1,1)
+        x1 = LCFRS_var(1, 0)
+        x2 = LCFRS_var(1, 1)
         lhs = LCFRS_lhs('S')
         lhs.add_arg(['a', x1, 'a', x2])
         rule = LCFRS_rule(lhs)
@@ -122,6 +130,8 @@ class MyTestCase(unittest.TestCase):
             if passive_item.range(0) == Range(0, len(word)):
                 print passive_item
                 counter += 1
+                derivation = print_derivation_tree(passive_item)
+                hybrid_tree = derivation_to_hybrid_tree(derivation, word, word)
         self.assertEqual(counter, 1)
         print
 
@@ -167,18 +177,109 @@ class MyTestCase(unittest.TestCase):
             if passive_item.range(0) == Range(0, len(word)):
                 print passive_item
                 counter += 1
+                # print_derivation_tree(passive_item)
         print
         return counter
 
 
+    def test_dcp_evaluation_with_induced_dependency_grammar(self):
+
+        # print tree.children("v")
+        # print tree
+        #
+        # for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
+        #                'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
+        #     print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
+        #     print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
+        #
+        # print "some rule"
+        # for mem, arg in [(-1, 0), (0,0), (1,0)]:
+        #     print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
+        #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
+        #
+        #
+        # print "some other rule"
+        # for mem, arg in [(-1,1),(1,0)]:
+        #     print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
+        #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
+        #
+        # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
+        # print 'child:' , child_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
+        # print '---'
+        # print 'strict: ', strict_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
+        # print 'child: ', child_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
+        # print '---'
+        # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
+        # print 'child:' , child_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
+
+
+        # print tree2.children("v")
+        # print tree2
+        #
+        # print 'siblings v211', tree2.siblings('v211')
+        # print top(tree2, ['v','v1', 'v211'])
+        # print top_max(tree2, ['v','v1', 'v211'])
+        #
+        # print '---'
+        # print 'strict:' , strict_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
+        # print 'child:' , child_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
+
+        # rec_par = ('v v1 v2 v21'.split(' '),
+        #            [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
+        #                ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
+        #            ])
+        #
+        # grammar = LCFRS(nonterminal_str(tree, top_max(tree, rec_par[0]), bottom_max(tree, rec_par[0]), 'strict'))
+        #
+        # add_rules_to_grammar_rec(tree, rec_par, grammar, 'child')
+        #
+        # grammar.make_proper()
+        # print grammar
+
+        tree = hybrid_tree_1()
+
+        print tree
+
+        tree2 = hybrid_tree_2()
+
+        print tree2
+        # print tree.recursive_partitioning()
+
+        (_, grammar) = induce_grammar([tree, tree2], strict_pos_dep, term_pos, direct_extraction, 'START')
+
+        print grammar
+
+        self.assertEqual(grammar.well_formed(), None)
+        print max([grammar.fanout(nont) for nont in grammar.nonts()])
+        print grammar
+
+        parser = Parser(grammar, 'NP N V V'.split(' '), True)
+
+        self.assertEqual(parser.recognized(), True)
+
+        for item in parser.query_passive_items(grammar.start(), [0]):
+            if item.range(0) == Range(0, 4):
+                der = Derivation()
+                derivation_tree(der, item, None)
+
+                hybrid_tree = derivation_to_hybrid_tree(der, 'P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))
+                print hybrid_tree.full_labelled_yield()
+                print hybrid_tree
+        #
+        # string = "hallo"
+        # dcp_string = DCP_string(string)
+        # dcp_string.set_dep_label("dep")
+        # print dcp_string, dcp_string.dep_label()
+
 if __name__ == '__main__':
     unittest.main()
+
 
 def create_copy_grammar():
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1,0)
-    x2 = LCFRS_var(1,1)
+    x1 = LCFRS_var(1, 0)
+    x2 = LCFRS_var(1, 1)
 
     lhs1 = LCFRS_lhs('S')
     lhs1.add_arg([x1, x2])
@@ -218,8 +319,8 @@ def create_copy_grammar():
 def create_copy_grammar_2():
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1,0)
-    x2 = LCFRS_var(1,1)
+    x1 = LCFRS_var(1, 0)
+    x2 = LCFRS_var(1, 1)
 
     lhs1 = LCFRS_lhs('S')
     lhs1.add_arg([x1, x2])
@@ -259,11 +360,11 @@ def create_copy_grammar_2():
 def kaeshhammer_grammar():
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1,0)
-    x2 = LCFRS_var(1,1)
+    x1 = LCFRS_var(1, 0)
+    x2 = LCFRS_var(1, 1)
 
-    y1 = LCFRS_var(2,0)
-    y2 = LCFRS_var(2,1)
+    y1 = LCFRS_var(2, 0)
+    y2 = LCFRS_var(2, 1)
 
     lhs1 = LCFRS_lhs('A')
     lhs1.add_arg(['a'])
@@ -297,12 +398,12 @@ def kallmayar_grammar():
     # made epsilon free
     grammar = LCFRS('S')
 
-    x1 = LCFRS_var(1,0)
-    x2 = LCFRS_var(1,1)
-    x3 = LCFRS_var(1,2)
+    x1 = LCFRS_var(1, 0)
+    x2 = LCFRS_var(1, 1)
+    x3 = LCFRS_var(1, 2)
 
-    y1 = LCFRS_var(2,0)
-    y2 = LCFRS_var(2,1)
+    y1 = LCFRS_var(2, 0)
+    y2 = LCFRS_var(2, 1)
 
     lhs1 = LCFRS_lhs('S')
     lhs1.add_arg(['c', x1, 'c', x2, 'c', x3])
@@ -312,11 +413,10 @@ def kallmayar_grammar():
     lhs2.add_arg(['c', x1, y1, 'c', x2, y2, 'c', x3])
     grammar.add_rule(lhs2, ['A', 'B'])
 
-    lhs3= LCFRS_lhs('A')
+    lhs3 = LCFRS_lhs('A')
     for i in range(3):
         lhs3.add_arg(['a', LCFRS_var(1, i), 'a'])
     grammar.add_rule(lhs3, ['A'])
-
 
     lhs4 = LCFRS_lhs('A')
     for _ in range(3):
@@ -334,3 +434,46 @@ def kallmayar_grammar():
     grammar.add_rule(lhs6, [])
 
     return grammar
+
+def print_derivation_tree(root_element):
+    derivation = Derivation()
+    derivation_tree(derivation, root_element, None)
+    return derivation
+
+def hybrid_tree_1():
+    tree = GeneralHybridTree()
+    tree.add_node("v1",'Piet',"NP",True)
+    tree.add_node("v21",'Marie',"N",True)
+    tree.add_node("v",'helpen',"V",True)
+    tree.add_node("v2",'lezen', "V", True)
+    tree.add_child("v","v2")
+    tree.add_child("v","v1")
+    tree.add_child("v2","v21")
+    tree.set_root("v")
+    tree.set_dep_label('v','ROOT')
+    tree.set_dep_label('v1','SBJ')
+    tree.set_dep_label('v2','VBI')
+    tree.set_dep_label('v21','OBJ')
+    tree.reorder()
+    return tree
+
+def hybrid_tree_2():
+    tree2 = GeneralHybridTree()
+    tree2.add_node("v1",'Piet',"NP",True)
+    tree2.add_node("v211", 'Marie', 'N', True)
+    tree2.add_node("v",'helpen',"V",True)
+    tree2.add_node("v2",'leren', "V", True)
+    tree2.add_node("v21",'lezen',"V",True)
+    tree2.add_child("v","v2")
+    tree2.add_child("v","v1")
+    tree2.add_child("v2","v21")
+    tree2.add_child("v21","v211")
+    tree2.set_root("v")
+    tree2.set_dep_label('v','ROOT')
+    tree2.set_dep_label('v1','SBJ')
+    tree2.set_dep_label('v2','VBI')
+    tree2.set_dep_label('v21','VFIN')
+    tree2.set_dep_label('v211', 'OBJ')
+    tree2.reorder()
+    return tree2
+

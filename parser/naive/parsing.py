@@ -15,7 +15,7 @@ from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from general_hybrid_tree import GeneralHybridTree
 
 
-############################################################
+# ###########################################################
 # Parsing auxiliaries.
 
 # Span, represents input positions from i+1 to j.
@@ -39,7 +39,6 @@ class Span:
     # return: string
     def __str__(self):
         return '[' + str(self.low()) + '-' + str(self.high()) + ']'
-
 
 
 # Like LHS but terminals and some variables replaced by spans.
@@ -116,25 +115,25 @@ class LHS_instance:
             for mem in arg:
                 if isinstance(mem, Span):
                     if low is not None:
-                        return (low, mem.low())
+                        return low, mem.low()
                     pos = mem.high()
                     gap = False
                 else:
                     # mem instance of LCFRS_var
                     if mem.mem() == i and mem.arg() == 0:
-                        if gap: # TODO: variable precedes <i,0>
+                        if gap:  # TODO: variable precedes <i,0>
                             low = pos
                         else:
-                            return (pos, pos)
-                        #TODO: why does one return [last span.high, list span.high] (= empty)
-                        #TODO: if no variable precedes <i,0>, and
-                        #TODO: [last span.high, next span_low] or [last span.high, inp_length]
-                        #TODO: otherwise
+                            return pos, pos
+                            #TODO: why does one return [last span.high, list span.high] (= empty)
+                            #TODO: if no variable precedes <i,0>, and
+                            #TODO: [last span.high, next span_low] or [last span.high, inp_length]
+                            #TODO: otherwise
                     gap = True
         if low is not None:
-            return (low, inp_len)
+            return low, inp_len
         else:
-            return (0, inp_len)
+            return 0, inp_len
 
 
     # Replace all occurrences of LCFRS_var [i,j] by span
@@ -162,9 +161,11 @@ class LHS_instance:
     # TODO Also, every argument shall be consistent non-empty!
     def collapse(self):
         self.__args = [self.__collapse_arg(arg) for arg in self.__args]
+
     # arg: list of Span
     # return: list of (one) Span
-    def __collapse_arg(self, arg):
+    @staticmethod
+    def __collapse_arg(arg):
         return [Span(arg[0].low(), arg[-1].high())]
 
     # String representation.
@@ -172,9 +173,10 @@ class LHS_instance:
     def __str__(self):
         return self.nont() + '(' \
                + '; '.join([
-                    ' '.join(map(str, arg))
-                    for arg in self.__args]) \
+            ' '.join(map(str, arg))
+            for arg in self.__args]) \
                + ')'
+
 
 # In a rule instance where terminals and some variables are
 # replaced by spans,
@@ -237,7 +239,7 @@ class Rule_instance:
             if self.dot() == i:
                 s += '*'
             s += self.rule().rhs_nont(i)
-            if i < self.rule().rank()-1:
+            if i < self.rule().rank() - 1:
                 s += ' '
         if self.dot() == self.rule().rank():
             s += '*'
@@ -251,11 +253,12 @@ class Rule_instance:
             if self.dot() == i:
                 s += '*'
             s += self.rule().rhs_nont(i)
-            if i < self.rule().rank()-1:
+            if i < self.rule().rank() - 1:
                 s += ' '
         if self.dot() == self.rule().rank():
             s += '*'
         return s
+
 
 # For rule and input string, replace terminals by spans in all possible
 # ways.
@@ -264,9 +267,10 @@ class Rule_instance:
 def make_rule_instances(rule, inp):
     empty = LHS_instance(rule.lhs().nont())
     lhs_instances = make_rule_instances_from_args(empty, \
-		rule.lhs().args(), inp, 0)
+                                                  rule.lhs().args(), inp, 0)
     lhs_instances = [lhs for lhs in lhs_instances if lhs.consistent()]
     return [Rule_instance(rule, lhs) for lhs in lhs_instances]
+
 
 # Make instances from remaining arguments.
 # instance: LHS_instance
@@ -294,6 +298,7 @@ def make_rule_instances_from_args(instance, args, inp, pos):
             return make_rule_instances_from_members(instance, \
                                                     first_arg, rest_args, inp, pos)
 
+
 # Make instances from remaining members.
 # instance: LHS_instance
 # members: list of string/LCFRS_var
@@ -311,18 +316,17 @@ def make_rule_instances_from_members(instance, members, args, inp, pos):
             out = []
             for i in range(pos, len(inp)):
                 if inp[i] == mem:
-                    span = Span(i, i+1)
+                    span = Span(i, i + 1)
                     new_instance = instance.clone()
                     new_instance.add_mem(span)
                     if new_instance.consistent():
                         out += make_rule_instances_from_members(new_instance, \
-                                                                rest_mems, args, inp, i+1)
+                                                                rest_mems, args, inp, i + 1)
             return out
         else:
             instance.add_mem(mem)
             return make_rule_instances_from_members(instance, \
                                                     rest_mems, args, inp, pos)
-
 
 
 #######################################################
@@ -370,10 +374,10 @@ class LCFRS_parser:
                 for rule in self.__g.nont_corner_of(nont):
                     for inst in make_rule_instances(rule, inp):
                         self.__combine(inst, item, rule, str(item))
-            else: # instance of Rule_instance
+            else:  # instance of Rule_instance
                 (low, high) = item.next_member_bounds(inp_len)
                 nont = item.next_nont()
-                for pos in range(low, high+1):
+                for pos in range(low, high + 1):
                     key = str(pos) + ' ' + nont
                     self.__rule_items[key].append(item)
                     for nont_item in self.__nont_items[key]:
@@ -393,7 +397,7 @@ class LCFRS_parser:
             high = arg[0].high()
             lhs.replace(dot, i, Span(low, high))
         if lhs.consistent():
-            advanced_item = Rule_instance(rule_item.rule(), lhs, dot=dot+1)
+            advanced_item = Rule_instance(rule_item.rule(), lhs, dot=dot + 1)
             self.__record_item(advanced_item, (rule_trace, nont_trace))
 
     # item: Rule_instance
@@ -433,6 +437,7 @@ class LCFRS_parser:
             return -1
         else:
             return self.__find_best_from(elem)
+
     # Find weight of best subderivation for all items, top-down.
     # elem: pair or string
     # return: float
@@ -441,7 +446,7 @@ class LCFRS_parser:
             if elem in self.__best:
                 return self.__best[elem]
             else:
-                self.__best[elem] = sys.float_info.max # avoid cycles
+                self.__best[elem] = sys.float_info.max  # avoid cycles
                 traces = self.__trace[elem]
                 best = sys.float_info.max
                 for trace in traces:
@@ -517,7 +522,8 @@ class LCFRS_parser:
             # extract span of the passive item
             sub_span = extract_spans(elem[1])
             # extend tree at child position corresponding to the dot of active item
-            self.__newDerivationTreeRec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2, sub_span)
+            self.__newDerivationTreeRec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2,
+                                        sub_span)
             # extend active item
             self.__newDerivationTreeRec(elem[0], tree, id, w1, spans)
         else:
@@ -529,6 +535,7 @@ class LCFRS_parser:
                 lhs.add_mem(span)
             ri = Rule_instance(elem, lhs, elem.rank())
             tree.add_rule(id, ri, w)
+
 
 # FIXME: This method only works, if nonterminals don't contain whitespace!!!
 # FIXME: there must a better way to construct the Derivation tree
@@ -543,12 +550,13 @@ def dot_position(key):
     else:
         return 0
 
+
 # extract spans from key-string of passive item
 # key: string (e.g. "A([0-4]; [12-15])" )
 # return: list of Span
 def extract_spans(key):
     spans = []
-    match = re.search(r'^\s*.*\((\s*\[.*\]\s*)\)\s*$',key)
+    match = re.search(r'^\s*.*\((\s*\[.*\]\s*)\)\s*$', key)
     for s in match.group(1).split('; '):
         match1 = re.search(r'^\[([0-9]+)-([0-9]+)\];*$', s)
         spans += [Span(int(match1.group(1)), int(match1.group(2)))]
