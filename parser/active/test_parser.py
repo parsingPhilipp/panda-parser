@@ -23,28 +23,27 @@ class MyTestCase(unittest.TestCase):
         print "Parse", word
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                derivation = print_derivation_tree(passive_item)
-                print derivation
-                poss = ['P' + str(i) for i in range(1, len(word) + 1)]
-                tree = derivation_to_hybrid_tree(derivation, poss, word)
-                print tree
-                counter += 1
+
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            derivation = print_derivation_tree(passive_item)
+            print derivation
+            poss = ['P' + str(i) for i in range(1, len(word) + 1)]
+            tree = derivation_to_hybrid_tree(derivation, poss, word)
+            print tree
+            counter += 1
         self.assertEqual(counter, 2)
         print
 
     def test_aabaab(self):
         word = ['a', 'a', 'b'] * 2
-        parser = Parser(self.grammar_ab_copy, word)
+        parser = Parser(self.grammar_ab_copy, word, True)
         print "Parse", word
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
         self.assertEqual(counter, 2)
         print
 
@@ -54,10 +53,10 @@ class MyTestCase(unittest.TestCase):
         print "Parse", word
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
+
         self.assertEqual(counter, 0)
         print
 
@@ -67,10 +66,9 @@ class MyTestCase(unittest.TestCase):
         print "Parse", word
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
         self.assertEqual(counter, 2)
         print
 
@@ -80,10 +78,9 @@ class MyTestCase(unittest.TestCase):
         print "Parse", word
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
         self.assertEqual(counter, 2)
         print
 
@@ -93,10 +90,9 @@ class MyTestCase(unittest.TestCase):
         print "Parse", word
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
         self.assertEqual(counter, 2)
         print
 
@@ -106,10 +102,9 @@ class MyTestCase(unittest.TestCase):
         print "Parse", word
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
         self.assertEqual(counter, 0)
         print
 
@@ -130,14 +125,13 @@ class MyTestCase(unittest.TestCase):
         parser = Parser(kaeshammer_grammar(), word)
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
-                derivation = print_derivation_tree(passive_item)
-                print derivation
-                hybrid_tree = derivation_to_hybrid_tree(derivation, word, word)
-                # print hybrid_tree
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
+            derivation = print_derivation_tree(passive_item)
+            print derivation
+            hybrid_tree = derivation_to_hybrid_tree(derivation, word, word)
+            # print hybrid_tree
         self.assertEqual(counter, 1)
         print
 
@@ -149,10 +143,9 @@ class MyTestCase(unittest.TestCase):
         parser = Parser(kaeshammer_grammar(), word)
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
         self.assertEqual(counter, 0)
         print
 
@@ -179,11 +172,10 @@ class MyTestCase(unittest.TestCase):
         parser = Parser(kallmayar_grammar(), word)
         counter = 0
         print "Found items:"
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                print passive_item
-                counter += 1
-                # print_derivation_tree(passive_item)
+        for passive_item in parser.successful_root_items():
+            print passive_item
+            counter += 1
+            # print_derivation_tree(passive_item)
         print
         return counter
 
@@ -210,19 +202,18 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(parser.recognized(), True)
 
-        for item in parser.query_passive_items(grammar.start(), [0]):
-            if item.range(0) == Range(0, 4):
-                der = Derivation()
-                derivation_tree(der, item, None)
+        for item in parser.successful_root_items():
+            der = Derivation()
+            derivation_tree(der, item, None)
 
-                hybrid_tree = derivation_to_hybrid_tree(der, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '))
-                # print hybrid_tree
+            hybrid_tree = derivation_to_hybrid_tree(der, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '))
+            # print hybrid_tree
 
-                dcp = The_DCP_evaluator(der).getEvaluation()
-                h_tree_2 = GeneralHybridTree()
-                dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False)
+            dcp = The_DCP_evaluator(der).getEvaluation()
+            h_tree_2 = GeneralHybridTree()
+            dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False)
 
-                self.assertEqual(h_tree_2.compare_recursive(tree, h_tree_2.root(), tree.root(), True, True), True)
+            self.assertEqual(h_tree_2.compare_recursive(tree, h_tree_2.root(), tree.root(), True, True), True)
 
     def test_ambiguous_copy_grammar(self):
         grammar = ambiguous_copy_grammar()
@@ -234,7 +225,7 @@ class MyTestCase(unittest.TestCase):
         counter = 0
 
         for passive_item in parser.query_passive_items('A', [0]):
-            if passive_item.range(0) != Range(0, 4):
+            if passive_item.range(LCFRS_var(-1, 0)) != Range(0, 4):
                 continue
             else:
                 print passive_item
@@ -242,15 +233,14 @@ class MyTestCase(unittest.TestCase):
                 print
         print "###############"
 
-        for passive_item in parser.query_passive_items('S', [0]):
-            if passive_item.range(0) == Range(0, len(word)):
-                # print passive_item
-                derivation = print_derivation_tree(passive_item)
-                # print derivation
-                # poss = ['P' + str(i) for i in range(1, len(word) + 1)]
-                # tree = derivation_to_hybrid_tree(derivation, poss, word)
-                # print tree
-                counter += 1
+        for passive_item in parser.successful_root_items():
+            # print passive_item
+            derivation = print_derivation_tree(passive_item)
+            # print derivation
+            # poss = ['P' + str(i) for i in range(1, len(word) + 1)]
+            # tree = derivation_to_hybrid_tree(derivation, poss, word)
+            # print tree
+            counter += 1
         self.assertEqual(counter, number_of_ambiguous_trees(len(word) / 2))
 
         # parser2 = naive.LCFRS_parser(grammar, word)

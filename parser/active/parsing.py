@@ -5,17 +5,16 @@ from collections import deque
 from parser.parser_interface import AbstractParser
 from derivation import Derivation
 from parse_items import *
+import itertools
 
 
-class ActiveItem:
-    def __init__(self, rule, children, variables, dot_component, dot_position, remaining_input):
+class ActiveItem(PassiveItem):
+    def __init__(self, rule, variables, dot_component, dot_position, remaining_input):
         """
-        :param rule:
-        :type rule: LCFRS_rule
-        """
-        self._rule = rule
-        self._children = children
-        self._variables = variables
+            :param rule:
+            :type rule: LCFRS_rule
+            """
+        PassiveItem.__init__(self, rule, variables)
         self._dot_component = dot_component
         self._dot_position = dot_position
         self._remaining_input = remaining_input
@@ -27,16 +26,6 @@ class ActiveItem:
         """
         return self._dot_component, self._dot_position
 
-    def range(self, component):
-        """
-
-        :param component:
-        :type component: LCFRS_var
-        :return:
-        :rtype: Range
-        """
-        return self._variables[component]
-
     def set_range(self, variable, range):
         """
         :param variable:
@@ -47,15 +36,19 @@ class ActiveItem:
         """
         self._variables[variable] = range
 
-    def nont(self):
-        """
-        :rtype: nonterminal_type
-        :return:
-        """
-        return self._rule.lhs().nont()
-
     def action_id(self):
+        """
+        :return:
+        :rtype: str
+        """
         assert False
+
+    def __str__(self):
+        s = '{' + ','.join(
+            ['{' + ','.join([str(self.range(LCFRS_var(-1, arg))) for arg in range(self._dot_component + 1)]) + '}']
+            + ['{' + ','.join([str(self.range(LCFRS_var(mem, arg))) for arg in range(self.max_arg(mem) + 1)]) + '}' for
+               mem in range(self.max_mem() + 1)]) + '}'
+        return '[' + self.action_id() + ':' + str(self._rule) + ':' + s + ': ' + str(self._remaining_input) + ']'
 
     def convert_to_passive_item(self):
         """
@@ -63,38 +56,13 @@ class ActiveItem:
         :rtype: PassiveItem
         """
         # since our grammar is ordered, we can assumed all components up to the dot component to be found
-        ranges = [self.range(LCFRS_var(-1, comp)) for comp in range(self._dot_component + 1)]
+        variables = self._variables.copy()
 
-        item = PassiveItem(self._rule, ranges, self._children)
+        item = PassiveItem(self._rule, variables)
         return item
-
-    def rule_id(self):
-        """
-        :return:
-        :rtype: int
-        """
-        return id(self._rule)
-
-    def __str__(self):
-        s = '{' + ','.join(
-            ['{' + ','.join([str(self.range(LCFRS_var(-1, arg))) for arg in range(self._dot_component + 1)]) + '}']
-            + ['{' + ','.join([str(child.range(i)) for i in range(child.complete_to())]) + '}' for child in
-               self._children if isinstance(child, PassiveItem)]) + '}'
-        return '[' + self.action_id() + ':' + str(self._rule) + ':' + s + ': ' + str(self._remaining_input) + ']'
 
     def remaining_input(self):
         return self._remaining_input
-
-    def max_mem(self):
-        return max([var.mem() for var in self._variables.keys()])
-
-    def max_arg(self, mem):
-        args = [var.arg() for var in self._variables.keys() if var.mem() == mem]
-        if args:
-            return max(args)
-        else:
-            return -1
-
 
 
 class ScanItem(ActiveItem):
@@ -170,25 +138,22 @@ class CombineItem(ActiveItem):
             consistent = True
 
             for comp in range(variable.arg()):
-                if item.range(comp) != self.range(LCFRS_var(variable.mem(), comp)):
+                if item.range(LCFRS_var(-1, comp)) != self.range(LCFRS_var(variable.mem(), comp)):
                     consistent = False
                     break
 
             if consistent:
-                remaining_input = self._remaining_input - item.range(variable.arg()).length()
+                remaining_input = self._remaining_input - item.range(LCFRS_var(-1, variable.arg())).length()
                 if not (remaining_input > 0 or (remaining_input == 0 and j + 1 == len(word_tuple_string))):
                     continue
 
-                # new child vector
-                children = self._children[0:variable.mem()] + [item] + self._children[variable.mem() + 1:]
-
                 # new variables dict, set ranges for found variables
                 variables = dict(self._variables)
-                new_position = current_position.join(item.range(variable.arg()))
+                new_position = current_position.join(item.range(LCFRS_var(-1, variable.arg())))
                 variables[current_component] = new_position
-                variables[variable] = item.range(variable.arg())
+                variables[variable] = item.range(LCFRS_var(-1, variable.arg()))
 
-                active_item = ScanItem(self._rule, children, variables, c_index, j + 1, remaining_input)
+                active_item = ScanItem(self._rule, variables, c_index, j + 1, remaining_input)
                 if j + 1 == len(word_tuple_string):
                     passive_item = active_item.convert_to_passive_item()
                     parser.record_passive_item(passive_item)
@@ -211,29 +176,28 @@ class Parser(AbstractParser):
 
     def recognized(self):
         for item in self.query_passive_items(self.__grammar.start(), [0]):
-            if item.range(0) == Range(0, len(self.__word)):
+            if item.range(LCFRS_var(-1, 0)) == Range(0, len(self.__word)):
                 return True
         return False
 
     def __init__(self, grammar, word, debug=False):
         """
 
-        :param grammar:
-        :type grammar: LCFRS
-        :param word:
-        :return:
-        """
+            :param grammar:
+            :type grammar: LCFRS
+            :param word:
+            :return:
+            """
+        super(Parser, self).__init__(grammar, word)
         self.__debug = debug
         self.__grammar = grammar
         self.__word = word
         self.__active_items = defaultdict()
         self.__passive_items = defaultdict()
         self.__process_counter = 0
-
         self.__scan_agenda = deque()
         self.__combine_agenda = deque()
         self.__init_agenda()
-
         self.parse()
 
     def __init_agenda(self):
@@ -246,7 +210,8 @@ class Parser(AbstractParser):
         :type item: PassiveItem
         :return:
         """
-        key = tuple([item.nont()] + [item.range(c_index).left() for c_index in range(item.complete_to())])
+        key = tuple(
+            [item.nont()] + [item.range(LCFRS_var(-1, c_index)).left() for c_index in range(item.complete_to() + 1)])
         if key in self.__passive_items:
             if not item in self.__passive_items[key]:
                 self.__passive_items[key] += [item]
@@ -271,30 +236,33 @@ class Parser(AbstractParser):
             item.range(LCFRS_var(-1, c_index)).to_tuple() for c_index in range(item.dot_position()[0] + 1)] + [
                         item.range(LCFRS_var(mem, arg)).to_tuple() for mem in range(item.max_mem() + 1) for arg in
                         range(item.max_arg(mem) + 1)]
-            )
+        )
         if isinstance(item, CombineItem):
             if (not force) and key in self.__active_items.keys():
                 if self.__debug:
                     print " skipped    ", item
-                    print "            ", key
+                    # print "            ", key
                 return False
             else:
                 self.__active_items[key] = None
                 self.__combine_agenda.append(item)
                 if self.__debug:
                     print " recorded   ", item
-                    print "            ", key
+                    # print "            ", key
                 return True
         else:
             assert isinstance(item, ScanItem)
             if key in self.__active_items.keys():
                 if self.__debug:
                     print " skipped    ", item
-                    print "            ", key
+                    # print "            ", key
                 return False
             else:
                 self.__active_items[key] = None
                 self.__scan_agenda.append(item)
+                if self.__debug:
+                    print " recorded   ", item
+                    # print "            ", key
                 return True
 
     def query_passive_items(self, nont, range_constraints):
@@ -330,6 +298,30 @@ class Parser(AbstractParser):
                     print "process  {:>3d}".format(self.__process_counter), item
                 item.process(self)
 
+    def query_passive_items_strict(self, nont, complete, ranges):
+        """
+        :param nont:
+        :type nont: nonterminal_type
+        :param complete:
+        :type complete: int
+        :param ranges: list[Range]
+        :return:
+        """
+        range_constraints = map(lambda x: x.left(), ranges)
+        result = []
+        for passive_item in self.query_passive_items(nont, range_constraints):
+            assert isinstance(passive_item, PassiveItem)
+
+            consistent = True
+            for c_index in range(complete):
+                if ranges[c_index] != passive_item.range(LCFRS_var(-1, c_index)):
+                    consistent = False
+                    break
+
+            if consistent:
+                result.append(passive_item)
+        return result
+
     def predict(self, nont, component, input_position, remaining_input, found_variables):
         """
         :type nont: nonterminal_type
@@ -354,43 +346,27 @@ class Parser(AbstractParser):
                 initial_range = Range(input_position, input_position)
                 variables = defaultdict()
                 variables[LCFRS_var(-1, 0)] = initial_range
-                item = ScanItem(rule, ['?'] * rule.rank(), variables, 0, 0, remaining_input)
+                item = ScanItem(rule, variables, 0, 0, remaining_input)
                 predicted_new = self.record_active_item(item) or predicted_new
         else:
-            range_constraints = map(lambda x: x.left(), found_variables)
-            for passive_item in self.query_passive_items(nont, range_constraints):
+            for passive_item in self.query_passive_items_strict(nont, component, found_variables):
                 assert isinstance(passive_item, PassiveItem)
 
-                consistent = True
-                for c_index in range(component):
-                    if found_variables[c_index] != passive_item.range(c_index):
-                        consistent = False
-                        break
+                # TODO: filtering
+                if minimum_string_size(passive_item.rule(), component) > remaining_input:
+                    continue
+                if not do_all_terminals_occur_in_input(passive_item.rule(), component, self.__word, input_position):
+                    continue
+                # TODO: filtering end
 
-                if consistent:
-                    # TODO: filtering
-                    if minimum_string_size(passive_item.rule(), component) > remaining_input:
-                        continue
-                    if not do_all_terminals_occur_in_input(passive_item.rule(), component, self.__word, input_position):
-                        continue
-                    # TODO: filtering end
-                    variables = defaultdict()
-                    for c_index, r in enumerate(found_variables + [Range(input_position, input_position)]):
-                        variables[LCFRS_var(-1, c_index)] = r
-                    for arg, child in enumerate(passive_item.children()):
-                        if isinstance(child, PassiveItem):
-                            for c_index in range(child.complete_to()):
-                                variables[LCFRS_var(arg, c_index)] = child.range(c_index)
-                        else:
-                            assert child == '?'
+                variables = passive_item.variables().copy()
+                variables[LCFRS_var(-1, component)] = Range(input_position, input_position)
 
-                    # children = []
-                    children = list(passive_item.children())
+                item = ScanItem(passive_item.rule(), variables, component, 0,
+                                remaining_input)
 
-                    item = ScanItem(passive_item.rule(), children, variables, component, 0,
-                                    remaining_input)
+                predicted_new = self.record_active_item(item) or predicted_new
 
-                    predicted_new = self.record_active_item(item) or predicted_new
         return predicted_new
 
     def terminal(self, position):
@@ -413,16 +389,70 @@ class Parser(AbstractParser):
         """
         return 0 <= position < len(self.__word)
 
+    def _remove_passive_item(self, item):
+        """
+        :param item:
+        :type item: PassiveItem
+        :return:
+        """
+        range_constraints = [item.range(LCFRS_var(-1, arg)).left() for arg in range(item.complete_to() +1)]
+        key = tuple([item.nont()] + range_constraints)
+        self.__passive_items.get(key, []).remove(item)
+
+    def connect_passive_items(self, start):
+        """
+        :type start: PassiveItem
+        :rtype: list[PassiveItem]
+        """
+        rank = start.rule().rank()
+        # either a leaf in the parse tree, or already connected
+        if rank == len(start.children()):
+            return [start]
+
+        connected_children = []
+        for mem in range(rank):
+            unconnected_mem_children = self.query_passive_items_strict(start.rule().rhs_nont(mem), start.max_arg(mem),
+                                            [start.range(LCFRS_var(mem, arg)) for arg in range(start.max_arg(mem) + 1)])
+            connected_mem_children = []
+            for child in unconnected_mem_children:
+                connected_mem_children += self.connect_passive_items(child)
+
+            connected_children.append(connected_mem_children)
+
+        # self._remove_passive_item(start)
+
+        connected_selfs = []
+        for choice in itertools.product(*connected_children):
+            connected_item = start.copy()
+            for child in list(choice):
+                connected_item.add_child(child)
+            connected_selfs.append(connected_item)
+
+
+        # key = tuple(
+        #     [start.nont()] + [start.range(LCFRS_var(-1, c_index)).left() for c_index in range(start.complete_to() + 1)])
+
+        # self.__passive_items[key] += connected_selfs
+
+        return connected_selfs
+
+    def successful_root_items(self):
+        connected_items = []
+        for passive_item in self.query_passive_items(self.__grammar.start(), [0]):
+            if passive_item.range(LCFRS_var(-1, 0)) == Range(0, len(self.__word)):
+                connected_items += self.connect_passive_items(passive_item)
+        return connected_items
 
 def derivation_tree(derivation, item, parent):
     """
     :type derivation: Derivation
     :param item:
     :type item: PassiveItem
-    :type parent: PassiveItem
+    :type parent: int
     :return:
     """
     id = derivation.add_passive_item(item, parent)
+    # TODO: enumerate all successful derivations
     for child in item.children():
         derivation_tree(derivation, child, id)
 

@@ -1,5 +1,7 @@
 __author__ = 'kilian'
 
+from lcfrs import LCFRS_var
+
 nonterminal_type = str
 terminal_type = str
 
@@ -74,64 +76,75 @@ class Range:
 
 
 class PassiveItem:
-    __rule = None
-    __children = None
-    __ranges = []
-
-    def __init__(self, rule, ranges, children):
+    def __init__(self, rule, variables):
         """
         :param rule:
         :type rule: LCFRS_rule
-        :param ranges:
-        :type ranges: list[Range]
-        :param children:
-        :type children: list[nonterminal_type]
+        :param variables:
         :return:
         """
-        self.__rule = rule
-        self.__children = children
-        self.__ranges = ranges
+        self._rule = rule
+        self._variables = variables
+        self.__children = []
 
     def fanout(self):
-        return self.__rule.lhs().fanout()
+        return self._rule.lhs().fanout()
 
     def nont(self):
         """
         :rtype: nonterminal_type
         :return:
         """
-        return self.__rule.lhs().nont()
+        return self._rule.lhs().nont()
 
-    def range(self, c_index):
+    def range(self, variable):
         """
 
-        :param c_index:
+        :param variable:
+        :type variable: LCFRS_var
         :return:
         :rtype: Range
         """
-        if len(self.__ranges) <= c_index:
-            pass
-        return self.__ranges[c_index]
+        return self._variables[variable]
 
-    def children(self):
-        return self.__children
+    def variables(self):
+        return self._variables
 
     def complete_to(self):
         """
         :rtype: int
         :return:
         """
-        return len(self.__ranges)
+        return self.max_arg(-1)
 
     def rule(self):
         """
         :return:
         :rtype: LCFRS_rule
         """
-        return self.__rule
+        return self._rule
+
+    def rule_id(self):
+        """
+        :return:
+        :rtype: int
+        """
+        return id(self._rule)
+
+
+    def action_id(self):
+        """
+        :return:
+        :rtype: str
+        """
+        return 'P'
 
     def __str__(self):
-        return '[P:' + str(self.rule()) + ':' + '{' + ','.join(map(str, self.__ranges)) + '}]'
+        s = '{' + ','.join(
+            ['{' + ','.join([str(self.range(LCFRS_var(-1, arg))) for arg in range(self.complete_to() + 1)]) + '}']
+            + ['{' + ','.join([str(self.range(LCFRS_var(mem, arg))) for arg in range(self.max_arg(mem) + 1)]) + '}' for
+               mem in range(self.max_mem() + 1)]) + '}'
+        return '[' + self.action_id() + ':' + str(self._rule) + ':' + s + ']'
 
     def __eq__(self, other):
         if id(self) == id(other):
@@ -143,16 +156,9 @@ class PassiveItem:
         if self.complete_to() != other.complete_to():
             return False
 
-        for i in range(0, self.complete_to()):
-            if self.range(i) != other.range(i):
-                return False
-
-        if len(self.children()) != len(other.children()):
+        diff = set(self._variables) - set(other._variables)
+        if diff:
             return False
-        for child, other_child in zip(self.children(), other.children()):
-            if child != other_child:
-                return False
-
         return True
 
     def __ne__(self, other):
@@ -160,3 +166,25 @@ class PassiveItem:
 
     # def __hash__(self):
     #     return hash(tuple(self.children()))
+
+    def max_mem(self):
+        return max([var.mem() for var in self._variables.keys()])
+
+    def max_arg(self, mem):
+        args = [var.arg() for var in self._variables.keys() if var.mem() == mem]
+        if args:
+            return max(args)
+        else:
+            return -1
+
+    def add_child(self, child):
+        self.__children.append(child)
+
+    def copy(self):
+        item = PassiveItem(self._rule, self._variables)
+        for child in self.children():
+            item.add_child(child)
+        return item
+
+    def children(self):
+        return self.__children
