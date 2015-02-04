@@ -37,11 +37,11 @@ class Derivation(AbstractDerivation):
         self.__rules[id] = rule
         self.__weights[id] = weight
 
-    def __getRuleInstance(self, id):
+    def getRuleInstance(self, id):
         return self.__rules[id]
 
     def getRule(self, id):
-        return self.__getRuleInstance(id).rule()
+        return self.getRuleInstance(id).rule()
 
     # id : string
     # return: list of rules
@@ -56,7 +56,7 @@ class Derivation(AbstractDerivation):
         return self.__root
 
     def root(self):
-        return self.__getRuleInstance('')
+        return self.getRuleInstance('')
 
     def __str__(self):
         return der_to_str(self)
@@ -68,7 +68,7 @@ class Derivation(AbstractDerivation):
         return [p for p in self.__all_positions(id) if p not in child_positions]
 
     def __all_positions(self, id):
-        rule = self.__getRuleInstance(id)
+        rule = self.getRuleInstance(id)
         positions = []
         for i in range(rule.lhs().fanout()):
             span = rule.lhs().arg(i)[0]
@@ -86,7 +86,7 @@ def der_to_str(der):
 
 # return: string
 def der_to_str_rec(der, id):
-    s = ' ' * len(id) + str(der.getRule(id)) + '\t(' + str(der.__getRuleInstance(id).lhs()) + ')\n'
+    s = ' ' * len(id) + str(der.getRule(id)) + '\t(' + str(der.getRuleInstance(id).lhs()) + ')\n'
     for child in der.child_ids(id):
         s += der_to_str_rec(der, child)
     return s

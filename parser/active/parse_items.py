@@ -59,8 +59,15 @@ class Range:
         return 'r<' + str(self.left()) + ',' + str(self.right()) + '>'
 
     def __eq__(self, other):
-        assert isinstance(other, Range)
+        if not isinstance(other, Range):
+            return False
         return self.left() == other.left() and self.right() == other.right()
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def __hash__(self):
+        return hash((self.__left, self.__right))
 
     def length(self):
         return self.__right - self.__left
@@ -125,3 +132,31 @@ class PassiveItem:
 
     def __str__(self):
         return '[P:' + str(self.rule()) + ':' + '{' + ','.join(map(str, self.__ranges)) + '}]'
+
+    def __eq__(self, other):
+        if id(self) == id(other):
+            return True
+        if not isinstance(other, PassiveItem):
+            return False
+        if self.rule() != other.rule():
+            return False
+        if self.complete_to() != other.complete_to():
+            return False
+
+        for i in range(0, self.complete_to()):
+            if self.range(i) != other.range(i):
+                return False
+
+        if len(self.children()) != len(other.children()):
+            return False
+        for child, other_child in zip(self.children(), other.children()):
+            if child != other_child:
+                return False
+
+        return True
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    # def __hash__(self):
+    #     return hash(tuple(self.children()))

@@ -522,6 +522,49 @@ class GeneralHybridTree:
     def __str__(self):
         return self.__hybrid_tree_str(self.root(), 0)
 
+    def __eq__(self, other):
+        if not isinstance(other, GeneralHybridTree):
+            return False
+        self.compare_recursive(other, self.root(), other.root(), True, True)
 
+    def compare_recursive(self, other, self_node, other_node, ignore_pos=False, ignore_deprel=False):
+        """
+        Synchronously traverses two hybrid trees and compares the labels, pos-tags, deprels, position in ordering and
+        number of children at each position.
 
-    # test()
+        :param other:
+        :type other: GeneralHybridTree
+        :param self_node:
+        :param other_node:
+        :param ignore_pos:
+        :type ignore_pos: Bool
+        :param ignore_deprel:
+        :type ignore_deprel: Bool
+        :return:
+        :rtype: Bool
+        """
+        # Compare current nodes
+        if self.node_label(self_node) != other.node_label(other_node):
+            return False
+        if not ignore_pos and self.node_pos(self_node) != other.node_pos(other_node):
+            return False
+        if not ignore_deprel and self.node_dep_label(self_node) != other.node_dep_label(other_node):
+            return False
+
+        if self.in_ordering(self_node):
+            if other.in_ordering(other_node):
+                if self.node_index_full(self_node) != other.node_index(other_node):
+                    return False
+            else:
+                return False
+        elif other.in_ordering(other_node):
+            return False
+
+        # compare children of both nodes
+        if not len(self.children(self_node)) == len(other.children(other_node)):
+            return False
+
+        children = [self.compare_recursive(other, self_child, other_child, ignore_pos, ignore_deprel) for
+                    self_child, other_child in zip(self.children(self_node), other.children(other_node))]
+
+        return all(children)

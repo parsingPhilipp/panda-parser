@@ -7,7 +7,8 @@ from derivation import Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
 from general_hybrid_tree import GeneralHybridTree
 from dependency_induction import induce_grammar, strict_pos_dep, term_pos, direct_extraction
-
+from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+import parser.naive.parsing as naive
 
 class MyTestCase(unittest.TestCase):
     def setUp(self):
@@ -18,7 +19,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_a4(self):
         word = ['a'] * 4
-        parser = Parser(self.grammar_ab_copy, word, True)
+        parser = Parser(self.grammar_ab_copy, word)
         print "Parse", word
         counter = 0
         print "Found items:"
@@ -113,12 +114,12 @@ class MyTestCase(unittest.TestCase):
         print
 
     def test_remaining_terminal_function(self):
-        x1 = LCFRS_var(1, 0)
-        x2 = LCFRS_var(1, 1)
+        x1 = LCFRS_var(0, 0)
+        x2 = LCFRS_var(0, 1)
         lhs = LCFRS_lhs('S')
         lhs.add_arg(['a', x1, 'a', x2])
         rule = LCFRS_rule(lhs)
-        n = number_of_consumed_terminals(rule, 0, 3)
+        n = number_of_consumed_terminals(rule, 0, 3, 0)
         self.assertEqual(n, 0)
 
     def test_ambncmdn(self):
@@ -126,7 +127,7 @@ class MyTestCase(unittest.TestCase):
         n = 3
         word = (['a'] * m + ['b'] * n + ['c'] * m + ['d'] * n)
         print "Parse", word
-        parser = Parser(kaeshhammer_grammar(), word)
+        parser = Parser(kaeshammer_grammar(), word)
         counter = 0
         print "Found items:"
         for passive_item in parser.query_passive_items('S', [0]):
@@ -145,7 +146,7 @@ class MyTestCase(unittest.TestCase):
         n = 3
         word = (['a'] * m + ['b'] * n + ['c'] * (m + 1) + ['d'] * n)
         print "Parse", word
-        parser = Parser(kaeshhammer_grammar(), word)
+        parser = Parser(kaeshammer_grammar(), word)
         counter = 0
         print "Found items:"
         for passive_item in parser.query_passive_items('S', [0]):
@@ -187,77 +188,25 @@ class MyTestCase(unittest.TestCase):
         return counter
 
     def test_dcp_evaluation_with_induced_dependency_grammar(self):
-
-        # print tree.children("v")
-        # print tree
-        #
-        # for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
-        # 'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
-        # print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
-        # print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
-        #
-        # print "some rule"
-        # for mem, arg in [(-1, 0), (0,0), (1,0)]:
-        # print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
-        #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
-        #
-        #
-        # print "some other rule"
-        # for mem, arg in [(-1,1),(1,0)]:
-        #     print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
-        #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
-        #
-        # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
-        # print 'child:' , child_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
-        # print '---'
-        # print 'strict: ', strict_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
-        # print 'child: ', child_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
-        # print '---'
-        # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
-        # print 'child:' , child_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
-
-        # print tree2.children("v")
-        # print tree2
-        #
-        # print 'siblings v211', tree2.siblings('v211')
-        # print top(tree2, ['v','v1', 'v211'])
-        # print top_max(tree2, ['v','v1', 'v211'])
-        #
-        # print '---'
-        # print 'strict:' , strict_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
-        # print 'child:' , child_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
-
-        # rec_par = ('v v1 v2 v21'.split(' '),
-        #            [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
-        #                ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
-        #            ])
-        #
-        # grammar = LCFRS(nonterminal_str(tree, top_max(tree, rec_par[0]), bottom_max(tree, rec_par[0]), 'strict'))
-        #
-        # add_rules_to_grammar_rec(tree, rec_par, grammar, 'child')
-        #
-        # grammar.make_proper()
-        # print grammar
-
         tree = hybrid_tree_1()
 
-        print tree
+        # print tree
 
         tree2 = hybrid_tree_2()
 
-        print tree2
+        # print tree2
         # print tree.recursive_partitioning()
 
         (_, grammar) = induce_grammar([tree, tree2], strict_pos_dep, term_pos, direct_extraction, 'START')
 
-        print grammar
+        # print grammar
 
         self.assertEqual(grammar.well_formed(), None)
         self.assertEqual(grammar.ordered()[0], True)
-        print max([grammar.fanout(nont) for nont in grammar.nonts()])
-        print grammar
+        # print max([grammar.fanout(nont) for nont in grammar.nonts()])
+        # print grammar
 
-        parser = Parser(grammar, 'NP N V V'.split(' '), True)
+        parser = Parser(grammar, 'NP N V V'.split(' '))
 
         self.assertEqual(parser.recognized(), True)
 
@@ -266,25 +215,89 @@ class MyTestCase(unittest.TestCase):
                 der = Derivation()
                 derivation_tree(der, item, None)
 
-                # print
-                # print der
+                hybrid_tree = derivation_to_hybrid_tree(der, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '))
+                # print hybrid_tree
 
-                hybrid_tree = derivation_to_hybrid_tree(der, 'P M h l'.split(' '), 'Piet Marie helpen lezen'.split(' '))
-                # print hybrid_tree.full_labelled_yield()
-                print hybrid_tree
+                dcp = The_DCP_evaluator(der).getEvaluation()
+                h_tree_2 = GeneralHybridTree()
+                dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False)
 
-                # TODO: TEST DCP evaluation!
+                self.assertEqual(h_tree_2.compare_recursive(tree, h_tree_2.root(), tree.root(), True, True), True)
 
-                #
-                # string = "hallo"
-                # dcp_string = DCP_string(string)
-                # dcp_string.set_dep_label("dep")
-                # print dcp_string, dcp_string.dep_label()
+    def test_ambiguous_copy_grammar(self):
+        grammar = ambiguous_copy_grammar()
+        self.assertEqual(grammar.well_formed(), None)
+        self.assertEqual(grammar.ordered()[0], True)
 
+        word = ['a'] * 8
+        parser = Parser(grammar, word, True)
+        counter = 0
+
+        for passive_item in parser.query_passive_items('A', [0]):
+            if passive_item.range(0) != Range(0, 4):
+                continue
+            else:
+                print passive_item
+                print print_derivation_tree(passive_item)
+                print
+        print "###############"
+
+        for passive_item in parser.query_passive_items('S', [0]):
+            if passive_item.range(0) == Range(0, len(word)):
+                # print passive_item
+                derivation = print_derivation_tree(passive_item)
+                # print derivation
+                # poss = ['P' + str(i) for i in range(1, len(word) + 1)]
+                # tree = derivation_to_hybrid_tree(derivation, poss, word)
+                # print tree
+                counter += 1
+        self.assertEqual(counter, number_of_ambiguous_trees(len(word) / 2))
+
+        # parser2 = naive.LCFRS_parser(grammar, word)
+        # derivation = parser2.newBestDerivation()
+        # print derivation
+
+
+def number_of_ambiguous_trees(n):
+    assert (n >= 1)
+    if n == 1:
+        return 1
+    c = 0
+    for i in range(1, n):
+        c += number_of_ambiguous_trees(i) * number_of_ambiguous_trees(n - i)
+    return c
 
 if __name__ == '__main__':
     unittest.main()
 
+def ambiguous_copy_grammar():
+    grammar = LCFRS('S')
+
+    x1 = LCFRS_var(0, 0)
+    x2 = LCFRS_var(0, 1)
+    y1 = LCFRS_var(1, 0)
+    y2 = LCFRS_var(1, 1)
+
+    lhs1 = LCFRS_lhs('S')
+    lhs1.add_arg([x1,x2])
+    grammar.add_rule(lhs1, ['A'])
+
+    lhs2 = LCFRS_lhs('A')
+    lhs2.add_arg(['a'])
+    lhs2.add_arg(['a'])
+    grammar.add_rule(lhs2, [])
+
+    lhs3 = LCFRS_lhs('A')
+    lhs3.add_arg(['b'])
+    lhs3.add_arg(['b'])
+    grammar.add_rule(lhs3, [])
+
+    lhs4 = LCFRS_lhs('A')
+    lhs4.add_arg([x1, y1])
+    lhs4.add_arg([x2,y2])
+    grammar.add_rule(lhs4, ['A', 'A'])
+
+    return grammar
 
 def create_copy_grammar():
     grammar = LCFRS('S')
@@ -368,7 +381,7 @@ def create_copy_grammar_2():
     return grammar
 
 
-def kaeshhammer_grammar():
+def kaeshammer_grammar():
     grammar = LCFRS('S')
 
     x1 = LCFRS_var(0, 0)

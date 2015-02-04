@@ -12,7 +12,7 @@ class Derivation(AbstractDerivation):
     def position_relative_to_parent(self, id):
         parent = self.__parent[id]
         ith_child = self.child_ids(parent).index(id)
-        assert parent and ith_child
+        assert parent is not None and ith_child is not None
         return parent, ith_child
 
     def __init__(self):

@@ -78,12 +78,23 @@ class ActiveItem:
     def __str__(self):
         s = '{' + ','.join(
             ['{' + ','.join([str(self.range(LCFRS_var(-1, arg))) for arg in range(self._dot_component + 1)]) + '}']
-            + ['{' + ','.join([str(child.range(i)) for i in range(child.complete_to())]) for child in
+            + ['{' + ','.join([str(child.range(i)) for i in range(child.complete_to())]) + '}' for child in
                self._children if isinstance(child, PassiveItem)]) + '}'
         return '[' + self.action_id() + ':' + str(self._rule) + ':' + s + ': ' + str(self._remaining_input) + ']'
 
     def remaining_input(self):
         return self._remaining_input
+
+    def max_mem(self):
+        return max([var.mem() for var in self._variables.keys()])
+
+    def max_arg(self, mem):
+        args = [var.arg() for var in self._variables.keys() if var.mem() == mem]
+        if args:
+            return max(args)
+        else:
+            return -1
+
 
 
 class ScanItem(ActiveItem):
@@ -98,19 +109,20 @@ class ScanItem(ActiveItem):
         current_range = self.range(current_component)
 
         if isinstance(obj, LCFRS_var):
-            arg = obj.mem()
+            mem = obj.mem()
             index = obj.arg()
-            nont = self._rule.rhs_nont(arg)  # FIXME: ugly interface of LCFRS_clause
+            nont = self._rule.rhs_nont(mem)
             # TODO
-            found_variables = [self.range(LCFRS_var(arg, j)) for j in range(obj.arg())]
+            found_variables = [self.range(LCFRS_var(mem, j)) for j in range(obj.arg())]
 
             remaining_input = self._remaining_input - number_of_consumed_terminals(self._rule, c_index,
-                                                                                   self._dot_position)
+                                                                                   self._dot_position, mem)
 
-            parser.predict(nont, index, current_range.right(), remaining_input, found_variables)
+            predicted_new = parser.predict(nont, index, current_range.right(), remaining_input, found_variables)
 
             self.__class__ = CombineItem
-            parser.record_active_item(self)
+            parser.record_active_item(self, False)
+
         else:
             assert isinstance(obj, terminal_type)
             if parser.in_input(current_range.right()) and parser.terminal(current_range.right()) == obj:
@@ -236,34 +248,54 @@ class Parser(AbstractParser):
         """
         key = tuple([item.nont()] + [item.range(c_index).left() for c_index in range(item.complete_to())])
         if key in self.__passive_items:
-            self.__passive_items[key] += [item]
+            if not item in self.__passive_items[key]:
+                self.__passive_items[key] += [item]
+                if self.__debug:
+                    print " recorded   ", item
+            elif self.__debug:
+                print " skipped    ", item
         else:
             self.__passive_items[key] = [item]
-        if self.__debug:
-            print " recorded   ", item
+            if self.__debug:
+                print " recorded   ", item
 
-    def record_active_item(self, item):
+    def record_active_item(self, item, force=False):
         """
 
         :param item:
         :type item: ActiveItem
         :return:
         """
+        # FIXME: these filters lead to incompleteness
         key = tuple([item.action_id(), item.nont(), item.rule_id(), item.dot_position(), item.remaining_input()] + [
-            item.range(LCFRS_var(-1, c_index)).to_tuple() for c_index in range(item.dot_position()[0] + 1)])
-        if key in self.__active_items:
-            pass
-            if self.__debug:
-                print " skipped    ", item
-        else:
-            self.__active_items[key] = None
-            if isinstance(item, CombineItem):
-                self.__combine_agenda.append(item)
+            item.range(LCFRS_var(-1, c_index)).to_tuple() for c_index in range(item.dot_position()[0] + 1)] + [
+                        item.range(LCFRS_var(mem, arg)).to_tuple() for mem in range(item.max_mem() + 1) for arg in
+                        range(item.max_arg(mem) + 1)]
+            )
+        if isinstance(item, CombineItem):
+            if (not force) and key in self.__active_items.keys():
+                if self.__debug:
+                    print " skipped    ", item
+                    print "            ", key
+                return False
             else:
-                assert isinstance(item, ScanItem)
+                self.__active_items[key] = None
+                self.__combine_agenda.append(item)
+                if self.__debug:
+                    print " recorded   ", item
+                    print "            ", key
+                return True
+        else:
+            assert isinstance(item, ScanItem)
+            if key in self.__active_items.keys():
+                if self.__debug:
+                    print " skipped    ", item
+                    print "            ", key
+                return False
+            else:
+                self.__active_items[key] = None
                 self.__scan_agenda.append(item)
-            if self.__debug:
-                print " recorded   ", item
+                return True
 
     def query_passive_items(self, nont, range_constraints):
         """
@@ -293,7 +325,7 @@ class Parser(AbstractParser):
                 item = self.__combine_agenda.pop()
                 if self.__debug:
                     self.__process_counter += 1
-                    if self.__process_counter % 100 == 0:
+                    if self.__process_counter == 58:
                         pass
                     print "process  {:>3d}".format(self.__process_counter), item
                 item.process(self)
@@ -307,19 +339,23 @@ class Parser(AbstractParser):
         :type input_position: int
         :param found_variables:
         :type found_variables: list[Range]
+        :rtype: Bool
         """
         assert len(found_variables) == component
+        predicted_new = False
         if component == 0:
             for rule in self.__grammar.lhs_nont_to_rules(nont):
                 # TODO: filtering
                 if minimum_string_size(rule, 0) > remaining_input:
+                    continue
+                if not do_all_terminals_occur_in_input(rule, component, self.__word, input_position):
                     continue
                 # TODO: filtering end
                 initial_range = Range(input_position, input_position)
                 variables = defaultdict()
                 variables[LCFRS_var(-1, 0)] = initial_range
                 item = ScanItem(rule, ['?'] * rule.rank(), variables, 0, 0, remaining_input)
-                self.record_active_item(item)
+                predicted_new = self.record_active_item(item) or predicted_new
         else:
             range_constraints = map(lambda x: x.left(), found_variables)
             for passive_item in self.query_passive_items(nont, range_constraints):
@@ -335,6 +371,8 @@ class Parser(AbstractParser):
                     # TODO: filtering
                     if minimum_string_size(passive_item.rule(), component) > remaining_input:
                         continue
+                    if not do_all_terminals_occur_in_input(passive_item.rule(), component, self.__word, input_position):
+                        continue
                     # TODO: filtering end
                     variables = defaultdict()
                     for c_index, r in enumerate(found_variables + [Range(input_position, input_position)]):
@@ -346,10 +384,14 @@ class Parser(AbstractParser):
                         else:
                             assert child == '?'
 
-                    item = ScanItem(passive_item.rule(), list(passive_item.children()), variables, component, 0,
+                    # children = []
+                    children = list(passive_item.children())
+
+                    item = ScanItem(passive_item.rule(), children, variables, component, 0,
                                     remaining_input)
 
-                    self.record_active_item(item)
+                    predicted_new = self.record_active_item(item) or predicted_new
+        return predicted_new
 
     def terminal(self, position):
         """
@@ -408,7 +450,7 @@ def minimum_string_size(rule, start_component, end_component=None):
     return size
 
 
-def number_of_consumed_terminals(rule, start_component, start_position, end_component=None):
+def number_of_consumed_terminals(rule, start_component, start_position, current_mem, end_component=None):
     """
 
     :param rule:
@@ -429,8 +471,29 @@ def number_of_consumed_terminals(rule, start_component, start_position, end_comp
         if component_index == start_component:
             start = start_position
         for tuple_index in range(start, len(word_tuple_component)):
-            if not isinstance(word_tuple_component[tuple_index], LCFRS_var):
-                assert isinstance(word_tuple_component[tuple_index], terminal_type)
+            if isinstance(word_tuple_component[tuple_index], LCFRS_var):
+                if word_tuple_component[tuple_index].mem() != current_mem:
+                    terminals += 1
+            elif isinstance(word_tuple_component[tuple_index], terminal_type):
                 terminals += 1
 
     return terminals
+
+
+def do_all_terminals_occur_in_input(rule, start_component, input, input_index, end_component=None):
+    if end_component is None or end_component > rule.lhs().fanout():
+        end_component = rule.lhs().fanout()
+
+    for component_index in range(start_component, end_component):
+        word_tuple_component = rule.lhs().arg(component_index)
+        for tuple_index in range(0, len(word_tuple_component)):
+            if isinstance(word_tuple_component[tuple_index], LCFRS_var):
+                input_index += 1
+            elif isinstance(word_tuple_component[tuple_index], terminal_type):
+                while input_index < len(input) and input[input_index] != word_tuple_component[tuple_index]:
+                    input_index += 1
+                input_index += 1
+
+            if input_index > len(input):
+                return False
+    return True

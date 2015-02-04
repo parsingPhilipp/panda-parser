@@ -17,7 +17,7 @@ class The_DCP_evaluator(DCP_evaluator):
         # self.__evaluate(der.root_id())
 
     def getEvaluation(self):
-        return self.__evaluate("", -1, 0)
+        return self.__evaluate(self.__der.root_id(), -1, 0)
 
     # General DCP evaluation.
     # id : position in derivation tree
