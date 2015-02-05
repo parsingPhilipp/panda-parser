@@ -87,6 +87,10 @@ class PassiveItem:
         self._variables = variables
         self.__children = []
 
+        # Caching some frequently needed values
+        self.__complete_to = None
+        self.__max_mem = None
+
     def fanout(self):
         return self._rule.lhs().fanout()
 
@@ -115,7 +119,9 @@ class PassiveItem:
         :rtype: int
         :return:
         """
-        return self.max_arg(-1)
+        if self.__complete_to is None:
+            self.__complete_to = self.max_arg(-1)
+        return self.__complete_to
 
     def rule(self):
         """
@@ -130,7 +136,6 @@ class PassiveItem:
         :rtype: int
         """
         return id(self._rule)
-
 
     def action_id(self):
         """
@@ -156,19 +161,25 @@ class PassiveItem:
         if self.complete_to() != other.complete_to():
             return False
 
-        diff = set(self._variables) - set(other._variables)
-        if diff:
-            return False
+        for var in self._variables.keys():
+            if var in other.variables().keys():
+                if self.range(var) != other.range(var):
+                    return False
+            else:
+                return False
+
         return True
 
     def __ne__(self, other):
         return not self.__eq__(other)
 
     # def __hash__(self):
-    #     return hash(tuple(self.children()))
+    # return hash(tuple(self.children()))
 
     def max_mem(self):
-        return max([var.mem() for var in self._variables.keys()])
+        if self.__max_mem is None:
+            self.__max_mem = max([var.mem() for var in self._variables.keys()])
+        return self.__max_mem
 
     def max_arg(self, mem):
         args = [var.arg() for var in self._variables.keys() if var.mem() == mem]

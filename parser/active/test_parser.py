@@ -37,7 +37,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_aabaab(self):
         word = ['a', 'a', 'b'] * 2
-        parser = Parser(self.grammar_ab_copy, word, True)
+        parser = Parser(self.grammar_ab_copy, word)
         print "Parse", word
         counter = 0
         print "Found items:"
@@ -220,18 +220,18 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(grammar.well_formed(), None)
         self.assertEqual(grammar.ordered()[0], True)
 
-        word = ['a'] * 8
-        parser = Parser(grammar, word, True)
+        word = ['a'] * 14
+        parser = Parser(grammar, word)
         counter = 0
 
-        for passive_item in parser.query_passive_items('A', [0]):
-            if passive_item.range(LCFRS_var(-1, 0)) != Range(0, 4):
-                continue
-            else:
-                print passive_item
-                print print_derivation_tree(passive_item)
-                print
-        print "###############"
+        # for passive_item in parser.query_passive_items('A', [0]):
+        #     if passive_item.range(LCFRS_var(-1, 0)) != Range(0, 4):
+        #         continue
+        #     else:
+        #         print passive_item
+        #         print print_derivation_tree(passive_item)
+        #         print
+        # print "###############"
 
         for passive_item in parser.successful_root_items():
             # print passive_item
@@ -242,6 +242,7 @@ class MyTestCase(unittest.TestCase):
             # print tree
             counter += 1
         self.assertEqual(counter, number_of_ambiguous_trees(len(word) / 2))
+        print counter
 
         # parser2 = naive.LCFRS_parser(grammar, word)
         # derivation = parser2.newBestDerivation()

@@ -293,7 +293,7 @@ class Parser(AbstractParser):
                 item = self.__combine_agenda.pop()
                 if self.__debug:
                     self.__process_counter += 1
-                    if self.__process_counter == 58:
+                    if self.__process_counter == 15:
                         pass
                     print "process  {:>3d}".format(self.__process_counter), item
                 item.process(self)
