@@ -220,7 +220,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(grammar.well_formed(), None)
         self.assertEqual(grammar.ordered()[0], True)
 
-        word = ['a'] * 14
+        word = ['a'] * 16
         parser = Parser(grammar, word)
         counter = 0
 

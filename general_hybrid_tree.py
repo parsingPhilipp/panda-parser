@@ -537,11 +537,11 @@ class GeneralHybridTree:
         :param self_node:
         :param other_node:
         :param ignore_pos:
-        :type ignore_pos: Bool
+        :type ignore_pos: bool
         :param ignore_deprel:
-        :type ignore_deprel: Bool
+        :type ignore_deprel: bool
         :return:
-        :rtype: Bool
+        :rtype: bool
         """
         # Compare current nodes
         if self.node_label(self_node) != other.node_label(other_node):

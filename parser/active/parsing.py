@@ -80,22 +80,22 @@ class ScanItem(ActiveItem):
             mem = obj.mem()
             index = obj.arg()
             nont = self._rule.rhs_nont(mem)
-            # TODO
+
             found_variables = [self.range(LCFRS_var(mem, j)) for j in range(obj.arg())]
 
             remaining_input = self._remaining_input - number_of_consumed_terminals(self._rule, c_index,
                                                                                    self._dot_position, mem)
 
-            predicted_new = parser.predict(nont, index, current_range.right(), remaining_input, found_variables)
+            parser.predict(nont, index, current_range.right, remaining_input, found_variables)
 
             self.__class__ = CombineItem
-            parser.record_active_item(self, False)
+            parser.record_active_item(self)
 
         else:
             assert isinstance(obj, terminal_type)
-            if parser.in_input(current_range.right()) and parser.terminal(current_range.right()) == obj:
+            if parser.in_input(current_range.right) and parser.terminal(current_range.right) == obj:
                 # if terminal matches current input position
-                current_range.extend(1)
+                self.set_range(current_component, extend(current_range, 1))
                 self._dot_position += 1
                 self._remaining_input -= 1
 
@@ -125,9 +125,9 @@ class CombineItem(ActiveItem):
         current_position = self.range(LCFRS_var(-1, c_index))
 
         # start positions of strings
-        range_constraints = [self.range(LCFRS_var(variable.mem(), comp)).left() for comp in range(variable.arg())]
+        range_constraints = [self.range(LCFRS_var(variable.mem(), comp)).left for comp in range(variable.arg())]
         # add end of range right to dot
-        range_constraints += [current_position.right()]
+        range_constraints += [current_position.right]
 
         nont = self._rule.rhs_nont(variable.mem())
         passive_items = parser.query_passive_items(nont, range_constraints)
@@ -143,13 +143,13 @@ class CombineItem(ActiveItem):
                     break
 
             if consistent:
-                remaining_input = self._remaining_input - item.range(LCFRS_var(-1, variable.arg())).length()
+                remaining_input = self._remaining_input - length(item.range(LCFRS_var(-1, variable.arg())))
                 if not (remaining_input > 0 or (remaining_input == 0 and j + 1 == len(word_tuple_string))):
                     continue
 
                 # new variables dict, set ranges for found variables
                 variables = dict(self._variables)
-                new_position = current_position.join(item.range(LCFRS_var(-1, variable.arg())))
+                new_position = join(current_position, item.range(LCFRS_var(-1, variable.arg())))
                 variables[current_component] = new_position
                 variables[variable] = item.range(LCFRS_var(-1, variable.arg()))
 
@@ -192,11 +192,12 @@ class Parser(AbstractParser):
         self.__debug = debug
         self.__grammar = grammar
         self.__word = word
-        self.__active_items = defaultdict()
-        self.__passive_items = defaultdict()
+        self.__scan_items = set()
+        self.__combine_items = set()
+        self.__passive_items = {}
         self.__process_counter = 0
         self.__scan_agenda = deque()
-        self.__combine_agenda = deque()
+        self.__combine_agenda = []
         self.__init_agenda()
         self.parse()
 
@@ -211,7 +212,7 @@ class Parser(AbstractParser):
         :return:
         """
         key = tuple(
-            [item.nont()] + [item.range(LCFRS_var(-1, c_index)).left() for c_index in range(item.complete_to() + 1)])
+            [item.nont()] + [item.range(LCFRS_var(-1, c_index)).left for c_index in range(item.complete_to() + 1)])
         if key in self.__passive_items:
             if not item in self.__passive_items[key]:
                 self.__passive_items[key] += [item]
@@ -224,46 +225,37 @@ class Parser(AbstractParser):
             if self.__debug:
                 print " recorded   ", item
 
-    def record_active_item(self, item, force=False):
+    def record_active_item(self, item):
         """
 
         :param item:
         :type item: ActiveItem
         :return:
         """
-        # FIXME: these filters lead to incompleteness
         key = tuple([item.action_id(), item.nont(), item.rule_id(), item.dot_position(), item.remaining_input()] + [
-            item.range(LCFRS_var(-1, c_index)).to_tuple() for c_index in range(item.dot_position()[0] + 1)] + [
-                        item.range(LCFRS_var(mem, arg)).to_tuple() for mem in range(item.max_mem() + 1) for arg in
+            item.range(LCFRS_var(-1, c_index)) for c_index in range(item.dot_position()[0] + 1)] + [
+                        item.range(LCFRS_var(mem, arg)) for mem in range(item.max_mem() + 1) for arg in
                         range(item.max_arg(mem) + 1)]
         )
         if isinstance(item, CombineItem):
-            if (not force) and key in self.__active_items.keys():
+            if key in self.__combine_items:
                 if self.__debug:
                     print " skipped    ", item
-                    # print "            ", key
-                return False
             else:
-                self.__active_items[key] = None
+                self.__combine_items.add(key)
                 self.__combine_agenda.append(item)
                 if self.__debug:
                     print " recorded   ", item
-                    # print "            ", key
-                return True
         else:
             assert isinstance(item, ScanItem)
-            if key in self.__active_items.keys():
+            if key in self.__scan_items:
                 if self.__debug:
                     print " skipped    ", item
-                    # print "            ", key
-                return False
             else:
-                self.__active_items[key] = None
+                self.__scan_items.add(key)
                 self.__scan_agenda.append(item)
                 if self.__debug:
                     print " recorded   ", item
-                    # print "            ", key
-                return True
 
     def query_passive_items(self, nont, range_constraints):
         """
@@ -307,7 +299,7 @@ class Parser(AbstractParser):
         :param ranges: list[Range]
         :return:
         """
-        range_constraints = map(lambda x: x.left(), ranges)
+        range_constraints = map(lambda x: x.left, ranges)
         result = []
         for passive_item in self.query_passive_items(nont, range_constraints):
             assert isinstance(passive_item, PassiveItem)

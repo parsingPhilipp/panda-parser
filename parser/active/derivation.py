@@ -52,7 +52,7 @@ class Derivation(AbstractDerivation):
         for component in range(passive_item.fanout()):
             r = passive_item.range(LCFRS_var(-1, component))
             assert isinstance(r, Range)
-            spanned_input_positions += range(r.left(), r.right())
+            spanned_input_positions += range(r.left, r.right)
 
         return spanned_input_positions
 

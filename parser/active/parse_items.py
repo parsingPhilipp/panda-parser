@@ -1,78 +1,43 @@
 __author__ = 'kilian'
 
 from lcfrs import LCFRS_var
+from collections import namedtuple
 
 nonterminal_type = str
 terminal_type = str
 
 
-class Range:
-    def __init__(self, left, right):
-        """
+Range = namedtuple('Range', ['left', 'right'])
 
-        :param left:
-        :type left: int
-        :param right:
-        :type right: int
-        :return:
-        """
-        self.__left = left
-        self.__right = right
-        if left > right or left < 0:
-            assert (False and "Invalid range!")
 
-    def left(self):
-        return self.__left
+def join(range1, range2):
+    """
+    :param range1:
+    :type range1: Range
+    :param range2:
+    :type range2: Range
+    :return:
+    :rtype: Range
+    """
+    if range1.right == range2.left:
+        return Range(range1.left, range2.right)
+    else:
+        return None
 
-    def right(self):
-        return self.__right
 
-    def join(self, range2):
-        """
-        :param range2:
-        :type range2: Range
-        :return:
-        :rtype: Range
-        """
-        if self.right() == range2.left():
-            return Range(self.left(), range2.right())
-        else:
-            return None
+def length(range):
+    return range.right - range.left
 
-    def extend(self, diff):
-        """
 
-        :param diff:
-        :type diff: int
-        :return:
-        :rtype: Range
-        """
-        assert isinstance(diff, int) and diff > 0
-        self.__right += diff
-
-    def to_tuple(self):
-        """
-        :rtype: (int,int)
-        :return:
-        """
-        return self.__left, self.__right
-
-    def __str__(self):
-        return 'r<' + str(self.left()) + ',' + str(self.right()) + '>'
-
-    def __eq__(self, other):
-        if not isinstance(other, Range):
-            return False
-        return self.left() == other.left() and self.right() == other.right()
-
-    def __ne__(self, other):
-        return not self.__eq__(other)
-
-    def __hash__(self):
-        return hash((self.__left, self.__right))
-
-    def length(self):
-        return self.__right - self.__left
+def extend(range, diff):
+    """
+    :param diff:
+    :type diff: int
+    :return:
+    :rtype: Range
+    """
+    assert isinstance(diff, int) and diff > 0
+    return Range(range.left, range.right + diff)
 
 
 class PassiveItem:
