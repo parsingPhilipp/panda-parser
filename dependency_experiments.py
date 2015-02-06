@@ -100,7 +100,7 @@ def parse_sentences_from_file( grammar
             continue
         parser = LCFRS_parser(grammar, tree_yield(tree))
         h_tree = GeneralHybridTree()
-        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.pos_yield(), tree.labelled_yield(), ignore_punctuation)
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.pos_yield(), tree.labelled_yield(), ignore_punctuation)
         if h_tree:
             n_gaps_gold += tree.n_gaps()
             n_gaps_test += h_tree.n_gaps()

@@ -22,8 +22,8 @@ tiger_any = ['tiger', 'tiger subset']
 # corpus = 'negra nonproj'
 # corpus = 'negra proj'
 # corpus = 'negra nonproj subset'
-corpus = 'tiger'
-# corpus = 'tiger subset'
+# corpus = 'tiger'
+corpus = 'tiger subset'
 
 ### negra
 # The one sentence with fanout 3:
@@ -452,7 +452,7 @@ def parse_tree_by_gram(tree, gram, accuracy):
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
         dcp_tree = HybridTree()
-        dcp_tree = p.new_DCP_Hybrid_Tree(dcp_tree, poss, words)
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, poss, words)
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
         accuracy.add_accuracy(retrieved, relevant)
@@ -469,9 +469,9 @@ def parse_tree_by_gram(tree, gram, accuracy):
 # parse_test(20, method=left_branch_extraction)
 # parse_test(20, method=right_branch_extraction)
 
-# parse_test(20, method=left_branch_extraction_child)
+parse_test(20, method=left_branch_extraction_child)
 # parse_test(20, method=right_branch_extraction_child)
-parse_test(20, method=cfg_extraction_child)
+# parse_test(20, method=cfg_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
 # parse_test(20, method=fanout_three_extraction_child)
 # parse_test(20, method=fanout_four_extraction_child)
@@ -500,7 +500,7 @@ def parse_tree_by_gram_and_compare(tree, gram):
         print 'failure', tree.sent_label()
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
-        dcp_tree = p.new_DCP_Hybrid_Tree(poss, words)
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(poss, words)
         # retrieved = normalize_labelled_spans(p.labelled_spans())
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()

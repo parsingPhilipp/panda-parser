@@ -6,7 +6,8 @@ sample_db = 'examples/sampledb.db'
 
 from general_hybrid_tree import GeneralHybridTree
 import dependency_induction as d_i
-from parser.naive.parsing import LCFRS_parser
+from parser.naive.parsing import LCFRS_parser as NaiveParser
+from parser.active.parsing import Parser as ActiveParser
 from conll_parse import parse_conll_corpus, score_cmp_dep_trees
 import time
 import sys
@@ -136,6 +137,7 @@ def induce_grammar_from_file(path
 
     print experiment
     experiment_database.add_grammar(connection, grammar, experiment)
+    assert grammar.ordered()
     return grammar, experiment
 
 
@@ -192,12 +194,14 @@ def parse_sentences_from_file(grammar
     skipped = 0
     start_at = time.clock()
     for tree in trees:
+        # if tree.sent_label() != 'tree53':
+        #     continue
         if len(tree.id_yield()) > max_length:
             skipped += 1
             continue
         time_stamp = time.clock()
 
-        parser = resource_limits.run(LCFRS_parser, max_parse_time, max_parse_memory, grammar, tree_yield(tree))
+        parser = resource_limits.run(ActiveParser, max_parse_time, max_parse_memory, grammar, tree_yield(tree))
         time_stamp = time.clock() - time_stamp
 
         if isinstance(parser, resource_limits.TimeoutError):
@@ -208,8 +212,9 @@ def parse_sentences_from_file(grammar
             no_parse += 1
             gc.collect()
         else:
+            # print tree.sent_label(),
             h_tree = GeneralHybridTree(tree.sent_label())
-            h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(),
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(),
                                             ignore_punctuation)
 
             if h_tree:

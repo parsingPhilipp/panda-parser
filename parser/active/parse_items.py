@@ -50,7 +50,6 @@ class PassiveItem:
         """
         self._rule = rule
         self._variables = variables
-        self.__children = []
 
         # Caching some frequently needed values
         self.__complete_to = None
@@ -153,14 +152,6 @@ class PassiveItem:
         else:
             return -1
 
-    def add_child(self, child):
-        self.__children.append(child)
-
     def copy(self):
         item = PassiveItem(self._rule, self._variables)
-        for child in self.children():
-            item.add_child(child)
         return item
-
-    def children(self):
-        return self.__children

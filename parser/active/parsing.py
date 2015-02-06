@@ -3,7 +3,7 @@ __author__ = 'kilian'
 from lcfrs import *
 from collections import deque
 from parser.parser_interface import AbstractParser
-from derivation import Derivation
+from derivation import Derivation, DerivationItem
 from parse_items import *
 import itertools
 
@@ -162,17 +162,30 @@ class CombineItem(ActiveItem):
 
 
 class Parser(AbstractParser):
-    def best_derivation_tree(self):
-        root = None
-        if root:
+    def all_derivation_trees(self):
+        all_trees = []
+        for root in self.successful_root_items():
             derivation = Derivation()
-            derivation.add_passive_item(root, None)
-            return derivation
-        else:
-            return None
+            derivation_tree(derivation, root, None)
+            all_trees.append(derivation)
+        return all_trees
+
+    def best_derivation_tree(self):
+        best_derivation = None
+        best_weight = float('-inf')
+        for derivation in self.all_derivation_trees():
+            # print "any: ", derivation, derivation.weight()
+            if derivation.weight() > best_weight:
+                best_derivation = derivation
+        # print "best:" , best_derivation, best_weight
+        return best_derivation
 
     def best(self):
-        pass
+        best_derivation = self.best_derivation_tree()
+        if best_derivation:
+            return best_derivation.weight()
+        else:
+            return None
 
     def recognized(self):
         for item in self.query_passive_items(self.__grammar.start(), [0]):
@@ -200,6 +213,7 @@ class Parser(AbstractParser):
         self.__combine_agenda = []
         self.__init_agenda()
         self.parse()
+        print len(self.__passive_items.items())
 
     def __init_agenda(self):
         self.predict(self.__grammar.start(), 0, 0, len(self.__word), [])
@@ -387,24 +401,25 @@ class Parser(AbstractParser):
         :type item: PassiveItem
         :return:
         """
-        range_constraints = [item.range(LCFRS_var(-1, arg)).left() for arg in range(item.complete_to() +1)]
+        range_constraints = [item.range(LCFRS_var(-1, arg)).left() for arg in range(item.complete_to() + 1)]
         key = tuple([item.nont()] + range_constraints)
         self.__passive_items.get(key, []).remove(item)
 
     def connect_passive_items(self, start):
         """
         :type start: PassiveItem
-        :rtype: list[PassiveItem]
+        :rtype: list[DerivationItem]
         """
         rank = start.rule().rank()
         # either a leaf in the parse tree, or already connected
-        if rank == len(start.children()):
-            return [start]
+        if rank == 0:
+            return [DerivationItem(start.rule(), start.variables())]
 
         connected_children = []
         for mem in range(rank):
-            unconnected_mem_children = self.query_passive_items_strict(start.rule().rhs_nont(mem), start.max_arg(mem),
-                                            [start.range(LCFRS_var(mem, arg)) for arg in range(start.max_arg(mem) + 1)])
+            unconnected_mem_children = self.query_passive_items_strict(start.rule().rhs_nont(mem), start.max_arg(mem) + 1,
+                                                                       [start.range(LCFRS_var(mem, arg)) for arg in
+                                                                        range(start.max_arg(mem) + 1)])
             connected_mem_children = []
             for child in unconnected_mem_children:
                 connected_mem_children += self.connect_passive_items(child)
@@ -415,14 +430,13 @@ class Parser(AbstractParser):
 
         connected_selfs = []
         for choice in itertools.product(*connected_children):
-            connected_item = start.copy()
+            connected_item = DerivationItem(start.rule(), start.variables())
             for child in list(choice):
                 connected_item.add_child(child)
             connected_selfs.append(connected_item)
 
-
         # key = tuple(
-        #     [start.nont()] + [start.range(LCFRS_var(-1, c_index)).left() for c_index in range(start.complete_to() + 1)])
+        # [start.nont()] + [start.range(LCFRS_var(-1, c_index)).left() for c_index in range(start.complete_to() + 1)])
 
         # self.__passive_items[key] += connected_selfs
 
@@ -435,15 +449,16 @@ class Parser(AbstractParser):
                 connected_items += self.connect_passive_items(passive_item)
         return connected_items
 
+
 def derivation_tree(derivation, item, parent):
     """
     :type derivation: Derivation
     :param item:
-    :type item: PassiveItem
+    :type item: DerivationItem
     :type parent: int
     :return:
     """
-    id = derivation.add_passive_item(item, parent)
+    id = derivation.add_derivation_item(item, parent)
     # TODO: enumerate all successful derivations
     for child in item.children():
         derivation_tree(derivation, child, id)

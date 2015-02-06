@@ -261,7 +261,7 @@ def test_conll_grammar_induction():
     for tree in trees2:
         parser = LCFRS_parser(grammar, tree.pos_yield())
         h_tree = GeneralHybridTree()
-        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), True)
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), True)
         #print h_tree
         print h_tree.full_labelled_yield()
         print tree_to_conll_str(h_tree)

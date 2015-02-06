@@ -6,6 +6,7 @@ from lcfrs import *
 from dcp import *
 from constituency_tree import HybridTree
 from derivation import Derivation
+from parser.parser_interface import AbstractParser
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from general_hybrid_tree import GeneralHybridTree
 
@@ -326,25 +327,25 @@ def make_rule_instances_from_members(instance, members, args, inp, pos):
 #######################################################
 # Parser.
 
-class LCFRS_parser:
+class LCFRS_parser(AbstractParser):
+    def all_derivation_trees(self):
+        assert 'Not implemented'
+
     # Constructor.
     # grammar: LCFRS
     # inp: list of string
-    def __init__(self, grammar, inp):
+    def __init__(self, grammar, input):
+        super(LCFRS_parser, self).__init__(grammar, input)
         self.__g = grammar
-        self.__inp = inp
-        # Mapping from nonterminal and input position to nont items.
+        self.__inp = input
         self.__nont_items = defaultdict(list)
-        # Mapping from nonterminal and input position to rule items.
         self.__rule_items = defaultdict(list)
         self.__agenda = []
-        # To ensure item is not added a second time to agenda.
         self.__agenda_set = set()
-        # Maps item to list of trace elements.
         self.__trace = defaultdict(list)
-        # Maps each item to weight of best parse.
         self.__best = {}
         self.__parse()
+        # print len(self.__trace.items())
 
     def __parse(self):
         inp = self.__inp
@@ -460,23 +461,9 @@ class LCFRS_parser:
         trace = self.__trace[elem]
         return len(trace) > 0
 
-    def newDCP(self):
-        der = self.newBestDerivation()
-        if der:
-            return The_DCP_evaluator(der).getEvaluation()
-        else:
-            return []
-
-    def new_DCP_Hybrid_Tree(self, tree, poss, words, ignore_punctuation):
-        dcp_evaluation = self.newDCP()
-        if dcp_evaluation:
-            return dcp_to_hybridtree(tree, dcp_evaluation, poss, words, ignore_punctuation)
-        else:
-            return None
-
     # Return best derivation or None.
     # return: Derivation
-    def newBestDerivation(self):
+    def best_derivation_tree(self):
         start_lhs = self.__start_item()
         elem = str(start_lhs)
         trace = self.__trace[elem]
@@ -485,7 +472,7 @@ class LCFRS_parser:
         else:
             w = self.best()
             tree = Derivation()
-            self.__newDerivationTreeRec(elem, tree, tree.root_id(), w, [Span(0, len(self.__inp))])
+            self.__best_derivation_tree_rec(elem, tree, tree.root_id(), w, [Span(0, len(self.__inp))])
             return tree
 
     # Get derivation tree of best parse. (includes Spans of sub derivations)
@@ -495,13 +482,13 @@ class LCFRS_parser:
     # w: float (weight of best path in subderivation)
     # spans: list of Span (of subderivation)
     # return: Derivation
-    def __newDerivationTreeRec(self, elem, tree, id, w, spans):
+    def __best_derivation_tree_rec(self, elem, tree, id, w, spans):
         if isinstance(elem, str) or isinstance(elem, unicode):
             # passive item:
             traces = self.__trace[elem]
             for trace in traces:
                 if w == self.__find_best_from(trace):
-                    return self.__newDerivationTreeRec(trace, tree, id, w, spans)
+                    return self.__best_derivation_tree_rec(trace, tree, id, w, spans)
             print 'looking for', w, 'found:'
             for trace in traces:
                 print self.__find_best_from(trace)
@@ -513,10 +500,10 @@ class LCFRS_parser:
             # extract span of the passive item
             sub_span = extract_spans(elem[1])
             # extend tree at child position corresponding to the dot of active item
-            self.__newDerivationTreeRec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2,
+            self.__best_derivation_tree_rec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2,
                                         sub_span)
             # extend active item
-            self.__newDerivationTreeRec(elem[0], tree, id, w1, spans)
+            self.__best_derivation_tree_rec(elem[0], tree, id, w1, spans)
         else:
             # it all children have been added to derivation, add parent rule
             # as Rule_instance with detected spans

@@ -10,6 +10,7 @@ from dependency_induction import induce_grammar, strict_pos_dep, term_pos, direc
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 import parser.naive.parsing as naive
 
+
 class MyTestCase(unittest.TestCase):
     def setUp(self):
         self.grammar_ab_copy = create_copy_grammar()
@@ -225,9 +226,9 @@ class MyTestCase(unittest.TestCase):
         counter = 0
 
         # for passive_item in parser.query_passive_items('A', [0]):
-        #     if passive_item.range(LCFRS_var(-1, 0)) != Range(0, 4):
-        #         continue
-        #     else:
+        # if passive_item.range(LCFRS_var(-1, 0)) != Range(0, 4):
+        # continue
+        # else:
         #         print passive_item
         #         print print_derivation_tree(passive_item)
         #         print
@@ -258,8 +259,10 @@ def number_of_ambiguous_trees(n):
         c += number_of_ambiguous_trees(i) * number_of_ambiguous_trees(n - i)
     return c
 
+
 if __name__ == '__main__':
     unittest.main()
+
 
 def ambiguous_copy_grammar():
     grammar = LCFRS('S')
@@ -270,7 +273,7 @@ def ambiguous_copy_grammar():
     y2 = LCFRS_var(1, 1)
 
     lhs1 = LCFRS_lhs('S')
-    lhs1.add_arg([x1,x2])
+    lhs1.add_arg([x1, x2])
     grammar.add_rule(lhs1, ['A'])
 
     lhs2 = LCFRS_lhs('A')
@@ -285,10 +288,11 @@ def ambiguous_copy_grammar():
 
     lhs4 = LCFRS_lhs('A')
     lhs4.add_arg([x1, y1])
-    lhs4.add_arg([x2,y2])
+    lhs4.add_arg([x2, y2])
     grammar.add_rule(lhs4, ['A', 'A'])
 
     return grammar
+
 
 def create_copy_grammar():
     grammar = LCFRS('S')

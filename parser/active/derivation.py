@@ -5,7 +5,33 @@ from parse_items import *
 import collections
 
 
+class DerivationItem(PassiveItem):
+    def __init__(self, rule, variables):
+        PassiveItem.__init__(self, rule, variables)
+        self.__children = []
+
+    def add_child(self, child):
+        self.__children.append(child)
+
+    def children(self):
+        return self.__children
+
+    def copy(self):
+        item = DerivationItem(self._rule, self._variables)
+        for child in self.children():
+            item.add_child(child)
+        return item
+
+
 class Derivation(AbstractDerivation):
+    def weight(self):
+        if self.__weight is None:
+            self.__weight = 0
+            for derivation_item in self.__derivationItems.values():
+                assert isinstance(derivation_item, DerivationItem)
+                self.__weight += derivation_item.rule().weight()
+        return self.__weight
+
     def child_id(self, id, i):
         return (self.child_ids(id))[i]
 
@@ -16,10 +42,11 @@ class Derivation(AbstractDerivation):
         return parent, ith_child
 
     def __init__(self):
-        self.__passiveItems = collections.defaultdict(list)
+        self.__derivationItems = collections.defaultdict(list)
         self.__parent = collections.defaultdict()
         self.__children = collections.defaultdict()
         self.__counter = 0
+        self.__weight = None
         self.__root = None
 
     def ids(self):
@@ -29,13 +56,13 @@ class Derivation(AbstractDerivation):
         return self.__root
 
     def getRule(self, id):
-        passive_item = self.__passiveItems[id]
-        assert isinstance(passive_item, PassiveItem)
+        passive_item = self.__derivationItems[id]
+        assert isinstance(passive_item, DerivationItem)
         return passive_item.rule()
 
     def terminal_positions(self, id):
-        passive_item = self.__passiveItems[id]
-        assert isinstance(passive_item, PassiveItem)
+        passive_item = self.__derivationItems[id]
+        assert isinstance(passive_item, DerivationItem)
 
         spanned_input_positions = self.__spanned_input_by(id)
         spanned_input_positions_of_children = [pos for child in self.child_ids(id) for pos in
@@ -45,8 +72,8 @@ class Derivation(AbstractDerivation):
         return [pos + 1 for pos in spanned_input_positions if pos not in spanned_input_positions_of_children]
 
     def __spanned_input_by(self, id):
-        passive_item = self.__passiveItems[id]
-        assert isinstance(passive_item, PassiveItem)
+        passive_item = self.__derivationItems[id]
+        assert isinstance(passive_item, DerivationItem)
 
         spanned_input_positions = []
         for component in range(passive_item.fanout()):
@@ -59,10 +86,10 @@ class Derivation(AbstractDerivation):
     def child_ids(self, id):
         return self.__children.get(id, [])
 
-    def add_passive_item(self, passive_item, parent=None):
+    def add_derivation_item(self, passive_item, parent=None):
         """
         :param passive_item:
-        :type passive_item: PassiveItem
+        :type passive_item: DerivationItem
         :param parent:
         :type parent: int
         :return:
@@ -79,7 +106,7 @@ class Derivation(AbstractDerivation):
         else:
             self.__root = id
 
-        self.__passiveItems[id] = passive_item
+        self.__derivationItems[id] = passive_item
         return id
 
     def __str__(self):
@@ -87,7 +114,7 @@ class Derivation(AbstractDerivation):
 
     # return: string
     def der_to_str_rec(self, id, indent):
-        s = ' ' * indent * 2 + str(self.getRule(id)) + '\t(' + str(self.__passiveItems[id]) + ')\n'
+        s = ' ' * indent * 2 + str(self.getRule(id)) + '\t(' + str(self.__derivationItems[id]) + ')\n'
         for child in self.child_ids(id):
             s += self.der_to_str_rec(child, indent + 1)
         return s
