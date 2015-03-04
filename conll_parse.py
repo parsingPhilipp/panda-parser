@@ -4,7 +4,7 @@ __author__ = 'kilian'
 
 from general_hybrid_tree import GeneralHybridTree
 import re
-import dependency_induction as d_i
+import dependency.induction as d_i
 from parser.naive.parsing import LCFRS_parser
 import sys
 

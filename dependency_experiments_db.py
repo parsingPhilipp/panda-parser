@@ -5,7 +5,7 @@ conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
 sample_db = 'examples/sampledb.db'
 
 from general_hybrid_tree import GeneralHybridTree
-import dependency_induction as d_i
+import dependency.induction as d_i
 from parser.naive.parsing import LCFRS_parser as NaiveParser
 from parser.active.parsing import Parser as ActiveParser
 from conll_parse import parse_conll_corpus, score_cmp_dep_trees
