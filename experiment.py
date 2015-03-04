@@ -2,8 +2,8 @@
 
 import time
 
-import negra_parse
-import tiger_parse
+import corpora.negra_parse
+import corpora.tiger_parse
 from parse_accuracy import ParseAccuracy
 # from hybridtree import *
 from constituency_tree import *

@@ -4,7 +4,7 @@ import sqlite3
 import time
 from general_hybrid_tree import GeneralHybridTree
 from grammar.LCFRS.lcfrs import LCFRS
-import conll_parse
+import corpora.conll_parse
 import sys
 from eval_pl_scorer import eval_pl_scores
 from collections import OrderedDict
