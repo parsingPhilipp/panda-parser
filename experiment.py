@@ -4,10 +4,10 @@ import time
 
 import corpora.negra_parse
 import corpora.tiger_parse
-from parse_accuracy import ParseAccuracy
+from constituent.parse_accuracy import ParseAccuracy
 # from hybridtree import *
 from hybridtree.constituent_tree import *
-from induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
+from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
 	start as induction_start
 from parser.naive.parsing import *
 from decomposition import *
