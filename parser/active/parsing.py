@@ -1,6 +1,6 @@
 __author__ = 'kilian'
 
-from lcfrs import *
+from grammar.LCFRS.lcfrs import *
 from collections import deque
 from parser.parser_interface import AbstractParser
 from derivation import Derivation, DerivationItem
@@ -77,11 +77,11 @@ class ScanItem(ActiveItem):
         current_range = self.range(current_component)
 
         if isinstance(obj, LCFRS_var):
-            mem = obj.mem()
-            index = obj.arg()
+            mem = obj.mem
+            index = obj.arg
             nont = self._rule.rhs_nont(mem)
 
-            found_variables = [self.range(LCFRS_var(mem, j)) for j in range(obj.arg())]
+            found_variables = [self.range(LCFRS_var(mem, j)) for j in range(obj.arg)]
 
             remaining_input = self._remaining_input - number_of_consumed_terminals(self._rule, c_index,
                                                                                    self._dot_position, mem)
@@ -125,11 +125,11 @@ class CombineItem(ActiveItem):
         current_position = self.range(LCFRS_var(-1, c_index))
 
         # start positions of strings
-        range_constraints = [self.range(LCFRS_var(variable.mem(), comp)).left for comp in range(variable.arg())]
+        range_constraints = [self.range(LCFRS_var(variable.mem, comp)).left for comp in range(variable.arg)]
         # add end of range right to dot
         range_constraints += [current_position.right]
 
-        nont = self._rule.rhs_nont(variable.mem())
+        nont = self._rule.rhs_nont(variable.mem)
         passive_items = parser.query_passive_items(nont, range_constraints)
 
         for item in passive_items:
@@ -137,21 +137,21 @@ class CombineItem(ActiveItem):
 
             consistent = True
 
-            for comp in range(variable.arg()):
-                if item.range(LCFRS_var(-1, comp)) != self.range(LCFRS_var(variable.mem(), comp)):
+            for comp in range(variable.arg):
+                if item.range(LCFRS_var(-1, comp)) != self.range(LCFRS_var(variable.mem, comp)):
                     consistent = False
                     break
 
             if consistent:
-                remaining_input = self._remaining_input - length(item.range(LCFRS_var(-1, variable.arg())))
+                remaining_input = self._remaining_input - length(item.range(LCFRS_var(-1, variable.arg)))
                 if not (remaining_input > 0 or (remaining_input == 0 and j + 1 == len(word_tuple_string))):
                     continue
 
                 # new variables dict, set ranges for found variables
                 variables = dict(self._variables)
-                new_position = join(current_position, item.range(LCFRS_var(-1, variable.arg())))
+                new_position = join(current_position, item.range(LCFRS_var(-1, variable.arg)))
                 variables[current_component] = new_position
-                variables[variable] = item.range(LCFRS_var(-1, variable.arg()))
+                variables[variable] = item.range(LCFRS_var(-1, variable.arg))
 
                 active_item = ScanItem(self._rule, variables, c_index, j + 1, remaining_input)
                 if j + 1 == len(word_tuple_string):
@@ -509,7 +509,7 @@ def number_of_consumed_terminals(rule, start_component, start_position, current_
             start = start_position
         for tuple_index in range(start, len(word_tuple_component)):
             if isinstance(word_tuple_component[tuple_index], LCFRS_var):
-                if word_tuple_component[tuple_index].mem() != current_mem:
+                if word_tuple_component[tuple_index].mem != current_mem:
                     terminals += 1
             elif isinstance(word_tuple_component[tuple_index], terminal_type):
                 terminals += 1

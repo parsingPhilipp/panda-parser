@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-from lcfrs import *
+from grammar.LCFRS.lcfrs import *
 from sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 
 

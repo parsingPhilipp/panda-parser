@@ -3,7 +3,7 @@ __author__ = 'kilian'
 import sqlite3
 import time
 from general_hybrid_tree import GeneralHybridTree
-from lcfrs import LCFRS
+from grammar.LCFRS.lcfrs import LCFRS
 import conll_parse
 import sys
 from eval_pl_scorer import eval_pl_scores

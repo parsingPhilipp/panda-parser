@@ -2,49 +2,54 @@
 # Rules are augmented with DCP rules.
 # Together this forms LCFRS/DCP hybrid grammars.
 
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 import codecs
 import re
 
-from dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
+from grammar.sDCP.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
 
 # ##########################################################################
 # Parts of the grammar.
 
+LCFRS_var = namedtuple('LCFRS_var', ['mem', 'arg'])
 
 # Variable of LCFRS rule. 
 # Represents i-th member in RHS and j-th argument thereof.
-class LCFRS_var:
-    # Constructor.
-    # i: int
-    # j: int
-    def __init__(self, i, j):
-        self.__i = i
-        self.__j = j
+# class LCFRS_var:
+#     # Constructor.
+#     # i: int
+#     # j: int
+#     def __init__(self, i, j):
+#         self.__i = i
+#         self.__j = j
+#
+#     # Member number part of variable.
+#     # return: int
+#     @property
+#     def mem(self):
+#         return self.__i
+#
+#     # Argument number part of variable.
+#     # return: int
+#     @property
+#     def arg(self):
+#         return self.__j
+#
+#     # String representation.
+#     # return: string
+#     def __str__(self):
+#         return '<' + str(self.mem) + ',' + str(self.arg) + '>'
+#
+#     def __eq__(self, other):
+#         # if isinstance(other, LCFRS_var):
+#         return self.arg == other.arg and self.mem == other.mem
+#         # else:
+#         #     return False
+#
+#     def __hash__(self):
+#         return hash((self.__i, self.__j))
 
-    # Member number part of variable.
-    # return: int
-    def mem(self):
-        return self.__i
 
-    # Argument number part of variable.
-    # return: int
-    def arg(self):
-        return self.__j
-
-    # String representation.
-    # return: string
-    def __str__(self):
-        return '<' + str(self.mem()) + ',' + str(self.arg()) + '>'
-
-    def __eq__(self, other):
-        if isinstance(other, LCFRS_var):
-            return self.arg() == other.arg() and self.mem() == other.mem()
-        else:
-            return False
-
-    def __hash__(self):
-        return hash((self.__i, self.__j))
 
 
 # LHS of LCFRS rule.
@@ -219,9 +224,9 @@ class LCFRS_rule:
             for comp in range(self.lhs().fanout()):
                 for obj in self.lhs().arg(comp):
                     if isinstance(obj, LCFRS_var):
-                        if obj.mem() == mem and arg + 1 != obj.arg():
+                        if obj.mem == mem and arg + 1 != obj.arg:
                             return False
-                        elif obj.mem() == mem and arg + 1 == obj.arg():
+                        elif obj.mem == mem and arg + 1 == obj.arg:
                             arg += 1
         return True
 
@@ -232,8 +237,8 @@ class LCFRS_rule:
         variables = []
         for j in range(self.lhs().fanout()):
             for elem in self.lhs().arg(j):
-                if isinstance(elem, LCFRS_var) and elem.mem() == i:
-                    variables += [elem.arg()]
+                if isinstance(elem, LCFRS_var) and elem.mem == i:
+                    variables += [elem.arg]
         return variables
 
     # String representation.

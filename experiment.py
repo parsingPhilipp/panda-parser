@@ -9,7 +9,7 @@ from parse_accuracy import ParseAccuracy
 from constituency_tree import *
 from induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
 	start as induction_start
-from lcfrs import *
+from grammar.LCFRS.lcfrs import *
 from parser.naive.parsing import *
 from decomposition import *
 

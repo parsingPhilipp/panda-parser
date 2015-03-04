@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 import unittest
 from parsing import *
-from lcfrs import *
+from grammar.LCFRS.lcfrs import *
 from derivation import Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
 from general_hybrid_tree import GeneralHybridTree

@@ -2,8 +2,8 @@
 
 # from hybridtree import *
 from constituency_tree import *
-from lcfrs import *
-from dcp import *
+from grammar.LCFRS.lcfrs import *
+from grammar.sDCP.dcp import *
 from decomposition import *
 
 # The root symbol.

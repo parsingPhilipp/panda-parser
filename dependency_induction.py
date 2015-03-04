@@ -1,9 +1,9 @@
 __author__ = 'kilian'
 
-from general_hybrid_tree import GeneralHybridTree
-from dcp import DCP_rule, DCP_term, DCP_var, DCP_index, DCP_string
-from lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
-from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, right_branching_partitioning
+from grammar.sDCP.dcp import DCP_rule, DCP_term, DCP_var, DCP_index, DCP_string
+from grammar.LCFRS.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
+from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
+    right_branching_partitioning
 from parser.naive.parsing import LCFRS_parser
 
 

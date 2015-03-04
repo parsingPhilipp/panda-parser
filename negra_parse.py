@@ -7,7 +7,7 @@ from os.path import expanduser
 # from hybridtree import HybridTree
 from constituency_tree import HybridTree
 from induction import direct_extract_lcfrs
-from lcfrs import *
+from grammar.LCFRS.lcfrs import *
 
 # Location of Negra corpus.
 negra_dir = '~/Data/Negra'

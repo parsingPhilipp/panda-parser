@@ -2,8 +2,8 @@
 
 import sys
 import math
-from lcfrs import *
-from dcp import *
+from grammar.LCFRS.lcfrs import *
+from grammar.sDCP.dcp import *
 from constituency_tree import HybridTree
 from derivation import Derivation
 from parser.parser_interface import AbstractParser
@@ -116,7 +116,7 @@ class LHS_instance:
                     gap = False
                 else:
                     # mem instance of LCFRS_var
-                    if mem.mem() == i and mem.arg() == 0:
+                    if mem.mem == i and mem.arg == 0:
                         if gap:  # TODO: variable precedes <i,0>
                             low = pos
                         else:
@@ -142,7 +142,7 @@ class LHS_instance:
             for memI in range(len(self.__args[argI])):
                 mem = self.__args[argI][memI]
                 if isinstance(mem, LCFRS_var):
-                    if mem.mem() == i and mem.arg() == j:
+                    if mem.mem == i and mem.arg == j:
                         self.__args[argI][memI] = span
 
     # TODO: Support for empty nonterminals (i.e. with fan-out 0)?

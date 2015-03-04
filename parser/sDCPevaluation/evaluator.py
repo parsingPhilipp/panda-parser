@@ -1,6 +1,6 @@
 __author__ = 'kilian'
 
-from dcp import DCP_evaluator, DCP_term, DCP_pos, DCP_string
+from grammar.sDCP.dcp import DCP_evaluator, DCP_term, DCP_pos, DCP_string
 from parser.derivation_interface import AbstractDerivation
 import re
 

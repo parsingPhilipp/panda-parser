@@ -1,6 +1,6 @@
 __author__ = 'kilian'
 
-from lcfrs import LCFRS_var
+from grammar.LCFRS.lcfrs import LCFRS_var
 from collections import namedtuple
 
 nonterminal_type = str
@@ -116,14 +116,14 @@ class PassiveItem:
         return '[' + self.action_id() + ':' + str(self._rule) + ':' + s + ']'
 
     def __eq__(self, other):
-        if id(self) == id(other):
-            return True
-        if not isinstance(other, PassiveItem):
-            return False
+        # if id(self) == id(other):
+        #     return True
+        # if not isinstance(other, PassiveItem):
+        #     return False
         if self.rule() != other.rule():
             return False
-        if self.complete_to() != other.complete_to():
-            return False
+        # if self.complete_to() != other.complete_to():
+        #     return False
 
         for var in self._variables.keys():
             if var in other.variables().keys():
@@ -142,11 +142,11 @@ class PassiveItem:
 
     def max_mem(self):
         if self.__max_mem is None:
-            self.__max_mem = max([var.mem() for var in self._variables.keys()])
+            self.__max_mem = max([var.mem for var in self._variables.keys()])
         return self.__max_mem
 
     def max_arg(self, mem):
-        args = [var.arg() for var in self._variables.keys() if var.mem() == mem]
+        args = [var.arg for var in self._variables.keys() if var.mem == mem]
         if args:
             return max(args)
         else:
