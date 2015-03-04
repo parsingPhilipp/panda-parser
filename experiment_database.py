@@ -7,6 +7,7 @@ import sys
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from grammar.LCFRS.lcfrs import LCFRS
 from eval_pl_scorer import eval_pl_scores
+from corpora import conll_parse
 
 
 dbfile = 'examples/example.db'

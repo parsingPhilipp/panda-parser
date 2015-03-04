@@ -57,7 +57,7 @@ def eval_pl_scores(connection, corpus, experiment, filter = []):
         if not filter or tree_id in filter:
             CoNLL_strings.append(CoNLL_string_for_tree(connection, tree_id, experiment))
             if filter:
-                gold_CoNLL_strings.append(conll_parse.tree_to_conll_str(tree))
+                gold_CoNLL_strings.append(corpora.conll_parse.tree_to_conll_str(tree))
 
     CoNLL_strings.append('')
     test_file = open(test_file_path, 'a+')
@@ -112,7 +112,7 @@ def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
 
     flag, hypothesis_tree = experiment_database.query_result_tree(connection, experiment, tree_id_in_db)
 
-    return conll_parse.tree_to_conll_str(hypothesis_tree)
+    return corpora.conll_parse.tree_to_conll_str(hypothesis_tree)
 
 # Sample evaluation
 if __name__ == '__main__':

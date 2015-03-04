@@ -5,6 +5,7 @@ from grammar.LCFRS.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
 from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
     right_branching_partitioning
 from parser.naive.parsing import LCFRS_parser
+from hybridtree.general_hybrid_tree import GeneralHybridTree
 
 
 ###################   Top level methods for grammar induction.   ###################
