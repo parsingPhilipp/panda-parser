@@ -4,18 +4,19 @@ conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
 conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
 sample_db = 'examples/sampledb.db'
 
-from general_hybrid_tree import GeneralHybridTree
-import dependency.induction as d_i
-from parser.naive.parsing import LCFRS_parser as NaiveParser
-from parser.active.parsing import Parser as ActiveParser
-from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 import time
 import sys
-import experiment_database
 import re
 import os
-import resource_limits
 import gc
+
+from hybridtree.general_hybrid_tree import GeneralHybridTree
+import dependency.induction as d_i
+from parser.active.parsing import Parser as ActiveParser
+from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
+import experiment_database
+import resource_limits
+
 
 def add_trees_to_db(path, connection, trees):
     """

@@ -1,6 +1,6 @@
 __author__ = 'kilian'
 
-from general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import GeneralHybridTree
 
 #
 class HybridTree(GeneralHybridTree):

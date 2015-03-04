@@ -1,14 +1,14 @@
 __author__ = 'kilian'
 
 import unittest
+
 from parsing import *
 from grammar.LCFRS.lcfrs import *
 from derivation import Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
-from general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import GeneralHybridTree
 from dependency.induction import induce_grammar, strict_pos_dep, term_pos, direct_extraction
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
-import parser.naive.parsing as naive
 
 
 class MyTestCase(unittest.TestCase):

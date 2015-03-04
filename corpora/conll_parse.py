@@ -2,11 +2,12 @@
 #  -*- coding: iso-8859-15 -*-
 __author__ = 'kilian'
 
-from general_hybrid_tree import GeneralHybridTree
 import re
+import sys
+
+from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
 from parser.naive.parsing import LCFRS_parser
-import sys
 
 
 test_file = 'examples/Dependency_Corpus.conll'

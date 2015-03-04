@@ -1,7 +1,8 @@
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-from general_hybrid_tree import GeneralHybridTree
+
+from hybridtree.general_hybrid_tree import GeneralHybridTree
 
 
 class AbstractDerivation:

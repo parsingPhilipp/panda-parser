@@ -1,12 +1,9 @@
 # Parsing of the Negra corpus and capture of hybrid trees.
 
-import codecs
-import re
 from os.path import expanduser
 
 # from hybridtree import HybridTree
-from constituency_tree import HybridTree
-from induction import direct_extract_lcfrs
+from hybridtree.constituent_tree import HybridTree
 from grammar.LCFRS.lcfrs import *
 
 # Location of Negra corpus.

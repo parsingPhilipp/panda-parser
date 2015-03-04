@@ -3,13 +3,13 @@ __author__ = 'kilian'
 conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
 conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
 
+import time
+import sys
 
-from general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
-import time
-import sys
 
 
 def induce_grammar_from_file(  path

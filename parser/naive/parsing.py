@@ -2,13 +2,12 @@
 
 import sys
 import math
+
 from grammar.LCFRS.lcfrs import *
 from grammar.sDCP.dcp import *
-from constituency_tree import HybridTree
 from derivation import Derivation
 from parser.parser_interface import AbstractParser
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
-from general_hybrid_tree import GeneralHybridTree
+
 
 
 # ###########################################################

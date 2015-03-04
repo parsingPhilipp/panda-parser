@@ -9,7 +9,7 @@ except ImportError:
     import xml.etree.ElementTree as ET
 
 # from hybridtree import HybridTree
-from constituency_tree import HybridTree
+from hybridtree.constituent_tree import HybridTree
 
 # Location of Tiger corpus.
 tiger_dir = '..'

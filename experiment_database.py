@@ -2,12 +2,12 @@ __author__ = 'kilian'
 
 import sqlite3
 import time
-from general_hybrid_tree import GeneralHybridTree
-from grammar.LCFRS.lcfrs import LCFRS
-import corpora.conll_parse
 import sys
+
+from hybridtree.general_hybrid_tree import GeneralHybridTree
+from grammar.LCFRS.lcfrs import LCFRS
 from eval_pl_scorer import eval_pl_scores
-from collections import OrderedDict
+
 
 dbfile = 'examples/example.db'
 test_file = 'examples/Dependency_Corpus.conll'

@@ -6,10 +6,9 @@ import corpora.negra_parse
 import corpora.tiger_parse
 from parse_accuracy import ParseAccuracy
 # from hybridtree import *
-from constituency_tree import *
+from hybridtree.constituent_tree import *
 from induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
 	start as induction_start
-from grammar.LCFRS.lcfrs import *
 from parser.naive.parsing import *
 from decomposition import *
 
@@ -47,17 +46,17 @@ tiger_fanout_4 = \
 # return: list of HybridTree
 def sentence_names_to_hybridtrees(names):
     if corpus == 'negra nonproj':
-	return negra_parse.sentence_names_to_hybridtrees(names, \
-			negra_parse.negra_nonproj)
+	return corpora.negra_parse.sentence_names_to_hybridtrees(names, \
+			corpora.negra_parse.negra_nonproj)
     elif corpus == 'negra proj':
-	return negra_parse.sentence_names_to_hybridtrees(names, \
-			negra_parse.negra_proj)
+	return corpora.negra_parse.sentence_names_to_hybridtrees(names, \
+			corpora.negra_parse.negra_proj)
     elif corpus == 'tiger':
-	return tiger_parse.sentence_names_to_hybridtrees(names, \
-			tiger_parse.tiger)
+	return corpora.tiger_parse.sentence_names_to_hybridtrees(names, \
+			corpora.tiger_parse.tiger)
     elif corpus == 'tiger subset':
-	return tiger_parse.sentence_names_to_hybridtrees(names, \
-			tiger_parse.tiger_test)
+	return corpora.tiger_parse.sentence_names_to_hybridtrees(names, \
+			corpora.tiger_parse.tiger_test)
     else:
 	raise Exception('wrong corpus')
 
@@ -140,9 +139,9 @@ def last_test_sentence():
 # return: string
 def make_name(i):
     if corpus in negra_any:
-	return negra_parse.num_to_name(i)
+	return corpora.negra_parse.num_to_name(i)
     elif corpus in tiger_any:
-	return tiger_parse.num_to_name(i)
+	return corpora.tiger_parse.num_to_name(i)
     else:
         raise Exception('wrong corpus')
 
