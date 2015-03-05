@@ -1,11 +1,12 @@
 __author__ = 'kilian'
 
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from general_hybrid_tree import GeneralHybridTree
+
 
 #
 class HybridTree(GeneralHybridTree):
     def __init__(self, sent_label=None):
-       GeneralHybridTree.__init__(self, sent_label)
+        GeneralHybridTree.__init__(self, sent_label)
 
     # Add next leaf. Order of adding is significant.
     # id: string

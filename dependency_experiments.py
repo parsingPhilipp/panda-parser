@@ -8,6 +8,7 @@ import sys
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
+import dependency.labeling as label
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 
@@ -141,10 +142,10 @@ def test_conll_grammar_induction():
     #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
     # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
     #                , d_i.left_branching, d_i.right_branching]:
-    for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, True)
-                                                        , (d_i.strict_pos_dep, d_i.left_branching, True)
-                                                        , (d_i.child_pos_dep, d_i.direct_extraction, True)
-                                                        , (d_i.child_pos_dep, d_i.left_branching, True)]:
+    for nont_labelling, rec_par, ignore_punctuation in [ (label.StrictPOSdepAtLeafLabeling(), d_i.direct_extraction, True)
+                                                        , (label.StrictPOSdepAtLeafLabeling(), d_i.left_branching, True)
+                                                        , (label.ChildPOSdepAtLeafLabeling(), d_i.direct_extraction, True)
+                                                        , (label.ChildPOSdepAtLeafLabeling(), d_i.left_branching, True)]:
         grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, 200
                                            , False, 'START', ignore_punctuation)
         print

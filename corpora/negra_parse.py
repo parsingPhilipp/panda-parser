@@ -2,7 +2,6 @@
 
 from os.path import expanduser
 
-# from hybridtree import HybridTree
 from hybridtree.constituent_tree import HybridTree
 from grammar.LCFRS.lcfrs import *
 

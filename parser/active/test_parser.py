@@ -7,7 +7,8 @@ from grammar.LCFRS.lcfrs import *
 from derivation import Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from dependency.induction import induce_grammar, strict_pos_dep, term_pos, direct_extraction
+from dependency.induction import induce_grammar, term_pos, direct_extraction
+from dependency.labeling import StrictPOSdepAtLeafLabeling
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 
 
@@ -190,7 +191,7 @@ class MyTestCase(unittest.TestCase):
         # print tree2
         # print tree.recursive_partitioning()
 
-        (_, grammar) = induce_grammar([tree, tree2], strict_pos_dep, term_pos, direct_extraction, 'START')
+        (_, grammar) = induce_grammar([tree, tree2], StrictPOSdepAtLeafLabeling(), term_pos, direct_extraction, 'START')
 
         # print grammar
 

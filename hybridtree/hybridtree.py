@@ -442,7 +442,7 @@ def widest_nont(tree, graph):
     return w
 
 
-# Place leves from left to right, moving them up if they could overlap.
+# Place leaves from left to right, moving them up if they could overlap.
 def format_leaves(tree, graph):
     for (id, pos, word) in tree.leaves():
         pos_len = graph.text_width(pos + ' ')

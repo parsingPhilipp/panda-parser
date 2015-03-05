@@ -5,7 +5,6 @@ import time
 import corpora.negra_parse
 import corpora.tiger_parse
 from constituent.parse_accuracy import ParseAccuracy
-# from hybridtree import *
 from hybridtree.constituent_tree import *
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
     start as induction_start
@@ -535,7 +534,7 @@ def parse_tree_by_gram(tree, gram, accuracy):
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
         dcp_tree = HybridTree()
-        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, poss, words)
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, poss, words, False)
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
         accuracy.add_accuracy(retrieved, relevant)

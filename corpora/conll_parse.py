@@ -7,6 +7,7 @@ import sys
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
+import dependency.labeling as label
 from parser.naive.parsing import LCFRS_parser
 
 
@@ -255,7 +256,7 @@ def test_conll_parse():
 
 def test_conll_grammar_induction():
     trees = parse_conll_corpus(test_file, True)
-    (_, grammar) = d_i.induce_grammar(trees, d_i.child_word, d_i.term_pos, d_i.direct_extraction, 'START')
+    (_, grammar) = d_i.induce_grammar(trees, label.ChildFormLabeling(), d_i.term_pos, d_i.direct_extraction, 'START')
 
     trees2 = parse_conll_corpus(test_file, True)
 

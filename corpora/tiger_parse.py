@@ -19,8 +19,8 @@ tiger_dir = '..'
 # complete XML file, which takes a long time to parse.
 # Results were put in tiger_8000.xml and test.xml.
 # tiger = tiger_dir + '/tiger_release_aug07.corrected.16012013.xml'
-tiger = tiger_dir + '/tiger_8000.xml'
-tiger_test = tiger_dir + '/test.xml'
+tiger = tiger_dir + '/tiger.xml'
+tiger_test = tiger_dir + '/tiger_8000.xml'
 
 # To hold parsed XML file. Cached for efficiency.
 xml_file = None
