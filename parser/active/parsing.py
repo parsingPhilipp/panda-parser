@@ -213,7 +213,7 @@ class Parser(AbstractParser):
         self.__combine_agenda = []
         self.__init_agenda()
         self.parse()
-        print len(self.__passive_items.items())
+        # print len(self.__passive_items.items())
 
     def __init_agenda(self):
         self.predict(self.__grammar.start(), 0, 0, len(self.__word), [])

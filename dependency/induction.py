@@ -52,6 +52,9 @@ def strict_pos_dep( a, b, c, d, e):
                            , lambda tree, id, dep:
         tree.node_pos(id) + ':' + tree.node_dep_label(id) if dep
         else tree.node_pos(id))
+def strict_pos_dep_overall(a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'strict', lambda tree, id, dep: tree.node_pos(id) + ':' + tree.node_dep_label(
+        id) + ':T' if dep else tree.node_pos(id) + ':' + tree.node_dep_label(id))
 def strict_word( a, b, c, d, e):
     return nonterminal_str(a, b, c, d, e, 'strict', lambda tree, id, dep: tree.node_label(id))
 def child_pos ( a, b, c, d, e):
@@ -61,6 +64,9 @@ def child_pos_dep( a, b, c, d, e):
                            , lambda tree, id, dep:
         tree.node_pos(id) + ':' + tree.node_dep_label(id) if dep
         else tree.node_pos(id))
+def child_pos_dep_overall(a, b, c, d, e):
+    return nonterminal_str(a, b, c, d, e, 'child', lambda tree, id, dep: tree.node_pos(id) + ':' + tree.node_dep_label(
+        id) + ':T' if dep else tree.node_pos(id) + ':' + tree.node_dep_label(id))
 def child_word( a, b, c, d, e):
     return nonterminal_str(a, b, c, d, e, 'child', lambda tree, id, dep: tree.node_label(id))
 
@@ -469,7 +475,7 @@ def child_labeling(tree, node_ids, t_max, b_max, fanout, tree_node_name):
     :param tree:  GeneralHybridTree
     :param node_ids: NodeIds
     :param t_max: top_max
-    :param b_max: top_max
+    :param b_max: bottom_max
     :param fanout: int
     :param tree_node_name: NodeId -> string
     :return: string

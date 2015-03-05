@@ -13,6 +13,7 @@ import gc
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
 from parser.active.parsing import Parser as ActiveParser
+from parser.naive.parsing import LCFRS_parser as NaiveParser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 import experiment_database
 import resource_limits
@@ -202,7 +203,7 @@ def parse_sentences_from_file(grammar
             continue
         time_stamp = time.clock()
 
-        parser = resource_limits.run(ActiveParser, max_parse_time, max_parse_memory, grammar, tree_yield(tree))
+        parser = resource_limits.run(NaiveParser, max_parse_time, max_parse_memory, grammar, tree_yield(tree))
         time_stamp = time.clock() - time_stamp
 
         if isinstance(parser, resource_limits.TimeoutError):
@@ -291,10 +292,14 @@ def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, le
         nont_labelling = d_i.strict_pos_dep
     elif labeling == 'strict':
         nont_labelling = d_i.strict_pos
+    elif labeling == 'strict-dep-overall':
+        nont_labelling = d_i.strict_pos_dep_overall
     elif labeling == 'child-dep':
         nont_labelling = d_i.child_pos_dep
     elif labeling == 'child':
         nont_labelling = d_i.child_pos
+    elif labeling == 'strict-dep-overall':
+        nont_labelling = d_i.child_pos_dep_overall
     else:
         print("Error: Invalid labeling strategy: " + labeling)
         exit(1)
