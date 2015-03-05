@@ -42,7 +42,7 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
         grammar.add_rule(lhs, rhs, 1.0, [dcp_rule])
 
     grammar.make_proper()
-    return (n_trees, grammar)
+    return n_trees, grammar
 
 # Nonterminal labelling strategies
 def strict_pos( a, b, c, d, e):
@@ -141,7 +141,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labell
 
         grammar.add_rule(lhs, [], 1.0, dcp)
 
-        return (t_max, b_max, lhs.nont())
+        return t_max, b_max, lhs.nont()
 
     else:
         # Create rules for children and obtain top_max and bottom_max of child nodes
@@ -253,7 +253,7 @@ def create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
     for (low, high) in spans:
         arg = []
         i = low
-        while (i <= high):
+        while i <= high:
             mem = 0
             match = False
             while mem < len(children_spans) and not match:
@@ -672,7 +672,7 @@ def test_dependency_induction():
     print grammar
 
     parser = LCFRS_parser(grammar, 'NP N V V'.split(' '))
-    parser.print_parse()
+    print parser.best_derivation_tree()
 
 
     hybrid_tree = GeneralHybridTree()

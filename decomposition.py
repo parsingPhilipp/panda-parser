@@ -1,6 +1,6 @@
 # Auxiliary routines for dealing with spans in an input string.
 
-#################################################################
+# ################################################################
 
 # For list of indices, order and join into contiguous sequences.
 # A sequence is represented by (low, high), where high is last
@@ -15,7 +15,7 @@ def join_spans(indices):
         if low < 0:
             low = i
             high = i
-        elif i == high+1:
+        elif i == high + 1:
             high = i
         else:
             spans += [(low, high)]
@@ -25,12 +25,14 @@ def join_spans(indices):
         spans += [(low, high)]
     return spans
 
+
 # For a list of spans, replace by indices.
 # spans: list of pair of int
 # return: list of int
 def expand_spans(spans):
-    return sorted(set([ i for span in spans \
-		for i in range(span[0], span[1]+1) ]))
+    return sorted(set([i for span in spans \
+                       for i in range(span[0], span[1] + 1)]))
+
 
 ###############################################################
 
@@ -43,27 +45,31 @@ def expand_spans(spans):
 # return: recursive partitioning
 def left_branching_partitioning(len):
     if len == 0:
-        return (set(), [])
+        return set(), []
     elif len == 1:
-        return (set([0]), [])
+        return {0}, []
     else:
-        return (set(range(len)), [\
-            left_branching_partitioning(len-1), \
-            (set([len-1]), [])  ])
+        return (set(range(len)), [ \
+            left_branching_partitioning(len - 1), \
+            ({len - 1}, [])])
+
 
 def right_branching_partitioning(len):
     return right_branching_partitioning_recur(0, len)
+
+
 def right_branching_partitioning_recur(low, high):
     if low >= high:
-        return (set(), [])
+        return set(), []
     elif low == high - 1:
-        return (set([low]), [])
+        return {low}, []
     else:
-        return (set(range(low, high)), [\
-            (set([low]), []), \
-            right_branching_partitioning_recur(low+1, high) ])
+        return (set(range(low, high)), [ \
+            ({low}, []), \
+            right_branching_partitioning_recur(low + 1, high)])
 
-# Transform existing partitioning to limit number of 
+
+# Transform existing partitioning to limit number of
 # spans.
 # Breadth-first search among descendants for subpartitioning
 # that stays within fanout.
@@ -72,23 +78,24 @@ def right_branching_partitioning_recur(low, high):
 # return: recursive partitioning
 def fanout_limited_partitioning(part, fanout):
     (root, children) = part
-    agenda = children[::-1] # reversed to favour left branching
+    agenda = children[::-1]  # reversed to favour left branching
     while len(agenda) > 0:
-	next_agenda = []
-	while len(agenda) > 0:
-	    child1 = agenda[0]
-	    agenda = agenda[1:]
-	    (subroot, subchildren) = child1
-	    rest = remove_spans_from_spans(root, subroot)
-	    if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
-		child2 = restrict_part([(rest, children)], rest)[0]
-		child1_restrict = fanout_limited_partitioning(child1, fanout)
-		child2_restrict = fanout_limited_partitioning(child2, fanout)
-		return (root, sort_part(child1_restrict, child2_restrict))
-	    else:
-		next_agenda += subchildren[::-1] # reversed
-	agenda = next_agenda
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                child2 = restrict_part([(rest, children)], rest)[0]
+                child1_restrict = fanout_limited_partitioning(child1, fanout)
+                child2_restrict = fanout_limited_partitioning(child2, fanout)
+                return root, sort_part(child1_restrict, child2_restrict)
+            else:
+                next_agenda += subchildren[::-1]  # reversed
+        agenda = next_agenda
     return part
+
 
 # With spans2 together covering a subset of what spans1 covers,
 # remove spans2 from spans1. 
@@ -99,6 +106,7 @@ def remove_spans_from_spans(spans1, spans2):
     set2 = set(spans2)
     return set1 - set2
 
+
 # Keep only partitionings that overlap with relevant set.
 # Restrict to that set.
 # part: recursive partitioning
@@ -107,21 +115,23 @@ def remove_spans_from_spans(spans1, spans2):
 def restrict_part(part, relevant):
     part_restrict = []
     for (root, children) in part:
-	root_restrict = root & relevant
-	if root_restrict != set():
-	    children_restrict = restrict_part(children, relevant)
-	    if len(children_restrict) == 1 and \
-			children_restrict[0][0] == root_restrict:
-		part_restrict += [children_restrict[0]]
-	    else:
-		part_restrict += [(root_restrict, children_restrict)]
+        root_restrict = root & relevant
+        if root_restrict != set():
+            children_restrict = restrict_part(children, relevant)
+            if len(children_restrict) == 1 and \
+                            children_restrict[0][0] == root_restrict:
+                part_restrict += [children_restrict[0]]
+            else:
+                part_restrict += [(root_restrict, children_restrict)]
     return part_restrict
+
 
 # Number of spans.
 # l: list of int
 # return: int
 def n_spans(l):
     return len(join_spans(l))
+
 
 # For two disjoint partitionings, determine which one comes first.
 # This is determined by first position.
@@ -131,9 +141,10 @@ def sort_part(part1, part2):
     (root1, _) = part1
     (root2, _) = part2
     if sorted(root1)[0] < sorted(root2)[0]:
-	return [part1, part2]
+        return [part1, part2]
     else:
-	return [part2, part1]
+        return [part2, part1]
+
 
 # For debugging, print partitioning.
 # part: recursive partitioning
@@ -142,4 +153,4 @@ def print_partitioning(part, level=0):
     (root, children) = part
     print ' ' * level, root
     for child in children:
-	print_partitioning(child, level+1)
+        print_partitioning(child, level + 1)

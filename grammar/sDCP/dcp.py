@@ -238,7 +238,7 @@ def dcp_terms_to_str(l):
 # l: list of DCP_rule
 # return: string
 def dcp_rules_to_str(l):
-    return ('; '.join([str(r) for r in l]))
+    return '; '.join([str(r) for r in l])
 
 # As above, but more compact, omitting whitespace.
 # l: list of DCP_rule
@@ -282,12 +282,12 @@ def parse_dcp_var(s):
     if match_lhs:
         arg = int(match_lhs.group(1))
         rest = match_lhs.group(2)
-        return (DCP_var(-1, arg), rest)
+        return DCP_var(-1, arg), rest
     elif match_rhs:
         mem = int(match_rhs.group(1))
         arg = int(match_rhs.group(2))
         rest = match_rhs.group(3)
-        return (DCP_var(mem, arg), rest)
+        return DCP_var(mem, arg), rest
     else:
         raise Exception('strange DCP var: ' + s)
 
@@ -321,7 +321,7 @@ def parse_dcp_terms(s):
             if not close_match:
                 raise Exception('missing close bracket in ' + s)
             s = close_match.group(1)
-    return (terms, s)
+    return terms, s
 
 # Parse index. Return index and rest of input.
 # line: s
@@ -336,7 +336,7 @@ def parse_dcp_index(s):
             match2 = re.search(r'^:{(\w*)}$', match.group(2))
             if match2:
                 dep_label = match2.group(1)
-        return (DCP_index(i, dep_label), rest)
+        return DCP_index(i, dep_label), rest
     else:
         raise Exception('strange DCP index: ' + s)
 
@@ -346,7 +346,7 @@ def parse_dcp_index(s):
 def parse_dcp_string(s):
     match = re.search(r'^\s*([^\s\(<\[]+)\((.*)$', s)
     if match:
-        return (DCP_string(match.group(1)), match.group(2))
+        return DCP_string(match.group(1)), match.group(2)
     else:
         raise Exception('strange DCP terminal: ' + s)
 

@@ -87,10 +87,10 @@ class GeneralHybridTree:
         """
         self.__nodes += [id]
         self.__id_to_label[id] = label
-        if (pos is not None):
+        if pos is not None:
             self.__id_to_pos[id] = pos
-        if (order is True):
-            if (connected is True):
+        if order is True:
+            if connected is True:
                 self.__ordered_ids += [id]
                 self.__id_to_node_index[id] = self.__n_ordered_nodes
                 self.__n_ordered_nodes += 1
@@ -315,14 +315,14 @@ class GeneralHybridTree:
         if len(tail) == 1 and head == tail[0][0]:
             return tail[0]
         else:
-            return (head, tail)
+            return head, tail
 
     def recursive_partitioning(self):
         return self.recursive_partitioning_rec(self.root())
 
     def recursive_partitioning_rec(self, id):
         head = set(self.fringe(id))
-        tail = [(set([self.node_index(id)]), [])]
+        tail = [({self.node_index(id)}, [])]
         # descendants = self.descendants(id)
         # descendants.append(id)
         # head = filter(self.in_ordering, descendants)
@@ -331,13 +331,13 @@ class GeneralHybridTree:
         if len(tail) == 1 and head == tail[0][0]:
             return tail[0]
         else:
-            return (head, tail)
+            return head, tail
 
     def node_id_rec_par(self, rec_par):
         (head, tail) = rec_par
         head = map(lambda x: self.index_node(x + 1), head)
         tail = map(self.node_id_rec_par, tail)
-        return (head, tail)
+        return head, tail
 
     def labelled_spans(self):
         """

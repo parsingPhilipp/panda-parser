@@ -213,8 +213,8 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
     tree_id = None
     for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', ( corpus, tree.sent_label())):
         tree_id = row[0]
-    if tree_id == None:
-        assert ("tree not found")
+    if tree_id is None:
+        assert "tree not found"
 
     # unique tree key
     cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None
@@ -424,8 +424,7 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
         , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
                         # , 'n_gaps_test', 'parse_time'
     ]
-    header = {}
-    header['nont_labelling'] = 'nont.~lab.'
+    header = {'nont_labelling': 'nont.~lab.'}
     columns_style['nont_labelling'] = 'l'
     header['rec_par'] = 'extraction'
     columns_style['rec_par'] = 'l'
@@ -601,15 +600,15 @@ def scores_and_parse_time(connection, ids, exp):
         time = time + parsetime(connection, id, exp)
 
         c, l, uas_a = uas(connection, id, exp)
-        UAS_a = UAS_a + uas_a
+        UAS_a += uas_a
         LEN = LEN + l
         UAS_t = UAS_t + c
 
         cl, _, las_a = las(connection, id, exp)
-        LAS_a = LAS_a + las_a
+        LAS_a += las_a
         LAS_t = LAS_t + cl
-    UAS_a = UAS_a / len(ids)
-    LAS_a = LAS_a / len(ids)
+    UAS_a /= len(ids)
+    LAS_a /= len(ids)
     UAS_t = 1.0 * UAS_t / LEN
     LAS_t = 1.0 * LAS_t / LEN
     return UAS_a, LAS_a, UAS_t, LAS_t, time
@@ -815,8 +814,8 @@ def no_parse_result(connection, tree_name, corpus, experiment, parse_time, messa
     tree_id = None
     for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', (corpus, tree_name)):
         tree_id = row[0]
-    if tree_id == None:
-        assert ("tree not found")
+    if tree_id is None:
+        assert "tree not found"
 
     # unique tree key
     cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None

@@ -209,7 +209,7 @@ def compare_dependency_trees(reference, test):
         if reference.n_nodes() == LAS:
             LEM = 1
 
-    return (UAS, LAS, UEM, LEM, reference.n_nodes())
+    return UAS, LAS, UEM, LEM, reference.n_nodes()
 
 
 def score_cmp_dep_trees(reference, test):

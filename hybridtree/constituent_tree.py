@@ -38,7 +38,7 @@ class HybridTree(GeneralHybridTree):
     # id: string
     # return: bool
     def is_leaf(self, id):
-        return (id in self.full_yield())
+        return id in self.full_yield()
 
     # Get leaf for index.
     # index: int

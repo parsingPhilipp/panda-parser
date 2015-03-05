@@ -49,7 +49,8 @@ class GeneralHybridTreeTestCase(unittest.TestCase):
 
     def test_unlabelled_structure(self):
         self.tree.reorder()
-        self.assertTupleEqual(self.tree.unlabelled_structure(), (set([0, 1, 2, 3]), [(set([0]), []), (set([1, 3]), [(set([1]), [])])]))
+        self.assertTupleEqual(self.tree.unlabelled_structure(), (
+        {0, 1, 2, 3}, [({0}, []), ({1, 3}, [({1}, [])])]))
 
     def test_max_n_spans(self):
         self.tree.reorder()

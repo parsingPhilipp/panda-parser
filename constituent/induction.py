@@ -128,7 +128,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming):
     for arg in args:
         lhs.add_arg(arg)
     gram.add_rule(lhs, nonts, dcp=dcp_rules)
-    return (nont, spans, id_seq)
+    return nont, spans, id_seq
 # Past labels of ids together.
 # id_seq: list of list of string
 # tree: HybridTree
@@ -198,15 +198,15 @@ def make_id_seq(tree, id, fringe):
                 seq += [child]
             elif child_fringe & fringe != set():
                 # overlaps with fringe
-                if seq != []:
+                if seq:
                     seqs += [seq]
                     seq = []
                 seqs += make_id_seq(tree, child, fringe)
-            elif seq != []:
+            elif seq:
                 # not included in fringe, and breaks sequence
                 seqs += [seq]
                 seq = []
-        if seq != []:
+        if seq:
             seqs += [seq]
         return seqs
 

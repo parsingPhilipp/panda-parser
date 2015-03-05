@@ -14,7 +14,7 @@ gold_prefix = 'examples/gold-output'
 eval_pl = 'util/eval.pl'
 
 
-def eval_pl_scores(connection, corpus, experiment, filter = []):
+def eval_pl_scores(connection, corpus, experiment, filter=None):
     """
     :param connection: database connection
     :param corpus:  path to the gold standard corpus (CoNLL)
@@ -24,6 +24,7 @@ def eval_pl_scores(connection, corpus, experiment, filter = []):
     :return: labeled attachment score, unlabeled attachment score, label accuracy
     :rtype: float, float, float
     """
+    if not filter: filter = []
     test_file_path = hypothesis_test_path(hypothesis_prefix, experiment)
     if not filter:
         gold_file_path = corpus
@@ -108,7 +109,7 @@ def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
     Retrieves the system output for a test tree in some experiment in the database.
     If none exists, a fallback strategy is used (hidden in the database module).
     """
-    assert(tree_id_in_db)
+    assert tree_id_in_db
 
     flag, hypothesis_tree = experiment_database.query_result_tree(connection, experiment, tree_id_in_db)
 
