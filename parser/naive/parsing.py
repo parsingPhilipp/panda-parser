@@ -100,6 +100,8 @@ class LHS_instance:
                     gap = False
                 else:
                     gap = True
+                    # Assuming that grammar is epsilon-free, i.e. every gap >= 1
+                    pos += 1
         return True
 
     # What is minimum and maximum of first position in next RHS member,
@@ -143,13 +145,21 @@ class LHS_instance:
     # i: int
     # j: int
     # span: Span
+    # def replace(self, i, j, span):
+    #     for argI in range(len(self.__args)):
+    #         for memI in range(len(self.__args[argI])):
+    #             mem = self.__args[argI][memI]
+    #             if isinstance(mem, LCFRS_var):
+    #                 if mem.mem == i and mem.arg == j:
+    #                     self.__args[argI][memI] = span
     def replace(self, i, j, span):
-        for argI in range(len(self.__args)):
-            for memI in range(len(self.__args[argI])):
-                mem = self.__args[argI][memI]
+        for argI, arg in enumerate(self.__args):
+            for memI, mem in enumerate(arg):
                 if isinstance(mem, LCFRS_var):
                     if mem.mem == i and mem.arg == j:
                         self.__args[argI][memI] = span
+                        # each variable occurs at most once
+                        return
 
     # TODO: Support for empty nonterminals (i.e. with fan-out 0)?
     # Assuming there are no variables left, the left-most position.
@@ -178,17 +188,14 @@ class LHS_instance:
             for arg in self.__args]) \
                + ')'
 
+    # TODO: this might cause errors! difference between range and variable is blurred
     def new_key(self):
-        return self.nont(), tuple([self.__tuplefy(obj) for arg in self.__args for obj in arg])
+        return self.nont(), tuple([obj for arg in self.__args for obj in arg])
 
-    def __tuplefy(self, obj):
-        return obj
-        if isinstance(obj, Span):
-            return obj
-        elif isinstance(obj, LCFRS_var):
-            return obj
-        else:
-            assert 'unexpected type'
+    # TODO: this might cause errors! difference between range and variable is blurred
+    def key_ranges(self):
+        return tuple([obj for arg in self.__args for obj in arg])
+
 
 # In a rule instance where terminals and some variables are
 # replaced by spans,
@@ -272,7 +279,7 @@ class Rule_instance:
         return s
 
     def new_key(self):
-        return self.lhs().new_key(), self.dot(), id(self.rule())
+        return self.lhs().key_ranges(), self.dot(), id(self.rule())
 
 
 
@@ -397,13 +404,21 @@ class LCFRS_parser(AbstractParser):
             else:  # instance of Rule_instance
                 (low, high) = item.next_member_bounds(inp_len)
                 nont = item.next_nont()
-                for pos in range(low, high + 1):
-                    # key = str(pos) + ' ' + nont
-                    key = pos, nont
-                    self.__rule_items[key].append(item)
-                    for nont_item in self.__nont_items[key]:
-                        # self.__combine(item, nont_item, item.key(), str(nont_item))
-                        self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
+                # TODO ? why the whole range ?
+                # for pos in range(low, high + 1):
+                #     # key = str(pos) + ' ' + nont
+                #     key = pos, nont
+                #     self.__rule_items[key].append(item)
+                #     for nont_item in self.__nont_items[key]:
+                #         # self.__combine(item, nont_item, item.key(), str(nont_item))
+                #         self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
+                #
+                key = low, nont
+                self.__rule_items[key].append(item)
+                for nont_item in self.__nont_items[key]:
+                    # self.__combine(item, nont_item, item.key(), str(nont_item))
+                    self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
+
 
     # Combine rule item with nont item.
     # rule_item: Rule_instance
@@ -485,9 +500,6 @@ class LCFRS_parser(AbstractParser):
         elif isinstance(elem, tuple) and elem[0] == PAIR:
             # return self.__find_best_from(elem[0]) + self.__find_best_from(elem[1])
             return self.__find_best_from(elem[1]) + self.__find_best_from(elem[2])
-        elif isinstance(elem, int):
-            print elem
-            raise
         else:
             return -math.log(elem.weight())
 
