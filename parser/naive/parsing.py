@@ -9,31 +9,38 @@ from derivation import Derivation
 from parser.parser_interface import AbstractParser
 
 
+RULE = 0
+PAIR = 1
+KEY = 2
 
 # ###########################################################
 # Parsing auxiliaries.
 
 # Span, represents input positions from i+1 to j.
-class Span:
-    # Constructor.
-    # i: int
-    # j: int
-    def __init__(self, i, j):
-        self.__i = i
-        self.__j = j
-
-    # return: int
-    def low(self):
-        return self.__i
-
-    # return: int
-    def high(self):
-        return self.__j
-
-    # String representation.
-    # return: string
-    def __str__(self):
-        return '[' + str(self.low()) + '-' + str(self.high()) + ']'
+Span = namedtuple('Span', ['low', 'high'])
+# class Span:
+#     # Constructor.
+#     # i: int
+#     # j: int
+#     def __init__(self, i, j):
+#         self.__i = i
+#         self.__j = j
+# 
+#     # return: int
+#     def low(self):
+#         return self.__i
+# 
+#     # return: int
+#     def high(self):
+#         return self.__j
+# 
+#     # String representation.
+#     # return: string
+#     def __str__(self):
+#         return '[' + str(self.low()) + '-' + str(self.high()) + ']'
+#
+#     def to_tuple(self):
+#         return self.__i, self.__j
 
 
 # Like LHS but terminals and some variables replaced by spans.
@@ -84,12 +91,12 @@ class LHS_instance:
             gap = True
             for mem in arg:
                 if isinstance(mem, Span):
-                    if mem.low() < pos:
+                    if mem.low < pos:
                         return False
                     # elif not gap and str(mem.low()) != str(pos): TODO: str ??
-                    elif not gap and mem.low() != pos:
+                    elif not gap and mem.low != pos:
                         return False
-                    pos = mem.high()
+                    pos = mem.high
                     gap = False
                 else:
                     gap = True
@@ -110,8 +117,8 @@ class LHS_instance:
             for mem in arg:
                 if isinstance(mem, Span):
                     if low is not None:
-                        return low, mem.low()
-                    pos = mem.high()
+                        return low, mem.low
+                    pos = mem.high
                     gap = False
                 else:
                     # mem instance of LCFRS_var
@@ -148,7 +155,7 @@ class LHS_instance:
     # Assuming there are no variables left, the left-most position.
     # return: int
     def left_position(self):
-        return self.__args[0][0].low()
+        return self.__args[0][0].low
 
     # Take concatenated span for each argument.
     # This is assuming that there are no variables left.
@@ -160,7 +167,7 @@ class LHS_instance:
     # return: list of (one) Span
     @staticmethod
     def __collapse_arg(arg):
-        return [Span(arg[0].low(), arg[-1].high())]
+        return [Span(arg[0].low, arg[-1].high)]
 
     # String representation.
     # return: string
@@ -171,6 +178,17 @@ class LHS_instance:
             for arg in self.__args]) \
                + ')'
 
+    def new_key(self):
+        return self.nont(), tuple([self.__tuplefy(obj) for arg in self.__args for obj in arg])
+
+    def __tuplefy(self, obj):
+        return obj
+        if isinstance(obj, Span):
+            return obj
+        elif isinstance(obj, LCFRS_var):
+            return obj
+        else:
+            assert 'unexpected type'
 
 # In a rule instance where terminals and some variables are
 # replaced by spans,
@@ -221,7 +239,7 @@ class Rule_instance:
     def next_nont(self):
         return self.rule().rhs_nont(self.dot())
 
-    # Simplify rule assuming no remaining variables. 
+    # Simplify rule assuming no remaining variables.
     def collapse(self):
         self.__lhs.collapse()
 
@@ -252,6 +270,10 @@ class Rule_instance:
         if self.dot() == self.rule().rank():
             s += '*'
         return s
+
+    def new_key(self):
+        return self.lhs().new_key(), self.dot(), id(self.rule())
+
 
 
 # For rule and input string, replace terminals by spans in all possible
@@ -361,21 +383,27 @@ class LCFRS_parser(AbstractParser):
             if isinstance(item, LHS_instance):
                 low = item.left_position()
                 nont = item.nont()
-                key = str(low) + ' ' + nont
+                #key = str(low) + ' ' + nont
+                key = low, nont
                 self.__nont_items[key].append(item)
                 for rule_item in self.__rule_items[key]:
-                    self.__combine(rule_item, item, rule_item.key(), str(item))
+                    # self.__combine(rule_item, item, rule_item.key(), str(item))
+                    self.__combine(rule_item, item, (KEY, rule_item.new_key()), (KEY, item.new_key()))
                 for rule in self.__g.nont_corner_of(nont):
                     for inst in make_rule_instances(rule, inp):
-                        self.__combine(inst, item, rule, str(item))
+                        # self.__combine(inst, item, rule, str(item))
+                        self.__combine(inst, item, rule, (KEY, item.new_key()))
+
             else:  # instance of Rule_instance
                 (low, high) = item.next_member_bounds(inp_len)
                 nont = item.next_nont()
                 for pos in range(low, high + 1):
-                    key = str(pos) + ' ' + nont
+                    # key = str(pos) + ' ' + nont
+                    key = pos, nont
                     self.__rule_items[key].append(item)
                     for nont_item in self.__nont_items[key]:
-                        self.__combine(item, nont_item, item.key(), str(nont_item))
+                        # self.__combine(item, nont_item, item.key(), str(nont_item))
+                        self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
 
     # Combine rule item with nont item.
     # rule_item: Rule_instance
@@ -387,26 +415,31 @@ class LCFRS_parser(AbstractParser):
         dot = rule_item.dot()
         for i in range(nont_item.fanout()):
             arg = nont_item.arg(i)
-            low = arg[0].low()
-            high = arg[0].high()
+            low = arg[0].low
+            high = arg[0].high
             lhs.replace(dot, i, Span(low, high))
         if lhs.consistent():
             advanced_item = Rule_instance(rule_item.rule(), lhs, dot=dot + 1)
-            self.__record_item(advanced_item, (rule_trace, nont_trace))
+            self.__record_item(advanced_item, (PAIR, rule_trace, nont_trace))
 
-    # item: Rule_instance
-    # trace: pair or LCFRS_rule
     def __record_item(self, item, trace):
+        """
+        :type item: Rule_instance
+        :param trace: pair or LCFRS_rule
+        :return:
+        """
         if item.complete():
             lhs = item.lhs()
             lhs.collapse()
-            key = str(lhs)
+            # key = str(lhs)
+            key = KEY, lhs.new_key()
             if not key in self.__agenda_set:
                 self.__agenda_set.add(key)
                 self.__agenda.append(lhs)
             self.__trace[key].append(trace)
         else:
-            key = item.key()
+            key = KEY, item.new_key()
+            # key = item.key()
             if not key in self.__agenda_set:
                 self.__agenda_set.add(key)
                 self.__agenda.append(item)
@@ -425,7 +458,8 @@ class LCFRS_parser(AbstractParser):
     # return: float
     def best(self):
         start_lhs = self.__start_item()
-        elem = str(start_lhs)
+        # elem = str(start_lhs)
+        elem = KEY, start_lhs.new_key()
         trace = self.__trace[elem]
         if len(trace) == 0:
             return -1
@@ -436,7 +470,8 @@ class LCFRS_parser(AbstractParser):
     # elem: pair or string
     # return: float
     def __find_best_from(self, elem):
-        if isinstance(elem, str) or isinstance(elem, unicode):
+        # if isinstance(elem, str) or isinstance(elem, unicode):
+        if isinstance(elem, tuple) and elem[0] == KEY:
             if elem in self.__best:
                 return self.__best[elem]
             else:
@@ -447,8 +482,12 @@ class LCFRS_parser(AbstractParser):
                     best = min(best, self.__find_best_from(trace))
                 self.__best[elem] = best
                 return best
-        elif isinstance(elem, tuple):
-            return self.__find_best_from(elem[0]) + self.__find_best_from(elem[1])
+        elif isinstance(elem, tuple) and elem[0] == PAIR:
+            # return self.__find_best_from(elem[0]) + self.__find_best_from(elem[1])
+            return self.__find_best_from(elem[1]) + self.__find_best_from(elem[2])
+        elif isinstance(elem, int):
+            print elem
+            raise
         else:
             return -math.log(elem.weight())
 
@@ -456,7 +495,8 @@ class LCFRS_parser(AbstractParser):
     # return: bool
     def recognized(self):
         start_lhs = self.__start_item()
-        elem = str(start_lhs)
+        # elem = str(start_lhs)
+        elem = KEY, start_lhs.new_key()
         trace = self.__trace[elem]
         return len(trace) > 0
 
@@ -464,7 +504,8 @@ class LCFRS_parser(AbstractParser):
     # return: Derivation
     def best_derivation_tree(self):
         start_lhs = self.__start_item()
-        elem = str(start_lhs)
+        #elem = str(start_lhs)
+        elem = KEY, start_lhs.new_key()
         trace = self.__trace[elem]
         if len(trace) == 0:
             return None
@@ -482,7 +523,8 @@ class LCFRS_parser(AbstractParser):
     # spans: list of Span (of subderivation)
     # return: Derivation
     def __best_derivation_tree_rec(self, elem, tree, id, w, spans):
-        if isinstance(elem, str) or isinstance(elem, unicode):
+        # if isinstance(elem, str) or isinstance(elem, unicode):
+        if isinstance(elem, tuple) and elem[0] == KEY:
             # passive item:
             traces = self.__trace[elem]
             for trace in traces:
@@ -492,19 +534,25 @@ class LCFRS_parser(AbstractParser):
             for trace in traces:
                 print self.__find_best_from(trace)
             raise Exception('backtrace failed')
-        elif isinstance(elem, tuple):
+        elif isinstance(elem, tuple) and elem[0] == PAIR:
             # active item (elem[0]) was combined with passive item (elem[0])
-            w1 = self.__find_best_from(elem[0])
-            w2 = self.__find_best_from(elem[1])
+            w1 = self.__find_best_from(elem[1])
+            w2 = self.__find_best_from(elem[2])
             # extract span of the passive item
-            sub_span = extract_spans(elem[1])
+
+            # sub_span = extract_spans(elem[1])
+            sub_span = new_extract_spans(elem[2])
             # extend tree at child position corresponding to the dot of active item
-            self.__best_derivation_tree_rec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2,
+            # self.__best_derivation_tree_rec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2,
+            #                             sub_span)
+            self.__best_derivation_tree_rec(elem[2], tree, id + tree.gorn_delimiter() + str(new_dot_position(elem[1])), w2,
                                         sub_span)
             # extend active item
-            self.__best_derivation_tree_rec(elem[0], tree, id, w1, spans)
+            # self.__best_derivation_tree_rec(elem[0], tree, id, w1, spans)
+            self.__best_derivation_tree_rec(elem[1], tree, id, w1, spans)
+
         else:
-            # it all children have been added to derivation, add parent rule
+            # if all children have been added to derivation, add parent rule
             # as Rule_instance with detected spans
             lhs = LHS_instance(elem.lhs().nont())
             for span in spans:
@@ -527,6 +575,12 @@ def dot_position(key):
     else:
         return 0
 
+def new_dot_position(key):
+    if isinstance(key, LCFRS_rule):
+        return 0
+    # elif: isinstance(key, tuple) and key[0] == KEY:
+    else:
+        return key[1][1]
 
 # extract spans from key-string of passive item
 # key: string (e.g. "A([0-4]; [12-15])" )
@@ -537,4 +591,11 @@ def extract_spans(key):
     for s in match.group(1).split('; '):
         match1 = re.search(r'^\[([0-9]+)-([0-9]+)\];*$', s)
         spans += [Span(int(match1.group(1)), int(match1.group(2)))]
+    return spans
+
+def new_extract_spans(key):
+    # assert key[0] == KEY
+    spans = []
+    for low, high in list(key[1][1]):
+        spans.append(Span(low, high))
     return spans

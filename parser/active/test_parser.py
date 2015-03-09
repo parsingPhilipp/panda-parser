@@ -11,7 +11,6 @@ from dependency.induction import induce_grammar, term_pos, direct_extraction
 from dependency.labeling import StrictPOSdepAtLeafLabeling
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 
-
 class MyTestCase(unittest.TestCase):
     def setUp(self):
         self.grammar_ab_copy = create_copy_grammar()
@@ -245,10 +244,6 @@ class MyTestCase(unittest.TestCase):
             counter += 1
         self.assertEqual(counter, number_of_ambiguous_trees(len(word) / 2))
         print counter
-
-        # parser2 = naive.LCFRS_parser(grammar, word)
-        # derivation = parser2.newBestDerivation()
-        # print derivation
 
 
 def number_of_ambiguous_trees(n):

@@ -2,6 +2,7 @@ __author__ = 'kilian'
 
 import unittest
 from parsing import *
+from parser.active.test_parser import ambiguous_copy_grammar
 
 
 class MyTestCase(unittest.TestCase):
@@ -30,11 +31,22 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(lhs.consistent(), True)
 
-        self.assertEqual(str(lhs), "A([0-2] [2-4]; [6-9] [9-12])")
+        self.assertEqual(str(lhs), "A(Span(low=0, high=2) Span(low=2, high=4); Span(low=6, high=9) Span(low=9, high=12))")
 
         lhs.collapse()
 
-        self.assertEqual(str(lhs), "A([0-4]; [6-12])")
+        self.assertEqual(str(lhs), "A(Span(low=0, high=4); Span(low=6, high=12))")
+
+    def test_naive_parser(self):
+        grammar = ambiguous_copy_grammar()
+        self.assertEqual(grammar.well_formed(), None)
+        self.assertEqual(grammar.ordered()[0], True)
+
+        word = ['a'] * 16
+
+        parser2 = LCFRS_parser(grammar, word)
+        derivation = parser2.best_derivation_tree()
+        print derivation
 
 
 if __name__ == '__main__':

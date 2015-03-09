@@ -72,7 +72,7 @@ class Derivation(AbstractDerivation):
         positions = []
         for i in range(rule.lhs().fanout()):
             span = rule.lhs().arg(i)[0]
-            positions += range(span.low() + 1, span.high() + 1)
+            positions += range(span.low + 1, span.high + 1)
         return positions
 
     def ids(self):
