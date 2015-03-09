@@ -294,7 +294,10 @@ def query_result_tree(connection, exp, tree_id):
             tree = GeneralHybridTree()
             for i, label, pos, head, deprel in tree_nodes:
                 tree.add_node(str(i), label, pos, True, True)
-                tree.set_dep_label(str(i), deprel)
+                if deprel is None:
+                    tree.set_dep_label(str(i), 'UNKNOWN')
+                else:
+                    tree.set_dep_label(str(i), deprel)
                 if head == 0:
                     tree.set_root(str(i))
                 else:
