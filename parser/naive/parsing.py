@@ -161,6 +161,43 @@ class LHS_instance:
                         # each variable occurs at most once
                         return
 
+    def replace_consistent(self, nont_mem, nont_item):
+        """
+        Joint version of replace and consistent to improve the performance:
+        Stops early, if found range does not match.
+        :type nont_mem: int
+        :type nont_item:
+        :rtype: bool
+        """
+        pos = 0
+        for argI, arg in enumerate(self.__args):
+            gap = True
+            for memI, mem in enumerate(arg):
+                if isinstance(mem, LCFRS_var):
+                    if mem.mem == nont_mem:
+                        span = nont_item.arg(mem.arg)[0]
+                        if span.low < pos:
+                            return False
+                        elif not gap and span.low != pos:
+                            return False
+                        self.__args[argI][memI] = span
+                        pos = span.high
+                        gap = False
+                    else:
+                        gap = True
+                        # Assuming that the grammar is epsilon-free,
+                        # i.e. every variable is replaced by nonempty string
+                        pos += 1
+                # elif isinstance(mem, Span):
+                else:
+                    if mem.low < pos:
+                        return False
+                    elif not gap and mem.low != pos:
+                        return False
+                    pos = mem.high
+                    gap = False
+        return True
+
     # TODO: Support for empty nonterminals (i.e. with fan-out 0)?
     # Assuming there are no variables left, the left-most position.
     # return: int
@@ -419,7 +456,6 @@ class LCFRS_parser(AbstractParser):
                     # self.__combine(item, nont_item, item.key(), str(nont_item))
                     self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
 
-
     # Combine rule item with nont item.
     # rule_item: Rule_instance
     # nont_item: LHS_instance
@@ -428,12 +464,13 @@ class LCFRS_parser(AbstractParser):
     def __combine(self, rule_item, nont_item, rule_trace, nont_trace):
         lhs = rule_item.lhs().clone()
         dot = rule_item.dot()
-        for i in range(nont_item.fanout()):
-            arg = nont_item.arg(i)
-            low = arg[0].low
-            high = arg[0].high
-            lhs.replace(dot, i, Span(low, high))
-        if lhs.consistent():
+        # for i in range(nont_item.fanout()):
+        #     arg = nont_item.arg(i)
+        #     low = arg[0].low
+        #     high = arg[0].high
+        #     lhs.replace(dot, i, Span(low, high))
+        # if lhs.consistent():
+        if lhs.replace_consistent(dot, nont_item):
             advanced_item = Rule_instance(rule_item.rule(), lhs, dot=dot + 1)
             self.__record_item(advanced_item, (PAIR, rule_trace, nont_trace))
 

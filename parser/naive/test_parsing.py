@@ -42,7 +42,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(grammar.well_formed(), None)
         self.assertEqual(grammar.ordered()[0], True)
 
-        word = ['a'] * 16
+        word = ['a'] * 18
 
         parser2 = LCFRS_parser(grammar, word)
         derivation = parser2.best_derivation_tree()
