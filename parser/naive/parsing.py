@@ -441,20 +441,21 @@ class LCFRS_parser(AbstractParser):
             else:  # instance of Rule_instance
                 (low, high) = item.next_member_bounds(inp_len)
                 nont = item.next_nont()
-                # TODO ? why the whole range ?
-                # for pos in range(low, high + 1):
-                #     # key = str(pos) + ' ' + nont
-                #     key = pos, nont
-                #     self.__rule_items[key].append(item)
-                #     for nont_item in self.__nont_items[key]:
-                #         # self.__combine(item, nont_item, item.key(), str(nont_item))
-                #         self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
-                #
-                key = low, nont
-                self.__rule_items[key].append(item)
-                for nont_item in self.__nont_items[key]:
-                    # self.__combine(item, nont_item, item.key(), str(nont_item))
-                    self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
+                # these are possible start positions for the next nont_item for A_i
+                # there might be multiple, if a variable precedes x_i,0
+                for pos in range(low, high + 1):
+                    # key = str(pos) + ' ' + nont
+                    key = pos, nont
+                    self.__rule_items[key].append(item)
+                    for nont_item in self.__nont_items[key]:
+                        # self.__combine(item, nont_item, item.key(), str(nont_item))
+                        self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
+
+                # key = low, nont
+                # self.__rule_items[key].append(item)
+                # for nont_item in self.__nont_items[key]:
+                #     # self.__combine(item, nont_item, item.key(), str(nont_item))
+                #     self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
 
     # Combine rule item with nont item.
     # rule_item: Rule_instance
