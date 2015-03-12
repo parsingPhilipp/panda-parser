@@ -293,19 +293,19 @@ def test_conll_grammar_induction():
 def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, length_limit, labeling, partitioning,
                    root_default_deprel, disconnected_default_deprel, max_training, max_test, max_parse_time,
                    max_parse_memory):
-    if labeling == 'strict-dep':
+    if labeling == 'strict-pos-leaf:dep':
         nont_labelling = label.StrictPOSdepAtLeafLabeling()
-    elif labeling == 'strict':
+    elif labeling == 'strict-pos':
         nont_labelling = label.StrictPOSLabeling()
-    elif labeling == 'strict-dep-overall':
+    elif labeling == 'strict-pos-dep':
         nont_labelling = label.StrictPOSdepLabeling()
     elif labeling == 'strict-dep':
         nont_labelling = label.StrictDepLabeling()
-    elif labeling == 'child-dep':
+    elif labeling == 'child-pos-leaf:dep':
         nont_labelling = label.ChildPOSdepAtLeafLabeling()
-    elif labeling == 'child':
+    elif labeling == 'child-pos':
         nont_labelling = label.ChildPOSLabeling()
-    elif labeling == 'child-dep-overall':
+    elif labeling == 'child-pos-dep':
         nont_labelling = label.ChildPOSdepLabeling()
     else:
         print("Error: Invalid labeling strategy: " + labeling)
