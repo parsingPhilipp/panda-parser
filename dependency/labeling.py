@@ -240,7 +240,7 @@ class StrictPOSdepLabeling(StrictLabeling):
 
 class StrictDepLabeling(StrictLabeling):
     def __init__(self):
-        super(StrictPOSdepLabeling, self).__init__()
+        super(StrictDepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
         label = tree.node_dep_label(id)
