@@ -421,10 +421,12 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
     selected_columns = ['punc', 'nont_labelling', 'rec_par', 'f1', 'f2', 'f3', 'f4', 'f5'
                         # , 'fail'
                         # , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t'
-        , 'parse_time', 'fail'
+        , 'fail'
                         # , 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
         , 'UAS_e', 'LAS_e', 'LAc_e'
-        , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
+        # , 'UAS^c_e', 'LAS^c_e', 'LAc^c_e'
+        # , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
+        , 'parse_time'
                         # , 'n_gaps_test', 'parse_time'
     ]
     header = {'nont_labelling': 'nont.~lab.'}
@@ -515,6 +517,11 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
         pipe.write('\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\\n')
     pipe.write('\t\\bottomrule\n')
     pipe.write('\\end{tabular}\n')
+    pipe.write('\\begin{itemize}\n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}_e$: on parsed sentences with eval.pl \n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^c_e$: on intersection of parsed sentences with eval.pl\n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^t_e$: on full corpus, with fallback for to long/ non-recognized sentences\n')
+    pipe.write('\t \\end{itemize}\n')
     pipe.write('''
     \\end{table}
 
@@ -554,7 +561,7 @@ def compute_line(connection, ids, exp, max_length):
     precicion = 2
 
     percent = lambda x: percentify(x, precicion)
-    line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
+    line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids)))
     line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(
         map(percent, eval_pl_scores(connection, test_corpus, exp)))
     line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(
@@ -700,9 +707,15 @@ def nontlabelling_strategies(nont_labelling):
     elif nont_labelling == 'child_pos':
         return 'child'
     elif nont_labelling == 'child_pos_dep':
-        return 'child + dep'
+        return 'child + pos, leaf: dep'
     elif nont_labelling == 'strict_pos_dep':
+        return 'strict + pos, leaf: dep'
+    elif nont_labelling == 'strict_dep':
         return 'strict + dep'
+    elif nont_labelling == 'strict_pos_dep_overall':
+        return 'strict + pos + dep'
+    elif nont_labelling == 'child_pos_dep_overall':
+        return 'child + pos + dep'
 
 
 def recpac_stategies(rec_par):

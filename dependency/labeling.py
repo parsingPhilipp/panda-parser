@@ -238,6 +238,23 @@ class StrictPOSdepLabeling(StrictLabeling):
     def __str__(self):
         return 'strict_pos_dep_overall'
 
+class StrictDepLabeling(StrictLabeling):
+    def __init__(self):
+        super(StrictPOSdepLabeling, self).__init__()
+
+    def _top_node_name(self, tree, id, terminal_generating):
+        label = tree.node_dep_label(id)
+        if terminal_generating:
+            return label + ':T'
+        else:
+            return label
+
+    def _bottom_node_name(self, tree, id):
+        return tree.node_dep_label(id)
+
+    def __str__(self):
+        return 'strict_dep'
+
 
 class StrictFormLabeling(StrictLabeling):
     def __init__(self):

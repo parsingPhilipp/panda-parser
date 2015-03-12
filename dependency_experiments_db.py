@@ -299,6 +299,8 @@ def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, le
         nont_labelling = label.StrictPOSLabeling()
     elif labeling == 'strict-dep-overall':
         nont_labelling = label.StrictPOSdepLabeling()
+    elif labeling == 'strict-dep':
+        nont_labelling = label.StrictDepLabeling()
     elif labeling == 'child-dep':
         nont_labelling = label.ChildPOSdepAtLeafLabeling()
     elif labeling == 'child':
