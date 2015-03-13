@@ -331,3 +331,21 @@ class ChildFormLabeling(ChildLabeling):
 
     def __str__(self):
         return 'child_word'
+
+
+class ChildDepLabeling(ChildLabeling):
+    def __init__(self):
+        super(ChildDepLabeling, self).__init__()
+
+    def _top_node_name(self, tree, id, terminal_generating):
+        label = tree.node_dep_label(id)
+        if terminal_generating:
+            return label + ':T'
+        else:
+            return label
+
+    def _bottom_node_name(self, tree, id):
+        return tree.node_dep_label(id)
+
+    def __str__(self):
+        return 'child_dep'

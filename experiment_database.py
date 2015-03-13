@@ -716,6 +716,8 @@ def nontlabelling_strategies(nont_labelling):
         return 'strict + pos + dep'
     elif nont_labelling == 'child_pos_dep_overall':
         return 'child + pos + dep'
+    elif nont_labelling == 'child_dep':
+        return 'child + dep'
 
 
 def recpac_stategies(rec_par):

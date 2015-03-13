@@ -307,6 +307,8 @@ def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, le
         nont_labelling = label.ChildPOSLabeling()
     elif labeling == 'child-pos-dep':
         nont_labelling = label.ChildPOSdepLabeling()
+    elif labeling == 'child-dep':
+        nont_labelling = label.ChildDepLabeling()
     else:
         print("Error: Invalid labeling strategy: " + labeling)
         exit(1)
