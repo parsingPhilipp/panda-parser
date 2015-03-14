@@ -195,7 +195,11 @@ class StrictPOSLabeling(StrictLabeling):
         super(StrictPOSLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_pos(id)
+        label = tree.node_pos(id)
+        if terminal_generating:
+            return label + ':T'
+        else:
+            return label
 
     def _bottom_node_name(self, tree, id):
         return tree.node_pos(id)
@@ -275,7 +279,11 @@ class ChildPOSLabeling(ChildLabeling):
         super(ChildPOSLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_pos(id)
+        label = tree.node_pos(id)
+        if terminal_generating:
+            return label + ':T'
+        else:
+            return label
 
     def _bottom_node_name(self, tree, id):
         return tree.node_pos(id)
