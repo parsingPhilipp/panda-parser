@@ -3,6 +3,7 @@ __author__ = 'kilian'
 import sqlite3
 import time
 import sys
+import re
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from grammar.LCFRS.lcfrs import LCFRS
@@ -415,18 +416,22 @@ def initialize_database(dbfile):
 
 def create_latex_table_from_database(connection, experiments, max_length = sys.maxint, pipe=sys.stdout):
     columns_style = {}
-    table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
+    table_columns = [ 'exp'
+        , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
-    selected_columns = ['punc', 'nont_labelling', 'rec_par', 'f1', 'f2', 'f3', 'f4', 'f5'
+    selected_columns = ['rec_par', 'nont_labelling', 'f1', 'f2' #, 'f3', 'f4', 'f5'
+        , 'limit'
                         # , 'fail'
-                        # , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t'
+                        # , 'UAS_avg', 'LAS_avg'
+                        #, 'UAS_t', 'LAS_t'
         , 'fail'
-                        # , 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
+        , 'UAS^c_avg', 'LAS^c_avg'
+                        # 'UAS^c_t', 'LAS^c_t'
         , 'UAS_e', 'LAS_e', 'LAc_e'
         # , 'UAS^c_e', 'LAS^c_e', 'LAc^c_e'
         # , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
-        , 'parse_time'
+        , 'parse_time_tot'
                         # , 'n_gaps_test', 'parse_time'
     ]
     header = {'nont_labelling': 'nont.~lab.'}
@@ -472,9 +477,14 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
     columns_style['n_gaps_test'] = 'r'
     header['n_gaps_gold'] = '\\# gaps (gold)'
     columns_style['n_gaps_gold'] = 'r'
-    header['parse_time'] = 'time (s)'
-    columns_style['parse_time'] = 'r'
-
+    header['parse_time_int'] = 'int. time (s)'
+    columns_style['parse_time_int'] = 'r'
+    header['parse_time_tot'] = 'tot. time (s)'
+    columns_style['parse_time_tot'] = 'r'
+    header['limit'] = 'limit'
+    columns_style['limit'] = 'r'
+    header['exp'] = 'exp'
+    columns_style['exp'] = 'r'
     # eval_pl evaluation
     for prefix in ['LAS', 'UAS', 'LAc']:
         for center in ['', '^c', '^t']:
@@ -554,11 +564,14 @@ def compute_line(connection, ids, exp, max_length):
     line['f4'] = fanout(fanouts, 4)
     line['f5'] = fanout(fanouts, 5)
 
-    UAS_a, LAS_a, UAS_t, LAS_t, time = scores_and_parse_time(connection, ids, exp)
+    UAS_a, LAS_a, UAS_t, LAS_t, time_on_int = scores_and_parse_time(connection, ids, exp)
 
     recogn_ids = recognised_sentences_lesseq_than(connection, exp, max_length, test_corpus)
     UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, _ = scores_and_parse_time(connection, recogn_ids, exp)
-    precicion = 2
+
+    total_parse_time = parse_time_trees_lesseq_than(connection, exp, max_length, test_corpus)
+
+    precicion = 1
 
     percent = lambda x: percentify(x, precicion)
     line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids)))
@@ -597,9 +610,15 @@ def compute_line(connection, ids, exp, max_length):
     line['LAS^c_avg'] = percentify(LAS_c_a, precicion)
     line['UAS^c_t'] = percentify(UAS_c_t, precicion)
     line['LAS^c_t'] = percentify(LAS_c_t, precicion)
+    if max_length == sys.maxint:
+        line['limit'] = "$\infty$"
+    else:
+        line['limit'] = max_length
     # line['n_gaps_test'] = '\\# gaps (test)'
     # line['n_gaps_gold'] = '\\# gaps (gold)'
-    line['parse_time'] = "{:.0f}".format(time)
+    line['parse_time_int'] = "{:,.0f}".format(time_on_int)
+    line['parse_time_tot'] = "{:,.0f}".format(total_parse_time)
+    line['exp'] = exp
     return line
 
 
@@ -627,7 +646,7 @@ def scores_and_parse_time(connection, ids, exp):
 def fanout(fanouts, f):
     for fi, ni in fanouts:
         if f == fi:
-            return ni
+            return "{:,}".format(ni)
     return 0
 
 
@@ -696,6 +715,18 @@ def recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
     return ids
 
 
+def parse_time_trees_lesseq_than(connection, exp_id, length, test_corpus):
+    cursor = connection.cursor()
+    time = cursor.execute('''
+    SELECT sum(result_trees.parse_time)
+    FROM trees JOIN result_trees
+      ON trees.t_id = result_trees.t_id
+    WHERE trees.corpus = ?
+      AND trees.length <= ?
+      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchall()
+    return time[0][0]
+
+
 def percentify(value, precicion):
     p = value * 100
     return ("{:." + str(precicion) + "f}").format(p)
@@ -703,28 +734,31 @@ def percentify(value, precicion):
 
 def nontlabelling_strategies(nont_labelling):
     if nont_labelling == 'strict_pos':
-        return 'strict'
+        return 'strict + POS'
     elif nont_labelling == 'child_pos':
-        return 'child'
+        return 'child + POS'
     elif nont_labelling == 'child_pos_dep':
-        return 'child + pos, leaf: dep'
+        return 'child + POS, leaf: dep'
     elif nont_labelling == 'strict_pos_dep':
-        return 'strict + pos, leaf: dep'
+        return 'strict + POS, leaf: dep'
     elif nont_labelling == 'strict_dep':
-        return 'strict + dep'
+        return 'strict + DEPREL'
     elif nont_labelling == 'strict_pos_dep_overall':
-        return 'strict + pos + dep'
+        return 'strict + POS + DEPREL'
     elif nont_labelling == 'child_pos_dep_overall':
-        return 'child + pos + dep'
+        return 'child + POS + DEPREL'
     elif nont_labelling == 'child_dep':
-        return 'child + dep'
+        return 'child + DEPREL'
 
 
 def recpac_stategies(rec_par):
     if rec_par == 'direct_extraction':
         return 'direct'
+    match = re.search(r'^fanout_(\d+)$', rec_par)
+    if match:
+        return '$k = ' + str(match.group(1)) + '$'
     else:
-        return rec_par.replace('_', ' ').replace('branching', 'branch.')
+        return rec_par.replace('_', '-').replace('branching', 'branch').replace('left', 'l').replace('right', 'r')
 
 
 def uas(connection, tree_id, e_id):
