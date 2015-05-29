@@ -2,12 +2,14 @@ __author__ = 'kilian'
 
 import sqlite3
 import time
-from general_hybrid_tree import GeneralHybridTree
-from lcfrs import LCFRS
-import conll_parse
 import sys
+import re
+
+from hybridtree.general_hybrid_tree import GeneralHybridTree
+from grammar.LCFRS.lcfrs import LCFRS
 from eval_pl_scorer import eval_pl_scores
-from collections import OrderedDict
+from corpora import conll_parse
+
 
 dbfile = 'examples/example.db'
 test_file = 'examples/Dependency_Corpus.conll'
@@ -134,7 +136,7 @@ def add_grammar(connection, grammar, experiment):
 def add_experiment(connection, term_label, nont_label, rec_par, ignore_punctuation, training_corpus, test_corpus,
                    started, cpu_time):
     """
-    :type connection: Connection
+    :type connection: sqlite3.Connection
     :param term_label:
     :param nont_label:
     :param rec_par:
@@ -212,8 +214,8 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
     tree_id = None
     for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', ( corpus, tree.sent_label())):
         tree_id = row[0]
-    if tree_id == None:
-        assert ("tree not found")
+    if tree_id is None:
+        assert "tree not found"
 
     # unique tree key
     cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None
@@ -293,7 +295,10 @@ def query_result_tree(connection, exp, tree_id):
             tree = GeneralHybridTree()
             for i, label, pos, head, deprel in tree_nodes:
                 tree.add_node(str(i), label, pos, True, True)
-                tree.set_dep_label(str(i), deprel)
+                if deprel is None:
+                    tree.set_dep_label(str(i), 'UNKNOWN')
+                else:
+                    tree.set_dep_label(str(i), deprel)
                 if head == 0:
                     tree.set_root(str(i))
                 else:
@@ -411,20 +416,25 @@ def initialize_database(dbfile):
 
 def create_latex_table_from_database(connection, experiments, max_length = sys.maxint, pipe=sys.stdout):
     columns_style = {}
-    table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
+    table_columns = [ 'exp'
+        , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
-    selected_columns = ['punc', 'nont_labelling', 'rec_par', 'f1', 'f2', 'f3', 'f4', 'f5'
+    selected_columns = ['rec_par', 'nont_labelling', 'f1', 'f2' #, 'f3', 'f4', 'f5'
+        , 'limit'
                         # , 'fail'
-                        # , 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t'
-        , 'parse_time', 'fail'
-                        # , 'UAS^c_avg', 'LAS^c_avg', 'UAS^c_t', 'LAS^c_t'
+                        # , 'UAS_avg', 'LAS_avg'
+                        #, 'UAS_t', 'LAS_t'
+        , 'fail'
+        , 'UAS^c_avg', 'LAS^c_avg'
+                        # 'UAS^c_t', 'LAS^c_t'
         , 'UAS_e', 'LAS_e', 'LAc_e'
-        , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
+        # , 'UAS^c_e', 'LAS^c_e', 'LAc^c_e'
+        # , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
+        , 'parse_time_tot'
                         # , 'n_gaps_test', 'parse_time'
     ]
-    header = {}
-    header['nont_labelling'] = 'nont.~lab.'
+    header = {'nont_labelling': 'nont.~lab.'}
     columns_style['nont_labelling'] = 'l'
     header['rec_par'] = 'extraction'
     columns_style['rec_par'] = 'l'
@@ -467,9 +477,14 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
     columns_style['n_gaps_test'] = 'r'
     header['n_gaps_gold'] = '\\# gaps (gold)'
     columns_style['n_gaps_gold'] = 'r'
-    header['parse_time'] = 'time (s)'
-    columns_style['parse_time'] = 'r'
-
+    header['parse_time_int'] = 'int. time (s)'
+    columns_style['parse_time_int'] = 'r'
+    header['parse_time_tot'] = 'tot. time (s)'
+    columns_style['parse_time_tot'] = 'r'
+    header['limit'] = 'limit'
+    columns_style['limit'] = 'r'
+    header['exp'] = 'exp'
+    columns_style['exp'] = 'r'
     # eval_pl evaluation
     for prefix in ['LAS', 'UAS', 'LAc']:
         for center in ['', '^c', '^t']:
@@ -512,6 +527,11 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
         pipe.write('\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\\n')
     pipe.write('\t\\bottomrule\n')
     pipe.write('\\end{tabular}\n')
+    pipe.write('\\begin{itemize}\n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}_e$: on parsed sentences with eval.pl \n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^c_e$: on intersection of parsed sentences with eval.pl\n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^t_e$: on full corpus, with fallback for to long/ non-recognized sentences\n')
+    pipe.write('\t \\end{itemize}\n')
     pipe.write('''
     \\end{table}
 
@@ -544,14 +564,17 @@ def compute_line(connection, ids, exp, max_length):
     line['f4'] = fanout(fanouts, 4)
     line['f5'] = fanout(fanouts, 5)
 
-    UAS_a, LAS_a, UAS_t, LAS_t, time = scores_and_parse_time(connection, ids, exp)
+    UAS_a, LAS_a, UAS_t, LAS_t, time_on_int = scores_and_parse_time(connection, ids, exp)
 
     recogn_ids = recognised_sentences_lesseq_than(connection, exp, max_length, test_corpus)
     UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, _ = scores_and_parse_time(connection, recogn_ids, exp)
-    precicion = 2
+
+    total_parse_time = parse_time_trees_lesseq_than(connection, exp, max_length, test_corpus)
+
+    precicion = 1
 
     percent = lambda x: percentify(x, precicion)
-    line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
+    line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids)))
     line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(
         map(percent, eval_pl_scores(connection, test_corpus, exp)))
     line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(
@@ -587,9 +610,15 @@ def compute_line(connection, ids, exp, max_length):
     line['LAS^c_avg'] = percentify(LAS_c_a, precicion)
     line['UAS^c_t'] = percentify(UAS_c_t, precicion)
     line['LAS^c_t'] = percentify(LAS_c_t, precicion)
+    if max_length == sys.maxint:
+        line['limit'] = "$\infty$"
+    else:
+        line['limit'] = max_length
     # line['n_gaps_test'] = '\\# gaps (test)'
     # line['n_gaps_gold'] = '\\# gaps (gold)'
-    line['parse_time'] = "{:.0f}".format(time)
+    line['parse_time_int'] = "{:,.0f}".format(time_on_int)
+    line['parse_time_tot'] = "{:,.0f}".format(total_parse_time)
+    line['exp'] = exp
     return line
 
 
@@ -600,15 +629,15 @@ def scores_and_parse_time(connection, ids, exp):
         time = time + parsetime(connection, id, exp)
 
         c, l, uas_a = uas(connection, id, exp)
-        UAS_a = UAS_a + uas_a
+        UAS_a += uas_a
         LEN = LEN + l
         UAS_t = UAS_t + c
 
         cl, _, las_a = las(connection, id, exp)
-        LAS_a = LAS_a + las_a
+        LAS_a += las_a
         LAS_t = LAS_t + cl
-    UAS_a = UAS_a / len(ids)
-    LAS_a = LAS_a / len(ids)
+    UAS_a /= len(ids)
+    LAS_a /= len(ids)
     UAS_t = 1.0 * UAS_t / LEN
     LAS_t = 1.0 * LAS_t / LEN
     return UAS_a, LAS_a, UAS_t, LAS_t, time
@@ -617,7 +646,7 @@ def scores_and_parse_time(connection, ids, exp):
 def fanout(fanouts, f):
     for fi, ni in fanouts:
         if f == fi:
-            return ni
+            return "{:,}".format(ni)
     return 0
 
 
@@ -686,6 +715,18 @@ def recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
     return ids
 
 
+def parse_time_trees_lesseq_than(connection, exp_id, length, test_corpus):
+    cursor = connection.cursor()
+    time = cursor.execute('''
+    SELECT sum(result_trees.parse_time)
+    FROM trees JOIN result_trees
+      ON trees.t_id = result_trees.t_id
+    WHERE trees.corpus = ?
+      AND trees.length <= ?
+      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchall()
+    return time[0][0]
+
+
 def percentify(value, precicion):
     p = value * 100
     return ("{:." + str(precicion) + "f}").format(p)
@@ -693,20 +734,31 @@ def percentify(value, precicion):
 
 def nontlabelling_strategies(nont_labelling):
     if nont_labelling == 'strict_pos':
-        return 'strict'
+        return 'strict + POS'
     elif nont_labelling == 'child_pos':
-        return 'child'
+        return 'child + POS'
     elif nont_labelling == 'child_pos_dep':
-        return 'child + dep'
+        return 'child + POS, leaf: dep'
     elif nont_labelling == 'strict_pos_dep':
-        return 'strict + dep'
+        return 'strict + POS, leaf: dep'
+    elif nont_labelling == 'strict_dep':
+        return 'strict + DEPREL'
+    elif nont_labelling == 'strict_pos_dep_overall':
+        return 'strict + POS + DEPREL'
+    elif nont_labelling == 'child_pos_dep_overall':
+        return 'child + POS + DEPREL'
+    elif nont_labelling == 'child_dep':
+        return 'child + DEPREL'
 
 
 def recpac_stategies(rec_par):
     if rec_par == 'direct_extraction':
         return 'direct'
+    match = re.search(r'^fanout_(\d+)$', rec_par)
+    if match:
+        return '$k = ' + str(match.group(1)) + '$'
     else:
-        return rec_par.replace('_', ' ').replace('branching', 'branch.')
+        return rec_par.replace('_', '-').replace('branching', 'branch').replace('left', 'l').replace('right', 'r')
 
 
 def uas(connection, tree_id, e_id):
@@ -795,7 +847,7 @@ def parsetime(connection, tree_id, e_id):
 def finalize_database(connection):
     """
     :param connection:
-    :type connection: Connection
+    :type connection: sqlite3.Connection
     :return:
     """
     connection.close()
@@ -808,14 +860,14 @@ def result_table():
     finalize_database(connection)
 
 # result_table()
-def no_parse_result(connection, tree_name, corpus, experiment, parse_time):
+def no_parse_result(connection, tree_name, corpus, experiment, parse_time, message):
     cursor = connection.cursor()
 
     tree_id = None
     for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', (corpus, tree_name)):
         tree_id = row[0]
-    if tree_id == None:
-        assert ("tree not found")
+    if tree_id is None:
+        assert "tree not found"
 
     # unique tree key
     cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None
@@ -824,5 +876,5 @@ def no_parse_result(connection, tree_name, corpus, experiment, parse_time):
                                                                               , None
                                                                               , None
                                                                               , parse_time
-                                                                              , "no_parse"))
+                                                                              , message))
     connection.commit()

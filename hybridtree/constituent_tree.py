@@ -2,10 +2,11 @@ __author__ = 'kilian'
 
 from general_hybrid_tree import GeneralHybridTree
 
+
 #
 class HybridTree(GeneralHybridTree):
     def __init__(self, sent_label=None):
-       GeneralHybridTree.__init__(self, sent_label)
+        GeneralHybridTree.__init__(self, sent_label)
 
     # Add next leaf. Order of adding is significant.
     # id: string
@@ -38,7 +39,7 @@ class HybridTree(GeneralHybridTree):
     # id: string
     # return: bool
     def is_leaf(self, id):
-        return (id in self.full_yield())
+        return id in self.full_yield()
 
     # Get leaf for index.
     # index: int

@@ -2,11 +2,13 @@
 #  -*- coding: iso-8859-15 -*-
 __author__ = 'kilian'
 
-from general_hybrid_tree import GeneralHybridTree
 import re
-import dependency_induction as d_i
-from parsing import LCFRS_parser
 import sys
+
+from hybridtree.general_hybrid_tree import GeneralHybridTree
+import dependency.induction as d_i
+import dependency.labeling as label
+from parser.naive.parsing import LCFRS_parser
 
 
 test_file = 'examples/Dependency_Corpus.conll'
@@ -71,6 +73,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             if match.group(1) == '1':
                 tree_count += 1
                 tree = GeneralHybridTree('tree' + str(tree_count))
+                root = 0
 
             node_id = match.group(1)
             label = match.group(2)
@@ -88,6 +91,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 
             if parent == '0':
                 tree.set_root(node_id)
+                root += 1
 
             try:
                 line = file_content.next()
@@ -109,13 +113,17 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
                 if ignore_punctuation:
                     continue
                 raise Exception
+            elif root > 1:
+                # FIXME: turkish corpus contains trees with more than one root
+                # FIXME: currently, they are ignored
+                continue
             elif tree.n_nodes() != len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
                 # FIXME: ignoring punctuation may leads to malformed trees
                 if ignore_punctuation:
                     continue
-                raise Exception('connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
+                raise Exception('{4}: connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
                      str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
-                     str(len(tree.id_yield()))))
+                     str(len(tree.id_yield()))), tree.sent_label())
             yield tree
 
 def tree_to_conll_str(tree):
@@ -202,7 +210,7 @@ def compare_dependency_trees(reference, test):
         if reference.n_nodes() == LAS:
             LEM = 1
 
-    return (UAS, LAS, UEM, LEM, reference.n_nodes())
+    return UAS, LAS, UEM, LEM, reference.n_nodes()
 
 
 def score_cmp_dep_trees(reference, test):
@@ -248,14 +256,14 @@ def test_conll_parse():
 
 def test_conll_grammar_induction():
     trees = parse_conll_corpus(test_file, True)
-    (_, grammar) = d_i.induce_grammar(trees, d_i.child_word, d_i.term_pos, d_i.direct_extraction, 'START')
+    (_, grammar) = d_i.induce_grammar(trees, label.ChildFormLabeling(), d_i.term_pos, d_i.direct_extraction, 'START')
 
     trees2 = parse_conll_corpus(test_file, True)
 
     for tree in trees2:
         parser = LCFRS_parser(grammar, tree.pos_yield())
         h_tree = GeneralHybridTree()
-        h_tree = parser.new_DCP_Hybrid_Tree(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), True)
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), True)
         #print h_tree
         print h_tree.full_labelled_yield()
         print tree_to_conll_str(h_tree)
