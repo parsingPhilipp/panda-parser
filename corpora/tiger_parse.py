@@ -66,7 +66,7 @@ def sentence_name_to_hybridtree(name, file_name):
         tree = HybridTree(name)
         graph = sent.find('graph')
         root = graph.get('root')
-        tree.set_root(root)
+        tree.add_to_root(root)
         for term in graph.iterfind('terminals/t'):
             id = term.get('id')
             word = term.get('word')

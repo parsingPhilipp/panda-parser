@@ -47,23 +47,20 @@ def disconnect_punctuation(trees):
     """
     for tree in trees:
         tree2 = GeneralHybridTree(tree.sent_label())
-        tree2.set_root(tree.root())
+        for root_id in tree.root:
+            tree2.add_to_root(root_id)
         for id in tree.full_yield():
-            label = tree.node_label(id)
-            pos = tree.node_pos(id)
-            deprel = tree.node_dep_label(id)
-            if not re.search(r'^\$.*$', pos):
+            token = tree.node_token(id)
+            if not re.search(r'^\$.*$', token.pos()):
                 parent = tree.parent(id)
-                tree2.add_node(id, label, pos, True, True)
+                tree2.add_node(id, token, True, True)
                 tree2.add_child(parent, id)
             else:
-                tree2.add_node(id, label, pos, True, False)
-
-            tree2.set_dep_label(id, deprel)
+                tree2.add_node(id, token, True, False)
 
         if tree2:
             # basic sanity checks
-            if not tree2.rooted():
+            if not tree2.root:
                 continue
             elif tree2.n_nodes() != len(tree2.id_yield()) or len(tree2.nodes()) != len(tree2.full_yield()):
                 continue
@@ -218,7 +215,7 @@ def parse_sentences_from_file(grammar
         else:
             # print tree.sent_label(),
             h_tree = GeneralHybridTree(tree.sent_label())
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(),
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, map(lambda x: x.pos(), tree.full_token_yield()), map(lambda x: x.form(), tree.full_token_yield()),
                                                             ignore_punctuation)
 
             if h_tree:

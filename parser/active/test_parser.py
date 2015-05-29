@@ -9,7 +9,9 @@ from parser.derivation_interface import derivation_to_hybrid_tree
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from dependency.induction import induce_grammar, term_pos, direct_extraction
 from dependency.labeling import StrictPOSdepAtLeafLabeling
+from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+
 
 class MyTestCase(unittest.TestCase):
     def setUp(self):
@@ -214,7 +216,7 @@ class MyTestCase(unittest.TestCase):
             h_tree_2 = GeneralHybridTree()
             dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False)
 
-            self.assertEqual(h_tree_2.compare_recursive(tree, h_tree_2.root(), tree.root(), True, True), True)
+            self.assertEqual(h_tree_2.compare_recursive(tree, h_tree_2.root, tree.root, True, True), True)
 
     def test_ambiguous_copy_grammar(self):
         grammar = ambiguous_copy_grammar()
@@ -456,43 +458,4 @@ def print_derivation_tree(root_element):
     derivation = Derivation()
     derivation_tree(derivation, root_element, None)
     return derivation
-
-
-def hybrid_tree_1():
-    tree = GeneralHybridTree()
-    tree.add_node("v1", 'Piet', "NP", True)
-    tree.add_node("v21", 'Marie', "N", True)
-    tree.add_node("v", 'helpen', "V", True)
-    tree.add_node("v2", 'lezen', "V", True)
-    tree.add_child("v", "v2")
-    tree.add_child("v", "v1")
-    tree.add_child("v2", "v21")
-    tree.set_root("v")
-    tree.set_dep_label('v', 'ROOT')
-    tree.set_dep_label('v1', 'SBJ')
-    tree.set_dep_label('v2', 'VBI')
-    tree.set_dep_label('v21', 'OBJ')
-    tree.reorder()
-    return tree
-
-
-def hybrid_tree_2():
-    tree2 = GeneralHybridTree()
-    tree2.add_node("v1", 'Piet', "NP", True)
-    tree2.add_node("v211", 'Marie', 'N', True)
-    tree2.add_node("v", 'helpen', "V", True)
-    tree2.add_node("v2", 'leren', "V", True)
-    tree2.add_node("v21", 'lezen', "V", True)
-    tree2.add_child("v", "v2")
-    tree2.add_child("v", "v1")
-    tree2.add_child("v2", "v21")
-    tree2.add_child("v21", "v211")
-    tree2.set_root("v")
-    tree2.set_dep_label('v', 'ROOT')
-    tree2.set_dep_label('v1', 'SBJ')
-    tree2.set_dep_label('v2', 'VBI')
-    tree2.set_dep_label('v21', 'VFIN')
-    tree2.set_dep_label('v211', 'OBJ')
-    tree2.reorder()
-    return tree2
 

@@ -265,10 +265,10 @@ class StrictFormLabeling(StrictLabeling):
         super(StrictFormLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_label(id)
+        return tree.node_token(id)
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_label(id)
+        return tree.node_token(id)
 
     def __str__(self):
         return 'strict_word'
@@ -314,14 +314,16 @@ class ChildPOSdepLabeling(ChildLabeling):
         super(ChildPOSdepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        label = token.pos() + ':' + token.deprel()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        return token.pos() + ':' + token.deprel()
 
     def __str__(self):
         return 'child_pos_dep_overall'
@@ -332,10 +334,10 @@ class ChildFormLabeling(ChildLabeling):
         super(ChildFormLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_label(id)
+        return tree.node_token(id)
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_label(id)
+        return tree.node_token(id)
 
     def __str__(self):
         return 'child_word'

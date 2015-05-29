@@ -47,7 +47,7 @@ class AbstractParser:
         """
         pass
 
-    def dcp_hybrid_tree_best_derivation(self, tree, poss, words, ignore_punctuation):
+    def dcp_hybrid_tree_best_derivation(self, tree, poss, words, ignore_punctuation, construct_token):
         """
         :param tree:
         :type tree: GeneralHybridTree
@@ -60,7 +60,7 @@ class AbstractParser:
         """
         dcp_evaluation = self.dcp_best_derivation()
         if dcp_evaluation:
-            return dcp_to_hybridtree(tree, dcp_evaluation, poss, words, ignore_punctuation)
+            return dcp_to_hybridtree(tree, dcp_evaluation, poss, words, ignore_punctuation, construct_token)
         else:
             return None
 
@@ -72,19 +72,22 @@ class AbstractParser:
             return []
 
 
-
 def best_hybrid_tree_for_best_derivation():
     pass
+
 
 def hybird_tree_from_sdcp_evaluation_for_best_derivation(self):
     # TODO
     pass
 
+
 def all_hybrid_trees_from_derivations():
     pass
 
+
 def hybrid_trees_from_sdcp_evaluation_of_all_derivations():
     pass
+
 
 def hybrid_tree_from_sdcp_with_heighest_weight():
     pass

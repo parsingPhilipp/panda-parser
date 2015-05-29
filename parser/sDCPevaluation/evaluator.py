@@ -77,21 +77,21 @@ class The_DCP_evaluator(DCP_evaluator):
 # dcp: list of DCP_term/DCP_pos
 # poss: list of string
 # words: list of string
-def dcp_to_hybridtree(tree, dcp, poss, words, ignore_punctuation):
+def dcp_to_hybridtree(tree, dcp, poss, words, ignore_punctuation, construct_token):
     if len(dcp) != 1:
         raise Exception('DCP has multiple roots')
     j = 0
     for (i, (pos, word)) in enumerate(zip(poss, words)):
         # tree.add_leaf(str(i), pos, word)
         if ignore_punctuation and re.search('^\$.*$', pos):
-            tree.add_node(str(i) + 'p', word, pos, True, False)
+            tree.add_node(str(i) + 'p', construct_token(word, pos, True), True, False)
         elif ignore_punctuation:
-            tree.add_node(str(j), word, pos, True, True)
+            tree.add_node(str(j), construct_token(word, pos, True), True, True)
             j += 1
         else:
-            tree.add_node(str(i), word, pos, True, True)
-    (id, _) = dcp_to_hybridtree_recur(dcp[0], tree, len(poss))
-    tree.set_root(id)
+            tree.add_node(str(i), construct_token(word, pos, True), True, True)
+    (id, _) = dcp_to_hybridtree_recur(dcp[0], tree, len(poss), construct_token)
+    tree.add_to_root(id)
     tree.reorder()
     return tree
 
@@ -102,7 +102,7 @@ def dcp_to_hybridtree(tree, dcp, poss, words, ignore_punctuation):
 # tree: GeneralHybridTree
 # next_id: string
 # return: pair of string
-def dcp_to_hybridtree_recur(dcp, tree, next_id):
+def dcp_to_hybridtree_recur(dcp, tree, next_id, construct_token):
     head = dcp.head()
     if isinstance(head, DCP_pos):
         # FIXME : inconsistent counting of positions in hybrid tree requires -1
@@ -111,13 +111,14 @@ def dcp_to_hybridtree_recur(dcp, tree, next_id):
         label = head
         id = str(next_id)
         next_id += 1
-        tree.add_node(id, label)
+        tree.add_node(id, construct_token(label, None, False))
         tree.set_label(id, label)
     else:
         raise Exception
-    tree.set_dep_label(id, head.dep_label())
+    if head.dep_label() is not None:
+        tree.node_token(id).set_deprel(head.dep_label())
     for child in dcp.arg():
         (tree_child, next_id) = \
-            dcp_to_hybridtree_recur(child, tree, next_id)
+            dcp_to_hybridtree_recur(child, tree, next_id, construct_token)
         tree.add_child(id, tree_child)
     return id, next_id

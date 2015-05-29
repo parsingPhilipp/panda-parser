@@ -429,7 +429,7 @@ def format_tree(tree, sent_label):
     graph.x_unit = widest_nont(tree, graph)
     graph.y_unit *= 0.8
     format_leaves(tree, graph)
-    format_recur(tree, tree.root(), graph)
+    format_recur(tree, tree.root, graph)
     return graph
 
 

@@ -15,7 +15,6 @@ class AbstractDerivation:
         """
         pass
 
-
     @abstractmethod
     def getRule(self, id):
         pass
@@ -27,7 +26,6 @@ class AbstractDerivation:
         :rtype: list[object]
         """
         pass
-
 
     @abstractmethod
     def child_id(self, id, i):
@@ -93,6 +91,6 @@ def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected=None):
             tree.add_child(id, child)
         for position in der.terminal_positions(id):
             tree.add_child(id, "c" + str(position))
-    tree.set_root(der.root_id())
+    tree.add_to_root(der.root_id())
     tree.reorder()
     return tree

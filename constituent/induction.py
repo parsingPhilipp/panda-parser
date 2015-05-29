@@ -13,7 +13,7 @@ start = 'START'
 # return: LCFRS
 def direct_extract_lcfrs(tree):
     gram = LCFRS(start=start)
-    root = tree.root()
+    root = tree.root
     if tree.is_leaf(root):
         lhs = LCFRS_lhs(start)
         pos = tree.leaf_pos(root)
@@ -87,7 +87,7 @@ def direct_extract_lcfrs_from(tree, id, gram):
 # return: LCFRS
 def fringe_extract_lcfrs(tree, fringes, naming='strict'):
     gram = LCFRS(start=start)
-    root = tree.root()
+    root = tree.root
     (first, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming)
     lhs = LCFRS_lhs(start)
     lhs.add_arg([LCFRS_var(0,0)])
@@ -116,7 +116,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming):
     args = []
     for span in spans:
         args += [span_to_arg(span, child_spans, tree, term_to_pos)]
-    id_seq = make_id_seq(tree, tree.root(), fringe)
+    id_seq = make_id_seq(tree, tree.root, fringe)
     dcp_rules = []
     for (i,seq) in enumerate(id_seq):
         dcp_rhs = make_fringe_terms(tree, seq, child_seqs, term_to_pos)

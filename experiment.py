@@ -577,6 +577,11 @@ def parse_compare(max_length, method=direct_extract_lcfrs):
 
 # Parse test sentence (yield of tree) using grammar.
 def parse_tree_by_gram_and_compare(tree, gram):
+    """
+    :type tree: HybridTree
+    :param gram:
+    :return:
+    """
     # print tree.unlabelled_structure() # for testing
     poss = tree.pos_yield()
     words = tree.word_yield()

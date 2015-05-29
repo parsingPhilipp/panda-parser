@@ -187,15 +187,16 @@ def add_tree(connection, tree, corpus):
     # unique tree key
     tree_id = cursor.lastrowid
     for id in tree.full_yield():
-        if tree.root() == id:
+        if tree.root == id:
             head = 0
         else:
             head = tree.node_index_full(tree.parent(id)) + 1
+        token = tree.node_token(id)
         cursor.execute('''INSERT INTO tree_nodes VALUES (?, ?, ?, ?, ?, ?)''', (tree_id
                                                                                 , tree.node_index_full(id) + 1
-                                                                                , tree.node_label(id)
-                                                                                , tree.node_pos(id)
-                                                                                , tree.node_dep_label(id)
+                                                                                , token.form()
+                                                                                , token.pos()
+                                                                                , token.deprel()
                                                                                 , head))
 
     connection.commit()
@@ -229,22 +230,22 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
 
     for id in tree.full_yield():
         # set root head
-        if tree.root() == id:
+        if tree.root == id:
             head = 0
             if root_default:
                 deprel = root_default
             else:
-                deprel = tree.node_dep_label(id)
+                deprel = tree.node_token(id).deprel()
         # connect disconnected nodes to root
         elif tree.disconnected(id):
-            head = tree.node_index_full(tree.root()) + 1
+            head = tree.node_index_full(tree.root) + 1
             if disconnect_default:
                 deprel = disconnect_default
             else:
-                deprel = tree.node_dep_label(id)
+                deprel = tree.node_token(id).form()
         else:
             head = tree.node_index_full(tree.parent(id)) + 1
-            deprel = tree.node_dep_label(id)
+            deprel = tree.node_token(id).deprel()
         cursor.execute('''INSERT INTO result_tree_nodes VALUES (?, ?, ?, ?)''', (result_tree_id
                                                                                  , tree.node_index_full(id) + 1
                                                                                  , deprel
@@ -300,10 +301,10 @@ def query_result_tree(connection, exp, tree_id):
                 else:
                     tree.set_dep_label(str(i), deprel)
                 if head == 0:
-                    tree.set_root(str(i))
+                    tree.add_to_root(str(i))
                 else:
                     tree.add_child(str(head), str(i))
-            assert (tree.rooted())
+            assert tree.root is not []
             return status, tree
     # legacy: no entry found
     else:
@@ -325,10 +326,10 @@ def query_result_tree(connection, exp, tree_id):
         tree.set_dep_label(str(i), '_')
         parent = strategy(i)
         if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
-            tree.set_root(str(i))
+            tree.add_to_root(str(i))
         else:
             tree.add_child(str(parent), str(i))
-    assert (tree.rooted())
+    assert tree.root is not []
     return status, tree
 
 

@@ -1,12 +1,10 @@
 __author__ = 'kilian'
 
-from grammar.sDCP.dcp import DCP_rule, DCP_term, DCP_var, DCP_index, DCP_string
+from grammar.sDCP.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
 from grammar.LCFRS.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
 from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
     right_branching_partitioning
-from parser.naive.parsing import LCFRS_parser
-from hybridtree.general_hybrid_tree import GeneralHybridTree
-from dependency.labeling import AbstractLabeling, ChildPOSdepLabeling
+from dependency.labeling import AbstractLabeling
 
 
 # ##################   Top level methods for grammar induction.   ###################
@@ -48,16 +46,16 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
 
 # Terminal labelling strategies
 def term_word(tree, id):
-    return tree.node_label(id)
+    return tree.node_token(id)
 
 
 def term_pos(tree, id):
-    return tree.node_pos(id)
+    return tree.node_token(id).pos()
 
 
 # and corresponding tree-yield strategies for parsing
 def word_yield(tree):
-    return tree.labelled_yield()
+    return tree.token_yield()
 
 
 def pos_yield(tree):
@@ -137,7 +135,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labell
         t_max = top_max(tree, node_ids)
         b_max = bottom_max(tree, node_ids)
 
-        dependency_label = tree.node_dep_label(node_ids[0])
+        dependency_label = tree.node_token(node_ids[0]).deprel()
         dcp = [create_leaf_DCP_rule(b_max, dependency_label)]
         lhs = create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_labelling)
 
@@ -406,115 +404,3 @@ def maximize(tree, id_set):
 
     return max_list
 
-
-##########################    Tests     #######################################################
-
-
-def test_dependency_induction():
-    tree = GeneralHybridTree()
-    tree.add_node("v1", 'Piet', "NP", True)
-    tree.add_node("v21", 'Marie', "N", True)
-    tree.add_node("v", 'helpen', "V", True)
-    tree.add_node("v2", 'lezen', "V", True)
-    tree.add_child("v", "v2")
-    tree.add_child("v", "v1")
-    tree.add_child("v2", "v21")
-    tree.set_root("v")
-    tree.set_dep_label('v', 'ROOT')
-    tree.set_dep_label('v1', 'SBJ')
-    tree.set_dep_label('v2', 'VBI')
-    tree.set_dep_label('v21', 'OBJ')
-    tree.reorder()
-    # print tree.children("v")
-    # print tree
-    #
-    # for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
-    #                'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
-    #     print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
-    #     print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
-    #
-    # print "some rule"
-    # for mem, arg in [(-1, 0), (0,0), (1,0)]:
-    #     print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
-    #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
-    #
-    #
-    # print "some other rule"
-    # for mem, arg in [(-1,1),(1,0)]:
-    #     print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
-    #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
-    #
-    # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
-    # print 'child:' , child_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
-    # print '---'
-    # print 'strict: ', strict_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
-    # print 'child: ', child_labeling(tree, top_max(tree, ['v1','v21']), bottom_max(tree, ['v1','v21']))
-    # print '---'
-    # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
-    # print 'child:' , child_labeling(tree, top_max(tree, ['v','v1', 'v21']), bottom_max(tree, ['v','v1', 'v21']))
-
-
-    tree2 = GeneralHybridTree()
-    tree2.add_node("v1", 'Piet', "NP", True)
-    tree2.add_node("v211", 'Marie', 'N', True)
-    tree2.add_node("v", 'helpen', "V", True)
-    tree2.add_node("v2", 'leren', "V", True)
-    tree2.add_node("v21", 'lezen', "V", True)
-    tree2.add_child("v", "v2")
-    tree2.add_child("v", "v1")
-    tree2.add_child("v2", "v21")
-    tree2.add_child("v21", "v211")
-    tree2.set_root("v")
-    tree2.set_dep_label('v', 'ROOT')
-    tree2.set_dep_label('v1', 'SBJ')
-    tree2.set_dep_label('v2', 'VBI')
-    tree2.set_dep_label('v21', 'VFIN')
-    tree2.set_dep_label('v211', 'OBJ')
-    tree2.reorder()
-
-    # print tree2.children("v")
-    # print tree2
-    #
-    # print 'siblings v211', tree2.siblings('v211')
-    # print top(tree2, ['v','v1', 'v211'])
-    # print top_max(tree2, ['v','v1', 'v211'])
-    #
-    # print '---'
-    # print 'strict:' , strict_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
-    # print 'child:' , child_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
-
-    # rec_par = ('v v1 v2 v21'.split(' '),
-    #            [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
-    #                ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
-    #            ])
-    #
-    # grammar = LCFRS(nonterminal_str(tree, top_max(tree, rec_par[0]), bottom_max(tree, rec_par[0]), 'strict'))
-    #
-    # add_rules_to_grammar_rec(tree, rec_par, grammar, 'child')
-    #
-    # grammar.make_proper()
-    # print grammar
-
-    print tree.recursive_partitioning()
-
-    (_, grammar) = induce_grammar([tree, tree2], ChildPOSdepLabeling(), term_pos, direct_extraction, 'START')
-    print max([grammar.fanout(nont) for nont in grammar.nonts()])
-    print grammar
-
-    parser = LCFRS_parser(grammar, 'NP N V V'.split(' '))
-    print parser.best_derivation_tree()
-
-    hybrid_tree = GeneralHybridTree()
-    hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, 'P M h l'.split(' '),
-                                                         'Piet Marie helpen lezen'.split(' '), True)
-    print hybrid_tree.full_labelled_yield()
-    print hybrid_tree
-
-    string = "hallo"
-    dcp_string = DCP_string(string)
-    dcp_string.set_dep_label("dep")
-    print dcp_string, dcp_string.dep_label()
-
-
-if __name__ == '__main__':
-    test_dependency_induction()

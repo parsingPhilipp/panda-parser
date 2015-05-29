@@ -6,6 +6,7 @@ import re
 import sys
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.biranked_tokens import construct_dependency_token, CoNLLToken
 import dependency.induction as d_i
 import dependency.labeling as label
 from parser.naive.parsing import LCFRS_parser
@@ -82,12 +83,10 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             deprel = match.group(8)
 
             if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
-                tree.add_node(node_id, label, pos, True, True)
+                tree.add_node(node_id, CoNLLToken(label, None, pos, deprel), True, True)
                 tree.add_child(parent, node_id)
             else:
-                tree.add_node(node_id, label, pos, True, False)
-
-            tree.set_dep_label(node_id, deprel)
+                tree.add_node(node_id, CoNLLToken(label, None, pos, deprel), True, False)
 
             if parent == '0':
                 tree.set_root(node_id)
@@ -107,7 +106,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 
         if tree:
             # basic sanity checks
-            if not tree.rooted():
+            if not tree.root:
                 # FIXME: ignoring punctuation may leads to malformed trees
                 print "non-rooted"
                 if ignore_punctuation:
@@ -150,23 +149,23 @@ def node_to_conll_str(tree, id):
     delimiter = '\t'
     s = ''
     s += str(tree.node_index_full(id) + 1) + delimiter
-    s += tree.node_label(id) + delimiter
+    s += tree.node_token(id) + delimiter
     s += '_' + delimiter
-    s += tree.node_pos(id) + delimiter
-    s += tree.node_pos(id) + delimiter
+    s += tree.node_token(id).pos() + delimiter
+    s += tree.node_token(id).pos() + delimiter
     s += '_' + delimiter
     dependency_info = ''
-    if tree.root() == id:
+    if tree.root == id:
         dependency_info += '0' + delimiter
     # Connect disconnected tokens (i.e. punctuation) to the root.
     elif tree.disconnected(id):
-        dependency_info += str(tree.node_index_full(tree.root()) + 1) + delimiter
+        dependency_info += str(tree.node_index_full(tree.root) + 1) + delimiter
     else:
         dependency_info += str(tree.node_index_full(tree.parent(id)) + 1) + delimiter
     if tree.disconnected(id):
         dependency_info += 'PUNC'
     else:
-        dependency_info += tree.node_dep_label(id)
+        dependency_info += tree.node_token(id).dep()
     s += dependency_info + delimiter + dependency_info
     return s
 
@@ -185,19 +184,19 @@ def compare_dependency_trees(reference, test):
     LEM = 0
 
     # sanity check
-    if reference.labelled_yield() != test.labelled_yield():
-        raise Exception("yield of trees differs: \'{0}\' vs. \'{1}\'".format(' '.join(reference.labelled_yield()),
-                                                                             ' '.join(test.labelled_yield())))
+    if reference.token_yield() != test.token_yield():
+        raise Exception("yield of trees differs: \'{0}\' vs. \'{1}\'".format(' '.join(reference.token_yield()),
+                                                                             ' '.join(test.token_yield())))
 
-    for i in range(1, len(reference.labelled_yield()) + 1):
+    for i in range(1, len(reference.token_yield()) + 1):
         ref_id = reference.index_node(i)
         test_id = test.index_node(i)
-        if reference.root() == ref_id:
-            if test.root() == test_id:
+        if reference.root == ref_id:
+            if test.root == test_id:
                 UAS += 1
                 if reference.node_dep_label(ref_id) == test.node_dep_label(test_id):
                     LAS += 1
-        elif test.root() != test_id:
+        elif test.root != test_id:
             ref_parent_i = reference.node_index(reference.parent(ref_id))
             test_parent_i = test.node_index(test.parent(test_id))
             if ref_parent_i == test_parent_i:
@@ -261,11 +260,11 @@ def test_conll_grammar_induction():
     trees2 = parse_conll_corpus(test_file, True)
 
     for tree in trees2:
-        parser = LCFRS_parser(grammar, tree.pos_yield())
+        parser = LCFRS_parser(grammar, [token.pos() for token in tree.token_yield()])
         h_tree = GeneralHybridTree()
-        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(), True)
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.full_token_yield()], [token.form() for token in tree.full_token_yield()], True, construct_dependency_token)
         #print h_tree
-        print h_tree.full_labelled_yield()
+        print h_tree.full_token_yield()
         print tree_to_conll_str(h_tree)
 
 

@@ -1,6 +1,7 @@
 __author__ = 'kilian'
 
 import unittest
+from hybridtree.biranked_tokens import CoNLLToken
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 
@@ -10,15 +11,15 @@ class GeneralHybridTreeTestCase(unittest.TestCase):
 
     def setUp(self):
         self.tree = GeneralHybridTree()
-        self.tree.add_node("v1", "Piet", "NP", True)
-        self.tree.add_node("v21", "Marie", "N", True)
-        self.tree.add_node("v", "helpen", "VP", True)
-        self.tree.add_node("v2", "lezen", "V", True)
+        self.tree.add_node("v1", CoNLLToken("Piet", '_', "NP", '_'), True)
+        self.tree.add_node("v21", CoNLLToken("Marie", '_', "N", '_'), True)
+        self.tree.add_node("v", CoNLLToken("helpen", '_', "VP", '_'), True)
+        self.tree.add_node("v2", CoNLLToken("lezen", '_', "V", '_'), True)
         self.tree.add_child("v", "v2")
         self.tree.add_child("v", "v1")
         self.tree.add_child("v2", "v21")
-        self.tree.add_node("v3", ".", "Punc", True, False)
-        self.tree.set_root("v")
+        self.tree.add_node("v3", CoNLLToken(".", '_', "Punc", '_'), True, False)
+        self.tree.add_to_root("v")
 
     def test_children(self):
         self.assertListEqual(self.tree.children('v'), ['v2','v1'])
@@ -58,23 +59,23 @@ class GeneralHybridTreeTestCase(unittest.TestCase):
 
     def test_labelled_yield(self):
         self.tree.reorder()
-        self.assertListEqual(self.tree.labelled_yield(), "Piet Marie helpen lezen".split(' '))
+        self.assertListEqual([token.form() for token in self.tree.token_yield()], "Piet Marie helpen lezen".split(' '))
 
     def test_full_labelled_yield(self):
         self.tree.reorder()
-        self.assertListEqual(self.tree.full_labelled_yield(), "Piet Marie helpen lezen .".split(' '))
+        self.assertListEqual([token.form() for token in self.tree.full_token_yield()], "Piet Marie helpen lezen .".split(' '))
 
     def test_full_yield(self):
         self.tree.reorder()
         self.assertListEqual(self.tree.full_yield(), 'v1 v21 v v2 v3'.split(' '))
 
-    def test_labelled_spans(self):
-        self.tree.reorder()
-        self.assertListEqual(self.tree.labelled_spans(), [])
+    # def test_labelled_spans(self):
+    #     self.tree.reorder()
+    #     self.assertListEqual(self.tree.labelled_spans(), [])
 
     def test_pos_yield(self):
         self.tree.reorder()
-        self.assertListEqual(self.tree.pos_yield(), "NP N VP V".split(' '))
+        self.assertListEqual([token.pos() for token in self.tree.token_yield()], "NP N VP V".split(' '))
 
 if __name__ == '__main__':
     unittest.main()

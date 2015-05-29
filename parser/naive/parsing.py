@@ -129,10 +129,10 @@ class LHS_instance:
                             low = pos
                         else:
                             return pos, pos
-                            #TODO: why does one return [last span.high, list span.high] (= empty)
-                            #TODO: if no variable precedes <i,0>, and
-                            #TODO: [last span.high, next span_low] or [last span.high, inp_length]
-                            #TODO: otherwise
+                            # TODO: why does one return [last span.high, list span.high] (= empty)
+                            # TODO: if no variable precedes <i,0>, and
+                            # TODO: [last span.high, next span_low] or [last span.high, inp_length]
+                            # TODO: otherwise
                     gap = True
         if low is not None:
             return low, inp_len
@@ -554,7 +554,7 @@ class LCFRS_parser(AbstractParser):
     # return: Derivation
     def best_derivation_tree(self):
         start_lhs = self.__start_item()
-        #elem = str(start_lhs)
+        # elem = str(start_lhs)
         elem = KEY, start_lhs.new_key()
         trace = self.__trace[elem]
         if len(trace) == 0:
@@ -625,12 +625,14 @@ def dot_position(key):
     else:
         return 0
 
+
 def new_dot_position(key):
     if isinstance(key, LCFRS_rule):
         return 0
     # elif: isinstance(key, tuple) and key[0] == KEY:
     else:
         return key[1][1]
+
 
 # extract spans from key-string of passive item
 # key: string (e.g. "A([0-4]; [12-15])" )
@@ -642,6 +644,7 @@ def extract_spans(key):
         match1 = re.search(r'^\[([0-9]+)-([0-9]+)\];*$', s)
         spans += [Span(int(match1.group(1)), int(match1.group(2)))]
     return spans
+
 
 def new_extract_spans(key):
     # assert key[0] == KEY
