@@ -122,8 +122,12 @@ class ChildLabeling(AbstractLabeling):
         if len(id_seq) == 1:
             return self._top_node_name(tree, id_seq[0], terminal_generating)
         elif len(id_seq) > 1:
-            # assuming that id_seq are siblings in tree, and thus also not at root level
-            return 'children-of(' + self._top_node_name(tree, tree.parent(id_seq[0]), False) + ')'
+            if id_seq[0] in tree.root:
+                # only in case of multi-rooted hybrid trees
+                return 'children-of(VIRTUAL-ROOT)'
+            else:
+                # assuming that id_seq are siblings in tree, and not at root level
+                return 'children-of(' + self._top_node_name(tree, tree.parent(id_seq[0]), False) + ')'
         else:
             raise Exception('Empty components in top_max/ bottom_max!')
 
@@ -230,14 +234,16 @@ class StrictPOSdepLabeling(StrictLabeling):
         super(StrictPOSdepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        label = token.pos() + ':' + token.deprel()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        return token.pos() + ':' + token.deprel()
 
     def __str__(self):
         return 'strict_pos_dep_overall'

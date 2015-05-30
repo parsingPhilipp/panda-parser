@@ -72,7 +72,7 @@ class GeneralHybridTreeTestCase(unittest.TestCase):
 
     # def test_labelled_spans(self):
     # self.tree.reorder()
-    #     self.assertListEqual(self.tree.labelled_spans(), [])
+    # self.assertListEqual(self.tree.labelled_spans(), [])
 
     def test_pos_yield(self):
         self.tree.reorder()

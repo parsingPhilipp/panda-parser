@@ -3,25 +3,26 @@ __author__ = 'kilian'
 import unittest
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from hybridtree.biranked_tokens import CoNLLToken, construct_dependency_token
-from induction import induce_grammar, term_pos, direct_extraction
+from induction import induce_grammar, term_pos, direct_extraction, fanout_1, left_branching
 from parser.naive.parsing import LCFRS_parser
-from dependency.labeling import ChildPOSdepLabeling
+from dependency.labeling import ChildPOSdepLabeling, StrictPOSdepLabeling
 from grammar.sDCP.dcp import DCP_string
+from hybridtree.test_multiroot import multi_dep_tree
 
 
 class MyTestCase(unittest.TestCase):
     def test_something(self):
         self.assertEqual(True, True)
 
-    def setUp(self):
+    def test_single_root_induction(self):
         tree = hybrid_tree_1()
         # print tree.children("v")
         # print tree
         #
         # for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
         # 'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
-        #     print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
-        #     print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
+        # print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
+        # print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
         #
         # print "some rule"
         # for mem, arg in [(-1, 0), (0,0), (1,0)]:
@@ -88,6 +89,23 @@ class MyTestCase(unittest.TestCase):
         dcp_string = DCP_string(string)
         dcp_string.set_dep_label("bar")
         print dcp_string, dcp_string.dep_label()
+
+    def test_multiroot(self):
+        tree = multi_dep_tree()
+        for labeling_strategy in [StrictPOSdepLabeling(), ChildPOSdepLabeling()]:
+            for recursive_partitioning in [direct_extraction, fanout_1, left_branching]:
+                (_, grammar) = induce_grammar([tree], labeling_strategy, term_pos, recursive_partitioning, 'START')
+                print grammar
+
+                parser = LCFRS_parser(grammar, 'pA pB pC pD pE'.split(' '))
+                print parser.best_derivation_tree()
+
+                hybrid_tree = GeneralHybridTree()
+                hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, 'pA pB pC pD pE'.split(' '),
+                                                                     'A B C D E'.split(' '), True,
+                                                                     construct_dependency_token)
+                print hybrid_tree
+                self.assertEqual(tree, hybrid_tree)
 
 
 def hybrid_tree_1():
