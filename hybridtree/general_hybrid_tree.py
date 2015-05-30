@@ -314,11 +314,10 @@ class GeneralHybridTree:
 
     def recursive_partitioning_rec(self, id):
         head = set(self.fringe(id))
-        tail = [({self.node_index(id)}, [])]
-        # descendants = self.descendants(id)
-        # descendants.append(id)
-        # head = filter(self.in_ordering, descendants)
-        # tail = [([id], [])]
+        if self.in_ordering(id):
+            tail = [({self.node_index(id)}, [])]
+        else:
+            tail = []
         tail += map(self.recursive_partitioning_rec, self.children(id))
         if len(tail) == 1 and head == tail[0][0]:
             return tail[0]
