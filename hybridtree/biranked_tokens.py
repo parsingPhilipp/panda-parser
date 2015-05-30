@@ -26,11 +26,13 @@ class BiRankedToken:
 
 
 class CoNLLToken(BiRankedToken):
-    def __init__(self, form, lemma, pos, deprel):
+    def __init__(self, form, lemma, pos, fine_grained_pos, feats, deprel):
         super(CoNLLToken, self).__init__()
         self.__form = form
         self.__lemma = lemma
         self.__pos = pos
+        self.__fine_grained_pos = fine_grained_pos
+        self.__feats = feats
         self.__deprel = deprel
 
     def rank(self):
@@ -45,6 +47,12 @@ class CoNLLToken(BiRankedToken):
     def pos(self):
         return self.__pos
 
+    def fine_grained_pos(self):
+        return self.__fine_grained_pos
+
+    def feats(self):
+        return self.__feats
+
     def deprel(self):
         return self.__deprel
 
@@ -55,11 +63,15 @@ class CoNLLToken(BiRankedToken):
         return self.form() + ' : ' + self.pos() + ' : ' + self.deprel()
 
     def __eq__(self, other):
-        return all([self.form() == other.form()
-                    , self.pos() == other.pos()
-                    , self.lemma() == other.lemma()
-                    , self.deprel() == other.deprel()
-                    ])
+        if not isinstance(other, CoNLLToken):
+            return False
+        else:
+            return all([self.form() == other.form()
+                , self.pos() == other.pos()
+                , self.fine_grained_pos() == other.fine_grained_pos()
+                , self.lemma() == other.lemma()
+                , self.deprel() == other.deprel()
+                        ])
 
 
 class ConstituencyToken(BiRankedToken):
@@ -109,8 +121,8 @@ class ConstituencyCategory(ConstituencyToken):
         return self.category()
 
 
-def construct_dependency_token(form, pos, _):
-    return CoNLLToken(form, '_', pos, '_')
+def construct_conll_token(form, pos, _=True):
+    return CoNLLToken(form, '_', pos, '_', '_', '_')
 
 
 def construct_constituent_token(form, pos, terminal):

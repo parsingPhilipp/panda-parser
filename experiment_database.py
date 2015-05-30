@@ -299,7 +299,7 @@ def query_result_tree(connection, exp, tree_id):
             for i, label, pos, head, deprel in tree_nodes:
                 if deprel is None:
                     deprel = 'UNKNOWN'
-                token = CoNLLToken(label, '_', pos, deprel)
+                token = CoNLLToken(label, '_', pos, '_', '_', deprel)
                 tree.add_node(str(i), token, True, True)
                 if head == 0:
                     tree.add_to_root(str(i))
@@ -323,7 +323,7 @@ def query_result_tree(connection, exp, tree_id):
     length = len(tree_nodes)
     tree = GeneralHybridTree()
     for i, label, pos in tree_nodes:
-        token = CoNLLToken(label, '_', pos, '_')
+        token = CoNLLToken(label, '_', pos, '_', '_', '_')
         tree.add_node(str(i), token, True, True)
         parent = strategy(i)
         if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
@@ -592,8 +592,8 @@ def compute_line(connection, ids, exp, max_length):
     # UAS_c_t = UAS_c_t + c
     #
     # cl, _, las_a = las(connection, id, exp)
-    #     LAS_c_a += las_a
-    #     LAS_c_t += cl
+    # LAS_c_a += las_a
+    # LAS_c_t += cl
     # UAS_c_a = UAS_c_a / len(recogn_ids)
     # LAS_c_a = LAS_c_a / len(recogn_ids)
     # UAS_c_t = 1.0 * UAS_c_t / LEN_c

@@ -9,7 +9,7 @@ import sys
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
 import dependency.labeling as label
-from hybridtree.biranked_tokens import construct_dependency_token
+from hybridtree.biranked_tokens import construct_conll_token
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 
@@ -102,8 +102,8 @@ def parse_sentences_from_file(grammar
         parser = LCFRS_parser(grammar, tree_yield(tree))
         h_tree = GeneralHybridTree()
         h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.token_yield()],
-                                                        [token.form() for form in tree.token_yield()],
-                                                        ignore_punctuation, construct_dependency_token)
+                                                        [token.form() for token in tree.token_yield()],
+                                                        ignore_punctuation, construct_conll_token)
         if h_tree:
             n_gaps_gold += tree.n_gaps()
             n_gaps_test += h_tree.n_gaps()
@@ -136,7 +136,7 @@ def test_conll_grammar_induction():
     # if 'ignore_punctuation' in sys.argv:
     # ignore_punctuation = True
     # else:
-    #     ignore_punctuation = False
+    # ignore_punctuation = False
     # if 'strict' in sys.argv:
     #     nont_labelling = d_i.strict_pos
     # else:

@@ -53,11 +53,11 @@ def multi_const_tree_ordered():
 
 def multi_dep_tree():
     tree = GeneralHybridTree('multi')
-    tree.add_node('1', CoNLLToken('A', '_', 'pA', 'dA'), True)
-    tree.add_node('211', CoNLLToken('B', '_', 'pB', 'dB'), True)
-    tree.add_node('11', CoNLLToken('C', '_', 'pC', 'dC'), True)
-    tree.add_node('2', CoNLLToken('D', '_', 'pD', 'dD'), True)
-    tree.add_node('21', CoNLLToken('E', '_', 'pE', 'dE'), True)
+    tree.add_node('1', CoNLLToken('A', '_', 'pA', '_', '_', 'dA'), True)
+    tree.add_node('211', CoNLLToken('B', '_', 'pB', '_', '_', 'dB'), True)
+    tree.add_node('11', CoNLLToken('C', '_', 'pC', '_', '_', 'dC'), True)
+    tree.add_node('2', CoNLLToken('D', '_', 'pD', '_', '_', 'dD'), True)
+    tree.add_node('21', CoNLLToken('E', '_', 'pE', '_', '_', 'dE'), True)
     tree.add_to_root('2')
     tree.add_to_root('1')
     for c in ['21', '211']:

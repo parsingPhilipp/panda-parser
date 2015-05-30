@@ -218,7 +218,7 @@ class MyTestCase(unittest.TestCase):
             dcp = The_DCP_evaluator(der).getEvaluation()
             h_tree_2 = GeneralHybridTree()
             dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False,
-                              construct_dependency_token)
+                              construct_conll_token)
 
             correct = h_tree_2.__eq__(tree) or h_tree_2.__eq__(tree2)
             self.assertEqual(correct, True)
@@ -237,7 +237,7 @@ class MyTestCase(unittest.TestCase):
         # continue
         # else:
         # print passive_item
-        #         print print_derivation_tree(passive_item)
+        # print print_derivation_tree(passive_item)
         #         print
         # print "###############"
 

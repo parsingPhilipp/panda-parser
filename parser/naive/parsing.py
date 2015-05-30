@@ -28,7 +28,7 @@ Span = namedtuple('Span', ['low', 'high'])
 # 
 # # return: int
 # def low(self):
-#         return self.__i
+# return self.__i
 # 
 #     # return: int
 #     def high(self):
@@ -485,14 +485,14 @@ class LCFRS_parser(AbstractParser):
             lhs.collapse()
             # key = str(lhs)
             key = KEY, lhs.new_key()
-            if not key in self.__agenda_set:
+            if key not in self.__agenda_set:
                 self.__agenda_set.add(key)
                 self.__agenda.append(lhs)
             self.__trace[key].append(trace)
         else:
             key = KEY, item.new_key()
             # key = item.key()
-            if not key in self.__agenda_set:
+            if key not in self.__agenda_set:
                 self.__agenda_set.add(key)
                 self.__agenda.append(item)
             self.__trace[key].append(trace)

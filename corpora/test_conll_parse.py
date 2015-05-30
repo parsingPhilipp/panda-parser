@@ -1,0 +1,96 @@
+# -*- coding: iso-8859-15 -*-
+__author__ = 'kilian'
+
+import unittest
+from conll_parse import *
+
+test_file = '../examples/Dependency_Corpus.conll'
+test_file_modified = '../examples/Dependency_Corpus_modified.conll'
+slovene = 'slovene_multi_root.conll'
+
+conll_test = '../../dependency_conll/german/tiger/test/german_tiger_test.conll'
+conll_train = '../../dependency_conll/german/tiger/train/german_tiger_train.conll'
+
+global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4       NK
+2       Göttinger       _       ADJA    ADJA    _       4       NK      4       NK
+3       ``      _       $(      $(      _       4       PUNC    4       PUNC
+4       Autonome        _       NN      NN      _       6       SB      6       SB
+5       ''      _       $(      $(      _       6       PUNC    6       PUNC
+6       laufen  _       VVFIN   VVFIN   _       0       ROOT    0       ROOT
+7       zur     _       APPRART APPRART _       6       MO      6       MO
+8       Zeit    _       NN      NN      _       7       NK      7       NK
+9       mit     _       APPR    APPR    _       6       MO      6       MO
+10      einem   _       ART     ART     _       9       NK      9       NK
+11      unguten _       ADJA    ADJA    _       9       NK      9       NK
+12      Gefühl  _       NN      NN      _       9       NK      9       NK
+13      durch   _       APPR    APPR    _       6       MO      6       MO
+14      die     _       ART     ART     _       13      NK      13      NK
+15      Stadt   _       NN      NN      _       13      NK      13      NK
+16      .       _       $.      $.      _       6       PUNC    6       PUNC"""
+
+
+class CoNLLParser(unittest.TestCase):
+    def test_conll_grammar_induction(self):
+        trees = parse_conll_corpus(test_file, True)
+        (_, grammar) = d_i.induce_grammar(trees, label.ChildFormLabeling(), d_i.term_pos, d_i.direct_extraction,
+                                          'START')
+
+        trees2 = parse_conll_corpus(test_file_modified, True)
+
+        for tree in trees2:
+            parser = LCFRS_parser(grammar, [token.pos() for token in tree.token_yield()])
+            h_tree = GeneralHybridTree()
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.full_token_yield()],
+                                                            [token.form() for token in tree.full_token_yield()], True,
+                                                            construct_conll_token)
+            # print h_tree
+            print 'input -> hybrid-tree -> output'
+            print tree_to_conll_str(tree)
+            print 'parsed tokens'
+            print map(str, h_tree.full_token_yield())
+            print 'parser output'
+            print tree_to_conll_str(h_tree)
+
+    def test_multi_root_parsing(self):
+        trees = parse_conll_corpus(slovene, False)
+
+        counter = 0
+
+        for tree in trees:
+            print tree_to_conll_str(tree)
+            print tree
+            counter += 1
+
+        self.assertEqual(counter, 1)
+
+
+def test_conll_parse():
+    trees = parse_conll_corpus(conll_test, True)
+    test_trees = parse_conll_corpus(conll_test, True)
+
+    # for i in range (len(trees)):
+    # if i < len(test_trees):
+    #         print compare_dependency_trees(trees[i], test_trees[i])
+    #         print score_cmp_dep_trees(trees[i], test_trees[i])
+    try:
+        while True:
+            t1 = trees.next()
+            t2 = test_trees.next()
+            print t1.sent_label(), t2.sent_label()
+            print compare_dependency_trees(t1, t2)
+            print score_cmp_dep_trees(t1, t2)
+            print compare_dependency_trees(t1, t1)
+            print score_cmp_dep_trees(t1, t1)
+    except StopIteration:
+        pass
+
+        # print score_cmp_dep_trees(trees[i], test_trees[i])
+        # print tree
+        # print tree_to_conll_str(tree), '\n '
+        # print node_to_conll_str(trees[0], trees[0].root())
+
+        # print tree_to_conll_str(trees[0])
+
+
+if __name__ == '__main__':
+    unittest.main()

@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 import unittest
-from hybridtree.biranked_tokens import CoNLLToken
+from hybridtree.biranked_tokens import construct_conll_token
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 
@@ -11,14 +11,14 @@ class GeneralHybridTreeTestCase(unittest.TestCase):
 
     def setUp(self):
         self.tree = GeneralHybridTree()
-        self.tree.add_node("v1", CoNLLToken("Piet", '_', "NP", '_'), True)
-        self.tree.add_node("v21", CoNLLToken("Marie", '_', "N", '_'), True)
-        self.tree.add_node("v", CoNLLToken("helpen", '_', "VP", '_'), True)
-        self.tree.add_node("v2", CoNLLToken("lezen", '_', "V", '_'), True)
+        self.tree.add_node("v1", construct_conll_token("Piet", "NP"), True)
+        self.tree.add_node("v21", construct_conll_token("Marie", "N"), True)
+        self.tree.add_node("v", construct_conll_token("helpen", "VP"), True)
+        self.tree.add_node("v2", construct_conll_token("lezen", "V"), True)
         self.tree.add_child("v", "v2")
         self.tree.add_child("v", "v1")
         self.tree.add_child("v2", "v21")
-        self.tree.add_node("v3", CoNLLToken(".", '_', "Punc", '_'), True, False)
+        self.tree.add_node("v3", construct_conll_token(".", "Punc"), True, False)
         self.tree.add_to_root("v")
 
     def test_children(self):

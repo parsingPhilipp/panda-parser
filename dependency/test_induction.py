@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 import unittest
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import CoNLLToken, construct_dependency_token
+from hybridtree.biranked_tokens import CoNLLToken, construct_conll_token
 from induction import induce_grammar, term_pos, direct_extraction, fanout_1, left_branching
 from parser.naive.parsing import LCFRS_parser
 from dependency.labeling import ChildPOSdepLabeling, StrictPOSdepLabeling
@@ -26,8 +26,8 @@ class MyTestCase(unittest.TestCase):
         #
         # print "some rule"
         # for mem, arg in [(-1, 0), (0,0), (1,0)]:
-        #     print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
-        #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
+        # print create_DCP_rule(mem, arg, top_max(tree, ['v','v1','v2','v21']), bottom_max(tree, ['v','v1','v2','v21']),
+        # [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1', 'v2'], ['v', 'v21']]])
         #
         #
         # print "some other rule"
@@ -81,7 +81,7 @@ class MyTestCase(unittest.TestCase):
         hybrid_tree = GeneralHybridTree()
         hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, 'P M h l'.split(' '),
                                                              'Piet Marie helpen lezen'.split(' '), True,
-                                                             construct_dependency_token)
+                                                             construct_conll_token)
         print map(str, hybrid_tree.full_token_yield())
         print hybrid_tree
 
@@ -103,37 +103,37 @@ class MyTestCase(unittest.TestCase):
                 hybrid_tree = GeneralHybridTree()
                 hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, 'pA pB pC pD pE'.split(' '),
                                                                      'A B C D E'.split(' '), True,
-                                                                     construct_dependency_token)
+                                                                     construct_conll_token)
                 print hybrid_tree
                 self.assertEqual(tree, hybrid_tree)
 
 
 def hybrid_tree_1():
     tree = GeneralHybridTree()
-    tree.add_node("v1", CoNLLToken('Piet', '_', "NP", 'SBJ'), True)
-    tree.add_node("v21", CoNLLToken('Marie', '_', "N", 'OBJ'), True)
-    tree.add_node("v", CoNLLToken('helpen', '_', "V", 'ROOT'), True)
-    tree.add_node("v2", CoNLLToken('lezen', '_', "V", 'VBI'), True)
-    tree.add_child("v", "v2")
-    tree.add_child("v", "v1")
-    tree.add_child("v2", "v21")
-    tree.add_to_root("v")
+    tree.add_node('v1', CoNLLToken('Piet', '_', 'NP', '_', '_', 'SBJ'), True)
+    tree.add_node('v21', CoNLLToken('Marie', '_', 'N', '_', '_', 'OBJ'), True)
+    tree.add_node('v', CoNLLToken('helpen', '_', 'V', '_', '_', 'ROOT'), True)
+    tree.add_node('v2', CoNLLToken('lezen', '_', 'V', '_', '_', 'VBI'), True)
+    tree.add_child('v', 'v2')
+    tree.add_child('v', 'v1')
+    tree.add_child('v2', 'v21')
+    tree.add_to_root('v')
     tree.reorder()
     return tree
 
 
 def hybrid_tree_2():
     tree2 = GeneralHybridTree()
-    tree2.add_node("v1", CoNLLToken('Piet', '_', "NP", 'SBJ'), True)
-    tree2.add_node("v211", CoNLLToken('Marie', '_', 'N', 'OBJ'), True)
-    tree2.add_node("v", CoNLLToken('helpen', '_', "V", 'ROOT'), True)
-    tree2.add_node("v2", CoNLLToken('leren', '_', "V", 'VBI'), True)
-    tree2.add_node("v21", CoNLLToken('lezen', '_', "V", 'VFIN'), True)
-    tree2.add_child("v", "v2")
-    tree2.add_child("v", "v1")
-    tree2.add_child("v2", "v21")
-    tree2.add_child("v21", "v211")
-    tree2.add_to_root("v")
+    tree2.add_node('v1', CoNLLToken('Piet', '_', 'NP', '_', '_', 'SBJ'), True)
+    tree2.add_node('v211', CoNLLToken('Marie', '_', 'N', '_', '_', 'OBJ'), True)
+    tree2.add_node('v', CoNLLToken('helpen', '_', 'V', '_', '_', 'ROOT'), True)
+    tree2.add_node('v2', CoNLLToken('leren', '_', 'V', '_', '_', 'VBI'), True)
+    tree2.add_node('v21', CoNLLToken('lezen', '_', 'V', '_', '_', 'VFIN'), True)
+    tree2.add_child('v', 'v2')
+    tree2.add_child('v', 'v1')
+    tree2.add_child('v2', 'v21')
+    tree2.add_child('v21', 'v211')
+    tree2.add_to_root('v')
     tree2.reorder()
     return tree2
 
