@@ -18,15 +18,16 @@ def direct_extract_lcfrs(tree):
         lhs = LCFRS_lhs(start)
         pos = tree.leaf_pos(root)
         lhs.add_arg([pos])
-        dcp_rule = DCP_rule(DCP_var(-1,0), [DCP_term(DCP_index(0), [])])
+        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0), [])])
         gram.add_rule(lhs, [], dcp=[dcp_rule])
     else:
         first = direct_extract_lcfrs_from(tree, root, gram)
         lhs = LCFRS_lhs(start)
-        lhs.add_arg([LCFRS_var(0,0)])
-        dcp_rule = DCP_rule(DCP_var(-1,0), [DCP_var(0,0)])
+        lhs.add_arg([LCFRS_var(0, 0)])
+        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
         gram.add_rule(lhs, [first], dcp=[dcp_rule])
     return gram
+
 
 # Traverse subtree at id and put extracted rules in grammar.
 # Return nonterminal names of LHS of top rule.
@@ -45,7 +46,7 @@ def direct_extract_lcfrs_from(tree, id, gram):
                 for child in tree.children(id)]
     rhs = []
     n_terms = 0
-    for (low,high) in spans:
+    for (low, high) in spans:
         arg = []
         pos = low
         while pos <= high:
@@ -58,7 +59,7 @@ def direct_extract_lcfrs_from(tree, id, gram):
                             n_terms += 1
                         else:
                             arg += [LCFRS_var(child_num, j)]
-                        pos = child_high+1
+                        pos = child_high + 1
                 if not tree.is_leaf(child):
                     child_num += 1
         lhs.add_arg(arg)
@@ -76,9 +77,11 @@ def direct_extract_lcfrs_from(tree, id, gram):
         if not tree.is_leaf(child):
             direct_extract_lcfrs_from(tree, child, gram)
     return nont
-    
+
+
 ############################################################
 # Induction via unlabelled structure (recursive partitioning).
+
 
 # Get LCFRS for tree.
 # tree: HybridTree
@@ -90,10 +93,12 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict'):
     root = tree.root
     (first, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming)
     lhs = LCFRS_lhs(start)
-    lhs.add_arg([LCFRS_var(0,0)])
-    dcp_rule = DCP_rule(DCP_var(-1,0), [DCP_var(0,0)])
+    lhs.add_arg([LCFRS_var(0, 0)])
+    dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
     gram.add_rule(lhs, [first], dcp=[dcp_rule])
     return gram
+
+
 # Traverse through recursive partitioning.
 # tree: HybridTree
 # fringes: 'recursive partitioning'
@@ -112,15 +117,15 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming):
         child_spans += [child_span]
         child_seqs += [child_seq]
     spans = join_spans(fringe)
-    term_to_pos = {} # maps input position to position in LCFRS rule
+    term_to_pos = {}  # maps input position to position in LCFRS rule
     args = []
     for span in spans:
         args += [span_to_arg(span, child_spans, tree, term_to_pos)]
     id_seq = make_id_seq(tree, tree.root, fringe)
     dcp_rules = []
-    for (i,seq) in enumerate(id_seq):
+    for (i, seq) in enumerate(id_seq):
         dcp_rhs = make_fringe_terms(tree, seq, child_seqs, term_to_pos)
-        dcp_lhs = DCP_var(-1,i)
+        dcp_lhs = DCP_var(-1, i)
         dcp_rule = DCP_rule(dcp_lhs, dcp_rhs)
         dcp_rules += [dcp_rule]
     nont = id_nont(id_seq, tree, naming) + '/' + str(len(spans))
@@ -129,6 +134,8 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming):
         lhs.add_arg(arg)
     gram.add_rule(lhs, nonts, dcp=dcp_rules)
     return nont, spans, id_seq
+
+
 # Past labels of ids together.
 # id_seq: list of list of string
 # tree: HybridTree
@@ -141,6 +148,8 @@ def id_nont(id_seq, tree, naming):
         return id_nont_child(id_seq, tree)
     else:
         raise Exception('unknown naming ' + naming)
+
+
 # Making naming on exact derived nonterminals.
 # Consecutive children are separated by /.
 # Where there is child missing, we have -.
@@ -149,24 +158,26 @@ def id_nont(id_seq, tree, naming):
 # return: string
 def id_nont_strict(id_seq, tree):
     s = ''
-    for i,seq in enumerate(id_seq):
-        for j,id in enumerate(seq):
+    for i, seq in enumerate(id_seq):
+        for j, id in enumerate(seq):
             if tree.is_leaf(id):
                 s += tree.leaf_pos(id)
             else:
                 s += tree.label(id)
-            if j < len(seq)-1:
+            if j < len(seq) - 1:
                 s += '/'
-        if i < len(id_seq)-1:
+        if i < len(id_seq) - 1:
             s += '-'
     return s
+
+
 # Replace consecutive siblings by mention of parent.
 # id_seq: list of list of string
 # tree: HybridTree
 # return: string
 def id_nont_child(id_seq, tree):
     s = ''
-    for i,seq in enumerate(id_seq):
+    for i, seq in enumerate(id_seq):
         if len(seq) == 1:
             if tree.is_leaf(seq[0]):
                 s += tree.leaf_pos(seq[0])
@@ -175,9 +186,10 @@ def id_nont_child(id_seq, tree):
         else:
             id = tree.parent(seq[0])
             s += 'children_of_' + tree.label(id)
-        if i < len(id_seq)-1:
+        if i < len(id_seq) - 1:
             s += '-'
     return s
+
 
 # Compute list of lists of adjacent nodes whose fringes
 # are included in input fringe.
@@ -210,6 +222,7 @@ def make_id_seq(tree, id, fringe):
             seqs += [seq]
         return seqs
 
+
 # Make expression in terms of variables for the RHS members.
 # Repeatedly replace nodes by variables.
 # tree: HybridTree
@@ -218,12 +231,12 @@ def make_id_seq(tree, id, fringe):
 # term_to_pos: maps int to int (input position to position in LCFRS rule)
 # return: list of DCP_term/DCP_index/DCP_var
 def make_fringe_terms(tree, seq, child_seqss, term_to_pos):
-    for i,child_seqs in enumerate(child_seqss):
-        for j,child_seq in enumerate(child_seqs):
+    for i, child_seqs in enumerate(child_seqss):
+        for j, child_seq in enumerate(child_seqs):
             k = sublist_index(child_seq, seq)
             if k >= 0:
                 var = DCP_var(i, j)
-                seq = seq[:k] + [var] + seq[k+len(child_seq):]
+                seq = seq[:k] + [var] + seq[k + len(child_seq):]
     terms = []
     for elem in seq:
         if isinstance(elem, DCP_var):
@@ -240,6 +253,7 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos):
                 terms.append(DCP_term(DCP_string(lab), arg))
     return terms
 
+
 # Turn span into LCFRS arg (variables and terminals).
 # Children is list of (sub)spans.
 # Also keep list of terminals.
@@ -249,23 +263,24 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos):
 # tree: HybridTree
 # term_to_pos: maps int to int (input position to position in LCFRS rule)
 # return: list of LCFRS_var/string
-def span_to_arg((low,high), children, tree, term_to_pos):
+def span_to_arg((low, high), children, tree, term_to_pos):
     arg = []
     k = low
     while k <= high:
         match = False
-        for i,child in enumerate(children):
-            for j,(child_low,child_high) in enumerate(child):
+        for i, child in enumerate(children):
+            for j, (child_low, child_high) in enumerate(child):
                 if child_low == k:
                     arg += [LCFRS_var(i, j)]
-                    k = child_high+1
+                    k = child_high + 1
                     match = True
         if not match:
             arg += [tree.pos_yield()[k]]
             term_to_pos[k] = len(term_to_pos.keys())
             k += 1
     return arg
-    
+
+
 #####################################################
 # Auxiliary.
 
@@ -275,7 +290,7 @@ def span_to_arg((low,high), children, tree, term_to_pos):
 # l: list of string
 # return: int
 def sublist_index(s, l):
-    for k in range(len(l)-len(s)+1):
-        if s == l[k:k+len(s)]:
+    for k in range(len(l) - len(s) + 1):
+        if s == l[k:k + len(s)]:
             return k
     return -1

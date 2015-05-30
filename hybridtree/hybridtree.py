@@ -7,6 +7,7 @@ import tkFont
 
 from decomposition import *
 
+
 # Tree uniquely identified by a sentence label.
 class HybridTree:
     # Constructor.
@@ -78,7 +79,7 @@ class HybridTree:
     # label: string
     def set_label(self, id, label):
         self.__id_to_label[id] = label
-        if not id in self.__id_to_child_ids:
+        if id not in self.__id_to_child_ids:
             self.__id_to_child_ids[id] = []
 
     # Add child of non-leaf.
@@ -86,7 +87,7 @@ class HybridTree:
     # parent: string 
     # child: string 
     def add_child(self, parent, child):
-        if not parent in self.__id_to_child_ids:
+        if parent not in self.__id_to_child_ids:
             self.__id_to_child_ids[parent] = []
         self.__id_to_child_ids[parent] += [child]
 
@@ -100,7 +101,7 @@ class HybridTree:
     # id: string
     # return: bool
     def is_leaf(self, id):
-        return not id in self.__id_to_child_ids
+        return id not in self.__id_to_child_ids
 
     # Get leaf for index.
     # index: int

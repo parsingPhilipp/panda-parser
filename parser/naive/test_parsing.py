@@ -31,7 +31,8 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(lhs.consistent(), True)
 
-        self.assertEqual(str(lhs), "A(Span(low=0, high=2) Span(low=2, high=4); Span(low=6, high=9) Span(low=9, high=12))")
+        self.assertEqual(str(lhs),
+                         "A(Span(low=0, high=2) Span(low=2, high=4); Span(low=6, high=9) Span(low=9, high=12))")
 
         lhs.collapse()
 

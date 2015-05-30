@@ -76,7 +76,7 @@ def induce_grammar_from_file(path
                              , quiet=False
                              , start='START'
                              , ignore_punctuation=True
-):
+                             ):
     """
     :param path: path to dependency corpus in CoNLL format
     :type path: str
@@ -215,7 +215,8 @@ def parse_sentences_from_file(grammar
         else:
             # print tree.sent_label(),
             h_tree = GeneralHybridTree(tree.sent_label())
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, map(lambda x: x.pos(), tree.full_token_yield()), map(lambda x: x.form(), tree.full_token_yield()),
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, map(lambda x: x.pos(), tree.full_token_yield()),
+                                                            map(lambda x: x.form(), tree.full_token_yield()),
                                                             ignore_punctuation)
 
             if h_tree:
@@ -260,7 +261,7 @@ def test_conll_grammar_induction():
     # if 'strict' in sys.argv:
     # nont_labelling = d_i.strict_pos
     # else:
-    #     nont_labelling = d_i.child_pos
+    # nont_labelling = d_i.child_pos
     # for ignore_punctuation in [True, False]:
     #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
     # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4

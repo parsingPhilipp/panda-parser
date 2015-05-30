@@ -54,6 +54,13 @@ class CoNLLToken(BiRankedToken):
     def __str__(self):
         return self.form() + ' : ' + self.pos() + ' : ' + self.deprel()
 
+    def __eq__(self, other):
+        return all([self.form() == other.form()
+                    , self.pos() == other.pos()
+                    , self.lemma() == other.lemma()
+                    , self.deprel() == other.deprel()
+                    ])
+
 
 class ConstituencyToken(BiRankedToken):
     def __init__(self):

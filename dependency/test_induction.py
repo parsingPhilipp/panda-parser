@@ -8,18 +8,18 @@ from parser.naive.parsing import LCFRS_parser
 from dependency.labeling import ChildPOSdepLabeling
 from grammar.sDCP.dcp import DCP_string
 
+
 class MyTestCase(unittest.TestCase):
     def test_something(self):
         self.assertEqual(True, True)
 
     def setUp(self):
-
         tree = hybrid_tree_1()
         # print tree.children("v")
         # print tree
         #
         # for id_set in ['v v1 v2 v21'.split(' '), 'v1 v2'.split(' '),
-        #                'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
+        # 'v v21'.split(' '), ['v'], ['v1'], ['v2'], ['v21']]:
         #     print id_set, 'top:', top(tree, id_set), 'bottom:', bottom(tree, id_set)
         #     print id_set, 'top_max:', max(tree, top(tree, id_set)), 'bottom_max:', max(tree, bottom(tree, id_set))
         #
@@ -79,7 +79,8 @@ class MyTestCase(unittest.TestCase):
 
         hybrid_tree = GeneralHybridTree()
         hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, 'P M h l'.split(' '),
-                                                             'Piet Marie helpen lezen'.split(' '), True, construct_dependency_token)
+                                                             'Piet Marie helpen lezen'.split(' '), True,
+                                                             construct_dependency_token)
         print map(str, hybrid_tree.full_token_yield())
         print hybrid_tree
 
@@ -108,7 +109,7 @@ def hybrid_tree_2():
     tree2.add_node("v1", CoNLLToken('Piet', '_', "NP", 'SBJ'), True)
     tree2.add_node("v211", CoNLLToken('Marie', '_', 'N', 'OBJ'), True)
     tree2.add_node("v", CoNLLToken('helpen', '_', "V", 'ROOT'), True)
-    tree2.add_node("v2", CoNLLToken('leren', '_',"V", 'VBI'), True)
+    tree2.add_node("v2", CoNLLToken('leren', '_', "V", 'VBI'), True)
     tree2.add_node("v21", CoNLLToken('lezen', '_', "V", 'VFIN'), True)
     tree2.add_child("v", "v2")
     tree2.add_child("v", "v1")
@@ -117,6 +118,7 @@ def hybrid_tree_2():
     tree2.add_to_root("v")
     tree2.reorder()
     return tree2
+
 
 if __name__ == '__main__':
     unittest.main()

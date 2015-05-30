@@ -66,7 +66,7 @@ class AbstractParser:
 
     def dcp_best_derivation(self):
         der = self.best_derivation_tree()
-        if der:
+        if der is not None:
             return The_DCP_evaluator(der).getEvaluation()
         else:
             return []

@@ -310,7 +310,7 @@ class GeneralHybridTree:
             return head, tail
 
     def recursive_partitioning(self):
-        return set(self.fringe(self.virtual_root)),[self.recursive_partitioning_rec(root) for root in self.root]
+        return set(self.fringe(self.virtual_root)), [self.recursive_partitioning_rec(root) for root in self.root]
 
     def recursive_partitioning_rec(self, id):
         head = set(self.fringe(id))
@@ -348,7 +348,7 @@ class GeneralHybridTree:
     def token_yield(self):
         """
         :return: Get yield as list of all labels of nodes, that are in the ordering and connected to the root.
-        :rtype: list[str]
+        :rtype: list[BiRankedToken]
         """
         return [self.node_token(id) for id in self.__ordered_ids]
 
@@ -442,7 +442,8 @@ class GeneralHybridTree:
     def __eq__(self, other):
         if not isinstance(other, GeneralHybridTree):
             return False
-        self.compare_recursive(other, self.root, other.root)
+        return all([self.compare_recursive(other, self_node, other_node) for self_node, other_node in
+                    zip(self.root, other.root)])
 
     def compare_recursive(self, other, self_node, other_node):
         """
@@ -457,7 +458,8 @@ class GeneralHybridTree:
         :rtype: bool
         """
         # Compare current nodes
-        if self.node_token(self_node) != other.node_token(other_node):
+        if not self.node_token(self_node).__eq__(other.node_token(other_node)):
+            print self.node_token(self_node), other.node_token(other_node)
             return False
         if self.in_ordering(self_node):
             if other.in_ordering(other_node):

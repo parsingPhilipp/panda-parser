@@ -12,6 +12,7 @@ negra_dir = '~/Data/Negra'
 negra_nonproj = negra_dir + '/negra-corpus.export'
 negra_proj = negra_dir + '/negra-corpus.cfg'
 
+
 # Sentence number to name.
 # file_name: int
 # return: string

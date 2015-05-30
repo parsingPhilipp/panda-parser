@@ -149,7 +149,7 @@ def argument_dependencies(tree, id_seqs):
             name_seq2 = id_seqs[j]
             if name_seq[0] in [descendant for id in name_seq2 for descendant in tree.descendants(id)]:
                 ancestor[i] = j
-                if not j in descendants.keys():
+                if j not in descendants.keys():
                     descendants[j] = [i]
                 else:
                     descendants[j].append(i)
@@ -214,12 +214,12 @@ class StrictPOSdepAtLeafLabeling(StrictLabeling):
 
     def _top_node_name(self, tree, id, terminal_generating):
         if not tree.descendants(id):
-            return tree.node_pos(id) + ':' + tree.node_dep_label(id)
+            return tree.node_token(id).pos() + ':' + tree.node_token(id).deprel()
         else:
-            return tree.node_pos(id)
+            return tree.node_token(id).pos()
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id)
+        return tree.node_token(id).pos()
 
     def __str__(self):
         return 'strict_pos_dep'
@@ -241,6 +241,7 @@ class StrictPOSdepLabeling(StrictLabeling):
 
     def __str__(self):
         return 'strict_pos_dep_overall'
+
 
 class StrictDepLabeling(StrictLabeling):
     def __init__(self):

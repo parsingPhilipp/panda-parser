@@ -92,7 +92,6 @@ def log_parse(path):
         except StopIteration:
             break
 
-
         # match training-tree-count
         match = re.search(r'^Number of trees:\s*(.*)\s*$', line)
         if not match:
@@ -104,7 +103,6 @@ def log_parse(path):
             line = file_content.next()
         except StopIteration:
             break
-
 
         # match number of nonterm
         match = re.search(r'^Number of nonterimals:\s*(.*)\s*$', line)
@@ -118,7 +116,6 @@ def log_parse(path):
         except StopIteration:
             break
 
-
         # match number of rules
         match = re.search(r'^Number of rules:\s*(.*)\s*$', line)
         if not match:
@@ -131,7 +128,6 @@ def log_parse(path):
             line = file_content.next()
         except StopIteration:
             break
-
 
         # match number of rules
         match = re.search(r'^Fanout:\s*(.*)\s*$', line)
@@ -267,7 +263,8 @@ def log_parse(path):
 
 
 def test_log_parse():
-    table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout', 'test_total',
+    table_columns = ['nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout',
+                     'test_total',
                      'fail', 'UAS', 'LAS', 'n_gaps_test', 'n_gaps_gold', 'parse_time']
     header = {}
     header['nont_labelling'] = 'nont.~lab.'
@@ -283,13 +280,15 @@ def test_log_parse():
     header['LAS'] = 'LAS'
     header['n_gaps_test'] = '\\# gaps (test)'
     header['n_gaps_gold'] = '\\# gaps (gold)'
-    header['parse_time']  = 'parse time (sec)'
+    header['parse_time'] = 'parse time (sec)'
 
     print '\\begin{tabular}{llllllllllllr}'
     print '\t\\toprule'
     print '\t' + ' & '.join([header[id] for id in table_columns]) + '\\\\'
     for line in log_parse('../../logs.txt'):
-          print '\t' + ' & '.join([line[id] for id in table_columns]) + '\\\\'
+        print '\t' + ' & '.join([line[id] for id in table_columns]) + '\\\\'
     print '\t\\bottomrule'
     print '\\end{tabular}'
+
+
 test_log_parse()

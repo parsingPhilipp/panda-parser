@@ -6,6 +6,7 @@ import sys
 import re
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.biranked_tokens import CoNLLToken
 from grammar.LCFRS.lcfrs import LCFRS
 from eval_pl_scorer import eval_pl_scores
 from corpora import conll_parse
@@ -182,7 +183,7 @@ def add_tree(connection, tree, corpus):
                                                                               , tree.sent_label()
                                                                               , len(tree.full_yield())
                                                                               , tree.n_gaps()
-    ))
+                                                                              ))
 
     # unique tree key
     tree_id = cursor.lastrowid
@@ -203,7 +204,8 @@ def add_tree(connection, tree, corpus):
     return tree_id
 
 
-def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_time, status, root_default = None, disconnect_default = None):
+def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_time, status, root_default=None,
+                    disconnect_default=None):
     """
     :param connection:
     :type tree: GeneralHybridTree
@@ -230,7 +232,7 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
 
     for id in tree.full_yield():
         # set root head
-        if tree.root == id:
+        if id in tree.root:
             head = 0
             if root_default:
                 deprel = root_default
@@ -238,7 +240,7 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
                 deprel = tree.node_token(id).deprel()
         # connect disconnected nodes to root
         elif tree.disconnected(id):
-            head = tree.node_index_full(tree.root) + 1
+            head = tree.node_index_full(tree.root[0]) + 1
             if disconnect_default:
                 deprel = disconnect_default
             else:
@@ -295,11 +297,10 @@ def query_result_tree(connection, exp, tree_id):
                 ), (result_tree_id,))
             tree = GeneralHybridTree()
             for i, label, pos, head, deprel in tree_nodes:
-                tree.add_node(str(i), label, pos, True, True)
                 if deprel is None:
-                    tree.set_dep_label(str(i), 'UNKNOWN')
-                else:
-                    tree.set_dep_label(str(i), deprel)
+                    deprel = 'UNKNOWN'
+                token = CoNLLToken(label, '_', pos, deprel)
+                tree.add_node(str(i), token, True, True)
                 if head == 0:
                     tree.add_to_root(str(i))
                 else:
@@ -322,8 +323,8 @@ def query_result_tree(connection, exp, tree_id):
     length = len(tree_nodes)
     tree = GeneralHybridTree()
     for i, label, pos in tree_nodes:
-        tree.add_node(str(i), label, pos, True, True)
-        tree.set_dep_label(str(i), '_')
+        token = CoNLLToken(label, '_', pos, '_')
+        tree.add_node(str(i), token, True, True)
         parent = strategy(i)
         if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):
             tree.add_to_root(str(i))
@@ -415,26 +416,26 @@ def initialize_database(dbfile):
     return connection
 
 
-def create_latex_table_from_database(connection, experiments, max_length = sys.maxint, pipe=sys.stdout):
+def create_latex_table_from_database(connection, experiments, max_length=sys.maxint, pipe=sys.stdout):
     columns_style = {}
-    table_columns = [ 'exp'
+    table_columns = ['exp'
         , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
-    selected_columns = ['rec_par', 'nont_labelling', 'f1', 'f2' #, 'f3', 'f4', 'f5'
+    selected_columns = ['rec_par', 'nont_labelling', 'f1', 'f2'  # , 'f3', 'f4', 'f5'
         , 'limit'
                         # , 'fail'
                         # , 'UAS_avg', 'LAS_avg'
-                        #, 'UAS_t', 'LAS_t'
+                        # , 'UAS_t', 'LAS_t'
         , 'fail'
         , 'UAS^c_avg', 'LAS^c_avg'
                         # 'UAS^c_t', 'LAS^c_t'
         , 'UAS_e', 'LAS_e', 'LAc_e'
-        # , 'UAS^c_e', 'LAS^c_e', 'LAc^c_e'
-        # , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
+                        # , 'UAS^c_e', 'LAS^c_e', 'LAc^c_e'
+                        # , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
         , 'parse_time_tot'
                         # , 'n_gaps_test', 'parse_time'
-    ]
+                        ]
     header = {'nont_labelling': 'nont.~lab.'}
     columns_style['nont_labelling'] = 'l'
     header['rec_par'] = 'extraction'
@@ -519,8 +520,8 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
     if max_length < sys.maxint:
         pipe.write(' of length $\leq$ ' + str(max_length))
     pipe.write(': ' + str(
-            len(common_results)) + ' / ' + str(
-            test_sentences_length_lesseq_than(connection, test_corpus, max_length)) + '}\\\\\n')
+        len(common_results)) + ' / ' + str(
+        test_sentences_length_lesseq_than(connection, test_corpus, max_length)) + '}\\\\\n')
     pipe.write('\t\\toprule\n')
     pipe.write('\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\\n')
     for exp in experiments:
@@ -531,7 +532,8 @@ def create_latex_table_from_database(connection, experiments, max_length = sys.m
     pipe.write('\\begin{itemize}\n')
     pipe.write('\t \\item $\\{UAS,LAS,LAc\\}_e$: on parsed sentences with eval.pl \n')
     pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^c_e$: on intersection of parsed sentences with eval.pl\n')
-    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^t_e$: on full corpus, with fallback for to long/ non-recognized sentences\n')
+    pipe.write(
+        '\t \\item $\\{UAS,LAS,LAc\\}^t_e$: on full corpus, with fallback for to long/ non-recognized sentences\n')
     pipe.write('\t \\end{itemize}\n')
     pipe.write('''
     \\end{table}
@@ -575,7 +577,8 @@ def compute_line(connection, ids, exp, max_length):
     precicion = 1
 
     percent = lambda x: percentify(x, precicion)
-    line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids)))
+    line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(
+        map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids)))
     line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(
         map(percent, eval_pl_scores(connection, test_corpus, exp)))
     line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(
@@ -585,10 +588,10 @@ def compute_line(connection, ids, exp, max_length):
     # for id in recogn_ids:
     # c, l , uas_a = uas(connection, id, exp)
     # UAS_c_a = UAS_c_a + uas_a
-    #     LEN_c = LEN_c + l
-    #     UAS_c_t = UAS_c_t + c
+    # LEN_c = LEN_c + l
+    # UAS_c_t = UAS_c_t + c
     #
-    #     cl, _, las_a = las(connection, id, exp)
+    # cl, _, las_a = las(connection, id, exp)
     #     LAS_c_a += las_a
     #     LAS_c_t += cl
     # UAS_c_a = UAS_c_a / len(recogn_ids)
@@ -859,6 +862,7 @@ def result_table():
     # create_latex_table_from_database(connection, range(1,41,1))
     create_latex_table_from_database(connection, [4, 5, 6, 7, 8, 9, 10, 15, 19, 20, 27, 28, 29, 30, 39, 40])
     finalize_database(connection)
+
 
 # result_table()
 def no_parse_result(connection, tree_name, corpus, experiment, parse_time, message):

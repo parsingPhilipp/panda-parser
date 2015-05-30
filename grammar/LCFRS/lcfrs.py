@@ -16,9 +16,9 @@ LCFRS_var = namedtuple('LCFRS_var', ['mem', 'arg'])
 # Variable of LCFRS rule. 
 # Represents i-th member in RHS and j-th argument thereof.
 # class LCFRS_var:
-#     # Constructor.
-#     # i: int
-#     # j: int
+# # Constructor.
+# # i: int
+# # j: int
 #     def __init__(self, i, j):
 #         self.__i = i
 #         self.__j = j
@@ -48,8 +48,6 @@ LCFRS_var = namedtuple('LCFRS_var', ['mem', 'arg'])
 #
 #     def __hash__(self):
 #         return hash((self.__i, self.__j))
-
-
 
 
 # LHS of LCFRS rule.
@@ -206,7 +204,7 @@ class LCFRS_rule:
     def well_formed(self, fanout):
         for i in range(self.rank()):
             nont = self.rhs_nont(i)
-            if not nont in fanout:
+            if nont not in fanout:
                 return 'lacks definition of nonterminal ' + nont
             nont_fanout = fanout[nont]
             variables = self.__get_vars(i)

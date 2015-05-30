@@ -22,8 +22,10 @@ tiger_dir = '..'
 tiger = tiger_dir + '/tiger.xml'
 tiger_test = tiger_dir + '/tiger_8000.xml'
 
+
 # To hold parsed XML file. Cached for efficiency.
 xml_file = None
+
 
 # Determine XML file holding data, given file name.
 # file_name: string

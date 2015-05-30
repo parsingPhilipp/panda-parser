@@ -7,6 +7,7 @@ from grammar.LCFRS.lcfrs import *
 from derivation import Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
 from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.biranked_tokens import *
 from dependency.induction import induce_grammar, term_pos, direct_extraction
 from dependency.labeling import StrictPOSdepAtLeafLabeling
 from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
@@ -32,7 +33,7 @@ class MyTestCase(unittest.TestCase):
             derivation = print_derivation_tree(passive_item)
             print derivation
             poss = ['P' + str(i) for i in range(1, len(word) + 1)]
-            tree = derivation_to_hybrid_tree(derivation, poss, word)
+            tree = derivation_to_hybrid_tree(derivation, poss, word, construct_constituent_token)
             print tree
             counter += 1
         self.assertEqual(counter, 2)
@@ -133,7 +134,7 @@ class MyTestCase(unittest.TestCase):
             counter += 1
             derivation = print_derivation_tree(passive_item)
             print derivation
-            hybrid_tree = derivation_to_hybrid_tree(derivation, word, word)
+            hybrid_tree = derivation_to_hybrid_tree(derivation, word, word, construct_constituent_token)
             # print hybrid_tree
         self.assertEqual(counter, 1)
         print
@@ -185,11 +186,11 @@ class MyTestCase(unittest.TestCase):
     def test_dcp_evaluation_with_induced_dependency_grammar(self):
         tree = hybrid_tree_1()
 
-        # print tree
+        print tree
 
         tree2 = hybrid_tree_2()
 
-        # print tree2
+        print tree2
         # print tree.recursive_partitioning()
 
         (_, grammar) = induce_grammar([tree, tree2], StrictPOSdepAtLeafLabeling(), term_pos, direct_extraction, 'START')
@@ -199,7 +200,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(grammar.well_formed(), None)
         self.assertEqual(grammar.ordered()[0], True)
         # print max([grammar.fanout(nont) for nont in grammar.nonts()])
-        # print grammar
+        print grammar
 
         parser = Parser(grammar, 'NP N V V'.split(' '))
 
@@ -208,15 +209,19 @@ class MyTestCase(unittest.TestCase):
         for item in parser.successful_root_items():
             der = Derivation()
             derivation_tree(der, item, None)
+            print der
 
-            hybrid_tree = derivation_to_hybrid_tree(der, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '))
-            # print hybrid_tree
+            hybrid_tree = derivation_to_hybrid_tree(der, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '),
+                                                    construct_constituent_token)
+            print hybrid_tree
 
             dcp = The_DCP_evaluator(der).getEvaluation()
             h_tree_2 = GeneralHybridTree()
-            dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False)
+            dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False,
+                              construct_dependency_token)
 
-            self.assertEqual(h_tree_2.compare_recursive(tree, h_tree_2.root, tree.root, True, True), True)
+            correct = h_tree_2.__eq__(tree) or h_tree_2.__eq__(tree2)
+            self.assertEqual(correct, True)
 
     def test_ambiguous_copy_grammar(self):
         grammar = ambiguous_copy_grammar()
@@ -231,7 +236,7 @@ class MyTestCase(unittest.TestCase):
         # if passive_item.range(LCFRS_var(-1, 0)) != Range(0, 4):
         # continue
         # else:
-        #         print passive_item
+        # print passive_item
         #         print print_derivation_tree(passive_item)
         #         print
         # print "###############"

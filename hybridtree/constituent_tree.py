@@ -4,11 +4,13 @@ from general_hybrid_tree import GeneralHybridTree
 from biranked_tokens import ConstituencyTerminal, ConstituencyCategory
 from decomposition import join_spans
 
+
 class HybridTree(GeneralHybridTree):
     """
     Legacy hybrid tree interface for Mark-Jan's implementation for constituent parsing.
     Supposed that the tokens are of type ConstituencyTerminal or ConstituencyCategory.
     """
+
     def __init__(self, sent_label=None):
         GeneralHybridTree.__init__(self, sent_label)
 
@@ -111,61 +113,3 @@ class HybridTree(GeneralHybridTree):
         return sorted(spans, \
                       cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
                                            [y[1]] + [-y[2]] + y[3:] + [y[0]]))
-
-
-def test():
-    tree = HybridTree("s1")
-    tree.add_leaf("f1","VP","hat")
-    tree.add_leaf("f2","ADV","schnell")
-    tree.add_leaf("f3","VP","gearbeitet")
-    tree.add_punct("f4","PUNC",".")
-
-    tree.add_child("V","f1")
-    tree.add_child("V","f3")
-    tree.add_child("ADV","f2")
-
-    tree.add_child("VP","V")
-    tree.add_child("VP","ADV")
-
-    print "rooted", tree.root
-    tree.add_to_root("VP")
-    print "rooted", tree.root
-    tree.set_label("V","V")
-    tree.set_label("VP","VP")
-    tree.set_label("ADV","ADV")
-
-    print "sent label", tree.sent_label()
-
-    print "leaves", tree.leaves()
-
-    print "is leaf (leaves)", [(x, tree.is_leaf(x)) for (x,_,_) in tree.leaves()]
-    print "is leaf (internal)", [(x, tree.is_leaf(x)) for x in tree.ids()]
-    print "leaf index",  [(x, tree.leaf_index(x)) for x in ["f1","f2","f3"]]
-
-    print "pos yield", tree.pos_yield()
-    print "word yield", tree.word_yield()
-
-    # reentrant
-    # parent
-
-    print "ids", tree.ids()
-
-    # reorder
-    print "n nodes", tree.n_nodes()
-    print "n gaps", tree.n_gaps()
-
-    print "fringe VP", tree.fringe("VP")
-    print "fringe V", tree.fringe("V")
-
-    print "empty fringe", tree.empty_fringe()
-
-    print "complete?", tree.complete()
-
-    print "max n spans", tree.max_n_spans()
-
-    print "unlabelled structure", tree.unlabelled_structure()
-
-    print "labelled spans", tree.labelled_spans()
-
-if __name__ == '__main__':
-    test()

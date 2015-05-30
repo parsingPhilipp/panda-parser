@@ -55,11 +55,11 @@ def term_pos(tree, id):
 
 # and corresponding tree-yield strategies for parsing
 def word_yield(tree):
-    return tree.token_yield()
+    return [token.form() for token in tree.token_yield()]
 
 
 def pos_yield(tree):
-    return tree.pos_yield()
+    return [token.pos() for token in tree.token_yield()]
 
 
 # Recursive partitioning strategies

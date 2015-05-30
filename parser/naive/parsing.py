@@ -19,15 +19,15 @@ KEY = 2
 # Span, represents input positions from i+1 to j.
 Span = namedtuple('Span', ['low', 'high'])
 # class Span:
-#     # Constructor.
-#     # i: int
-#     # j: int
-#     def __init__(self, i, j):
-#         self.__i = i
-#         self.__j = j
+# # Constructor.
+# # i: int
+# # j: int
+# def __init__(self, i, j):
+# self.__i = i
+# self.__j = j
 # 
-#     # return: int
-#     def low(self):
+# # return: int
+# def low(self):
 #         return self.__i
 # 
 #     # return: int
@@ -319,7 +319,6 @@ class Rule_instance:
         return self.lhs().key_ranges(), self.dot(), id(self.rule())
 
 
-
 # For rule and input string, replace terminals by spans in all possible
 # ways.
 # rule: LCFRS_rule
@@ -451,11 +450,11 @@ class LCFRS_parser(AbstractParser):
                         # self.__combine(item, nont_item, item.key(), str(nont_item))
                         self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
 
-                # key = low, nont
-                # self.__rule_items[key].append(item)
-                # for nont_item in self.__nont_items[key]:
-                #     # self.__combine(item, nont_item, item.key(), str(nont_item))
-                #     self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
+                        # key = low, nont
+                        # self.__rule_items[key].append(item)
+                        # for nont_item in self.__nont_items[key]:
+                        #     # self.__combine(item, nont_item, item.key(), str(nont_item))
+                        #     self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
 
     # Combine rule item with nont item.
     # rule_item: Rule_instance
@@ -595,8 +594,9 @@ class LCFRS_parser(AbstractParser):
             # extend tree at child position corresponding to the dot of active item
             # self.__best_derivation_tree_rec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2,
             #                             sub_span)
-            self.__best_derivation_tree_rec(elem[2], tree, id + tree.gorn_delimiter() + str(new_dot_position(elem[1])), w2,
-                                        sub_span)
+            self.__best_derivation_tree_rec(elem[2], tree, id + tree.gorn_delimiter() + str(new_dot_position(elem[1])),
+                                            w2,
+                                            sub_span)
             # extend active item
             # self.__best_derivation_tree_rec(elem[0], tree, id, w1, spans)
             self.__best_derivation_tree_rec(elem[1], tree, id, w1, spans)

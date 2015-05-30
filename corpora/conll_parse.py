@@ -1,5 +1,5 @@
 #!/usr/bin/python2.7
-#  -*- coding: iso-8859-15 -*-
+# -*- coding: iso-8859-15 -*-
 __author__ = 'kilian'
 
 import re
@@ -17,7 +17,6 @@ test_file_modified = 'examples/Dependency_Corpus_modified.conll'
 
 conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
 conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
-
 
 global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4       NK
 2       Göttinger       _       ADJA    ADJA    _       4       NK      4       NK
@@ -120,10 +119,12 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
                 # FIXME: ignoring punctuation may leads to malformed trees
                 if ignore_punctuation:
                     continue
-                raise Exception('{4}: connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
-                     str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
-                     str(len(tree.id_yield()))), tree.sent_label())
+                raise Exception(
+                    '{4}: connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
+                        str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
+                        str(len(tree.id_yield()))), tree.sent_label())
             yield tree
+
 
 def tree_to_conll_str(tree):
     """
@@ -159,7 +160,7 @@ def node_to_conll_str(tree, id):
         dependency_info += '0' + delimiter
     # Connect disconnected tokens (i.e. punctuation) to the root.
     elif tree.disconnected(id):
-        dependency_info += str(tree.node_index_full(tree.root) + 1) + delimiter
+        dependency_info += str(tree.node_index_full(tree.root[0]) + 1) + delimiter
     else:
         dependency_info += str(tree.node_index_full(tree.parent(id)) + 1) + delimiter
     if tree.disconnected(id):
@@ -186,7 +187,7 @@ def compare_dependency_trees(reference, test):
     # sanity check
     if reference.token_yield() != test.token_yield():
         raise Exception("yield of trees differs: \'{0}\' vs. \'{1}\'".format(' '.join(reference.token_yield()),
-                                                                             ' '.join(test.token_yield())))
+            ' '.join(test.token_yield())))
 
     for i in range(1, len(reference.token_yield()) + 1):
         ref_id = reference.index_node(i)
@@ -245,12 +246,12 @@ def test_conll_parse():
     except StopIteration:
         pass
 
-    # print score_cmp_dep_trees(trees[i], test_trees[i])
+        # print score_cmp_dep_trees(trees[i], test_trees[i])
         # print tree
         # print tree_to_conll_str(tree), '\n '
-    # print node_to_conll_str(trees[0], trees[0].root())
+        # print node_to_conll_str(trees[0], trees[0].root())
 
-    # print tree_to_conll_str(trees[0])
+        # print tree_to_conll_str(trees[0])
 
 
 def test_conll_grammar_induction():
@@ -262,11 +263,12 @@ def test_conll_grammar_induction():
     for tree in trees2:
         parser = LCFRS_parser(grammar, [token.pos() for token in tree.token_yield()])
         h_tree = GeneralHybridTree()
-        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.full_token_yield()], [token.form() for token in tree.full_token_yield()], True, construct_dependency_token)
-        #print h_tree
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.full_token_yield()],
+                                                        [token.form() for token in tree.full_token_yield()], True,
+                                                        construct_dependency_token)
+        # print h_tree
         print h_tree.full_token_yield()
         print tree_to_conll_str(h_tree)
-
 
 
 # test_conll_grammar_induction()

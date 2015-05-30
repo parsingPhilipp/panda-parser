@@ -6,6 +6,7 @@ import corpora.negra_parse
 import corpora.tiger_parse
 from constituent.parse_accuracy import ParseAccuracy
 from hybridtree.constituent_tree import *
+from hybridtree.biranked_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
     start as induction_start
 from parser.naive.parsing import *
@@ -39,6 +40,7 @@ tiger_fanout_4 = \
 
 ############################################################
 # Constants and corpus-specific procedures.
+
 
 # Turn list of sentence names to list of trees.
 # names: list of string
@@ -167,7 +169,7 @@ def make_name(i):
 # return: list of string
 def make_names(i, j):
     return [make_name(k) for k in range(i, j + 1) \
-            if not k in excluded_sentences()]
+            if k not in excluded_sentences()]
 
 
 # Turn range into hybrid trees.
@@ -281,6 +283,7 @@ n_nodes_gold = 0
 n_gaps_gold = 0
 n_nodes_test = 0
 n_gaps_test = 0
+
 
 # Clear these variables.
 def clear_globals():
@@ -534,7 +537,7 @@ def parse_tree_by_gram(tree, gram, accuracy):
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
         dcp_tree = HybridTree()
-        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, poss, words, False)
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, poss, words, False, construct_constituent_token)
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
         accuracy.add_accuracy(retrieved, relevant)
@@ -558,6 +561,7 @@ parse_test(20, method=left_branch_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
 # parse_test(20, method=fanout_three_extraction_child)
 # parse_test(20, method=fanout_four_extraction_child)
+
 
 # Parse test sentences with induced corpus and compare them graphically.
 # This can be useful for testing.
@@ -590,8 +594,8 @@ def parse_tree_by_gram_and_compare(tree, gram):
         print 'failure', tree.sent_label()
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
-        tree = GeneralHybridTree()
-        dcp_tree = p.dcp_hybrid_tree_best_derivation(tree, poss, words, False)
+        tree = HybridTree()
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(tree, poss, words, False, construct_constituent_token)
         # retrieved = normalize_labelled_spans(p.labelled_spans())
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
