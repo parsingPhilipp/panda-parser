@@ -502,7 +502,7 @@ def parse_test(max_length, method=direct_extract_lcfrs):
                  lambda tree: tree.complete() and not tree.empty_fringe() \
                               and 2 <= len(tree.word_yield()) <= max_length \
                  # UNCOMMENT following line to restrict attention to sentences with gaps   # and tree.n_gaps() > 0
-    )
+                 )
     end_at = time.time()
     print 'Parsed:', n
     if accuracy.n() > 0:
@@ -537,13 +537,13 @@ def parse_tree_by_gram(tree, gram, accuracy):
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
         dcp_tree = HybridTree()
-        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, poss, words, False, construct_constituent_token)
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, tree.token_yield(), False, construct_constituent_token)
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
         accuracy.add_accuracy(retrieved, relevant)
         n_nodes_test += dcp_tree.n_nodes()
         n_gaps_test += dcp_tree.n_gaps()
-    # print 'success', tree.sent_label() # for testing
+        # print 'success', tree.sent_label() # for testing
 
 # UNCOMMENT one or more of the following for running experiments
 # parse_test(25)
@@ -595,7 +595,7 @@ def parse_tree_by_gram_and_compare(tree, gram):
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
         tree = HybridTree()
-        dcp_tree = p.dcp_hybrid_tree_best_derivation(tree, poss, words, False, construct_constituent_token)
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(tree, tree.token_yield(), False, construct_constituent_token)
         # retrieved = normalize_labelled_spans(p.labelled_spans())
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()

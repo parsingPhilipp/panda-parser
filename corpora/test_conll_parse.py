@@ -2,6 +2,7 @@
 __author__ = 'kilian'
 
 import unittest
+import copy
 from conll_parse import *
 
 test_file = '../examples/Dependency_Corpus.conll'
@@ -20,7 +21,7 @@ global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4 
 7       zur     _       APPRART APPRART _       6       MO      6       MO
 8       Zeit    _       NN      NN      _       7       NK      7       NK
 9       mit     _       APPR    APPR    _       6       MO      6       MO
-10      einem   _       ART     ART     _       9       NK      9       NK
+10      einem   _       ART     ART     _       9       NK      9       NKL
 11      unguten _       ADJA    ADJA    _       9       NK      9       NK
 12      Gefühl  _       NN      NN      _       9       NK      9       NK
 13      durch   _       APPR    APPR    _       6       MO      6       MO
@@ -39,9 +40,11 @@ class CoNLLParser(unittest.TestCase):
 
         for tree in trees2:
             parser = LCFRS_parser(grammar, [token.pos() for token in tree.token_yield()])
+            cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+            for token in cleaned_tokens:
+                token.set_deprel('_')
             h_tree = GeneralHybridTree()
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.full_token_yield()],
-                                                            [token.form() for token in tree.full_token_yield()], True,
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, True,
                                                             construct_conll_token)
             # print h_tree
             print 'input -> hybrid-tree -> output'

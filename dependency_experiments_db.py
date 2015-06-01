@@ -9,6 +9,7 @@ import sys
 import re
 import os
 import gc
+import copy
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from hybridtree.biranked_tokens import construct_conll_token
@@ -215,10 +216,12 @@ def parse_sentences_from_file(grammar
             gc.collect()
         else:
             # print tree.sent_label(),
+            cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+            for token in cleaned_tokens:
+                token.set_deprel('_')
             h_tree = GeneralHybridTree(tree.sent_label())
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, map(lambda x: x.pos(), tree.full_token_yield()),
-                                                            map(lambda x: x.form(), tree.full_token_yield()),
-                                                            ignore_punctuation, construct_conll_token)
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
+                                                            construct_conll_token)
 
             if h_tree:
                 experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp,
@@ -266,10 +269,10 @@ def test_conll_grammar_induction():
     # for ignore_punctuation in [True, False]:
     # for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
     # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
-    #                , d_i.left_branching, d_i.right_branching]:
+    # , d_i.left_branching, d_i.right_branching]:
     # for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, True)
-    #                                                     , (d_i.strict_pos_dep, d_i.left_branching, True)
-    #                                                     , (d_i.child_pos_dep, d_i.direct_extraction, True)
+    # , (d_i.strict_pos_dep, d_i.left_branching, True)
+    # , (d_i.child_pos_dep, d_i.direct_extraction, True)
     #                                                     , (d_i.child_pos_dep, d_i.left_branching, True)]:
 
     root_default_deprel = 'ROOT'

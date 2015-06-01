@@ -5,6 +5,7 @@ conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
 
 import time
 import sys
+import copy
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
@@ -101,14 +102,16 @@ def parse_sentences_from_file(grammar
             continue
         parser = LCFRS_parser(grammar, tree_yield(tree))
         h_tree = GeneralHybridTree()
-        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.token_yield()],
-                                                        [token.form() for token in tree.token_yield()],
+        cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+        for token in cleaned_tokens:
+            token.set_deprel('_')
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens,
                                                         ignore_punctuation, construct_conll_token)
         if h_tree:
             n_gaps_gold += tree.n_gaps()
             n_gaps_test += h_tree.n_gaps()
             parse += 1
-            (dUAS, dLAS, dUEM, dLEM) = score_cmp_dep_trees(tree, h_tree)
+            dUAS, dLAS, dUEM, dLEM = score_cmp_dep_trees(tree, h_tree)
             UAS += dUAS
             LAS += dLAS
             UEM += dUEM
@@ -138,7 +141,7 @@ def test_conll_grammar_induction():
     # else:
     # ignore_punctuation = False
     # if 'strict' in sys.argv:
-    #     nont_labelling = d_i.strict_pos
+    # nont_labelling = d_i.strict_pos
     # else:
     #     nont_labelling = d_i.child_pos
     # for ignore_punctuation in [True, False]:
