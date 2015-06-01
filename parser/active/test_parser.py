@@ -9,7 +9,7 @@ from parser.derivation_interface import derivation_to_hybrid_tree
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from hybridtree.biranked_tokens import *
 from dependency.induction import induce_grammar, term_pos, direct_extraction
-from dependency.labeling import StrictPOSdepAtLeafLabeling
+from dependency.labeling import the_labeling_factory
 from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 
@@ -193,7 +193,8 @@ class MyTestCase(unittest.TestCase):
         print tree2
         # print tree.recursive_partitioning()
 
-        (_, grammar) = induce_grammar([tree, tree2], StrictPOSdepAtLeafLabeling(), term_pos, direct_extraction, 'START')
+        labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
+        (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, direct_extraction, 'START')
 
         # print grammar
 
@@ -217,7 +218,8 @@ class MyTestCase(unittest.TestCase):
 
             dcp = The_DCP_evaluator(der).getEvaluation()
             h_tree_2 = GeneralHybridTree()
-            dcp_to_hybridtree(h_tree_2, dcp, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '), False,
+            token_sequence = [construct_conll_token(form, lemma) for form, lemma in zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]
+            dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,
                               construct_conll_token)
 
             correct = h_tree_2.__eq__(tree) or h_tree_2.__eq__(tree2)

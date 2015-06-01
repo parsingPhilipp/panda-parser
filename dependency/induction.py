@@ -52,6 +52,10 @@ def term_pos(tree, id):
     return tree.node_token(id).pos()
 
 
+def term_fine_grained_pos(tree, id):
+    return tree.node_token(id).fine_grained_pos()
+
+
 # and corresponding tree-yield strategies for parsing
 def word_yield(tree):
     return [token.form() for token in tree.token_yield()]
@@ -59,6 +63,10 @@ def word_yield(tree):
 
 def pos_yield(tree):
     return [token.pos() for token in tree.token_yield()]
+
+
+def fine_grained_pos_yield(tree):
+    return [token.fine_grained_pos() for token in tree.token_yield()]
 
 
 # Recursive partitioning strategies

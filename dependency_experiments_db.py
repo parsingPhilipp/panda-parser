@@ -295,22 +295,13 @@ def test_conll_grammar_induction():
 def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, length_limit, labeling, partitioning,
                    root_default_deprel, disconnected_default_deprel, max_training, max_test, max_parse_time,
                    max_parse_memory):
-    if labeling == 'strict-pos-leaf:dep':
-        nont_labelling = label.StrictPOSdepAtLeafLabeling()
-    elif labeling == 'strict-pos':
-        nont_labelling = label.StrictPOSLabeling()
-    elif labeling == 'strict-pos-dep':
-        nont_labelling = label.StrictPOSdepLabeling()
-    elif labeling == 'strict-dep':
-        nont_labelling = label.StrictDepLabeling()
-    elif labeling == 'child-pos-leaf:dep':
-        nont_labelling = label.ChildPOSdepAtLeafLabeling()
-    elif labeling == 'child-pos':
-        nont_labelling = label.ChildPOSLabeling()
-    elif labeling == 'child-pos-dep':
-        nont_labelling = label.ChildPOSdepLabeling()
-    elif labeling == 'child-dep':
-        nont_labelling = label.ChildDepLabeling()
+    labeling_choices = labeling.split('-')
+    if len(labeling_choices) == 2:
+        nont_labelling = label.the_labeling_factory().create_simple_labeling_strategy(labeling_choices[0], labeling_choices[1])
+    elif len(labeling_choices) > 2:
+        nont_labelling = label.the_labeling_factory().create_complex_labeling_strategy(labeling_choices)
+        # labeling == 'strict-pos-leaf:dep':
+        # labeling == 'child-pos-leaf:dep':
     else:
         print("Error: Invalid labeling strategy: " + labeling)
         exit(1)

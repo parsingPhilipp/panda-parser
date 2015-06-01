@@ -2,6 +2,7 @@ __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 from hybridtree.general_hybrid_tree import GeneralHybridTree
+from types import FunctionType
 
 
 class AbstractLabeling:
@@ -49,7 +50,7 @@ class AbstractLabeling:
         pass
 
     @abstractmethod
-    def _bottom_node_name(self, tree, id):
+    def _bottom_node_name(self, token):
         """
         :type tree: GeneralHybridTree
         :type id: str
@@ -58,7 +59,7 @@ class AbstractLabeling:
         pass
 
     @abstractmethod
-    def _top_node_name(self, tree, id, terminal_generating):
+    def _top_node_name(self, token, terminal_generating):
         """
         :type tree: GeneralHybridTree
         :type id: str
@@ -71,7 +72,7 @@ class AbstractLabeling:
 
 
 class StrictLabeling(AbstractLabeling):
-    @abstractmethod
+    # @abstractmethod
     def __str__(self):
         pass
 
@@ -79,22 +80,22 @@ class StrictLabeling(AbstractLabeling):
         super(StrictLabeling, self).__init__()
 
     def _label_bottom_seq(self, tree, id_seq):
-        return '#'.join(map(lambda id: self._bottom_node_name(tree, id), id_seq))
+        return '#'.join(map(lambda id: self._bottom_node_name(tree.node_token(id)), id_seq))
 
-    @abstractmethod
-    def _top_node_name(self, tree, id, terminal_generating):
+    # @abstractmethod
+    def _top_node_name(self, token, terminal_generating):
         pass
 
-    @abstractmethod
-    def _bottom_node_name(self, tree, id):
+    # @abstractmethod
+    def _bottom_node_name(self, token):
         pass
 
     def _label_top_seq(self, tree, id_seq, terminal_generating):
-        return '#'.join(map(lambda id: self._top_node_name(tree, id, terminal_generating), id_seq))
+        return '#'.join(map(lambda id: self._top_node_name(tree.node_token(id), terminal_generating), id_seq))
 
 
 class ChildLabeling(AbstractLabeling):
-    @abstractmethod
+    # @abstractmethod
     def __str__(self):
         pass
 
@@ -103,31 +104,31 @@ class ChildLabeling(AbstractLabeling):
 
     def _label_bottom_seq(self, tree, id_seq):
         if len(id_seq) == 1:
-            return self._bottom_node_name(tree, id_seq[0])
+            return self._bottom_node_name(tree.node_token(id_seq[0]))
         elif len(id_seq) > 1:
             # assuming that id_seq are siblings in tree, and thus also not at root level
-            return 'children-of(' + self._bottom_node_name(tree, tree.parent(id_seq[0])) + ')'
+            return 'children-of(' + self._bottom_node_name(tree.node_token(tree.parent(id_seq[0]))) + ')'
         else:
             raise Exception('Empty components in top_max/ bottom_max!')
 
-    @abstractmethod
-    def _top_node_name(self, tree, id, terminal_generating):
+    # @abstractmethod
+    def _top_node_name(self, token, terminal_generating):
         pass
 
-    @abstractmethod
-    def _bottom_node_name(self, tree, id):
+    # @abstractmethod
+    def _bottom_node_name(self, token):
         pass
 
     def _label_top_seq(self, tree, id_seq, terminal_generating):
         if len(id_seq) == 1:
-            return self._top_node_name(tree, id_seq[0], terminal_generating)
+            return self._top_node_name(tree.node_token(id_seq[0]), terminal_generating)
         elif len(id_seq) > 1:
             if id_seq[0] in tree.root:
                 # only in case of multi-rooted hybrid trees
                 return 'children-of(VIRTUAL-ROOT)'
             else:
                 # assuming that id_seq are siblings in tree, and not at root level
-                return 'children-of(' + self._top_node_name(tree, tree.parent(id_seq[0]), False) + ')'
+                return 'children-of(' + self._top_node_name(tree.node_token(tree.parent(id_seq[0])), False) + ')'
         else:
             raise Exception('Empty components in top_max/ bottom_max!')
 
@@ -193,177 +194,86 @@ def argument_dependencies_rec(tree, id_seqs, descendants, arg_indices):
     return '.'.join(term)
 
 
-# Nonterminal labeling strategies
-class StrictPOSLabeling(StrictLabeling):
-    def __init__(self):
-        super(StrictPOSLabeling, self).__init__()
-
-    def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_token(id).pos()
-        if terminal_generating:
-            return label + ':T'
-        else:
-            return label
-
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).pos()
-
-    def __str__(self):
-        return 'strict_pos'
+def token_to_pos(token, terminal_generating=False):
+    if terminal_generating:
+        return token.pos() + ':T'
+    else:
+        return token.pos()
 
 
-class StrictPOSdepAtLeafLabeling(StrictLabeling):
-    def __init__(self):
-        super(StrictPOSdepAtLeafLabeling, self).__init__()
-
-    def _top_node_name(self, tree, id, terminal_generating):
-        if not tree.descendants(id):
-            return tree.node_token(id).pos() + ':' + tree.node_token(id).deprel()
-        else:
-            return tree.node_token(id).pos()
-
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).pos()
-
-    def __str__(self):
-        return 'strict_pos_dep'
+def token_to_fine_grained_pos(token, terminal_generating=False):
+    if terminal_generating:
+        return token.fine_grained_pos() + ':T'
+    else:
+        return token.fine_grained_pos()
 
 
-class StrictPOSdepLabeling(StrictLabeling):
-    def __init__(self):
-        super(StrictPOSdepLabeling, self).__init__()
-
-    def _top_node_name(self, tree, id, terminal_generating):
-        token = tree.node_token(id)
-        label = token.pos() + ':' + token.deprel()
-        if terminal_generating:
-            return label + ':T'
-        else:
-            return label
-
-    def _bottom_node_name(self, tree, id):
-        token = tree.node_token(id)
+def token_to_pos_and_deprel(token, terminal_generating=False):
+    if terminal_generating:
+        return token.pos() + ':' + token.deprel() + ':T'
+    else:
         return token.pos() + ':' + token.deprel()
 
-    def __str__(self):
-        return 'strict_pos_dep_overall'
+
+def token_to_fine_grained_pos_and_deprel(token, terminal_generating=False):
+    if terminal_generating:
+        return token.fine_grained_pos() + ':' +  token.deprel() + ':T'
+    else:
+        return token.fine_grained_pos() + ':' + token.deprel()
 
 
-class StrictDepLabeling(StrictLabeling):
+def token_to_form(token, terminal_generating=False):
+    if terminal_generating:
+        return token.form() + ':T'
+    else:
+        return token.form()
+
+
+class LabelingStrategyFactory:
     def __init__(self):
-        super(StrictDepLabeling, self).__init__()
+        self.__top_level_strategies = {}
+        self.__node_to_string_strategies = {}
 
-    def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_token(id).deprel()
-        if terminal_generating:
-            return label + ':T'
-        else:
-            return label
+    def register_top_level_strategy(self, name, strategy):
+        self.__top_level_strategies[name] = strategy
 
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).deprel()
+    def register_node_to_string_strategy(self, name, strategy):
+        self.__node_to_string_strategies[name] = strategy
 
-    def __str__(self):
-        return 'strict_dep'
+    def create_simple_labeling_strategy(self, top_level, node_to_string):
+        labeling_strategy = self.__top_level_strategies[top_level]()
+        if not isinstance(labeling_strategy, AbstractLabeling):
+            s = 'Unknown top-level strategy ' + top_level + '\n'
+            s += 'I know the following top-level strategies: \n'
+            for name in self.__top_level_strategies.keys():
+                s += '\t' + name + '\n'
+            raise Exception(s)
+        assert (isinstance(labeling_strategy, AbstractLabeling))
 
+        node_strategy = self.__node_to_string_strategies[node_to_string]
+        if not isinstance(node_strategy, FunctionType):
+            s = 'Unknown top-level strategy ' + node_strategy + '\n'
+            s += 'I know the following node-level strategies: \n'
+            for name in self.__node_to_string_strategies.keys():
+                s += '\t' + name + '\n'
+            raise Exception(s)
 
-class StrictFormLabeling(StrictLabeling):
-    def __init__(self):
-        super(StrictFormLabeling, self).__init__()
+        labeling_strategy._top_node_name = node_strategy
+        labeling_strategy._bottom_node_name = node_strategy
+        labeling_strategy.__str__ = lambda: '-'.join([top_level, node_to_string])
+        return labeling_strategy
 
-    def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_token(id).form()
-
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).form()
-
-    def __str__(self):
-        return 'strict_word'
-
-
-class ChildPOSLabeling(ChildLabeling):
-    def __init__(self):
-        super(ChildPOSLabeling, self).__init__()
-
-    def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_token(id).pos()
-        if terminal_generating:
-            return label + ':T'
-        else:
-            return label
-
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).pos()
-
-    def __str__(self):
-        return 'child_pos'
+    def create_complex_labeling_strategy(self, args):
+        raise Exception('Not implemented!')
 
 
-class ChildPOSdepAtLeafLabeling(ChildLabeling):
-    def __init__(self):
-        super(ChildPOSdepAtLeafLabeling, self).__init__()
+def the_labeling_factory():
+    factory = LabelingStrategyFactory()
+    factory.register_top_level_strategy('strict', StrictLabeling)
+    factory.register_top_level_strategy('child', ChildLabeling)
 
-    def _top_node_name(self, tree, id, terminal_generating):
-        token = tree.node_token(id)
-        if terminal_generating:
-            return token.pos() + ':' + token.deprel()
-        else:
-            return token.pos()
-
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).pos()
-
-    def __str__(self):
-        return 'child_pos_dep'
-
-
-class ChildPOSdepLabeling(ChildLabeling):
-    def __init__(self):
-        super(ChildPOSdepLabeling, self).__init__()
-
-    def _top_node_name(self, tree, id, terminal_generating):
-        token = tree.node_token(id)
-        label = token.pos() + ':' + token.deprel()
-        if terminal_generating:
-            return label + ':T'
-        else:
-            return label
-
-    def _bottom_node_name(self, tree, id):
-        token = tree.node_token(id)
-        return token.pos() + ':' + token.deprel()
-
-    def __str__(self):
-        return 'child_pos_dep_overall'
-
-
-class ChildFormLabeling(ChildLabeling):
-    def __init__(self):
-        super(ChildFormLabeling, self).__init__()
-
-    def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_token(id).form()
-
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).form()
-
-    def __str__(self):
-        return 'child_word'
-
-
-class ChildDepLabeling(ChildLabeling):
-    def __init__(self):
-        super(ChildDepLabeling, self).__init__()
-
-    def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_token(id).deprel()
-        if terminal_generating:
-            return label + ':T'
-        else:
-            return label
-
-    def _bottom_node_name(self, tree, id):
-        return tree.node_token(id).deprel()
-
-    def __str__(self):
-        return 'child_dep'
+    factory.register_node_to_string_strategy('pos', token_to_pos)
+    factory.register_node_to_string_strategy('fine_grained_pos', token_to_fine_grained_pos)
+    factory.register_node_to_string_strategy('pos+deprel', token_to_pos_and_deprel)
+    factory.register_node_to_string_strategy('fine_grained_pos+deprel', token_to_fine_grained_pos_and_deprel)
+    return factory

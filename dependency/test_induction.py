@@ -6,7 +6,7 @@ from hybridtree.general_hybrid_tree import GeneralHybridTree
 from hybridtree.biranked_tokens import CoNLLToken, construct_conll_token
 from induction import induce_grammar, term_pos, direct_extraction, fanout_1, left_branching
 from parser.naive.parsing import LCFRS_parser
-from dependency.labeling import ChildPOSdepLabeling, StrictPOSdepLabeling
+from dependency.labeling import the_labeling_factory
 from grammar.sDCP.dcp import DCP_string
 from hybridtree.test_multiroot import multi_dep_tree
 
@@ -72,7 +72,7 @@ class MyTestCase(unittest.TestCase):
 
         print tree.recursive_partitioning()
 
-        (_, grammar) = induce_grammar([tree, tree2], ChildPOSdepLabeling(), term_pos, direct_extraction, 'START')
+        (_, grammar) = induce_grammar([tree, tree2], the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'), term_pos, direct_extraction, 'START')
         print max([grammar.fanout(nont) for nont in grammar.nonts()])
         print grammar
 
@@ -94,7 +94,8 @@ class MyTestCase(unittest.TestCase):
 
     def test_multiroot(self):
         tree = multi_dep_tree()
-        for labeling_strategy in [StrictPOSdepLabeling(), ChildPOSdepLabeling()]:
+        for top_level_labeling_strategy in ['strict','child']:
+            labeling_strategy = the_labeling_factory().create_simple_labeling_strategy(top_level_labeling_strategy, 'pos+deprel')
             for recursive_partitioning in [direct_extraction, fanout_1, left_branching]:
                 (_, grammar) = induce_grammar([tree], labeling_strategy, term_pos, recursive_partitioning, 'START')
                 print grammar
