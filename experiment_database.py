@@ -188,7 +188,7 @@ def add_tree(connection, tree, corpus):
     # unique tree key
     tree_id = cursor.lastrowid
     for id in tree.full_yield():
-        if tree.root == id:
+        if id in tree.root:
             head = 0
         else:
             head = tree.node_index_full(tree.parent(id)) + 1

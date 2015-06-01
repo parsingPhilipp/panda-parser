@@ -25,7 +25,6 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     n_trees = 0
     for tree in trees:
         n_trees += 1
-
         rec_par_int = recursive_partitioning(tree)
 
         rec_par_nodes = tree.node_id_rec_par(rec_par_int)

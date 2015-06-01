@@ -11,6 +11,7 @@ import os
 import gc
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.biranked_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
 from parser.active.parsing import Parser as ActiveParser
@@ -217,7 +218,7 @@ def parse_sentences_from_file(grammar
             h_tree = GeneralHybridTree(tree.sent_label())
             h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, map(lambda x: x.pos(), tree.full_token_yield()),
                                                             map(lambda x: x.form(), tree.full_token_yield()),
-                                                            ignore_punctuation)
+                                                            ignore_punctuation, construct_conll_token)
 
             if h_tree:
                 experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp,
@@ -263,7 +264,7 @@ def test_conll_grammar_induction():
     # else:
     # nont_labelling = d_i.child_pos
     # for ignore_punctuation in [True, False]:
-    #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
+    # for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
     # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
     #                , d_i.left_branching, d_i.right_branching]:
     # for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, True)

@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 import unittest
-from hybridtree.constituent_tree import HybridTree
+from constituent_tree import HybridTree
 
 
 class MyTestCase(unittest.TestCase):

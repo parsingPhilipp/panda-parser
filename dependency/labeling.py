@@ -356,14 +356,14 @@ class ChildDepLabeling(ChildLabeling):
         super(ChildDepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_dep_label(id)
+        label = tree.node_token(id).deprel()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_dep_label(id)
+        return tree.node_token(id).deprel()
 
     def __str__(self):
         return 'child_dep'

@@ -7,6 +7,9 @@ from biranked_tokens import BiRankedToken
 
 
 class GeneralHybridTree:
+    def node_type(self):
+        return BiRankedToken
+
     @property
     def virtual_root(self):
         return 'VROOT'
@@ -310,7 +313,13 @@ class GeneralHybridTree:
             return head, tail
 
     def recursive_partitioning(self):
-        return set(self.fringe(self.virtual_root)), [self.recursive_partitioning_rec(root) for root in self.root]
+        return self.recursive_partitioning_rec(self.virtual_root)
+        # head = set(self.fringe(self.virtual_root))
+        # tail = [self.recursive_partitioning_rec(root) for root in self.root]
+        # if len(tail) == 1 and head == tail[0][0]:
+        # return tail[0]
+        # else:
+        # return head, tail
 
     def recursive_partitioning_rec(self, id):
         head = set(self.fringe(id))
@@ -369,9 +378,9 @@ class GeneralHybridTree:
         """
         :param id: node id
         :type id: str
-        :return: label of the node
-        :rtype: str
-        Query the label of some node.
+        :return: token at node id
+        :rtype: BiRankedToken
+        Query the token of node id.
         """
         return self.__id_to_token[id]
 

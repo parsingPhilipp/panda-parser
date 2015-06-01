@@ -49,7 +49,6 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             if match.group(1) == '1':
                 tree_count += 1
                 tree = GeneralHybridTree('tree' + str(tree_count))
-                # root = 0
 
             node_id = match.group(1)
             label = match.group(2)
@@ -65,13 +64,15 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             # How do you exclude tokens from scoring?
             if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
                 tree.add_node(node_id, CoNLLToken(label, lemma, pos, fine_grained_pos, feats, deprel), True, True)
-                tree.add_child(parent, node_id)
+                if parent != '0':
+                    tree.add_child(parent, node_id)
             else:
                 tree.add_node(node_id, CoNLLToken(label, lemma, pos, fine_grained_pos, feats, deprel), True, False)
 
+            # TODO: If punctuation is ignored and the root is punctuation,
+            # TODO: it is added to the tree anyhow.
             if parent == '0':
                 tree.add_to_root(node_id)
-                # root += 1
 
             try:
                 line = file_content.next()
@@ -164,24 +165,25 @@ def compare_dependency_trees(reference, test):
     LEM = 0
 
     # sanity check
-    if reference.token_yield() != test.token_yield():
-        raise Exception("yield of trees differs: \'{0}\' vs. \'{1}\'".format(' '.join(reference.token_yield()),
-            ' '.join(test.token_yield())))
+    if not [token.form() for token in reference.token_yield()].__eq__([token.form() for token in test.token_yield()]):
+        raise Exception("yield of trees differs: \'{0}\' vs. \'{1}\'".format(
+            ' '.join([token.form() for token in reference.token_yield()])),
+            ' '.join([token.form() for token in test.token_yield()]))
 
     for i in range(1, len(reference.token_yield()) + 1):
         ref_id = reference.index_node(i)
         test_id = test.index_node(i)
-        if reference.root == ref_id:
-            if test.root == test_id:
+        if ref_id in reference.root:
+            if test_id in test.root:
                 UAS += 1
-                if reference.node_dep_label(ref_id) == test.node_dep_label(test_id):
+                if reference.node_token(ref_id).deprel() == test.node_token(test_id).deprel():
                     LAS += 1
-        elif test.root != test_id:
+        elif test_id not in test.root:
             ref_parent_i = reference.node_index(reference.parent(ref_id))
             test_parent_i = test.node_index(test.parent(test_id))
             if ref_parent_i == test_parent_i:
                 UAS += 1
-                if reference.node_dep_label(ref_id) == test.node_dep_label(test_id):
+                if reference.node_token(ref_id).deprel() == test.node_token(test_id).deprel():
                     LAS += 1
 
     if reference.n_nodes() == UAS:
