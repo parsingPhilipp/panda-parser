@@ -11,6 +11,7 @@ import os
 import gc
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.biranked_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
 from parser.active.parsing import Parser as ActiveParser
@@ -47,23 +48,20 @@ def disconnect_punctuation(trees):
     """
     for tree in trees:
         tree2 = GeneralHybridTree(tree.sent_label())
-        tree2.set_root(tree.root())
+        for root_id in tree.root:
+            tree2.add_to_root(root_id)
         for id in tree.full_yield():
-            label = tree.node_label(id)
-            pos = tree.node_pos(id)
-            deprel = tree.node_dep_label(id)
-            if not re.search(r'^\$.*$', pos):
+            token = tree.node_token(id)
+            if not re.search(r'^\$.*$', token.pos()):
                 parent = tree.parent(id)
-                tree2.add_node(id, label, pos, True, True)
+                tree2.add_node(id, token, True, True)
                 tree2.add_child(parent, id)
             else:
-                tree2.add_node(id, label, pos, True, False)
-
-            tree2.set_dep_label(id, deprel)
+                tree2.add_node(id, token, True, False)
 
         if tree2:
             # basic sanity checks
-            if not tree2.rooted():
+            if not tree2.root:
                 continue
             elif tree2.n_nodes() != len(tree2.id_yield()) or len(tree2.nodes()) != len(tree2.full_yield()):
                 continue
@@ -79,7 +77,7 @@ def induce_grammar_from_file(path
                              , quiet=False
                              , start='START'
                              , ignore_punctuation=True
-):
+                             ):
     """
     :param path: path to dependency corpus in CoNLL format
     :type path: str
@@ -218,8 +216,9 @@ def parse_sentences_from_file(grammar
         else:
             # print tree.sent_label(),
             h_tree = GeneralHybridTree(tree.sent_label())
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.full_pos_yield(), tree.full_labelled_yield(),
-                                                            ignore_punctuation)
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, map(lambda x: x.pos(), tree.full_token_yield()),
+                                                            map(lambda x: x.form(), tree.full_token_yield()),
+                                                            ignore_punctuation, construct_conll_token)
 
             if h_tree:
                 experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp,
@@ -263,9 +262,9 @@ def test_conll_grammar_induction():
     # if 'strict' in sys.argv:
     # nont_labelling = d_i.strict_pos
     # else:
-    #     nont_labelling = d_i.child_pos
+    # nont_labelling = d_i.child_pos
     # for ignore_punctuation in [True, False]:
-    #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
+    # for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
     # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
     #                , d_i.left_branching, d_i.right_branching]:
     # for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, True)

@@ -122,8 +122,12 @@ class ChildLabeling(AbstractLabeling):
         if len(id_seq) == 1:
             return self._top_node_name(tree, id_seq[0], terminal_generating)
         elif len(id_seq) > 1:
-            # assuming that id_seq are siblings in tree, and thus also not at root level
-            return 'children-of(' + self._top_node_name(tree, tree.parent(id_seq[0]), False) + ')'
+            if id_seq[0] in tree.root:
+                # only in case of multi-rooted hybrid trees
+                return 'children-of(VIRTUAL-ROOT)'
+            else:
+                # assuming that id_seq are siblings in tree, and not at root level
+                return 'children-of(' + self._top_node_name(tree, tree.parent(id_seq[0]), False) + ')'
         else:
             raise Exception('Empty components in top_max/ bottom_max!')
 
@@ -149,7 +153,7 @@ def argument_dependencies(tree, id_seqs):
             name_seq2 = id_seqs[j]
             if name_seq[0] in [descendant for id in name_seq2 for descendant in tree.descendants(id)]:
                 ancestor[i] = j
-                if not j in descendants.keys():
+                if j not in descendants.keys():
                     descendants[j] = [i]
                 else:
                     descendants[j].append(i)
@@ -195,14 +199,14 @@ class StrictPOSLabeling(StrictLabeling):
         super(StrictPOSLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_pos(id)
+        label = tree.node_token(id).pos()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id)
+        return tree.node_token(id).pos()
 
     def __str__(self):
         return 'strict_pos'
@@ -214,12 +218,12 @@ class StrictPOSdepAtLeafLabeling(StrictLabeling):
 
     def _top_node_name(self, tree, id, terminal_generating):
         if not tree.descendants(id):
-            return tree.node_pos(id) + ':' + tree.node_dep_label(id)
+            return tree.node_token(id).pos() + ':' + tree.node_token(id).deprel()
         else:
-            return tree.node_pos(id)
+            return tree.node_token(id).pos()
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id)
+        return tree.node_token(id).pos()
 
     def __str__(self):
         return 'strict_pos_dep'
@@ -230,31 +234,34 @@ class StrictPOSdepLabeling(StrictLabeling):
         super(StrictPOSdepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        label = token.pos() + ':' + token.deprel()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        return token.pos() + ':' + token.deprel()
 
     def __str__(self):
         return 'strict_pos_dep_overall'
+
 
 class StrictDepLabeling(StrictLabeling):
     def __init__(self):
         super(StrictDepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_dep_label(id)
+        label = tree.node_token(id).deprel()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_dep_label(id)
+        return tree.node_token(id).deprel()
 
     def __str__(self):
         return 'strict_dep'
@@ -265,10 +272,10 @@ class StrictFormLabeling(StrictLabeling):
         super(StrictFormLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_label(id)
+        return tree.node_token(id).form()
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_label(id)
+        return tree.node_token(id).form()
 
     def __str__(self):
         return 'strict_word'
@@ -279,14 +286,14 @@ class ChildPOSLabeling(ChildLabeling):
         super(ChildPOSLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_pos(id)
+        label = tree.node_token(id).pos()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id)
+        return tree.node_token(id).pos()
 
     def __str__(self):
         return 'child_pos'
@@ -297,13 +304,14 @@ class ChildPOSdepAtLeafLabeling(ChildLabeling):
         super(ChildPOSdepAtLeafLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
+        token = tree.node_token(id)
         if terminal_generating:
-            return tree.node_pos(id) + ':' + tree.node_dep_label(id)
+            return token.pos() + ':' + token.deprel()
         else:
-            return tree.node_pos(id)
+            return token.pos()
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id)
+        return tree.node_token(id).pos()
 
     def __str__(self):
         return 'child_pos_dep'
@@ -314,14 +322,16 @@ class ChildPOSdepLabeling(ChildLabeling):
         super(ChildPOSdepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        label = token.pos() + ':' + token.deprel()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_pos(id) + ':' + tree.node_dep_label(id)
+        token = tree.node_token(id)
+        return token.pos() + ':' + token.deprel()
 
     def __str__(self):
         return 'child_pos_dep_overall'
@@ -332,10 +342,10 @@ class ChildFormLabeling(ChildLabeling):
         super(ChildFormLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        return tree.node_label(id)
+        return tree.node_token(id).form()
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_label(id)
+        return tree.node_token(id).form()
 
     def __str__(self):
         return 'child_word'
@@ -346,14 +356,14 @@ class ChildDepLabeling(ChildLabeling):
         super(ChildDepLabeling, self).__init__()
 
     def _top_node_name(self, tree, id, terminal_generating):
-        label = tree.node_dep_label(id)
+        label = tree.node_token(id).deprel()
         if terminal_generating:
             return label + ':T'
         else:
             return label
 
     def _bottom_node_name(self, tree, id):
-        return tree.node_dep_label(id)
+        return tree.node_token(id).deprel()
 
     def __str__(self):
         return 'child_dep'

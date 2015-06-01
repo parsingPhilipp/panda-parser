@@ -97,9 +97,9 @@ class Derivation(AbstractDerivation):
         id = self.__counter
         self.__counter += 1
 
-        if not parent is None:
+        if parent is not None:
             self.__parent[id] = parent
-            if not parent in self.__children.keys():
+            if parent not in self.__children.keys():
                 self.__children[parent] = [id]
             else:
                 self.__children[parent].append(id)

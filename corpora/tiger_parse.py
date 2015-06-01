@@ -22,8 +22,10 @@ tiger_dir = '..'
 tiger = tiger_dir + '/tiger.xml'
 tiger_test = tiger_dir + '/tiger_8000.xml'
 
+
 # To hold parsed XML file. Cached for efficiency.
 xml_file = None
+
 
 # Determine XML file holding data, given file name.
 # file_name: string
@@ -66,7 +68,7 @@ def sentence_name_to_hybridtree(name, file_name):
         tree = HybridTree(name)
         graph = sent.find('graph')
         root = graph.get('root')
-        tree.set_root(root)
+        tree.add_to_root(root)
         for term in graph.iterfind('terminals/t'):
             id = term.get('id')
             word = term.get('word')

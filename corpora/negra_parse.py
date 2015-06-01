@@ -12,6 +12,7 @@ negra_dir = '~/Data/Negra'
 negra_nonproj = negra_dir + '/negra-corpus.export'
 negra_proj = negra_dir + '/negra-corpus.cfg'
 
+
 # Sentence number to name.
 # file_name: int
 # return: string
@@ -57,7 +58,7 @@ def sentence_names_to_hybridtrees(names, file_name):
                 parent = match_nont.group(5)
                 tree.set_label(id, nont)
                 if parent == '0':
-                    tree.set_root(id)
+                    tree.add_to_root(id)
                 else:
                     tree.add_child(parent, id)
             elif match_term:

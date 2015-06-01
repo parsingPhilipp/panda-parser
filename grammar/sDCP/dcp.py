@@ -9,9 +9,11 @@ from abc import ABCMeta, abstractmethod
 ###########################################################################
 # Parts of the rules.
 
+
 # Common interface for all objects that occur on rhs of DCP_rules
 class DCP_rhs_object:
     __metaclass__ = ABCMeta
+
     # evaluator: DCP_evaluator
     # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
@@ -24,9 +26,11 @@ class DCP_rhs_object:
         """
         pass
 
+
 # Interface for DCP_evaluation
 class DCP_evaluator:
     __metaclass__ = ABCMeta
+
     @abstractmethod
     def evaluateString(self, s, id):
         """
@@ -64,6 +68,7 @@ class DCP_evaluator:
     def evaluateIndex(self, var, id):
         pass
 
+
 # Variable identifying argument (synthesized or inherited).
 # In LHS this is (-1,j) and in RHS this is (i,j),
 # for i-th member in RHS, and j-th argument.
@@ -96,13 +101,14 @@ class DCP_var(DCP_rhs_object):
     def evaluateMe(self, evaluator, id):
         return evaluator.evaluateVariable(self, id)
 
+
 # Index, pointing to terminal in left (LCFRS) component of hybrid grammar.
 # Terminals are indexed in left-to-right order.
 class DCP_index(DCP_rhs_object):
     # Constructor.
     # i: int
     # dep_label: string
-    def __init__(self, i, dep_label = None):
+    def __init__(self, i, dep_label=None):
         self.__i = i
         self.__dep_label = dep_label
 
@@ -127,6 +133,7 @@ class DCP_index(DCP_rhs_object):
     def evaluateMe(self, evaluator, id):
         return evaluator.evaluateIndex(self, id)
 
+
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
 class DCP_string(str, DCP_rhs_object):
@@ -142,13 +149,14 @@ class DCP_string(str, DCP_rhs_object):
     def evaluateMe(self, evaluator, id):
         return evaluator.evaluateString(self, id)
 
-# An index replaced by an input position, according to parsing of a string with 
+
+# An index replaced by an input position, according to parsing of a string with
 # the left (LCFRS) component of hybrid grammar.
 class DCP_pos:
     # Constructor.
     # pos: int
     # dep_label: string
-    def __init__(self, pos, dep_label = None):
+    def __init__(self, pos, dep_label=None):
         self.__pos = pos
         self.__dep_label = dep_label
 
@@ -165,6 +173,7 @@ class DCP_pos:
     def __str__(self):
         return '[' + str(self.pos()) + ']'
 
+
 # A terminal occurrence (may linked to LCFRS terminal),
 # consisting of a DCP_string or DCP_index and a list of child terminal
 # occurrences.
@@ -176,7 +185,7 @@ class DCP_term(DCP_rhs_object):
     def __init__(self, head, arg):
         self.__head = head
         self.__arg = arg
-   
+
     # The label.
     # return: string
     def head(self):
@@ -196,6 +205,7 @@ class DCP_term(DCP_rhs_object):
     # Evaluator invocation
     def evaluateMe(self, evaluator, id):
         return evaluator.evaluateTerm(self, id)
+
 
 # Rule defining argument value by term.
 class DCP_rule:
@@ -223,6 +233,7 @@ class DCP_rule:
     def __str__(self):
         return str(self.lhs()) + '=' + dcp_terms_to_str(self.rhs())
 
+
 ################################################################
 # Auxiliary.
 
@@ -234,17 +245,20 @@ class DCP_rule:
 def dcp_terms_to_str(l):
     return ' '.join([str(o) for o in l])
 
+
 # Turn list of DCP_rules into string. The rules are separated by semicolons.
 # l: list of DCP_rule
 # return: string
 def dcp_rules_to_str(l):
     return '; '.join([str(r) for r in l])
 
+
 # As above, but more compact, omitting whitespace.
 # l: list of DCP_rule
 # return: string
 def dcp_rules_to_key(l):
     return ';'.join([str(r) for r in l])
+
 
 ##################################################
 # Parsing of the DCP part of hybrid-grammar rules.
@@ -254,7 +268,8 @@ def dcp_rules_to_key(l):
 # return: list of DCP_rule
 def parse_dcp(s):
     return [parse_dcp_rule(rule_str) \
-		for rule_str in s.split(';')]
+            for rule_str in s.split(';')]
+
 
 # Parse rule.
 # s: string
@@ -268,10 +283,11 @@ def parse_dcp_rule(s):
     (lhs, rest) = parse_dcp_var(lhs_str)
     if re.search(r'\S', rest):
         raise Exception('strange DCP rule: ' + s)
-    (rhs, rest)  = parse_dcp_terms(rhs_str)
+    (rhs, rest) = parse_dcp_terms(rhs_str)
     if re.search(r'\S', rest):
         raise Exception('strange DCP rule: ' + s)
     return DCP_rule(lhs, rhs)
+
 
 # Parse variable. Return variable and rest of input.
 # s: string
@@ -291,6 +307,7 @@ def parse_dcp_var(s):
     else:
         raise Exception('strange DCP var: ' + s)
 
+
 # Read terms, separated by whitespace, until bracket close or until nothing
 # left.
 # s: string
@@ -302,8 +319,8 @@ def parse_dcp_terms(s):
             (var, s) = parse_dcp_var(s)
             terms += [var]
         # elif re.search(r'^\s*\[', s):
-        #     (index, s) = parse_dcp_index(s)
-        #     terms += [index]
+        # (index, s) = parse_dcp_index(s)
+        # terms += [index]
         else:
             # try to match a term starting with DCP_index at root
             match = re.search(r'^\s*(\[[0-9]+(:{.*})?\])\s*\((.*)', s)
@@ -320,8 +337,10 @@ def parse_dcp_terms(s):
             close_match = re.search(r'^\s*\)(.*)$', s)
             if not close_match:
                 raise Exception('missing close bracket in ' + s)
-            s = close_match.group(1)
+            else:
+                s = close_match.group(1)
     return terms, s
+
 
 # Parse index. Return index and rest of input.
 # line: s
@@ -339,6 +358,7 @@ def parse_dcp_index(s):
         return DCP_index(i, dep_label), rest
     else:
         raise Exception('strange DCP index: ' + s)
+
 
 # Parse string, Return string and rest of input.
 # s: string

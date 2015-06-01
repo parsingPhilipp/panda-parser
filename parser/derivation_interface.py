@@ -15,7 +15,6 @@ class AbstractDerivation:
         """
         pass
 
-
     @abstractmethod
     def getRule(self, id):
         pass
@@ -27,7 +26,6 @@ class AbstractDerivation:
         :rtype: list[object]
         """
         pass
-
 
     @abstractmethod
     def child_id(self, id, i):
@@ -64,7 +62,7 @@ class AbstractDerivation:
         pass
 
 
-def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected=None):
+def derivation_to_hybrid_tree(der, poss, ordered_labels, construct_token, disconnected=None):
     """
     :param der:
     :type der: AbstractDerivation
@@ -82,17 +80,19 @@ def derivation_to_hybrid_tree(der, poss, ordered_labels, disconnected=None):
     tree = GeneralHybridTree()
     j = 1
     for i in range(len(ordered_labels)):
+        token = construct_token(ordered_labels[i], poss[i], True)
         if i in disconnected:
-            tree.add_node("d" + str(i), ordered_labels[i], poss[i], True, False)
+            tree.add_node("d" + str(i), token, True, False)
         else:
-            tree.add_node("c" + str(j), ordered_labels[i], poss[i], True, True)
+            tree.add_node("c" + str(j), token, True, True)
             j += 1
     for id in der.ids():
-        tree.add_node(id, der.getRule(id).lhs().nont())
+        token = construct_token(der.getRule(id).lhs().nont(), '_', False)
+        tree.add_node(id, token)
         for child in der.child_ids(id):
             tree.add_child(id, child)
         for position in der.terminal_positions(id):
             tree.add_child(id, "c" + str(position))
-    tree.set_root(der.root_id())
+    tree.add_to_root(der.root_id())
     tree.reorder()
     return tree

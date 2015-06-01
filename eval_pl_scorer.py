@@ -24,7 +24,8 @@ def eval_pl_scores(connection, corpus, experiment, filter=None):
     :return: labeled attachment score, unlabeled attachment score, label accuracy
     :rtype: float, float, float
     """
-    if not filter: filter = []
+    if filter is None:
+        filter = []
     test_file_path = hypothesis_test_path(hypothesis_prefix, experiment)
     if not filter:
         gold_file_path = corpus

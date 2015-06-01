@@ -228,7 +228,7 @@ class Parser(AbstractParser):
         key = tuple(
             [item.nont()] + [item.range(LCFRS_var(-1, c_index)).left for c_index in range(item.complete_to() + 1)])
         if key in self.__passive_items:
-            if not item in self.__passive_items[key]:
+            if item not in self.__passive_items[key]:
                 self.__passive_items[key] += [item]
                 if self.__debug:
                     print " recorded   ", item
@@ -250,7 +250,7 @@ class Parser(AbstractParser):
             item.range(LCFRS_var(-1, c_index)) for c_index in range(item.dot_position()[0] + 1)] + [
                         item.range(LCFRS_var(mem, arg)) for mem in range(item.max_mem() + 1) for arg in
                         range(item.max_arg(mem) + 1)]
-        )
+                    )
         if isinstance(item, CombineItem):
             if key in self.__combine_items:
                 if self.__debug:
@@ -369,7 +369,7 @@ class Parser(AbstractParser):
                 variables[LCFRS_var(-1, component)] = Range(input_position, input_position)
 
                 item = ScanItem(passive_item.rule(), variables, component, 0,
-                                remaining_input)
+                    remaining_input)
 
                 predicted_new = self.record_active_item(item) or predicted_new
 
@@ -417,7 +417,8 @@ class Parser(AbstractParser):
 
         connected_children = []
         for mem in range(rank):
-            unconnected_mem_children = self.query_passive_items_strict(start.rule().rhs_nont(mem), start.max_arg(mem) + 1,
+            unconnected_mem_children = self.query_passive_items_strict(start.rule().rhs_nont(mem),
+                                                                       start.max_arg(mem) + 1,
                                                                        [start.range(LCFRS_var(mem, arg)) for arg in
                                                                         range(start.max_arg(mem) + 1)])
             connected_mem_children = []

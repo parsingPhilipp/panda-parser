@@ -19,16 +19,16 @@ KEY = 2
 # Span, represents input positions from i+1 to j.
 Span = namedtuple('Span', ['low', 'high'])
 # class Span:
-#     # Constructor.
-#     # i: int
-#     # j: int
-#     def __init__(self, i, j):
-#         self.__i = i
-#         self.__j = j
+# # Constructor.
+# # i: int
+# # j: int
+# def __init__(self, i, j):
+# self.__i = i
+# self.__j = j
 # 
-#     # return: int
-#     def low(self):
-#         return self.__i
+# # return: int
+# def low(self):
+# return self.__i
 # 
 #     # return: int
 #     def high(self):
@@ -129,10 +129,10 @@ class LHS_instance:
                             low = pos
                         else:
                             return pos, pos
-                            #TODO: why does one return [last span.high, list span.high] (= empty)
-                            #TODO: if no variable precedes <i,0>, and
-                            #TODO: [last span.high, next span_low] or [last span.high, inp_length]
-                            #TODO: otherwise
+                            # TODO: why does one return [last span.high, list span.high] (= empty)
+                            # TODO: if no variable precedes <i,0>, and
+                            # TODO: [last span.high, next span_low] or [last span.high, inp_length]
+                            # TODO: otherwise
                     gap = True
         if low is not None:
             return low, inp_len
@@ -319,7 +319,6 @@ class Rule_instance:
         return self.lhs().key_ranges(), self.dot(), id(self.rule())
 
 
-
 # For rule and input string, replace terminals by spans in all possible
 # ways.
 # rule: LCFRS_rule
@@ -451,11 +450,11 @@ class LCFRS_parser(AbstractParser):
                         # self.__combine(item, nont_item, item.key(), str(nont_item))
                         self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
 
-                # key = low, nont
-                # self.__rule_items[key].append(item)
-                # for nont_item in self.__nont_items[key]:
-                #     # self.__combine(item, nont_item, item.key(), str(nont_item))
-                #     self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
+                        # key = low, nont
+                        # self.__rule_items[key].append(item)
+                        # for nont_item in self.__nont_items[key]:
+                        #     # self.__combine(item, nont_item, item.key(), str(nont_item))
+                        #     self.__combine(item, nont_item, (KEY, item.new_key()), (KEY, nont_item.new_key()))
 
     # Combine rule item with nont item.
     # rule_item: Rule_instance
@@ -486,14 +485,14 @@ class LCFRS_parser(AbstractParser):
             lhs.collapse()
             # key = str(lhs)
             key = KEY, lhs.new_key()
-            if not key in self.__agenda_set:
+            if key not in self.__agenda_set:
                 self.__agenda_set.add(key)
                 self.__agenda.append(lhs)
             self.__trace[key].append(trace)
         else:
             key = KEY, item.new_key()
             # key = item.key()
-            if not key in self.__agenda_set:
+            if key not in self.__agenda_set:
                 self.__agenda_set.add(key)
                 self.__agenda.append(item)
             self.__trace[key].append(trace)
@@ -554,7 +553,7 @@ class LCFRS_parser(AbstractParser):
     # return: Derivation
     def best_derivation_tree(self):
         start_lhs = self.__start_item()
-        #elem = str(start_lhs)
+        # elem = str(start_lhs)
         elem = KEY, start_lhs.new_key()
         trace = self.__trace[elem]
         if len(trace) == 0:
@@ -595,8 +594,9 @@ class LCFRS_parser(AbstractParser):
             # extend tree at child position corresponding to the dot of active item
             # self.__best_derivation_tree_rec(elem[1], tree, id + tree.gorn_delimiter() + str(dot_position(elem[0])), w2,
             #                             sub_span)
-            self.__best_derivation_tree_rec(elem[2], tree, id + tree.gorn_delimiter() + str(new_dot_position(elem[1])), w2,
-                                        sub_span)
+            self.__best_derivation_tree_rec(elem[2], tree, id + tree.gorn_delimiter() + str(new_dot_position(elem[1])),
+                                            w2,
+                                            sub_span)
             # extend active item
             # self.__best_derivation_tree_rec(elem[0], tree, id, w1, spans)
             self.__best_derivation_tree_rec(elem[1], tree, id, w1, spans)
@@ -625,12 +625,14 @@ def dot_position(key):
     else:
         return 0
 
+
 def new_dot_position(key):
     if isinstance(key, LCFRS_rule):
         return 0
     # elif: isinstance(key, tuple) and key[0] == KEY:
     else:
         return key[1][1]
+
 
 # extract spans from key-string of passive item
 # key: string (e.g. "A([0-4]; [12-15])" )
@@ -642,6 +644,7 @@ def extract_spans(key):
         match1 = re.search(r'^\[([0-9]+)-([0-9]+)\];*$', s)
         spans += [Span(int(match1.group(1)), int(match1.group(2)))]
     return spans
+
 
 def new_extract_spans(key):
     # assert key[0] == KEY
