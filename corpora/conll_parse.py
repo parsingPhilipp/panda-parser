@@ -6,10 +6,7 @@ import re
 import sys
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import construct_conll_token, CoNLLToken
-import dependency.induction as d_i
-import dependency.labeling as label
-from parser.naive.parsing import LCFRS_parser
+from hybridtree.biranked_tokens import CoNLLToken
 
 
 def match_line(line):
@@ -51,7 +48,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
                 tree = GeneralHybridTree('tree' + str(tree_count))
 
             node_id = match.group(1)
-            label = match.group(2)
+            form = match.group(2)
             lemma = match.group(3)
             pos = match.group(4)
             fine_grained_pos = match.group(5)
@@ -63,11 +60,11 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             # cf. http://ilk.uvt.nl/conll/software.html#eval
             # How do you exclude tokens from scoring?
             if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
-                tree.add_node(node_id, CoNLLToken(label, lemma, pos, fine_grained_pos, feats, deprel), True, True)
+                tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, True)
                 if parent != '0':
                     tree.add_child(parent, node_id)
             else:
-                tree.add_node(node_id, CoNLLToken(label, lemma, pos, fine_grained_pos, feats, deprel), True, False)
+                tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, False)
 
             # TODO: If punctuation is ignored and the root is punctuation,
             # TODO: it is added to the tree anyhow.

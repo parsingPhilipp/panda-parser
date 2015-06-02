@@ -11,7 +11,6 @@ from grammar.LCFRS.lcfrs import LCFRS
 from eval_pl_scorer import eval_pl_scores
 from corpora import conll_parse
 
-
 dbfile = 'examples/example.db'
 test_file = 'examples/Dependency_Corpus.conll'
 test_file_modified = 'examples/Dependency_Corpus_modified.conll'
@@ -215,19 +214,19 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
 
     cursor = connection.cursor()
     tree_id = None
-    for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', ( corpus, tree.sent_label())):
+    for row in cursor.execute('''SELECT t_id FROM trees WHERE corpus = ? AND name = ?''', (corpus, tree.sent_label())):
         tree_id = row[0]
     if tree_id is None:
         assert "tree not found"
 
     # unique tree key
-    cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None
-                                                                              , tree_id
-                                                                              , experiment
-                                                                              , k_best
-                                                                              , score
-                                                                              , parse_time
-                                                                              , status))
+    cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', (None
+                                                                             , tree_id
+                                                                             , experiment
+                                                                             , k_best
+                                                                             , score
+                                                                             , parse_time
+                                                                             , status))
     result_tree_id = cursor.lastrowid
 
     for id in tree.full_yield():
@@ -548,10 +547,10 @@ def compute_line(connection, ids, exp, max_length):
     cursor = connection.cursor()
     experiment = cursor.execute(
         'SELECT nont_label, rec_par, training_corpus, test_corpus, ignore_punctuation FROM experiments WHERE e_id = ?',
-        (exp, )).fetchone()
+        (exp,)).fetchone()
     g_id, nont, rules = cursor.execute('SELECT g_id, nonterminals, rules FROM grammar WHERE experiment = ?',
                                        (exp,)).fetchone()
-    fanouts = cursor.execute('SELECT fanout, nonterminals FROM fanouts WHERE g_id = ?', (g_id, )).fetchall()
+    fanouts = cursor.execute('SELECT fanout, nonterminals FROM fanouts WHERE g_id = ?', (g_id,)).fetchall()
 
     line['nont_labelling'] = nontlabelling_strategies(experiment[0])
     line['rec_par'] = recpac_stategies(experiment[1])
@@ -701,7 +700,7 @@ def all_recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus
     WHERE trees.corpus = ?
       AND trees.length <= ?
       AND status = "parse"
-      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchone()[0]
+      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id,)).fetchone()[0]
     return number
 
 
@@ -714,7 +713,7 @@ def recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
     WHERE trees.corpus = ?
       AND trees.length <= ?
       AND status = "parse"
-      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchall()
+      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id,)).fetchall()
     ids = map(lambda x: x[0], ids)
     return ids
 
@@ -727,7 +726,7 @@ def parse_time_trees_lesseq_than(connection, exp_id, length, test_corpus):
       ON trees.t_id = result_trees.t_id
     WHERE trees.corpus = ?
       AND trees.length <= ?
-      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id, )).fetchall()
+      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id,)).fetchall()
     return time[0][0]
 
 
@@ -875,11 +874,11 @@ def no_parse_result(connection, tree_name, corpus, experiment, parse_time, messa
         assert "tree not found"
 
     # unique tree key
-    cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', ( None
-                                                                              , tree_id
-                                                                              , experiment
-                                                                              , None
-                                                                              , None
-                                                                              , parse_time
-                                                                              , message))
+    cursor.execute('INSERT INTO result_trees VALUES (?, ?, ?, ?, ?, ?, ?)', (None
+                                                                             , tree_id
+                                                                             , experiment
+                                                                             , None
+                                                                             , None
+                                                                             , parse_time
+                                                                             , message))
     connection.commit()

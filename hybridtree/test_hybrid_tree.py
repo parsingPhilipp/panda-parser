@@ -1,9 +1,8 @@
 __author__ = 'kilian'
 
 import unittest
-from biranked_tokens import construct_conll_token
-
-from general_hybrid_tree import GeneralHybridTree
+from hybridtree.biranked_tokens import construct_conll_token
+from hybridtree.general_hybrid_tree import GeneralHybridTree
 
 
 class GeneralHybridTreeTestCase(unittest.TestCase):

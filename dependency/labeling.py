@@ -2,14 +2,17 @@ __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from types import FunctionType
+from types import FunctionType, MethodType
 
 
 class AbstractLabeling:
     __metaclass__ = ABCMeta
 
-    def __init__(self):
-        pass
+    def __init__(self, name):
+        """
+        :type name: str
+        """
+        self.__name = name
 
     def label_nonterminal(self, tree, node_ids, t_max, b_max, fanout):
         """
@@ -66,19 +69,11 @@ class AbstractLabeling:
         """
         pass
 
-    @abstractmethod
     def __str__(self):
-        pass
+        return self.__name
 
 
 class StrictLabeling(AbstractLabeling):
-    # @abstractmethod
-    def __str__(self):
-        pass
-
-    def __init__(self):
-        super(StrictLabeling, self).__init__()
-
     def _label_bottom_seq(self, tree, id_seq):
         return '#'.join(map(lambda id: self._bottom_node_name(tree.node_token(id)), id_seq))
 
@@ -95,13 +90,6 @@ class StrictLabeling(AbstractLabeling):
 
 
 class ChildLabeling(AbstractLabeling):
-    # @abstractmethod
-    def __str__(self):
-        pass
-
-    def __init__(self):
-        super(ChildLabeling, self).__init__()
-
     def _label_bottom_seq(self, tree, id_seq):
         if len(id_seq) == 1:
             return self._bottom_node_name(tree.node_token(id_seq[0]))
@@ -217,7 +205,7 @@ def token_to_pos_and_deprel(token, terminal_generating=False):
 
 def token_to_fine_grained_pos_and_deprel(token, terminal_generating=False):
     if terminal_generating:
-        return token.fine_grained_pos() + ':' +  token.deprel() + ':T'
+        return token.fine_grained_pos() + ':' + token.deprel() + ':T'
     else:
         return token.fine_grained_pos() + ':' + token.deprel()
 
@@ -227,6 +215,13 @@ def token_to_form(token, terminal_generating=False):
         return token.form() + ':T'
     else:
         return token.form()
+
+
+def token_to_deprel(token, terminal_generating=False):
+    if terminal_generating:
+        return token.deprel() + ':T'
+    else:
+        return token.deprel()
 
 
 class LabelingStrategyFactory:
@@ -241,13 +236,14 @@ class LabelingStrategyFactory:
         self.__node_to_string_strategies[name] = strategy
 
     def create_simple_labeling_strategy(self, top_level, node_to_string):
-        labeling_strategy = self.__top_level_strategies[top_level]()
-        if not isinstance(labeling_strategy, AbstractLabeling):
+        name = ('-'.join([top_level, node_to_string]))
+        if not self.__top_level_strategies.has_key(top_level):
             s = 'Unknown top-level strategy ' + top_level + '\n'
             s += 'I know the following top-level strategies: \n'
             for name in self.__top_level_strategies.keys():
                 s += '\t' + name + '\n'
             raise Exception(s)
+        labeling_strategy = self.__top_level_strategies[top_level](name)
         assert (isinstance(labeling_strategy, AbstractLabeling))
 
         node_strategy = self.__node_to_string_strategies[node_to_string]
@@ -260,7 +256,6 @@ class LabelingStrategyFactory:
 
         labeling_strategy._top_node_name = node_strategy
         labeling_strategy._bottom_node_name = node_strategy
-        labeling_strategy.__str__ = lambda: '-'.join([top_level, node_to_string])
         return labeling_strategy
 
     def create_complex_labeling_strategy(self, args):
@@ -274,6 +269,7 @@ def the_labeling_factory():
 
     factory.register_node_to_string_strategy('pos', token_to_pos)
     factory.register_node_to_string_strategy('fine_grained_pos', token_to_fine_grained_pos)
+    factory.register_node_to_string_strategy('deprel', token_to_deprel)
     factory.register_node_to_string_strategy('pos+deprel', token_to_pos_and_deprel)
     factory.register_node_to_string_strategy('fine_grained_pos+deprel', token_to_fine_grained_pos_and_deprel)
     return factory

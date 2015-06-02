@@ -52,7 +52,7 @@ def induce_grammar_from_file(path
     end_at = time.time()
     if not quiet:
         print 'Number of trees:                ', str(n_trees)
-        print 'Number of nonterimals:          ', len(grammar.nonts())
+        print 'Number of nonterminals:          ', len(grammar.nonts())
         print 'Number of rules:                ', len(grammar.rules())
         print 'Total size:                     ', grammar.size()
         print 'Fanout:                         ', max(map(grammar.fanout, grammar.nonts()))
@@ -148,6 +148,7 @@ def test_conll_grammar_induction():
     #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
     # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
     #                , d_i.left_branching, d_i.right_branching]:
+    # TODO: update this, or delete entirely
     for nont_labelling, rec_par, ignore_punctuation in [
         (label.StrictPOSdepAtLeafLabeling(), d_i.direct_extraction, True)
         , (label.StrictPOSdepAtLeafLabeling(), d_i.left_branching, True)

@@ -2,19 +2,19 @@ __author__ = 'kilian'
 
 import unittest
 
-from parsing import *
+from parser.active.parsing import *
 from grammar.LCFRS.lcfrs import *
-from derivation import Derivation
+from parser.active.derivation import Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from hybridtree.biranked_tokens import *
-from dependency.induction import induce_grammar, term_pos, direct_extraction
+from dependency.induction import induce_grammar, direct_extraction, the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 
 
-class MyTestCase(unittest.TestCase):
+class ActiveParserTest(unittest.TestCase):
     def setUp(self):
         self.grammar_ab_copy = create_copy_grammar()
         self.assertEqual(self.grammar_ab_copy.ordered()[0], True)
@@ -194,6 +194,7 @@ class MyTestCase(unittest.TestCase):
         # print tree.recursive_partitioning()
 
         labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
+        term_pos = the_terminal_labeling_factory().get_strategy('pos').token_label
         (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, direct_extraction, 'START')
 
         # print grammar
@@ -218,7 +219,8 @@ class MyTestCase(unittest.TestCase):
 
             dcp = The_DCP_evaluator(der).getEvaluation()
             h_tree_2 = GeneralHybridTree()
-            token_sequence = [construct_conll_token(form, lemma) for form, lemma in zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]
+            token_sequence = [construct_conll_token(form, lemma) for form, lemma in
+                              zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]
             dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,
                               construct_conll_token)
 
@@ -465,4 +467,3 @@ def print_derivation_tree(root_element):
     derivation = Derivation()
     derivation_tree(derivation, root_element, None)
     return derivation
-

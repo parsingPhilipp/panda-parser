@@ -1,11 +1,11 @@
 __author__ = 'kilian'
 
 import unittest
-from general_hybrid_tree import GeneralHybridTree
-from biranked_tokens import *
+from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.biranked_tokens import *
 
 
-class MyTestCase(unittest.TestCase):
+class MultiRootedHybridTreeTest(unittest.TestCase):
     def test_recursive_partitioning(self):
         tree = multi_const_tree()
 

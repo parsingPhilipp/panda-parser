@@ -8,18 +8,16 @@ import time
 import sys
 import re
 import os
-import gc
 import copy
+import itertools
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from hybridtree.biranked_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
-from parser.active.parsing import Parser as ActiveParser
 from parser.naive.parsing import LCFRS_parser as NaiveParser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 import experiment_database
-import resource_limits
 
 
 def add_trees_to_db(path, connection, trees):
@@ -103,7 +101,7 @@ def induce_grammar_from_file(path
     """
 
     experiment = experiment_database.add_experiment(connection
-                                                    , term_labelling.func_name
+                                                    , str(term_labelling)
                                                     , str(nont_labelling)
                                                     , recursive_partitioning.func_name
                                                     , ignore_punctuation
@@ -116,7 +114,7 @@ def induce_grammar_from_file(path
         print 'Inducing grammar'
         print 'file: ' + path
         print 'Nonterminal labelling strategy: ', nont_labelling.__str__()
-        print 'Terminal labelling strategy:    ', term_labelling.func_name
+        print 'Terminal labelling strategy:    ', str(term_labelling)
         print 'Recursive partitioning strategy:', recursive_partitioning.func_name
         print 'limit:                          ', str(limit)
         print 'Ignoring punctuation            ', ignore_punctuation
@@ -126,7 +124,8 @@ def induce_grammar_from_file(path
     trees = add_trees_to_db(path, connection, trees)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
-    (n_trees, grammar) = d_i.induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning, start)
+    (n_trees, grammar) = d_i.induce_grammar(trees, nont_labelling, term_labelling.token_label, recursive_partitioning,
+                                            start)
 
     end_clock = time.clock()
     if not quiet:
@@ -153,9 +152,7 @@ def parse_sentences_from_file(grammar
                               , quiet=False
                               , ignore_punctuation=True
                               , root_default_deprel=None
-                              , disconnected_default_deprel=None
-                              , max_parse_time=sys.maxint
-                              , max_parse_memory=resource_limits.unlimited_memory):
+                              , disconnected_default_deprel=None):
     """
     :rtype: None
     :type grammar: LCFRS
@@ -196,48 +193,36 @@ def parse_sentences_from_file(grammar
     skipped = 0
     start_at = time.clock()
     for tree in trees:
-        # if tree.sent_label() != 'tree53':
-        # continue
         if len(tree.id_yield()) > max_length:
             skipped += 1
             continue
         time_stamp = time.clock()
 
-        parser = resource_limits.run(NaiveParser, max_parse_time, max_parse_memory, grammar, tree_yield(tree))
+        parser = NaiveParser(grammar, tree_yield(tree.token_yield()))
         time_stamp = time.clock() - time_stamp
 
-        if isinstance(parser, resource_limits.TimeoutError):
-            experiment_database.no_parse_result(connection, tree.sent_label(), path, experiment, time_stamp, "timeout")
-            no_parse += 1
-        elif isinstance(parser, resource_limits.MemoryoutError):
-            experiment_database.no_parse_result(connection, tree.sent_label(), path, experiment, time_stamp,
-                                                "memoryout=" + str(max_parse_memory))
-            no_parse += 1
-            gc.collect()
-        else:
-            # print tree.sent_label(),
-            cleaned_tokens = copy.deepcopy(tree.full_token_yield())
-            for token in cleaned_tokens:
-                token.set_deprel('_')
-            h_tree = GeneralHybridTree(tree.sent_label())
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
-                                                            construct_conll_token)
+        cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+        for token in cleaned_tokens:
+            token.set_deprel('_')
+        h_tree = GeneralHybridTree(tree.sent_label())
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
+                                                        construct_conll_token)
 
-            if h_tree:
-                experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp,
-                                                    'parse', root_default_deprel, disconnected_default_deprel)
-                n_gaps_gold += tree.n_gaps()
-                n_gaps_test += h_tree.n_gaps()
-                parse += 1
-                (dUAS, dLAS, dUEM, dLEM) = score_cmp_dep_trees(tree, h_tree)
-                UAS += dUAS
-                LAS += dLAS
-                UEM += dUEM
-                LEM += dLEM
-            else:
-                experiment_database.no_parse_result(connection, tree.sent_label(), path, experiment, time_stamp,
-                                                    "no_parse")
-                no_parse += 1
+        if h_tree:
+            experiment_database.add_result_tree(connection, h_tree, path, experiment, 1, parser.best(), time_stamp,
+                                                'parse', root_default_deprel, disconnected_default_deprel)
+            n_gaps_gold += tree.n_gaps()
+            n_gaps_test += h_tree.n_gaps()
+            parse += 1
+            (dUAS, dLAS, dUEM, dLEM) = score_cmp_dep_trees(tree, h_tree)
+            UAS += dUAS
+            LAS += dLAS
+            UEM += dUEM
+            LEM += dLEM
+        else:
+            experiment_database.no_parse_result(connection, tree.sent_label(), path, experiment, time_stamp,
+                                                "no_parse")
+            no_parse += 1
 
     end_at = time.clock()
     total = parse + no_parse
@@ -258,46 +243,33 @@ def parse_sentences_from_file(grammar
 def test_conll_grammar_induction():
     db_connection = experiment_database.initialize_database(sample_db)
 
-    # if 'ignore_punctuation' in sys.argv:
-    # ignore_punctuation = True
-    # else:
-    # ignore_punctuation = False
-    # if 'strict' in sys.argv:
-    # nont_labelling = d_i.strict_pos
-    # else:
-    # nont_labelling = d_i.child_pos
-    # for ignore_punctuation in [True, False]:
-    # for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
-    # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
-    # , d_i.left_branching, d_i.right_branching]:
-    # for nont_labelling, rec_par, ignore_punctuation in [ (d_i.strict_pos_dep, d_i.direct_extraction, True)
-    # , (d_i.strict_pos_dep, d_i.left_branching, True)
-    # , (d_i.child_pos_dep, d_i.direct_extraction, True)
-    #                                                     , (d_i.child_pos_dep, d_i.left_branching, True)]:
-
     root_default_deprel = 'ROOT'
     disconnected_default_deprel = 'PUNC'
 
+    terminal_labeling_strategy = d_i.the_terminal_labeling_factory().get_strategy('pos')
+
     for ignore_punctuation in [True, False]:
-        for nont_labelling in [label.StrictPOSLabeling(), label.ChildPOSLabeling(), label.StrictPOSdepAtLeafLabeling(),
-                               label.ChildPOSdepAtLeafLabeling()]:
-            for rec_par in [d_i.direct_extraction, d_i.left_branching, d_i.right_branching, d_i.fanout_1, d_i.fanout_2]:
-                grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling, d_i.term_pos,
-                                                               rec_par, sys.maxint
-                                                               , False, 'START', ignore_punctuation)
+        for top_level, node_to_string in itertools.product(['strict', 'child'], ['pos', 'deprel']):
+            nont_labelling = label.the_labeling_factory().create_simple_labeling_strategy(top_level, node_to_string)
+            for rec_par_s in ['direct_extraction', 'left_branching', 'right_branching', 'fanout-1', 'fanout_2']:
+                rec_par = d_i.the_recursive_partitioning_factory().getPartitioning(rec_par_s)
+                grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling,
+                                                               terminal_labeling_strategy.token_label, rec_par,
+                                                               sys.maxint, False, 'START', ignore_punctuation)
                 print
-                parse_sentences_from_file(grammar, experiment, db_connection, conll_test, d_i.pos_yield, 20, sys.maxint,
+                parse_sentences_from_file(grammar, experiment, db_connection, conll_test,
+                                          terminal_labeling_strategy.prepare_parser_input, 20, sys.maxint,
                                           False, ignore_punctuation, root_default_deprel, disconnected_default_deprel)
 
     experiment_database.finalize_database(db_connection)
 
 
-def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, length_limit, labeling, partitioning,
-                   root_default_deprel, disconnected_default_deprel, max_training, max_test, max_parse_time,
-                   max_parse_memory):
+def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, length_limit, labeling, terminal_labeling,
+                   partitioning, root_default_deprel, disconnected_default_deprel, max_training, max_test):
     labeling_choices = labeling.split('-')
     if len(labeling_choices) == 2:
-        nont_labelling = label.the_labeling_factory().create_simple_labeling_strategy(labeling_choices[0], labeling_choices[1])
+        nont_labelling = label.the_labeling_factory().create_simple_labeling_strategy(labeling_choices[0],
+                                                                                      labeling_choices[1])
     elif len(labeling_choices) > 2:
         nont_labelling = label.the_labeling_factory().create_complex_labeling_strategy(labeling_choices)
         # labeling == 'strict-pos-leaf:dep':
@@ -306,39 +278,23 @@ def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, le
         print("Error: Invalid labeling strategy: " + labeling)
         exit(1)
 
-    if partitioning == 'left-branching':
-        rec_par = d_i.left_branching
-    elif partitioning == 'right-branching':
-        rec_par = d_i.right_branching
-    elif partitioning == 'direct-extraction':
-        rec_par = d_i.direct_extraction
-    elif partitioning == 'fanout-1':
-        rec_par = d_i.fanout_1
-    elif partitioning == 'fanout-2':
-        rec_par = d_i.fanout_2
-    elif partitioning == 'fanout-3':
-        rec_par = d_i.fanout_3
-    elif partitioning == 'fanout-4':
-        rec_par = d_i.fanout_4
-    elif partitioning == 'fanout-5':
-        rec_par = d_i.fanout_5
-    elif partitioning == 'fanout-6':
-        rec_par = d_i.fanout_6
-    elif partitioning == 'fanout-7':
-        rec_par = d_i.fanout_7
-    elif partitioning == 'fanout-8':
-        rec_par = d_i.fanout_8
-    else:
+    rec_par = d_i.the_recursive_partitioning_factory().getPartitioning(partitioning)
+    if rec_par is None:
+        print("Error: Invalid recursive partitioning strategy: " + partitioning)
+        exit(1)
+
+    term_labeling_strategy = d_i.the_terminal_labeling_factory().get_strategy(terminal_labeling)
+    if term_labeling_strategy is None:
         print("Error: Invalid recursive partitioning strategy: " + partitioning)
         exit(1)
 
     connection = experiment_database.initialize_database(db_file)
-    grammar, experiment = induce_grammar_from_file(training_corpus, connection, nont_labelling, d_i.term_pos, rec_par,
+    grammar, experiment = induce_grammar_from_file(training_corpus, connection, nont_labelling,
+                                                   term_labeling_strategy, rec_par,
                                                    max_training, False, 'START', ignore_punctuation)
-    parse_sentences_from_file(grammar, experiment, connection, test_corpus, d_i.pos_yield, length_limit, max_test,
-                              False,
-                              ignore_punctuation, root_default_deprel, disconnected_default_deprel, max_parse_time,
-                              max_parse_memory)
+    parse_sentences_from_file(grammar, experiment, connection, test_corpus, term_labeling_strategy.prepare_parser_input,
+                              length_limit, max_test, False, ignore_punctuation, root_default_deprel,
+                              disconnected_default_deprel)
     experiment_database.finalize_database(connection)
 
 
@@ -351,6 +307,7 @@ def single_experiment_from_config_file(config_path):
     training_corpus = ''
     test_corpus = ''
     labeling = ''
+    terminal_labeling = ''
     partitioning = ''
     ignore_punctuation = False
     root_default_deprel = None
@@ -358,8 +315,6 @@ def single_experiment_from_config_file(config_path):
     max_train = sys.maxint
     max_test = sys.maxint
     max_length = sys.maxint
-    max_parse_time = sys.maxint
-    max_parse_memory = resource_limits.unlimited_memory
     line_nr = 0
     config = open(config_path, "r")
     for line in config.readlines():
@@ -389,14 +344,14 @@ def single_experiment_from_config_file(config_path):
             labeling = match
             continue
 
+        match = match_string_argument("Terminal Labeling", line)
+        if match:
+            terminal_labeling = match
+            continue
+
         match = match_string_argument("Recursive Partitioning", line)
         if match:
             partitioning = match
-            continue
-
-        match = match_string_argument("Nonterminal Labeling", line)
-        if match:
-            labeling = match
             continue
 
         match = match_string_argument("Default Root DEPREL", line)
@@ -431,17 +386,6 @@ def single_experiment_from_config_file(config_path):
         if match is not None:
             max_length = match
             continue
-
-        match = match_integer_argument("Parse Memory Limit", line)
-        if match is not None:
-            max_parse_memory = match
-            continue
-
-        match = match_integer_argument("Parse Time Limit", line)
-        if match is not None:
-            max_parse_time = match
-            continue
-
         print "Error: could not parse line " + str(line_nr) + ": " + line
         exit(1)
 
@@ -457,13 +401,15 @@ def single_experiment_from_config_file(config_path):
     if not labeling:
         print "Error: no nonterminal labeling strategy specified."
         exit(1)
+    if not terminal_labeling:
+        print "Error: no terminal labeling strategy specified."
+        exit(1)
     if not partitioning:
         print "Error: no recursive partitioning strategy specified."
         exit(1)
 
-    run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, max_length, labeling, partitioning,
-                   root_default_deprel, disconnected_default_deprel, max_train, max_test, max_parse_time,
-                   max_parse_memory)
+    run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, max_length, labeling, terminal_labeling,
+                   partitioning, root_default_deprel, disconnected_default_deprel, max_train, max_test)
 
 
 def match_string_argument(keyword, line):

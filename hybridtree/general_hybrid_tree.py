@@ -7,9 +7,6 @@ from biranked_tokens import BiRankedToken
 
 
 class GeneralHybridTree:
-    def node_type(self):
-        return BiRankedToken
-
     @property
     def virtual_root(self):
         return 'VROOT'

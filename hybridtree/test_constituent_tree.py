@@ -1,10 +1,10 @@
 __author__ = 'kilian'
 
 import unittest
-from constituent_tree import HybridTree
+from hybridtree.constituent_tree import HybridTree
 
 
-class MyTestCase(unittest.TestCase):
+class ConstituentTreeTest(unittest.TestCase):
     def test_something(self):
         tree = self.tree
         print "rooted", tree.root
