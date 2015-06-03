@@ -104,6 +104,9 @@ class TerminalLabelingFactory:
 
 
 def the_terminal_labeling_factory():
+    """
+    :rtype : TerminalLabelingFactory
+    """
     factory = TerminalLabelingFactory()
     factory.register_strategy('form', FormTerminals())
     factory.register_strategy('pos', PosTerminals())

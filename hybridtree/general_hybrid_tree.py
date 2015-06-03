@@ -360,7 +360,7 @@ class GeneralHybridTree:
     def full_token_yield(self):
         """
         :return: Get yield as list of labels of nodes, that are in the ordering (including disconnected nodes).
-        :rtype: list[str]
+        :rtype: list[BiRankedToken]
         """
         return [self.node_token(id) for id in self.__full_yield]
 

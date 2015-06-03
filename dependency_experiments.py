@@ -136,28 +136,19 @@ def parse_sentences_from_file(grammar
 
 
 def test_conll_grammar_induction():
-    # if 'ignore_punctuation' in sys.argv:
-    # ignore_punctuation = True
-    # else:
-    # ignore_punctuation = False
-    # if 'strict' in sys.argv:
-    # nont_labelling = d_i.strict_pos
-    # else:
-    #     nont_labelling = d_i.child_pos
-    # for ignore_punctuation in [True, False]:
-    #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
-    # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
-    #                , d_i.left_branching, d_i.right_branching]:
-    # TODO: update this, or delete entirely
+    nt_labeling = label.the_labeling_factory().create_simple_labeling_strategy('strict', 'pos+deprel')
+    nt_labeling2 = label.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
+    t_labeling = d_i.the_terminal_labeling_factory().get_strategy('pos')
     for nont_labelling, rec_par, ignore_punctuation in [
-        (label.StrictPOSdepAtLeafLabeling(), d_i.direct_extraction, True)
-        , (label.StrictPOSdepAtLeafLabeling(), d_i.left_branching, True)
-        , (label.ChildPOSdepAtLeafLabeling(), d_i.direct_extraction, True)
-        , (label.ChildPOSdepAtLeafLabeling(), d_i.left_branching, True)]:
-        grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, 200
+        (nt_labeling, d_i.direct_extraction, True)
+        , (nt_labeling, d_i.left_branching, True)
+        , (nt_labeling2, d_i.direct_extraction, True)
+        , (nt_labeling2, d_i.left_branching, True)]:
+        grammar = induce_grammar_from_file(conll_train, nont_labelling, t_labeling.token_label, rec_par, 200
                                            , False, 'START', ignore_punctuation)
         print
-        parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
+        parse_sentences_from_file(grammar, conll_test, t_labeling.prepare_parser_input, 20, sys.maxint, False,
+                                  ignore_punctuation)
 
 
 if __name__ == '__main__':

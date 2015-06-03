@@ -82,7 +82,7 @@ def induce_grammar_from_file(path
     :type path: str
     :param connection: database connection
     :type connection: Connection
-    :param nont_labelling: GeneralHybridTree, Top_max, Bottom_max, Fanout -> str
+    :param nont_labelling: nonterminal labeling strategy
     :type nont_labelling: AbstractLabeling
     :param term_labelling: GeneralHybridTree, NodeId -> str
     :type term_labelling: GeneralHybridTree, str -> str
@@ -158,8 +158,8 @@ def parse_sentences_from_file(grammar
     :type grammar: LCFRS
     :param path: file path for test corpus (dependency grammar in CoNLL format)
     :type path: str
-    :param tree_yield: parse on words or POS
-    :type tree_yield: GeneralHybridTree -> List[str]
+    :param tree_yield: parse on words or POS or ..
+    :type tree_yield: GeneralHybridTree -> list[str]
     :param max_length: don't parse sentences with yield > max_length
     :type max_length: int
     :param limit:      only parse the limit first sentences of the corpus
@@ -168,6 +168,7 @@ def parse_sentences_from_file(grammar
     :type quiet: bool
     :param ignore_punctuation: exclude punctuation from parsing
     :type ignore_punctuation: bool
+    
     Parse sentences from corpus and compare derived dependency structure with gold standard information.
     """
 

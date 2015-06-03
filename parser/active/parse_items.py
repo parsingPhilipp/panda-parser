@@ -6,7 +6,6 @@ from collections import namedtuple
 nonterminal_type = str
 terminal_type = str
 
-
 Range = namedtuple('Range', ['left', 'right'])
 
 

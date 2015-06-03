@@ -206,10 +206,17 @@ def add_tree(connection, tree, corpus):
 def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_time, status, root_default=None,
                     disconnect_default=None):
     """
-    :param connection:
+
+    :type connection: Connection
+    :type disconnect_default: str
+    :type root_default: str
+    :type status: str
+    :type parse_time: float
+    :type score: float
+    :type k_best: int
+    :type experiment: int
     :type tree: GeneralHybridTree
     :type corpus: str
-    :return:
     """
 
     cursor = connection.cursor()

@@ -2,7 +2,8 @@ __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from types import FunctionType, MethodType
+from hybridtree.biranked_tokens import CoNLLToken
+from types import FunctionType
 
 
 class AbstractLabeling:
@@ -55,8 +56,7 @@ class AbstractLabeling:
     @abstractmethod
     def _bottom_node_name(self, token):
         """
-        :type tree: GeneralHybridTree
-        :type id: str
+        :type token: CoNLLToken
         :rtype: str
         """
         pass
@@ -64,8 +64,9 @@ class AbstractLabeling:
     @abstractmethod
     def _top_node_name(self, token, terminal_generating):
         """
-        :type tree: GeneralHybridTree
-        :type id: str
+        :type token: CoNLLToken
+        :type terminal_generating: bool
+        :rtype: str
         """
         pass
 
@@ -236,6 +237,11 @@ class LabelingStrategyFactory:
         self.__node_to_string_strategies[name] = strategy
 
     def create_simple_labeling_strategy(self, top_level, node_to_string):
+        """
+        :rtype : AbstractLabeling
+        :type node_to_string: str
+        :type top_level: str
+        """
         name = ('-'.join([top_level, node_to_string]))
         if not self.__top_level_strategies.has_key(top_level):
             s = 'Unknown top-level strategy ' + top_level + '\n'
@@ -259,10 +265,17 @@ class LabelingStrategyFactory:
         return labeling_strategy
 
     def create_complex_labeling_strategy(self, args):
+        """
+        :type args: list[str]
+        :rtype : AbstractLabeling
+        """
         raise Exception('Not implemented!')
 
 
 def the_labeling_factory():
+    """
+    :rtype : LabelingStrategyFactory
+    """
     factory = LabelingStrategyFactory()
     factory.register_top_level_strategy('strict', StrictLabeling)
     factory.register_top_level_strategy('child', ChildLabeling)
