@@ -8,7 +8,6 @@ from grammar.sDCP.dcp import *
 from derivation import Derivation
 from parser.parser_interface import AbstractParser
 
-
 RULE = 0
 PAIR = 1
 KEY = 2
@@ -221,8 +220,8 @@ class LHS_instance:
     def __str__(self):
         return self.nont() + '(' \
                + '; '.join([
-            ' '.join(map(str, arg))
-            for arg in self.__args]) \
+                               ' '.join(map(str, arg))
+                               for arg in self.__args]) \
                + ')'
 
     # TODO: this might cause errors! difference between range and variable is blurred
@@ -426,7 +425,7 @@ class LCFRS_parser(AbstractParser):
             if isinstance(item, LHS_instance):
                 low = item.left_position()
                 nont = item.nont()
-                #key = str(low) + ' ' + nont
+                # key = str(low) + ' ' + nont
                 key = low, nont
                 self.__nont_items[key].append(item)
                 for rule_item in self.__rule_items[key]:

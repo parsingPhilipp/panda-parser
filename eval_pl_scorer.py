@@ -49,7 +49,6 @@ def eval_pl_scores(connection, corpus, experiment, filter=None):
             pass
 
     CoNLL_strings = []
-    recognised = 0
 
     for tree in trees:
         tree_name = tree.sent_label()

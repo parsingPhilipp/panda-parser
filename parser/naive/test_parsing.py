@@ -1,11 +1,11 @@
 __author__ = 'kilian'
 
 import unittest
-from parsing import *
+from parser.naive.parsing import *
 from parser.active.test_parser import ambiguous_copy_grammar
 
 
-class MyTestCase(unittest.TestCase):
+class PassiveParserTest(unittest.TestCase):
     def test_LHS_instance(self):
         lhs = LHS_instance("A")
         lhs.add_arg()

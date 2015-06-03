@@ -2,7 +2,12 @@
 __author__ = 'kilian'
 
 import unittest
-from conll_parse import *
+import copy
+import dependency.induction as d_i
+from dependency.labeling import the_labeling_factory
+from hybridtree.biranked_tokens import construct_conll_token
+from parser.naive.parsing import LCFRS_parser
+from corpora.conll_parse import *
 
 test_file = '../examples/Dependency_Corpus.conll'
 test_file_modified = '../examples/Dependency_Corpus_modified.conll'
@@ -29,19 +34,23 @@ global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4 
 16      .       _       $.      $.      _       6       PUNC    6       PUNC"""
 
 
-class CoNLLParser(unittest.TestCase):
+class CoNLLParserTest(unittest.TestCase):
     def test_conll_grammar_induction(self):
         trees = parse_conll_corpus(test_file, True)
-        (_, grammar) = d_i.induce_grammar(trees, label.ChildFormLabeling(), d_i.term_pos, d_i.direct_extraction,
-                                          'START')
+        terminal_labeling = d_i.the_terminal_labeling_factory().get_strategy('pos')
+        nonterminal_labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
+        (_, grammar) = d_i.induce_grammar(trees, nonterminal_labeling, terminal_labeling.token_label,
+                                          d_i.direct_extraction, 'START')
 
         trees2 = parse_conll_corpus(test_file_modified, True)
 
         for tree in trees2:
-            parser = LCFRS_parser(grammar, [token.pos() for token in tree.token_yield()])
+            parser = LCFRS_parser(grammar, terminal_labeling.prepare_parser_input(tree.token_yield()))
+            cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+            for token in cleaned_tokens:
+                token.set_deprel('_')
             h_tree = GeneralHybridTree()
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, [token.pos() for token in tree.full_token_yield()],
-                                                            [token.form() for token in tree.full_token_yield()], True,
+            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, True,
                                                             construct_conll_token)
             # print h_tree
             print 'input -> hybrid-tree -> output'
@@ -63,33 +72,32 @@ class CoNLLParser(unittest.TestCase):
 
         self.assertEqual(counter, 1)
 
+    def test_conll_parse(self):
+        trees = parse_conll_corpus(conll_test, True)
+        test_trees = parse_conll_corpus(conll_test, True)
 
-def test_conll_parse():
-    trees = parse_conll_corpus(conll_test, True)
-    test_trees = parse_conll_corpus(conll_test, True)
+        # for i in range (len(trees)):
+        # if i < len(test_trees):
+        #         print compare_dependency_trees(trees[i], test_trees[i])
+        #         print score_cmp_dep_trees(trees[i], test_trees[i])
+        try:
+            while True:
+                t1 = trees.next()
+                t2 = test_trees.next()
+                print t1.sent_label(), t2.sent_label()
+                print compare_dependency_trees(t1, t2)
+                print score_cmp_dep_trees(t1, t2)
+                print compare_dependency_trees(t1, t1)
+                print score_cmp_dep_trees(t1, t1)
+        except StopIteration:
+            pass
 
-    # for i in range (len(trees)):
-    # if i < len(test_trees):
-    #         print compare_dependency_trees(trees[i], test_trees[i])
-    #         print score_cmp_dep_trees(trees[i], test_trees[i])
-    try:
-        while True:
-            t1 = trees.next()
-            t2 = test_trees.next()
-            print t1.sent_label(), t2.sent_label()
-            print compare_dependency_trees(t1, t2)
-            print score_cmp_dep_trees(t1, t2)
-            print compare_dependency_trees(t1, t1)
-            print score_cmp_dep_trees(t1, t1)
-    except StopIteration:
-        pass
+            # print score_cmp_dep_trees(trees[i], test_trees[i])
+            # print tree
+            # print tree_to_conll_str(tree), '\n '
+            # print node_to_conll_str(trees[0], trees[0].root())
 
-        # print score_cmp_dep_trees(trees[i], test_trees[i])
-        # print tree
-        # print tree_to_conll_str(tree), '\n '
-        # print node_to_conll_str(trees[0], trees[0].root())
-
-        # print tree_to_conll_str(trees[0])
+            # print tree_to_conll_str(trees[0])
 
 
 if __name__ == '__main__':

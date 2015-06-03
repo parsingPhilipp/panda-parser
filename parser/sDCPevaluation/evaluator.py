@@ -77,21 +77,21 @@ class The_DCP_evaluator(DCP_evaluator):
 # dcp: list of DCP_term/DCP_pos
 # poss: list of string
 # words: list of string
-def dcp_to_hybridtree(tree, dcp, poss, words, ignore_punctuation, construct_token):
+def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token):
     # if len(dcp) != 1:
-    #     raise Exception('DCP has multiple roots')
+    # raise Exception('DCP has multiple roots')
     j = 0
-    for (i, (pos, word)) in enumerate(zip(poss, words)):
-        # tree.add_leaf(str(i), pos, word)
-        if ignore_punctuation and re.search('^\$.*$', pos):
-            tree.add_node(str(i) + 'p', construct_token(word, pos, True), True, False)
+    for (i, token) in enumerate(tokens):
+        # TODO: better punctuation detection
+        if ignore_punctuation and re.search('^\$.*$', token.pos()):
+            tree.add_node(str(i) + 'p', token, True, False)
         elif ignore_punctuation:
-            tree.add_node(str(j), construct_token(word, pos, True), True, True)
+            tree.add_node(str(j), token, True, True)
             j += 1
         else:
-            tree.add_node(str(i), construct_token(word, pos, True), True, True)
+            tree.add_node(str(i), token, True, True)
     for root_term in dcp:
-        (id, _) = dcp_to_hybridtree_recur(root_term, tree, len(poss), construct_token)
+        (id, _) = dcp_to_hybridtree_recur(root_term, tree, len(tokens), construct_token)
         tree.add_to_root(id)
     tree.reorder()
     return tree

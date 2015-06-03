@@ -1,16 +1,18 @@
 __author__ = 'kilian'
 
 import unittest
+import copy
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 from hybridtree.biranked_tokens import CoNLLToken, construct_conll_token
-from induction import induce_grammar, term_pos, direct_extraction, fanout_1, left_branching
+from dependency.induction import induce_grammar, direct_extraction, left_branching, the_terminal_labeling_factory, \
+    the_recursive_partitioning_factory
 from parser.naive.parsing import LCFRS_parser
-from dependency.labeling import ChildPOSdepLabeling, StrictPOSdepLabeling
+from dependency.labeling import the_labeling_factory
 from grammar.sDCP.dcp import DCP_string
 from hybridtree.test_multiroot import multi_dep_tree
 
 
-class MyTestCase(unittest.TestCase):
+class InductionTest(unittest.TestCase):
     def test_something(self):
         self.assertEqual(True, True)
 
@@ -32,8 +34,8 @@ class MyTestCase(unittest.TestCase):
         #
         # print "some other rule"
         # for mem, arg in [(-1,1),(1,0)]:
-        #     print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
-        #                           [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
+        # print create_DCP_rule(mem, arg, top_max(tree, ['v1','v2']), bottom_max(tree, ['v1','v2']),
+        # [(top_max(tree, l), bottom_max(tree, l)) for l in [['v1'], ['v2']]])
         #
         # print 'strict:' , strict_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
         # print 'child:' , child_labeling(tree, top_max(tree, ['v','v21']), bottom_max(tree, ['v','v21']))
@@ -58,7 +60,7 @@ class MyTestCase(unittest.TestCase):
         # print 'child:' , child_labeling(tree2, top_max(tree2, ['v','v1', 'v211']), bottom_max(tree2, ['v','v11', 'v211']))
 
         # rec_par = ('v v1 v2 v21'.split(' '),
-        #            [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
+        # [('v1 v2'.split(' '), [(['v1'],[]), (['v2'],[])])
         #                ,('v v21'.split(' '), [(['v'],[]), (['v21'],[])])
         #            ])
         #
@@ -71,16 +73,21 @@ class MyTestCase(unittest.TestCase):
 
         print tree.recursive_partitioning()
 
-        (_, grammar) = induce_grammar([tree, tree2], ChildPOSdepLabeling(), term_pos, direct_extraction, 'START')
+        terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
+
+        (_, grammar) = induce_grammar([tree, tree2],
+                                      the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'),
+                                      terminal_labeling.token_label, direct_extraction, 'START')
         print max([grammar.fanout(nont) for nont in grammar.nonts()])
         print grammar
 
         parser = LCFRS_parser(grammar, 'NP N V V'.split(' '))
         print parser.best_derivation_tree()
 
+        tokens = [construct_conll_token(form, pos) for form, pos in
+                  zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]
         hybrid_tree = GeneralHybridTree()
-        hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, 'P M h l'.split(' '),
-                                                             'Piet Marie helpen lezen'.split(' '), True,
+        hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, tokens, True,
                                                              construct_conll_token)
         print map(str, hybrid_tree.full_token_yield())
         print hybrid_tree
@@ -92,7 +99,11 @@ class MyTestCase(unittest.TestCase):
 
     def test_multiroot(self):
         tree = multi_dep_tree()
-        for labeling_strategy in [StrictPOSdepLabeling(), ChildPOSdepLabeling()]:
+        term_pos = the_terminal_labeling_factory().get_strategy('pos').token_label
+        fanout_1 = the_recursive_partitioning_factory().getPartitioning('fanout-1')
+        for top_level_labeling_strategy in ['strict', 'child']:
+            labeling_strategy = the_labeling_factory().create_simple_labeling_strategy(top_level_labeling_strategy,
+                                                                                       'pos+deprel')
             for recursive_partitioning in [direct_extraction, fanout_1, left_branching]:
                 (_, grammar) = induce_grammar([tree], labeling_strategy, term_pos, recursive_partitioning, 'START')
                 print grammar
@@ -100,9 +111,11 @@ class MyTestCase(unittest.TestCase):
                 parser = LCFRS_parser(grammar, 'pA pB pC pD pE'.split(' '))
                 print parser.best_derivation_tree()
 
+                cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+                for token in cleaned_tokens:
+                    token.set_deprel('_')
                 hybrid_tree = GeneralHybridTree()
-                hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, 'pA pB pC pD pE'.split(' '),
-                                                                     'A B C D E'.split(' '), True,
+                hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, cleaned_tokens, True,
                                                                      construct_conll_token)
                 print hybrid_tree
                 self.assertEqual(tree, hybrid_tree)

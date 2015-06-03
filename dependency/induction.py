@@ -1,5 +1,8 @@
 __author__ = 'kilian'
 
+import re
+from hybridtree.biranked_tokens import CoNLLToken
+from abc import ABCMeta, abstractmethod
 from grammar.sDCP.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
 from grammar.LCFRS.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
 from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
@@ -43,22 +46,72 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     return n_trees, grammar
 
 
-# Terminal labelling strategies
-def term_word(tree, id):
-    return tree.node_token(id)
+class TerminalLabeling:
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def token_label(self, token):
+        """
+        :type token: CoNLLToken
+        """
+        pass
+
+    def prepare_parser_input(self, tokens):
+        return map(self.token_label, tokens)
 
 
-def term_pos(tree, id):
-    return tree.node_token(id).pos()
+class FormTerminals(TerminalLabeling):
+    def token_label(self, token):
+        return token.form()
+
+    def __str__(self):
+        return 'form'
 
 
-# and corresponding tree-yield strategies for parsing
-def word_yield(tree):
-    return [token.form() for token in tree.token_yield()]
+class PosTerminals(TerminalLabeling):
+    def token_label(self, token):
+        return token.pos()
+
+    def __str__(self):
+        return 'pos'
 
 
-def pos_yield(tree):
-    return [token.pos() for token in tree.token_yield()]
+class FineGrainedPosTerminals(TerminalLabeling):
+    def token_label(self, token):
+        return token.fine_grained_pos()
+
+    def __str__(self):
+        return 'fine_grained_pos'
+
+
+class TerminalLabelingFactory:
+    def __init__(self):
+        self.__strategies = {}
+
+    def register_strategy(self, name, strategy):
+        """
+        :type name: str
+        :type strategy: TerminalLabeling
+        """
+        self.__strategies[name] = strategy
+
+    def get_strategy(self, name):
+        """
+        :type name: str
+        :rtype: TerminalLabeling
+        """
+        return self.__strategies[name]
+
+
+def the_terminal_labeling_factory():
+    """
+    :rtype : TerminalLabelingFactory
+    """
+    factory = TerminalLabelingFactory()
+    factory.register_strategy('form', FormTerminals())
+    factory.register_strategy('pos', PosTerminals())
+    factory.register_strategy('fine_grained_pos', FineGrainedPosTerminals())
+    return factory
 
 
 # Recursive partitioning strategies
@@ -77,36 +130,31 @@ def direct_extraction(tree):
 fanout_k = lambda tree, k: fanout_limited_partitioning(tree.recursive_partitioning(), k)
 
 
-def fanout_1(tree):
-    return fanout_k(tree, 1)
+class RecursivePartitioningFactory:
+    def __init__(self):
+        self.__partitionings = {}
+
+    def registerPartitioning(self, name, partitioning):
+        self.__partitionings[name] = partitioning
+
+    def getPartitioning(self, name):
+        match = re.search(r'fanout-(\d+)', name)
+        if match:
+            k = int(match.group(1))
+            rec_par = lambda tree: fanout_k(tree, k)
+            rec_par.__name__ = 'fanout_' + str(k)
+            return rec_par
+
+        else:
+            return self.__partitionings[name]
 
 
-def fanout_2(tree):
-    return fanout_k(tree, 2)
-
-
-def fanout_3(tree):
-    return fanout_k(tree, 3)
-
-
-def fanout_4(tree):
-    return fanout_k(tree, 4)
-
-
-def fanout_5(tree):
-    return fanout_k(tree, 5)
-
-
-def fanout_6(tree):
-    return fanout_k(tree, 6)
-
-
-def fanout_7(tree):
-    return fanout_k(tree, 7)
-
-
-def fanout_8(tree):
-    return fanout_k(tree, 8)
+def the_recursive_partitioning_factory():
+    factory = RecursivePartitioningFactory()
+    factory.registerPartitioning('left-branching', left_branching)
+    factory.registerPartitioning('right-branching', right_branching)
+    factory.registerPartitioning('direct-extraction', direct_extraction)
+    return factory
 
 
 ###################################### Recursive Rule extraction method ###################################
@@ -231,14 +279,14 @@ def create_dcp_rule(mem, arg, top_max, bottom_max, children):
 
 def create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
     """
-    Create the LCFFRS_lhs of some LCFRS-DCP hybrid rule.
+    Create the LCFRS_lhs of some LCFRS-DCP hybrid rule.
     :rtype: LCFRS_lhs
     :param tree:     GeneralHybridTree
     :param node_ids: list of string (node in an recursive partitioning)
     :param t_max:    top_max of node_ids
     :param b_max:    bottom_max of node ids
     :param children: list of pairs of list of list of string
-#                    (pairs of top_max / bottom_max of child nodes in recurisve partitioning)
+#                    (pairs of top_max / bottom_max of child nodes in recursive partitioning)
     :type nont_labelling: AbstractLabeling
     :return: LCFRS_lhs :raise Exception:
     """
@@ -317,7 +365,7 @@ def create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_lab
     # Build LHS
     lhs = LCFRS_lhs(nont_labelling.label_nonterminal(tree, node_ids, t_max, b_max, 1))
     id = node_ids[0]
-    arg = [term_labelling(tree, id)]
+    arg = [term_labelling(tree.node_token(id))]
     lhs.add_arg(arg)
     return lhs
 
@@ -402,4 +450,3 @@ def maximize(tree, id_set):
             present_siblings = present_siblings[j:]
 
     return max_list
-
