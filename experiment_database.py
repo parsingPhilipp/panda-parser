@@ -428,7 +428,7 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
         , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
-    selected_columns = ['rec_par', 'nont_labelling', 'f1', 'f2'  # , 'f3', 'f4', 'f5'
+    selected_columns = ['rec_par', 'term_labelling', 'nont_labelling', 'f1', 'f2'  # , 'f3', 'f4', 'f5'
         , 'limit'
                         # , 'fail'
                         # , 'UAS_avg', 'LAS_avg'
@@ -444,6 +444,8 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
                         ]
     header = {'nont_labelling': 'nont.~lab.'}
     columns_style['nont_labelling'] = 'l'
+    header['term_labelling'] = 'term.'
+    columns_style['term_labelling'] = 'l'
     header['rec_par'] = 'extraction'
     columns_style['rec_par'] = 'l'
     header['training_corpus'] = 'training sent.'
@@ -553,7 +555,7 @@ def compute_line(connection, ids, exp, max_length):
 
     cursor = connection.cursor()
     experiment = cursor.execute(
-        'SELECT nont_label, rec_par, training_corpus, test_corpus, ignore_punctuation FROM experiments WHERE e_id = ?',
+        'SELECT nont_label, rec_par, training_corpus, test_corpus, ignore_punctuation, term_label FROM experiments WHERE e_id = ?',
         (exp,)).fetchone()
     g_id, nont, rules = cursor.execute('SELECT g_id, nonterminals, rules FROM grammar WHERE experiment = ?',
                                        (exp,)).fetchone()
@@ -566,6 +568,7 @@ def compute_line(connection, ids, exp, max_length):
     line['punc'] = punct(experiment[4])
     line['n_nonterminals'] = nont
     line['n_rules'] = rules
+    line['term_labelling'] = experiment[5].replace('_', '-')
     # line['fanout'] = 'fanout'
     line['f1'] = fanout(fanouts, 1)
     line['f2'] = fanout(fanouts, 2)
@@ -759,6 +762,8 @@ def nontlabelling_strategies(nont_labelling):
         return 'child + POS + DEPREL'
     elif nont_labelling == 'child_dep':
         return 'child + DEPREL'
+    else:
+        return nont_labelling.replace('_', '-')
 
 
 def recpac_stategies(rec_par):
