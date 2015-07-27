@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 import unittest
-from hybridtree.biranked_tokens import construct_conll_token
+from hybridtree.monadic_tokens import construct_conll_token
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 
 

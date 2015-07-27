@@ -3,7 +3,7 @@ __author__ = 'kilian'
 import unittest
 import copy
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import CoNLLToken, construct_conll_token
+from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from dependency.induction import induce_grammar, direct_extraction, left_branching, the_terminal_labeling_factory, \
     the_recursive_partitioning_factory
 from parser.naive.parsing import LCFRS_parser

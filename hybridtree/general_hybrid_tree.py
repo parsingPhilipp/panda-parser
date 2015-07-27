@@ -3,7 +3,7 @@
 
 from collections import defaultdict
 from decomposition import *
-from biranked_tokens import BiRankedToken
+from monadic_tokens import MonadicToken
 
 
 class GeneralHybridTree:
@@ -65,7 +65,7 @@ class GeneralHybridTree:
         :param id: node id
         :type id: str
         :param token: word + pos, syntactic category
-        :type token: BiRankedToken
+        :type token: MonadicToken
         :param order: include node in linear ordering
         :type order: bool
         :param connected: should the node be connected to other nodes
@@ -353,14 +353,14 @@ class GeneralHybridTree:
     def token_yield(self):
         """
         :return: Get yield as list of all labels of nodes, that are in the ordering and connected to the root.
-        :rtype: list[BiRankedToken]
+        :rtype: list[MonadicToken]
         """
         return [self.node_token(id) for id in self.__ordered_ids]
 
     def full_token_yield(self):
         """
         :return: Get yield as list of labels of nodes, that are in the ordering (including disconnected nodes).
-        :rtype: list[BiRankedToken]
+        :rtype: list[MonadicToken]
         """
         return [self.node_token(id) for id in self.__full_yield]
 
@@ -376,7 +376,7 @@ class GeneralHybridTree:
         :param id: node id
         :type id: str
         :return: token at node id
-        :rtype: BiRankedToken
+        :rtype: MonadicToken
         Query the token of node id.
         """
         return self.__id_to_token[id]

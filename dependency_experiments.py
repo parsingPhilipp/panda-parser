@@ -10,7 +10,7 @@ import copy
 from hybridtree.general_hybrid_tree import GeneralHybridTree
 import dependency.induction as d_i
 import dependency.labeling as label
-from hybridtree.biranked_tokens import construct_conll_token
+from hybridtree.monadic_tokens import construct_conll_token
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 

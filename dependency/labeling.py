@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import CoNLLToken
+from hybridtree.monadic_tokens import CoNLLToken
 from types import FunctionType
 
 

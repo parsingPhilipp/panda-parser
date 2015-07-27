@@ -6,7 +6,7 @@ import re
 import sys
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import CoNLLToken
+from hybridtree.monadic_tokens import CoNLLToken
 
 
 def match_line(line):

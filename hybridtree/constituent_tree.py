@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 from general_hybrid_tree import GeneralHybridTree
-from biranked_tokens import ConstituencyTerminal, ConstituencyCategory
+from monadic_tokens import ConstituencyTerminal, ConstituencyCategory
 from decomposition import join_spans
 
 

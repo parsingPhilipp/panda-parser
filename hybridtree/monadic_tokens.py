@@ -3,7 +3,7 @@ __author__ = 'kilian'
 from abc import ABCMeta, abstractmethod
 
 
-class BiRankedToken:
+class MonadicToken:
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -25,7 +25,7 @@ class BiRankedToken:
         pass
 
 
-class CoNLLToken(BiRankedToken):
+class CoNLLToken(MonadicToken):
     def __init__(self, form, lemma, pos, fine_grained_pos, feats, deprel):
         super(CoNLLToken, self).__init__()
         self.__form = form
@@ -74,7 +74,7 @@ class CoNLLToken(BiRankedToken):
                         ])
 
 
-class ConstituencyToken(BiRankedToken):
+class ConstituencyToken(MonadicToken):
     def __init__(self):
         super(ConstituencyToken, self).__init__()
 

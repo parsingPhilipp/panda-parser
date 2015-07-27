@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 import unittest
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import *
+from hybridtree.monadic_tokens import *
 
 
 class MultiRootedHybridTreeTest(unittest.TestCase):

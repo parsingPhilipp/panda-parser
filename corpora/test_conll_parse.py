@@ -5,7 +5,7 @@ import unittest
 import copy
 import dependency.induction as d_i
 from dependency.labeling import the_labeling_factory
-from hybridtree.biranked_tokens import construct_conll_token
+from hybridtree.monadic_tokens import construct_conll_token
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import *
 

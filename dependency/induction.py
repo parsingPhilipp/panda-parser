@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 import re
-from hybridtree.biranked_tokens import CoNLLToken
+from hybridtree.monadic_tokens import CoNLLToken
 from abc import ABCMeta, abstractmethod
 from grammar.sDCP.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
 from grammar.LCFRS.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var

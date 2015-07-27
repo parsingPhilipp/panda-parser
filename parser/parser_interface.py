@@ -3,7 +3,7 @@ __author__ = 'kilian'
 from abc import ABCMeta, abstractmethod
 from grammar.LCFRS.lcfrs import *
 from sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
-from hybridtree.biranked_tokens import BiRankedToken
+from hybridtree.monadic_tokens import MonadicToken
 
 
 class AbstractParser:
@@ -52,7 +52,7 @@ class AbstractParser:
         """
         :param tree:
         :type tree: GeneralHybridTree
-        :param tokens: list[BirankedToken]
+        :param tokens: list[MonadicToken]
         :param ignore_punctuation:
         :type ignore_punctuation: bool
         :return: The Hybrid Tree obtained through evaluation of the dcp-component of the best parse.

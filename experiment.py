@@ -6,7 +6,7 @@ import corpora.negra_parse
 import corpora.tiger_parse
 from constituent.parse_accuracy import ParseAccuracy
 from hybridtree.constituent_tree import *
-from hybridtree.biranked_tokens import construct_constituent_token
+from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
     start as induction_start
 from parser.naive.parsing import *

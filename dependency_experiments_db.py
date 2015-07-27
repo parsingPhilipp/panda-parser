@@ -12,7 +12,7 @@ import copy
 import itertools
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import construct_conll_token
+from hybridtree.monadic_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
 from parser.naive.parsing import LCFRS_parser as NaiveParser

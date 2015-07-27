@@ -6,7 +6,7 @@ import sys
 import re
 
 from hybridtree.general_hybrid_tree import GeneralHybridTree
-from hybridtree.biranked_tokens import CoNLLToken
+from hybridtree.monadic_tokens import CoNLLToken
 from grammar.LCFRS.lcfrs import LCFRS
 from eval_pl_scorer import eval_pl_scores
 from corpora import conll_parse
