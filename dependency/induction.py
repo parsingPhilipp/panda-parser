@@ -68,20 +68,20 @@ class FormTerminals(TerminalLabeling):
         return 'form'
 
 
+class CPosTerminals(TerminalLabeling):
+    def token_label(self, token):
+        return token.pos()
+
+    def __str__(self):
+        return 'cpos'
+
+
 class PosTerminals(TerminalLabeling):
     def token_label(self, token):
         return token.pos()
 
     def __str__(self):
         return 'pos'
-
-
-class FineGrainedPosTerminals(TerminalLabeling):
-    def token_label(self, token):
-        return token.fine_grained_pos()
-
-    def __str__(self):
-        return 'fine_grained_pos'
 
 
 class TerminalLabelingFactory:
@@ -110,7 +110,7 @@ def the_terminal_labeling_factory():
     factory = TerminalLabelingFactory()
     factory.register_strategy('form', FormTerminals())
     factory.register_strategy('pos', PosTerminals())
-    factory.register_strategy('fine_grained_pos', FineGrainedPosTerminals())
+    factory.register_strategy('fine_grained_pos', CPosTerminals())
     return factory
 
 

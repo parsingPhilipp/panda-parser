@@ -123,10 +123,10 @@ class InductionTest(unittest.TestCase):
 
 def hybrid_tree_1():
     tree = HybridTree()
-    tree.add_node('v1', CoNLLToken('Piet', '_', 'NP', '_', '_', 'SBJ'), True)
-    tree.add_node('v21', CoNLLToken('Marie', '_', 'N', '_', '_', 'OBJ'), True)
-    tree.add_node('v', CoNLLToken('helpen', '_', 'V', '_', '_', 'ROOT'), True)
-    tree.add_node('v2', CoNLLToken('lezen', '_', 'V', '_', '_', 'VBI'), True)
+    tree.add_node('v1', CoNLLToken('Piet', '_', 'NP', 'NP', '_', 'SBJ'), True)
+    tree.add_node('v21', CoNLLToken('Marie', '_', 'N', 'N', '_', 'OBJ'), True)
+    tree.add_node('v', CoNLLToken('helpen', '_', 'V', 'V', '_', 'ROOT'), True)
+    tree.add_node('v2', CoNLLToken('lezen', '_', 'V', 'V', '_', 'VBI'), True)
     tree.add_child('v', 'v2')
     tree.add_child('v', 'v1')
     tree.add_child('v2', 'v21')
@@ -137,11 +137,11 @@ def hybrid_tree_1():
 
 def hybrid_tree_2():
     tree2 = HybridTree()
-    tree2.add_node('v1', CoNLLToken('Piet', '_', 'NP', '_', '_', 'SBJ'), True)
-    tree2.add_node('v211', CoNLLToken('Marie', '_', 'N', '_', '_', 'OBJ'), True)
-    tree2.add_node('v', CoNLLToken('helpen', '_', 'V', '_', '_', 'ROOT'), True)
-    tree2.add_node('v2', CoNLLToken('leren', '_', 'V', '_', '_', 'VBI'), True)
-    tree2.add_node('v21', CoNLLToken('lezen', '_', 'V', '_', '_', 'VFIN'), True)
+    tree2.add_node('v1', CoNLLToken('Piet', '_', 'NP', 'NP', '_', 'SBJ'), True)
+    tree2.add_node('v211', CoNLLToken('Marie', '_', 'N', 'N', '_', 'OBJ'), True)
+    tree2.add_node('v', CoNLLToken('helpen', '_', 'V', 'V', '_', 'ROOT'), True)
+    tree2.add_node('v2', CoNLLToken('leren', '_', 'V', 'V', '_', 'VBI'), True)
+    tree2.add_node('v21', CoNLLToken('lezen', '_', 'V', 'V', '_', 'VFIN'), True)
     tree2.add_child('v', 'v2')
     tree2.add_child('v', 'v1')
     tree2.add_child('v2', 'v21')

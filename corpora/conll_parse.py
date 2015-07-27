@@ -132,8 +132,8 @@ def node_to_conll_str(tree, id):
     s += str(tree.node_index_full(id) + 1) + delimiter
     s += token.form() + delimiter
     s += token.lemma() + delimiter
+    s += token.cpos() + delimiter
     s += token.pos() + delimiter
-    s += token.fine_grained_pos() + delimiter
     s += token.feats() + delimiter
     dependency_info = ''
     if id in tree.root:

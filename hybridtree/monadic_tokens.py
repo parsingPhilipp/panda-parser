@@ -26,12 +26,12 @@ class MonadicToken:
 
 
 class CoNLLToken(MonadicToken):
-    def __init__(self, form, lemma, pos, fine_grained_pos, feats, deprel):
+    def __init__(self, form, lemma, cpos, pos, feats, deprel):
         super(CoNLLToken, self).__init__()
         self.__form = form
         self.__lemma = lemma
+        self.__cpos = cpos
         self.__pos = pos
-        self.__fine_grained_pos = fine_grained_pos
         self.__feats = feats
         self.__deprel = deprel
 
@@ -44,11 +44,11 @@ class CoNLLToken(MonadicToken):
     def lemma(self):
         return self.__lemma
 
+    def cpos(self):
+        return self.__cpos
+
     def pos(self):
         return self.__pos
-
-    def fine_grained_pos(self):
-        return self.__fine_grained_pos
 
     def feats(self):
         return self.__feats
@@ -67,8 +67,8 @@ class CoNLLToken(MonadicToken):
             return False
         else:
             return all([self.form() == other.form()
+                , self.cpos() == other.cpos()
                 , self.pos() == other.pos()
-                , self.fine_grained_pos() == other.fine_grained_pos()
                 , self.lemma() == other.lemma()
                 , self.deprel() == other.deprel()
                         ])
@@ -122,7 +122,7 @@ class ConstituencyCategory(ConstituencyToken):
 
 
 def construct_conll_token(form, pos, _=True):
-    return CoNLLToken(form, '_', pos, '_', '_', '_')
+    return CoNLLToken(form, '_', pos, pos, '_', '_')
 
 
 def construct_constituent_token(form, pos, terminal):

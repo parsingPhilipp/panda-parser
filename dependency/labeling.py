@@ -190,11 +190,11 @@ def token_to_pos(token, terminal_generating=False):
         return token.pos()
 
 
-def token_to_fine_grained_pos(token, terminal_generating=False):
+def token_to_cpos(token, terminal_generating=False):
     if terminal_generating:
-        return token.fine_grained_pos() + ':T'
+        return token.cpos() + ':T'
     else:
-        return token.fine_grained_pos()
+        return token.cpos()
 
 
 def token_to_pos_and_deprel(token, terminal_generating=False):
@@ -204,11 +204,11 @@ def token_to_pos_and_deprel(token, terminal_generating=False):
         return token.pos() + ':' + token.deprel()
 
 
-def token_to_fine_grained_pos_and_deprel(token, terminal_generating=False):
+def token_to_cpos_and_deprel(token, terminal_generating=False):
     if terminal_generating:
-        return token.fine_grained_pos() + ':' + token.deprel() + ':T'
+        return token.cpos() + ':' + token.deprel() + ':T'
     else:
-        return token.fine_grained_pos() + ':' + token.deprel()
+        return token.cpos() + ':' + token.deprel()
 
 
 def token_to_form(token, terminal_generating=False):
@@ -281,8 +281,8 @@ def the_labeling_factory():
     factory.register_top_level_strategy('child', ChildLabeling)
 
     factory.register_node_to_string_strategy('pos', token_to_pos)
-    factory.register_node_to_string_strategy('fine_grained_pos', token_to_fine_grained_pos)
+    factory.register_node_to_string_strategy('cpos', token_to_cpos)
     factory.register_node_to_string_strategy('deprel', token_to_deprel)
     factory.register_node_to_string_strategy('pos+deprel', token_to_pos_and_deprel)
-    factory.register_node_to_string_strategy('fine_grained_pos+deprel', token_to_fine_grained_pos_and_deprel)
+    factory.register_node_to_string_strategy('cpos+deprel', token_to_cpos_and_deprel)
     return factory
