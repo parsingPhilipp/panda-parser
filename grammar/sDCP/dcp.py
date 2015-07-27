@@ -49,7 +49,7 @@ class DCP_evaluator:
         :param id: node id (gorn term) in LCFRS-derivation tree
         :type id: str
         :return: the input position to which the index points
-        :rtype: DCP_pos
+        :rtype: DCP_position
         """
         pass
 
@@ -152,18 +152,18 @@ class DCP_string(str, DCP_rhs_object):
 
 # An index replaced by an input position, according to parsing of a string with
 # the left (LCFRS) component of hybrid grammar.
-class DCP_pos:
+class DCP_position:
     # Constructor.
     # pos: int
     # dep_label: string
-    def __init__(self, pos, dep_label=None):
-        self.__pos = pos
+    def __init__(self, position, dep_label=None):
+        self.__position = position
         self.__dep_label = dep_label
 
     # The position.
     # return: int
-    def pos(self):
-        return self.__pos
+    def position(self):
+        return self.__position
 
     def dep_label(self):
         return self.__dep_label
@@ -171,7 +171,7 @@ class DCP_pos:
     # String representation.
     # return: string
     def __str__(self):
-        return '[' + str(self.pos()) + ']'
+        return '[' + str(self.position()) + ']'
 
 
 # A terminal occurrence (may linked to LCFRS terminal),

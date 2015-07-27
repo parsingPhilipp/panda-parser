@@ -407,7 +407,7 @@ class LCFRS:
                 return False, rule
         return True, None
 
-    # Get zero-fanout rules in which terminal is first terminal.
+    # Get zero-rank rules in which terminal is first terminal.
     # term: string
     # return: list of LCFRS_rule
     def lex_rules(self, term):

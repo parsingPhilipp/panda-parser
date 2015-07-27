@@ -1,6 +1,6 @@
 __author__ = 'kilian'
 
-from grammar.sDCP.dcp import DCP_evaluator, DCP_term, DCP_pos, DCP_string
+from grammar.sDCP.dcp import DCP_evaluator, DCP_term, DCP_position, DCP_string
 from parser.derivation_interface import AbstractDerivation
 import re
 
@@ -52,8 +52,8 @@ class The_DCP_evaluator(DCP_evaluator):
     # index: DCP_index
     def evaluateIndex(self, index, id):
         i = index.index()
-        pos = sorted(self.__der.terminal_positions(id))[i]
-        return DCP_pos(pos, index.dep_label())
+        position = sorted(self.__der.terminal_positions(id))[i]
+        return DCP_position(position, index.dep_label())
 
     # term: DCP_term
     def evaluateTerm(self, term, id):
@@ -74,7 +74,7 @@ class The_DCP_evaluator(DCP_evaluator):
 
 
 # Turn DCP value into hybrid tree.
-# dcp: list of DCP_term/DCP_pos
+# dcp: list of DCP_term/DCP_position
 # poss: list of string
 # words: list of string
 def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token):
@@ -105,9 +105,9 @@ def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token):
 # return: pair of string
 def dcp_to_hybridtree_recur(dcp, tree, next_id, construct_token):
     head = dcp.head()
-    if isinstance(head, DCP_pos):
+    if isinstance(head, DCP_position):
         # FIXME : inconsistent counting of positions in hybrid tree requires -1
-        id = str(head.pos() - 1)
+        id = str(head.position() - 1)
     elif isinstance(head, DCP_string):
         label = head
         id = str(next_id)
