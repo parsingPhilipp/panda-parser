@@ -6,7 +6,7 @@ from parser.active.parsing import *
 from grammar.LCFRS.lcfrs import *
 from parser.active.derivation import Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import *
 from dependency.induction import induce_grammar, direct_extraction, the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
@@ -218,7 +218,7 @@ class ActiveParserTest(unittest.TestCase):
             print hybrid_tree
 
             dcp = The_DCP_evaluator(der).getEvaluation()
-            h_tree_2 = GeneralHybridTree()
+            h_tree_2 = HybridTree()
             token_sequence = [construct_conll_token(form, lemma) for form, lemma in
                               zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]
             dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,

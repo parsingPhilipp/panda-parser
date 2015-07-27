@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 import unittest
 import copy
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from dependency.induction import induce_grammar, direct_extraction, left_branching, the_terminal_labeling_factory, \
     the_recursive_partitioning_factory
@@ -86,7 +86,7 @@ class InductionTest(unittest.TestCase):
 
         tokens = [construct_conll_token(form, pos) for form, pos in
                   zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]
-        hybrid_tree = GeneralHybridTree()
+        hybrid_tree = HybridTree()
         hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, tokens, True,
                                                              construct_conll_token)
         print map(str, hybrid_tree.full_token_yield())
@@ -114,7 +114,7 @@ class InductionTest(unittest.TestCase):
                 cleaned_tokens = copy.deepcopy(tree.full_token_yield())
                 for token in cleaned_tokens:
                     token.set_deprel('_')
-                hybrid_tree = GeneralHybridTree()
+                hybrid_tree = HybridTree()
                 hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, cleaned_tokens, True,
                                                                      construct_conll_token)
                 print hybrid_tree
@@ -122,7 +122,7 @@ class InductionTest(unittest.TestCase):
 
 
 def hybrid_tree_1():
-    tree = GeneralHybridTree()
+    tree = HybridTree()
     tree.add_node('v1', CoNLLToken('Piet', '_', 'NP', '_', '_', 'SBJ'), True)
     tree.add_node('v21', CoNLLToken('Marie', '_', 'N', '_', '_', 'OBJ'), True)
     tree.add_node('v', CoNLLToken('helpen', '_', 'V', '_', '_', 'ROOT'), True)
@@ -136,7 +136,7 @@ def hybrid_tree_1():
 
 
 def hybrid_tree_2():
-    tree2 = GeneralHybridTree()
+    tree2 = HybridTree()
     tree2.add_node('v1', CoNLLToken('Piet', '_', 'NP', '_', '_', 'SBJ'), True)
     tree2.add_node('v211', CoNLLToken('Marie', '_', 'N', '_', '_', 'OBJ'), True)
     tree2.add_node('v', CoNLLToken('helpen', '_', 'V', '_', '_', 'ROOT'), True)

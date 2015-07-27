@@ -7,7 +7,7 @@ import time
 import sys
 import copy
 
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 import dependency.induction as d_i
 import dependency.labeling as label
 from hybridtree.monadic_tokens import construct_conll_token
@@ -101,7 +101,7 @@ def parse_sentences_from_file(grammar
             skipped += 1
             continue
         parser = LCFRS_parser(grammar, tree_yield(tree))
-        h_tree = GeneralHybridTree()
+        h_tree = HybridTree()
         cleaned_tokens = copy.deepcopy(tree.full_token_yield())
         for token in cleaned_tokens:
             token.set_deprel('_')

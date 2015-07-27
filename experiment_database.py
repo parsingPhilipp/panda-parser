@@ -5,7 +5,7 @@ import time
 import sys
 import re
 
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
 from grammar.LCFRS.lcfrs import LCFRS
 from eval_pl_scorer import eval_pl_scores
@@ -166,7 +166,7 @@ def set_experiment_test_corpus(connection, exp_id, test_corpus):
 def add_tree(connection, tree, corpus):
     """
     :param connection:
-    :type tree: GeneralHybridTree
+    :type tree: HybridTree
     :type corpus: str
     :return: tree_id
     :rtype: int
@@ -215,7 +215,7 @@ def add_result_tree(connection, tree, corpus, experiment, k_best, score, parse_t
     :type score: float
     :type k_best: int
     :type experiment: int
-    :type tree: GeneralHybridTree
+    :type tree: HybridTree
     :type corpus: str
     """
 
@@ -301,7 +301,7 @@ def query_result_tree(connection, exp, tree_id):
                     '                  AND result_tree_nodes.sent_position = tree_nodes.sent_position\n'
                     '                WHERE result_tree_nodes.rt_id = ?'
                 ), (result_tree_id,))
-            tree = GeneralHybridTree()
+            tree = HybridTree()
             for i, label, pos, head, deprel in tree_nodes:
                 if deprel is None:
                     deprel = 'UNKNOWN'
@@ -327,7 +327,7 @@ def query_result_tree(connection, exp, tree_id):
     strategy = left_branch
 
     length = len(tree_nodes)
-    tree = GeneralHybridTree()
+    tree = HybridTree()
     for i, label, pos in tree_nodes:
         token = CoNLLToken(label, '_', pos, '_', '_', '_')
         tree.add_node(str(i), token, True, True)

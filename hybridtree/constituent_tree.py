@@ -1,18 +1,18 @@
 __author__ = 'kilian'
 
-from general_hybrid_tree import GeneralHybridTree
+from general_hybrid_tree import HybridTree
 from monadic_tokens import ConstituencyTerminal, ConstituencyCategory
 from decomposition import join_spans
 
 
-class ConstituentTree(GeneralHybridTree):
+class ConstituentTree(HybridTree):
     """
     Legacy hybrid tree interface for Mark-Jan's implementation for constituent parsing.
     Supposed that the tokens are of type ConstituencyTerminal or ConstituencyCategory.
     """
 
     def __init__(self, sent_label=None):
-        GeneralHybridTree.__init__(self, sent_label)
+        HybridTree.__init__(self, sent_label)
 
     # Add next leaf. Order of adding is significant.
     # id: string
@@ -95,7 +95,7 @@ class ConstituentTree(GeneralHybridTree):
         return [n for n in self.nodes() if n not in self.full_yield()]
 
     def n_nodes(self):
-        return GeneralHybridTree.n_nodes(self) + 1
+        return HybridTree.n_nodes(self) + 1
 
     def labelled_spans(self):
         """

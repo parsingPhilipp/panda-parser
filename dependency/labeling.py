@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
 from types import FunctionType
 
@@ -17,7 +17,7 @@ class AbstractLabeling:
 
     def label_nonterminal(self, tree, node_ids, t_max, b_max, fanout):
         """
-        :type tree: GeneralHybridTree
+        :type tree: HybridTree
         :param node_ids: Node Ids
         :param t_max:  top_max
         :param b_max:  bottom_max
@@ -37,7 +37,7 @@ class AbstractLabeling:
     @abstractmethod
     def _label_bottom_seq(self, tree, id_seq):
         """
-        :type tree: GeneralHybridTree
+        :type tree: HybridTree
         :param id_seq:
         :rtype: str
         """
@@ -46,7 +46,7 @@ class AbstractLabeling:
     @abstractmethod
     def _label_top_seq(self, tree, id_seq, terminal_generating):
         """
-        :type tree: GeneralHybridTree
+        :type tree: HybridTree
         :param id_seq:
         :type terminal_generating: bool
         :rtype: str
@@ -158,7 +158,7 @@ def argument_dependencies(tree, id_seqs):
 def argument_dependencies_rec(tree, id_seqs, descendants, arg_indices):
     """
     Recursively compute the string for the argument dependencies.
-    :type tree: GeneralHybridTree
+    :type tree: HybridTree
     :param id_seqs: list of list of string (concatenation of top_max and bottom_max)
     :param descendants: map from (indices of id_seqs) to (list of (indices of id_seqs))
     :param arg_indices: list of (indices of id_seqs)

@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 
 
 class AbstractDerivation:
@@ -77,7 +77,7 @@ def derivation_to_hybrid_tree(der, poss, ordered_labels, construct_token, discon
     """
     if not disconnected:
         disconnected = []
-    tree = GeneralHybridTree()
+    tree = HybridTree()
     j = 1
     for i in range(len(ordered_labels)):
         token = construct_token(ordered_labels[i], poss[i], True)

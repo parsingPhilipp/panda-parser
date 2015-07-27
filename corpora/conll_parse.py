@@ -5,7 +5,7 @@ __author__ = 'kilian'
 import re
 import sys
 
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
 
 
@@ -24,7 +24,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
     :param limit: stop generation after limit trees
     :type: int
     :return: a series of hybrid trees read from file
-    :rtype: __generator[GeneralHybridTree]
+    :rtype: __generator[HybridTree]
     :raise Exception: unexpected input in corpus file
     Lazily parses a dependency corpus (in CoNLL format) and generates GeneralHybridTrees.
     """
@@ -45,7 +45,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
         while match:
             if match.group(1) == '1':
                 tree_count += 1
-                tree = GeneralHybridTree('tree' + str(tree_count))
+                tree = HybridTree('tree' + str(tree_count))
 
             node_id = match.group(1)
             form = match.group(2)
@@ -109,7 +109,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 def tree_to_conll_str(tree):
     """
     :param tree: hybrid tree
-    :type tree: GeneralHybridTree
+    :type tree: HybridTree
     :return: ConLL format of tree!
     :rtype: str
     Output a hybrid tree, that models the dependency structure of some sentence, in CoNLL format.
@@ -120,7 +120,7 @@ def tree_to_conll_str(tree):
 
 def node_to_conll_str(tree, id):
     """
-    :type tree: GeneralHybridTree
+    :type tree: HybridTree
     :type id:   str
     :param id: node id
     :return: line for this tree node in CoNLL format

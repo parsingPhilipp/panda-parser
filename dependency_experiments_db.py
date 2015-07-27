@@ -11,7 +11,7 @@ import os
 import copy
 import itertools
 
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
@@ -27,7 +27,7 @@ def add_trees_to_db(path, connection, trees):
     :param connection: connection to experiment database
     :type connection: Connection
     :param trees: a corpus of trees
-    :type trees: __generator[GeneralHybridTree]
+    :type trees: __generator[HybridTree]
     :return: a corpus of trees
     :rtype: __generator[GeneralHybridTree]
     insert corpus of hybrid trees lazily into experiment database
@@ -40,13 +40,13 @@ def add_trees_to_db(path, connection, trees):
 def disconnect_punctuation(trees):
     """
     :param trees: corpus of hybrid trees
-    :type trees: __generator[GeneralHybridTree]
+    :type trees: __generator[HybridTree]
     :return: corpus of hybrid trees
     :rtype: __generator[GeneralHybridTree]
     lazily disconnect punctuation from each hybrid tree in a corpus of hybrid trees
     """
     for tree in trees:
-        tree2 = GeneralHybridTree(tree.sent_label())
+        tree2 = HybridTree(tree.sent_label())
         for root_id in tree.root:
             tree2.add_to_root(root_id)
         for id in tree.full_yield():
@@ -205,7 +205,7 @@ def parse_sentences_from_file(grammar
         cleaned_tokens = copy.deepcopy(tree.full_token_yield())
         for token in cleaned_tokens:
             token.set_deprel('_')
-        h_tree = GeneralHybridTree(tree.sent_label())
+        h_tree = HybridTree(tree.sent_label())
         h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
                                                         construct_conll_token)
 

@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 import unittest
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import *
 
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
 
 def multi_const_tree():
-    tree = GeneralHybridTree("multi")
+    tree = HybridTree("multi")
     tree.add_node('1.1', ConstituencyTerminal('A', 'pA'), True, True)
     tree.add_node('2.1', ConstituencyTerminal('B', 'pB'), True, True)
     tree.add_node('1.2', ConstituencyTerminal('C', 'pC'), True, True)
@@ -52,7 +52,7 @@ def multi_const_tree_ordered():
 
 
 def multi_dep_tree():
-    tree = GeneralHybridTree('multi')
+    tree = HybridTree('multi')
     tree.add_node('1', CoNLLToken('A', '_', 'pA', '_', '_', 'dA'), True)
     tree.add_node('211', CoNLLToken('B', '_', 'pB', '_', '_', 'dB'), True)
     tree.add_node('11', CoNLLToken('C', '_', 'pC', '_', '_', 'dC'), True)

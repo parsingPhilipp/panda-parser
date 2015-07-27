@@ -2,14 +2,14 @@ __author__ = 'kilian'
 
 import unittest
 from hybridtree.monadic_tokens import construct_conll_token
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 
 
 class GeneralHybridTreeTestCase(unittest.TestCase):
     tree = None
 
     def setUp(self):
-        self.tree = GeneralHybridTree()
+        self.tree = HybridTree()
         self.tree.add_node("v1", construct_conll_token("Piet", "NP"), True)
         self.tree.add_node("v21", construct_conll_token("Marie", "N"), True)
         self.tree.add_node("v", construct_conll_token("helpen", "VP"), True)

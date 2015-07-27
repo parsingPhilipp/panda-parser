@@ -6,7 +6,7 @@ from decomposition import *
 from monadic_tokens import MonadicToken
 
 
-class GeneralHybridTree:
+class HybridTree:
     @property
     def virtual_root(self):
         return 'VROOT'
@@ -445,7 +445,7 @@ class GeneralHybridTree:
         return ''.join([self.__hybrid_tree_str(id, 0) for id in self.root])
 
     def __eq__(self, other):
-        if not isinstance(other, GeneralHybridTree):
+        if not isinstance(other, HybridTree):
             return False
         return all([self.compare_recursive(other, self_node, other_node) for self_node, other_node in
                     zip(self.root, other.root)])
@@ -456,7 +456,7 @@ class GeneralHybridTree:
         number of children at each position.
 
         :param other:
-        :type other: GeneralHybridTree
+        :type other: HybridTree
         :param self_node:
         :param other_node:
         :return:

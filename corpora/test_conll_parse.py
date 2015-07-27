@@ -49,7 +49,7 @@ class CoNLLParserTest(unittest.TestCase):
             cleaned_tokens = copy.deepcopy(tree.full_token_yield())
             for token in cleaned_tokens:
                 token.set_deprel('_')
-            h_tree = GeneralHybridTree()
+            h_tree = HybridTree()
             h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, True,
                                                             construct_conll_token)
             # print h_tree
