@@ -8,8 +8,7 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
-# from hybridtree import HybridTree
-from hybridtree.constituent_tree import HybridTree
+from hybridtree.constituent_tree import ConstituentTree
 
 # Location of Tiger corpus.
 tiger_dir = '..'
@@ -60,12 +59,12 @@ def sentence_names_to_hybridtrees(names, file_name):
 # Return tree for name. Return None if none.
 # name: string 
 # file_name: string
-# return: HybridTree
+# return: ConstituentTree
 def sentence_name_to_hybridtree(name, file_name):
     initialize(expanduser(file_name))
     sent = xml_file.find('.//body/s[@id="%s"]' % name)
     if sent is not None:
-        tree = HybridTree(name)
+        tree = ConstituentTree(name)
         graph = sent.find('graph')
         root = graph.get('root')
         tree.add_to_root(root)

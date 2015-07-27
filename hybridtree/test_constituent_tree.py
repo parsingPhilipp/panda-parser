@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 import unittest
-from hybridtree.constituent_tree import HybridTree
+from hybridtree.constituent_tree import ConstituentTree
 
 
 class ConstituentTreeTest(unittest.TestCase):
@@ -48,7 +48,7 @@ class ConstituentTreeTest(unittest.TestCase):
         print "labelled spans", tree.labelled_spans()
 
     def setUp(self):
-        tree = HybridTree("s1")
+        tree = ConstituentTree("s1")
         tree.add_leaf("f1", "VP", "hat")
         tree.add_leaf("f2", "ADV", "schnell")
         tree.add_leaf("f3", "VP", "gearbeitet")

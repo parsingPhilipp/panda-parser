@@ -9,7 +9,7 @@ from decomposition import *
 start = 'START'
 
 # Extract LCFRS directly from hybrid tree.
-# tree: HybridTree
+# tree: ConstituentTree
 # return: LCFRS
 def direct_extract_lcfrs(tree):
     gram = LCFRS(start=start)
@@ -31,7 +31,7 @@ def direct_extract_lcfrs(tree):
 
 # Traverse subtree at id and put extracted rules in grammar.
 # Return nonterminal names of LHS of top rule.
-# tree: HybridTree
+# tree: ConstituentTree
 # id: string
 # gram: LCFRS
 # return: string
@@ -84,7 +84,7 @@ def direct_extract_lcfrs_from(tree, id, gram):
 
 
 # Get LCFRS for tree.
-# tree: HybridTree
+# tree: ConstituentTree
 # fringes: 'recursive partitioning'
 # naming: string ('strict' or 'child')
 # return: LCFRS
@@ -100,7 +100,7 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict'):
 
 
 # Traverse through recursive partitioning.
-# tree: HybridTree
+# tree: ConstituentTree
 # fringes: 'recursive partitioning'
 # gram: LCFRS
 # naming: string
@@ -138,7 +138,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming):
 
 # Past labels of ids together.
 # id_seq: list of list of string
-# tree: HybridTree
+# tree: ConstituentTree
 # naming: string
 # return: string
 def id_nont(id_seq, tree, naming):
@@ -154,7 +154,7 @@ def id_nont(id_seq, tree, naming):
 # Consecutive children are separated by /.
 # Where there is child missing, we have -.
 # id_seq: list of list of string
-# tree: HybridTree
+# tree: ConstituentTree
 # return: string
 def id_nont_strict(id_seq, tree):
     s = ''
@@ -173,7 +173,7 @@ def id_nont_strict(id_seq, tree):
 
 # Replace consecutive siblings by mention of parent.
 # id_seq: list of list of string
-# tree: HybridTree
+# tree: ConstituentTree
 # return: string
 def id_nont_child(id_seq, tree):
     s = ''
@@ -193,7 +193,7 @@ def id_nont_child(id_seq, tree):
 
 # Compute list of lists of adjacent nodes whose fringes
 # are included in input fringe.
-# tree: HybridTree
+# tree: ConstituentTree
 # id: string
 # fringe: list of int
 def make_id_seq(tree, id, fringe):
@@ -225,7 +225,7 @@ def make_id_seq(tree, id, fringe):
 
 # Make expression in terms of variables for the RHS members.
 # Repeatedly replace nodes by variables.
-# tree: HybridTree
+# tree: ConstituentTree
 # seq: list of string
 # child_seqss: list of list of int
 # term_to_pos: maps int to int (input position to position in LCFRS rule)
@@ -260,7 +260,7 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos):
 # low: int
 # high: int
 # children: list of pair of int
-# tree: HybridTree
+# tree: ConstituentTree
 # term_to_pos: maps int to int (input position to position in LCFRS rule)
 # return: list of LCFRS_var/string
 def span_to_arg((low, high), children, tree, term_to_pos):

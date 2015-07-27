@@ -2,7 +2,7 @@
 
 from os.path import expanduser
 
-from hybridtree.constituent_tree import HybridTree
+from hybridtree.constituent_tree import ConstituentTree
 from grammar.LCFRS.lcfrs import *
 
 # Location of Negra corpus.
@@ -42,7 +42,7 @@ def sentence_names_to_hybridtrees(names, file_name):
             this_name = match_sent_start.group(1)
             if this_name in names:
                 name = this_name
-                tree = HybridTree(name)
+                tree = ConstituentTree(name)
                 n_leaves = 0
                 node_to_children = {}
         elif match_sent_end:

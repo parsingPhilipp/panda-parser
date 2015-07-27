@@ -5,7 +5,7 @@ from monadic_tokens import ConstituencyTerminal, ConstituencyCategory
 from decomposition import join_spans
 
 
-class HybridTree(GeneralHybridTree):
+class ConstituentTree(GeneralHybridTree):
     """
     Legacy hybrid tree interface for Mark-Jan's implementation for constituent parsing.
     Supposed that the tokens are of type ConstituencyTerminal or ConstituencyCategory.
