@@ -1,14 +1,14 @@
 __author__ = 'kilian'
 
 import sqlite3
-import time
-import sys
 import re
 
+import time
+import sys
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
 from grammar.LCFRS.lcfrs import LCFRS
-from eval_pl_scorer import eval_pl_scores
+from evaluation.eval_pl_scorer import eval_pl_scores
 from corpora import conll_parse
 
 dbfile = 'examples/example.db'

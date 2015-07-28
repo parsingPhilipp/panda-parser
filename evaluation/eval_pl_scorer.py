@@ -1,9 +1,11 @@
 __author__ = 'kilian'
 
+import os
+
 import experiment_database
 import corpora.conll_parse
 import dependency_experiments_db
-import os
+
 # use the subprocess32 module (python3 backport) instead of subprocess
 # import subprocess
 import subprocess32 as subprocess

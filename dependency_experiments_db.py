@@ -4,20 +4,20 @@ conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
 conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
 sample_db = 'examples/sampledb.db'
 
-import time
-import sys
 import re
 import os
 import copy
-import itertools
 
+import time
+import sys
+import itertools
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
 from parser.naive.parsing import LCFRS_parser as NaiveParser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
-import experiment_database
+from evaluation import experiment_database
 
 
 def add_trees_to_db(path, connection, trees):

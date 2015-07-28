@@ -1,14 +1,14 @@
 __author__ = 'kilian'
 
-import sys
-import experiment_database
-import texttable as tt
 import re
-import time
 import os
 from collections import OrderedDict
-
 from sqlite3 import DatabaseError
+
+import sys
+from evaluation import experiment_database
+import texttable as tt
+import time
 
 
 def list_experiments(exp_db):
