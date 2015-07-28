@@ -1,14 +1,14 @@
 __author__ = 'kilian'
 
 from general_hybrid_tree import HybridTree
-from monadic_tokens import ConstituencyTerminal, ConstituencyCategory
+from monadic_tokens import ConstituentTerminal, ConstituentCategory
 from decomposition import join_spans
 
 
 class ConstituentTree(HybridTree):
     """
     Legacy hybrid tree interface for Mark-Jan's implementation for constituent parsing.
-    Supposed that the tokens are of type ConstituencyTerminal or ConstituencyCategory.
+    Supposed that the tokens are of type ConstituentTerminal or ConstituentCategory.
     """
 
     def __init__(self, sent_label=None):
@@ -19,7 +19,7 @@ class ConstituentTree(HybridTree):
     # pos: string (part of speech)
     # word: string
     def add_leaf(self, id, pos, word):
-        token = ConstituencyTerminal(word, pos)
+        token = ConstituentTerminal(word, pos)
         self.add_node(id, token, True, True)
 
     # Add punctuation: has no parent
@@ -27,7 +27,7 @@ class ConstituentTree(HybridTree):
     # pos: string (part of speech)
     # word: string
     def add_punct(self, id, pos, word):
-        token = ConstituencyTerminal(word, pos)
+        token = ConstituentTerminal(word, pos)
         self.add_node(id, token, True, False)
 
     # Add label of non-leaf. If it has no children, give it empty list of
@@ -35,7 +35,7 @@ class ConstituentTree(HybridTree):
     # id: string
     # label: string
     def set_label(self, id, label):
-        token = ConstituencyCategory(label)
+        token = ConstituentCategory(label)
         self.add_node(id, token, False, True)
 
     # All leaves of tree.

@@ -87,9 +87,9 @@ class ConstituencyToken(MonadicToken):
         pass
 
 
-class ConstituencyTerminal(ConstituencyToken):
+class ConstituentTerminal(ConstituencyToken):
     def __init__(self, form, pos):
-        super(ConstituencyTerminal, self).__init__()
+        super(ConstituentTerminal, self).__init__()
         self.__form = form
         self.__pos = pos
 
@@ -106,9 +106,9 @@ class ConstituencyTerminal(ConstituencyToken):
         return self.form() + ' : ' + self.pos()
 
 
-class ConstituencyCategory(ConstituencyToken):
+class ConstituentCategory(ConstituencyToken):
     def __init__(self, category):
-        super(ConstituencyCategory, self).__init__()
+        super(ConstituentCategory, self).__init__()
         self.__category = category
 
     def rank(self):
@@ -127,6 +127,6 @@ def construct_conll_token(form, pos, _=True):
 
 def construct_constituent_token(form, pos, terminal):
     if terminal:
-        return ConstituencyTerminal(form, pos)
+        return ConstituentTerminal(form, pos)
     else:
-        return ConstituencyCategory(form)
+        return ConstituentCategory(form)

@@ -32,12 +32,12 @@ if __name__ == '__main__':
 
 def multi_const_tree():
     tree = HybridTree("multi")
-    tree.add_node('1.1', ConstituencyTerminal('A', 'pA'), True, True)
-    tree.add_node('2.1', ConstituencyTerminal('B', 'pB'), True, True)
-    tree.add_node('1.2', ConstituencyTerminal('C', 'pC'), True, True)
-    tree.add_node('2.2', ConstituencyTerminal('D', 'pD'), True, True)
-    tree.add_node('1', ConstituencyCategory('E'), False, True)
-    tree.add_node('2', ConstituencyCategory('F'), False, True)
+    tree.add_node('1.1', ConstituentTerminal('A', 'pA'), True, True)
+    tree.add_node('2.1', ConstituentTerminal('B', 'pB'), True, True)
+    tree.add_node('1.2', ConstituentTerminal('C', 'pC'), True, True)
+    tree.add_node('2.2', ConstituentTerminal('D', 'pD'), True, True)
+    tree.add_node('1', ConstituentCategory('E'), False, True)
+    tree.add_node('2', ConstituentCategory('F'), False, True)
     for p in ['2', '1']:
         tree.add_to_root(p)
         for c in ['1', '2']:
