@@ -1,5 +1,4 @@
-# Hybrid Tree
-# A directed acyclic graph, where a (not necessarily strict) subset of the nodes is linearly ordered.
+__author__ = 'kilian'
 
 from collections import defaultdict
 from decomposition import *
@@ -7,6 +6,9 @@ from monadic_tokens import MonadicToken
 
 
 class HybridTree:
+    """
+    A directed acyclic graph, where a (not necessarily strict) subset of the nodes is linearly ordered.
+    """
     @property
     def virtual_root(self):
         return 'VROOT'

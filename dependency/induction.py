@@ -2,6 +2,7 @@ __author__ = 'kilian'
 
 import re
 from hybridtree.monadic_tokens import CoNLLToken
+from hybridtree.general_hybrid_tree import HybridTree
 from abc import ABCMeta, abstractmethod
 from grammar.sDCP.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
 from grammar.LCFRS.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
@@ -15,14 +16,16 @@ from dependency.labeling import AbstractLabeling
 
 def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning, start_nont='START'):
     """
-    Top level method to induce an LCFRS/DCP-hybrid grammar for dependency parsing.
     :rtype: LCFRS
-    :param trees: Iterator over GeneralHybridTree (i.e. list (or Generator for lazy IO))
+    :param trees: corpus of HybridTree (i.e. list (or Generator for lazy IO))
+    :type trees: __generator[HybridTree]
     :type nont_labelling: AbstractLabeling
-    :param term_labelling: GeneralHybridTree, NodeId -> str
-    :param recursive_partitioning: GeneralHybridTree -> RecursivePartitioning
-    :param start_nont: str
+    :param term_labelling: HybridTree, NodeId -> str
+    :param recursive_partitioning: HybridTree -> RecursivePartitioning
+    :type start_nont: str
     :rtype: int, LCFRS
+
+    Top level method to induce an LCFRS/DCP-hybrid grammar for dependency parsing.
     """
     grammar = LCFRS(start_nont)
     n_trees = 0
@@ -70,7 +73,7 @@ class FormTerminals(TerminalLabeling):
 
 class CPosTerminals(TerminalLabeling):
     def token_label(self, token):
-        return token.pos()
+        return token.cpos()
 
     def __str__(self):
         return 'cpos'
@@ -110,7 +113,7 @@ def the_terminal_labeling_factory():
     factory = TerminalLabelingFactory()
     factory.register_strategy('form', FormTerminals())
     factory.register_strategy('pos', PosTerminals())
-    factory.register_strategy('fine_grained_pos', CPosTerminals())
+    factory.register_strategy('cpos', CPosTerminals())
     return factory
 
 
@@ -165,11 +168,11 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labell
     Extract LCFRS/DCP-hybrid-rules from some hybrid tree, according to some recursive partitioning
     and add them to some grammar.
     :rtype: ([[str]],[[str]],str)
-    :param tree: GeneralHybridTree
+    :param tree: HybridTree
     :param rec_par: pair of (list of string) and (list of rec_par))
     :param grammar: LCFRS
     :type nont_labelling: AbstractLabeling
-    :param term_labelling: GeneralHybridTree, node_id -> string
+    :param term_labelling: HybridTree, node_id -> string
     :return: (top_max, bottom_max, nont_name) of root in rec_par :raise Exception:
     """
     (node_ids, children) = rec_par
@@ -281,7 +284,7 @@ def create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
     """
     Create the LCFRS_lhs of some LCFRS-DCP hybrid rule.
     :rtype: LCFRS_lhs
-    :param tree:     GeneralHybridTree
+    :param tree:     HybridTree
     :param node_ids: list of string (node in an recursive partitioning)
     :param t_max:    top_max of node_ids
     :param b_max:    bottom_max of node ids
@@ -353,12 +356,12 @@ def create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_lab
     """
     Create LCFRS_lhs for a leaf of the recursive partitioning,
     i.e. this LCFRS creates (consumes) exactly one terminal symbol.
-    :param tree: GeneralizedHybridTree
+    :param tree: HybridTree
     :param node_ids: list of string
     :param t_max: top_max of node_ids
     :param b_max: bottom_max of node_ids
     :type nont_labelling: AbstractLabeling
-    :param term_labelling: GeneralHybridTree, node_id -> string
+    :param term_labelling: HybridTree, node_id -> string
     :return: LCFRS_lhs
     """
 
@@ -378,7 +381,7 @@ def top_max(tree, id_set):
     Compute list of node ids that delimit id_set from the top
     and group maximal subsets of neighbouring nodes together.
     :rtype: [[str]]
-    :param tree: GeneralHybridTree
+    :param tree: HybridTree
     :param id_set: list of string
     :return: list of list of string
     """
@@ -390,7 +393,7 @@ def bottom_max(tree, id_set):
     Compute list of node ids that delimit id_set from the bottom.
     and group maximal subsets of neighbouring nodes together.
     :rtype: [[str]]
-    :param tree: GeneralHybridTree
+    :param tree: HybridTree
     :param id_set: list of string
     :return: list of list of string
     """
@@ -401,7 +404,7 @@ def top(tree, id_set):
     """
     Compute list of node ids that delimit id_set from the top.
     :rtype: [[str]]
-    :param tree: GeneralHybridTree
+    :param tree: HybridTree
     :param id_set: list of string  (node ids)
     :return: list of string  (node ids)
     """
@@ -425,7 +428,7 @@ def bottom(tree, id_set):
 def maximize(tree, id_set):
     """
     Group maximal subsets of neighbouring nodes together.
-    :param tree: GeneralHybridTree
+    :param tree: HybridTree
     :param id_set: list of string
     :return: list of list of string
     """

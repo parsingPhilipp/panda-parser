@@ -127,8 +127,9 @@ def argument_dependencies(tree, id_seqs):
     Compute a string that represents, how the arguments of some dcp-nonterminal
     depend on one another.
     :rtype: str
-    :param tree: GeneralHybridTree
-    :param id_seqs: list of list of string (Concatenation of top_max and bottom_max)
+    :type tree: HybridTree
+    :param id_seqs: Concatenation of top_max and bottom_max
+    :type id_seqs: list[list[str]]
     :return: string
         (of the form "1.4(0).2(3(5))": 1, 4 and 2 are independent, 4 depends on 0, etc.)
     """
