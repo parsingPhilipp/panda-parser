@@ -7,6 +7,7 @@ from sqlite3 import DatabaseError
 
 import sys
 from evaluation import experiment_database
+import evaluation.table_plotting
 import texttable as tt
 import time
 
@@ -126,7 +127,7 @@ def plot_table(exp_db):
 
     file = open(outfile, 'w')
     connection = experiment_database.initialize_database(exp_db)
-    experiment_database.create_latex_table_from_database(connection, experiments, max_length, file)
+    evaluation.table_plotting.create_latex_table_from_database(connection, experiments, max_length, file)
     experiment_database.finalize_database(connection)
     file.close()
 
