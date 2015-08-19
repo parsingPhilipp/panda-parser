@@ -1,10 +1,10 @@
-Version 2015-08-*
+Readme to Version 2015-08-20
 
 Installation/ Preparation:
 - acquire python2.7 and sqlite3
 - install the packages subprocess32 https://pypi.python.org/pypi/subprocess32/ and texttable https://pypi.python.org/pypi/texttable
 - download this project
-- acquire TIGER, NEGRA, and any corpus in CoNLL-X shared task format
+- acquire a corpus in CoNLL-X shared task format http://ilk.uvt.nl/conll/post_task_data.html
 
 To run an experiment you have to create a configuration file:
 
@@ -12,7 +12,7 @@ TODO!
 
 Then (assuming python ~ python2.7) run 'python dependency_experiments_db.py run-experiment path/to/configuration/file'.
 
-This command will start the experiment, the program outputs certain information to stdout.
+This command will start the experiment, the program outputs statistics to stdout.
 Also, it writes the results in the experiment database.
 
 In order to list the contents of the experiment database run
@@ -21,12 +21,14 @@ python evaluate.py path/to/database list
 
 In order to generate a LaTeX file containing a table with various statistics run
 
-python evaluate.py path/to/database plot --experiments=$SELECTION
+python evaluate.py path/to/database plot --experiments=$SELECTION [--max-length=$N]
 
 where $SELECTION is a list of natural numbers seperated by ',' or '-', 
 where each natural references a row in the table
 and 'n-m' expands to 'n,n+1, ..., m-1,m' where 'n' needs to be smaller than 'm'.
 The order in the this list specifies the order in the generated table.
+With '--max-length' a limit on the sentence length can be specified, i.e., 
+scores and parsing times will only reflect setences up to this length.
 
 
 Readme to Version 2014-08-25 
