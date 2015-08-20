@@ -84,7 +84,7 @@ python evaluate.py path/to/database list
 
 In order to generate a LaTeX file containing a table with various statistics run
 
-python evaluate.py path/to/database plot --experiments=$SELECTION [--max-length=$N]
+python evaluate.py path/to/database plot --experiments=$SELECTION --outfile=path/to/table.tex [--max-length=$N]
 
 where $SELECTION is a list of natural numbers seperated by ',' or '-', 
 where each natural references a row in the table
