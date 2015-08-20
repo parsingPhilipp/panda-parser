@@ -209,10 +209,8 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
     pipe.write('\t\\bottomrule\n')
     pipe.write('\\end{tabular}\n')
     pipe.write('\\begin{itemize}\n')
-    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}_e$: on parsed sentences with eval.pl \n')
-    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^c_e$: on intersection of parsed sentences with eval.pl\n')
-    pipe.write(
-        '\t \\item $\\{UAS,LAS,LAc\\}^t_e$: on full corpus, with fallback for to long/ non-recognized sentences\n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}^c_a$: scores including punctuation \n')
+    pipe.write('\t \\item $\\{UAS,LAS,LAc\\}_e$: scores without punctuation \n')
     pipe.write('\t \\end{itemize}\n')
     pipe.write('''
     \\end{table}
