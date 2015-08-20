@@ -87,7 +87,7 @@ class ConstituentTree(HybridTree):
     # id: string
     # return: string
     def label(self, id):
-        return self.node_token(id)
+        return str(self.node_token(id))
 
     # Get ids of all internal nodes.
     # return: list of string
@@ -104,7 +104,7 @@ class ConstituentTree(HybridTree):
         """
         spans = []
         for id in [n for n in self.nodes() if n not in self.full_yield()]:
-            span = [self.node_token(id)]
+            span = [self.node_token(id).category()]
             for (low, high) in join_spans(self.fringe(id)):
                 span += [low, high]
             # TODO: this if-clause allows to handle trees, that have nodes with empty fringe
