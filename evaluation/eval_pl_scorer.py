@@ -1,16 +1,19 @@
 __author__ = 'kilian'
 
-import experiment_database
+import os
+
+from evaluation import experiment_database
 import corpora.conll_parse
 import dependency_experiments_db
-import os
+from hybridtree.general_hybrid_tree import HybridTree
+
 # use the subprocess32 module (python3 backport) instead of subprocess
 # import subprocess
 import subprocess32 as subprocess
 import re
 
-hypothesis_prefix = 'examples/sys-output'
-gold_prefix = 'examples/gold-output'
+hypothesis_prefix = '.tmp/sys-output'
+gold_prefix = '.tmp/gold-output'
 eval_pl = 'util/eval.pl'
 
 
@@ -24,12 +27,13 @@ def eval_pl_scores(connection, corpus, experiment, filter=None):
     :return: labeled attachment score, unlabeled attachment score, label accuracy
     :rtype: float, float, float
     """
-    if not filter: filter = []
-    test_file_path = hypothesis_test_path(hypothesis_prefix, experiment)
+    if filter is None:
+        filter = []
+    test_file_path = hypothesis_test_path(hypothesis_prefix, corpus, experiment)
     if not filter:
         gold_file_path = corpus
     else:
-        gold_file_path = hypothesis_test_path(gold_prefix, experiment)
+        gold_file_path = hypothesis_test_path(gold_prefix, corpus, experiment)
 
     trees = dependency_experiments_db.parse_conll_corpus(corpus, False)
 
@@ -48,7 +52,6 @@ def eval_pl_scores(connection, corpus, experiment, filter=None):
             pass
 
     CoNLL_strings = []
-    recognised = 0
 
     for tree in trees:
         tree_name = tree.sent_label()
@@ -93,13 +96,14 @@ def eval_pl_scores(connection, corpus, experiment, filter=None):
     return las, uas, la
 
 
-def hypothesis_test_path(prefix, experiment):
+def hypothesis_test_path(prefix, corpus, experiment):
     """
     :param prefix: common prefix for system output
+    :param corpus: path to corpus
     :param experiment: experiment id in database
     :return: path of system output file
     """
-    return '{:s}-{:d}.conll'.format(prefix, experiment)
+    return '{:s}-{:s}-{:d}.conll'.format(prefix, corpus.split('/')[-1], experiment)
 
 
 def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
@@ -112,6 +116,10 @@ def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
     assert tree_id_in_db
 
     flag, hypothesis_tree = experiment_database.query_result_tree(connection, experiment, tree_id_in_db)
+
+    # if hypothesis_tree.sent_label() == 'tree1':
+    #      print hypothesis_tree
+    #      print corpora.conll_parse.tree_to_conll_str(hypothesis_tree)
 
     return corpora.conll_parse.tree_to_conll_str(hypothesis_tree)
 

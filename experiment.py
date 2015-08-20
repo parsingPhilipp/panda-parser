@@ -6,6 +6,7 @@ import corpora.negra_parse
 import corpora.tiger_parse
 from constituent.parse_accuracy import ParseAccuracy
 from hybridtree.constituent_tree import *
+from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
     start as induction_start
 from parser.naive.parsing import *
@@ -40,9 +41,10 @@ tiger_fanout_4 = \
 ############################################################
 # Constants and corpus-specific procedures.
 
+
 # Turn list of sentence names to list of trees.
 # names: list of string
-# return: list of HybridTree
+# return: list of ConstituentTree
 def sentence_names_to_hybridtrees(names):
     if corpus == 'negra nonproj':
         return corpora.negra_parse.sentence_names_to_hybridtrees(names, \
@@ -167,13 +169,13 @@ def make_name(i):
 # return: list of string
 def make_names(i, j):
     return [make_name(k) for k in range(i, j + 1) \
-            if not k in excluded_sentences()]
+            if k not in excluded_sentences()]
 
 
 # Turn range into hybrid trees.
 # i: int
 # j: int
-# return: list of HybridTree
+# return: list of ConstituentTree
 def make_trees(i, j):
     names = make_names(i, j)
     return sentence_names_to_hybridtrees(names)
@@ -183,8 +185,8 @@ def make_trees(i, j):
 # Return number of trees for which action was done.
 # i: int
 # j: int
-# f: function taking HybridTree
-# g: function taking HybridTree returning bool
+# f: function taking ConstituentTree
+# g: function taking ConstituentTree returning bool
 # return: int
 def do_range(i, j, f, g):
     n = 0
@@ -197,7 +199,7 @@ def do_range(i, j, f, g):
 
 
 # Examples of f as third argument of do_range.
-# tree: HybridTree
+# tree: ConstituentTree
 def print_canvas(tree):
     tree.canvas()
 
@@ -282,6 +284,7 @@ n_gaps_gold = 0
 n_nodes_test = 0
 n_gaps_test = 0
 
+
 # Clear these variables.
 def clear_globals():
     n_nodes_gold = 0
@@ -303,7 +306,7 @@ def eval_globals():
 
 # The standard way of extracting a LCFRS from a hybrid tree,
 # with higher fanout of tree has higher fanout.
-# t: HybridTree
+# t: ConstituentTree
 # return: LCFRS
 def basic_extraction(t):
     tree_part = t.unlabelled_structure()
@@ -429,8 +432,8 @@ def test_induction(method=direct_extract_lcfrs):
 
 
 # Do induction and parsing.
-# tree: HybridTree
-# method: function on HybridTree
+# tree: ConstituentTree
+# method: function on ConstituentTree
 def induct_and_parse(tree, method):
     gram = method(tree)
     # print gram
@@ -451,7 +454,7 @@ def induct_and_parse(tree, method):
 # test_induction(method=right_branch_extraction_child)
 
 # Induce grammar.
-# method: function on HybridTree
+# method: function on ConstituentTree
 # return: LCFRS
 def induce(method=direct_extract_lcfrs):
     merged_gram = LCFRS(start=induction_start)
@@ -469,7 +472,7 @@ def induce(method=direct_extract_lcfrs):
 
 # Add subgrammar describing tree to existing grammar.
 # Use method of turning hybrid tree into LCFRS.
-# tree: HybridTree
+# tree: ConstituentTree
 # gram: LCFRS
 # method: function from HybridTree to LCFRS
 def add_gram(tree, gram, method):
@@ -499,7 +502,7 @@ def parse_test(max_length, method=direct_extract_lcfrs):
                  lambda tree: tree.complete() and not tree.empty_fringe() \
                               and 2 <= len(tree.word_yield()) <= max_length \
                  # UNCOMMENT following line to restrict attention to sentences with gaps   # and tree.n_gaps() > 0
-    )
+                 )
     end_at = time.time()
     print 'Parsed:', n
     if accuracy.n() > 0:
@@ -533,14 +536,14 @@ def parse_tree_by_gram(tree, gram, accuracy):
     # print 'failure', tree.sent_label() # for testing
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
-        dcp_tree = HybridTree()
-        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, poss, words, False)
+        dcp_tree = ConstituentTree()
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(dcp_tree, tree.token_yield(), False, construct_constituent_token)
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
         accuracy.add_accuracy(retrieved, relevant)
         n_nodes_test += dcp_tree.n_nodes()
         n_gaps_test += dcp_tree.n_gaps()
-    # print 'success', tree.sent_label() # for testing
+        # print 'success', tree.sent_label() # for testing
 
 # UNCOMMENT one or more of the following for running experiments
 # parse_test(25)
@@ -558,6 +561,7 @@ parse_test(20, method=left_branch_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
 # parse_test(20, method=fanout_three_extraction_child)
 # parse_test(20, method=fanout_four_extraction_child)
+
 
 # Parse test sentences with induced corpus and compare them graphically.
 # This can be useful for testing.
@@ -577,6 +581,11 @@ def parse_compare(max_length, method=direct_extract_lcfrs):
 
 # Parse test sentence (yield of tree) using grammar.
 def parse_tree_by_gram_and_compare(tree, gram):
+    """
+    :type tree: ConstituentTree
+    :param gram:
+    :return:
+    """
     # print tree.unlabelled_structure() # for testing
     poss = tree.pos_yield()
     words = tree.word_yield()
@@ -585,8 +594,8 @@ def parse_tree_by_gram_and_compare(tree, gram):
         print 'failure', tree.sent_label()
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
-        tree = GeneralHybridTree()
-        dcp_tree = p.dcp_hybrid_tree_best_derivation(tree, poss, words, False)
+        tree = ConstituentTree()
+        dcp_tree = p.dcp_hybrid_tree_best_derivation(tree, tree.token_yield(), False, construct_constituent_token)
         # retrieved = normalize_labelled_spans(p.labelled_spans())
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()

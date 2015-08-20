@@ -5,15 +5,17 @@ conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
 
 import time
 import sys
+import copy
 
-from hybridtree.general_hybrid_tree import GeneralHybridTree
+from hybridtree.general_hybrid_tree import HybridTree
 import dependency.induction as d_i
 import dependency.labeling as label
+from hybridtree.monadic_tokens import construct_conll_token
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 
 
-def induce_grammar_from_file(  path
+def induce_grammar_from_file(path
                              , nont_labelling
                              , term_labelling
                              , recursive_partitioning
@@ -21,8 +23,7 @@ def induce_grammar_from_file(  path
                              , quiet=False
                              , start='START'
                              , ignore_punctuation=True
-                            ):
-
+                             ):
     """
     Extract an LCFRS/sDCP-Hybrid Grammar from a dependency corpus in CoNLL format.
     :param path: str, (path to dependency corpus in CoNLL format)
@@ -51,7 +52,7 @@ def induce_grammar_from_file(  path
     end_at = time.time()
     if not quiet:
         print 'Number of trees:                ', str(n_trees)
-        print 'Number of nonterimals:          ', len(grammar.nonts())
+        print 'Number of nonterminals:          ', len(grammar.nonts())
         print 'Number of rules:                ', len(grammar.rules())
         print 'Total size:                     ', grammar.size()
         print 'Fanout:                         ', max(map(grammar.fanout, grammar.nonts()))
@@ -60,14 +61,14 @@ def induce_grammar_from_file(  path
     return grammar
 
 
-def parse_sentences_from_file( grammar
-                             , path
-                             , tree_yield
-                             , max_length = sys.maxint
-                             , limit=sys.maxint
-                             , quiet=False
-                             , ignore_punctuation=True
-                             ):
+def parse_sentences_from_file(grammar
+                              , path
+                              , tree_yield
+                              , max_length=sys.maxint
+                              , limit=sys.maxint
+                              , quiet=False
+                              , ignore_punctuation=True
+                              ):
     """
     Parse sentences from corpus and compare derived dependency structure with gold standard information.
     :rtype: None
@@ -100,13 +101,17 @@ def parse_sentences_from_file( grammar
             skipped += 1
             continue
         parser = LCFRS_parser(grammar, tree_yield(tree))
-        h_tree = GeneralHybridTree()
-        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, tree.pos_yield(), tree.labelled_yield(), ignore_punctuation)
+        h_tree = HybridTree()
+        cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+        for token in cleaned_tokens:
+            token.set_deprel('_')
+        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens,
+                                                        ignore_punctuation, construct_conll_token)
         if h_tree:
             n_gaps_gold += tree.n_gaps()
             n_gaps_test += h_tree.n_gaps()
             parse += 1
-            (dUAS, dLAS, dUEM, dLEM) = score_cmp_dep_trees(tree, h_tree)
+            dUAS, dLAS, dUEM, dLEM = score_cmp_dep_trees(tree, h_tree)
             UAS += dUAS
             LAS += dLAS
             UEM += dUEM
@@ -117,7 +122,7 @@ def parse_sentences_from_file( grammar
     end_at = time.time()
     total = parse + no_parse
     if not quiet:
-        print 'Parsed ' + str(parse) + ' out of ' + str(total) + ' (skipped ' + str(skipped) +')'
+        print 'Parsed ' + str(parse) + ' out of ' + str(total) + ' (skipped ' + str(skipped) + ')'
         print 'fail: ', no_parse
         if parse > 0:
             print 'UAS: ', UAS / parse
@@ -129,27 +134,22 @@ def parse_sentences_from_file( grammar
         print 'parse time: ', end_at - start_at, 's'
         print
 
+
 def test_conll_grammar_induction():
-    # if 'ignore_punctuation' in sys.argv:
-    #     ignore_punctuation = True
-    # else:
-    #     ignore_punctuation = False
-    # if 'strict' in sys.argv:
-    #     nont_labelling = d_i.strict_pos
-    # else:
-    #     nont_labelling = d_i.child_pos
-    # for ignore_punctuation in [True, False]:
-    #     for nont_labelling in [d_i.strict_pos, d_i.child_pos]:
-    # for rec_par in [d_i.direct_extraction, d_i.fanout_1, d_i.fanout_2, d_i.fanout_3, d_i.fanout_4
-    #                , d_i.left_branching, d_i.right_branching]:
-    for nont_labelling, rec_par, ignore_punctuation in [ (label.StrictPOSdepAtLeafLabeling(), d_i.direct_extraction, True)
-                                                        , (label.StrictPOSdepAtLeafLabeling(), d_i.left_branching, True)
-                                                        , (label.ChildPOSdepAtLeafLabeling(), d_i.direct_extraction, True)
-                                                        , (label.ChildPOSdepAtLeafLabeling(), d_i.left_branching, True)]:
-        grammar = induce_grammar_from_file(conll_train, nont_labelling, d_i.term_pos, rec_par, 200
+    nt_labeling = label.the_labeling_factory().create_simple_labeling_strategy('strict', 'pos+deprel')
+    nt_labeling2 = label.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
+    t_labeling = d_i.the_terminal_labeling_factory().get_strategy('pos')
+    for nont_labelling, rec_par, ignore_punctuation in [
+        (nt_labeling, d_i.direct_extraction, True)
+        , (nt_labeling, d_i.left_branching, True)
+        , (nt_labeling2, d_i.direct_extraction, True)
+        , (nt_labeling2, d_i.left_branching, True)]:
+        grammar = induce_grammar_from_file(conll_train, nont_labelling, t_labeling.token_label, rec_par, 200
                                            , False, 'START', ignore_punctuation)
         print
-        parse_sentences_from_file(grammar, conll_test, d_i.pos_yield, 20, sys.maxint, False, ignore_punctuation)
+        parse_sentences_from_file(grammar, conll_test, t_labeling.prepare_parser_input, 20, sys.maxint, False,
+                                  ignore_punctuation)
+
 
 if __name__ == '__main__':
     test_conll_grammar_induction()

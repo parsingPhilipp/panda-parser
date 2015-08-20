@@ -2,6 +2,7 @@
 
 # ################################################################
 
+
 # For list of indices, order and join into contiguous sequences.
 # A sequence is represented by (low, high), where high is last
 # element.

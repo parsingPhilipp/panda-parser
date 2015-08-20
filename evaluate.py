@@ -1,15 +1,15 @@
 __author__ = 'kilian'
 
-import sys
-import experiment_database
-import texttable as tt
 import re
-import time
 import os
 from collections import OrderedDict
-
 from sqlite3 import DatabaseError
 
+import sys
+from evaluation import experiment_database
+import evaluation.table_plotting
+import texttable as tt
+import time
 
 
 def list_experiments(exp_db):
@@ -17,7 +17,8 @@ def list_experiments(exp_db):
         connection = experiment_database.initialize_database(exp_db)
         rows = experiment_database.list_experiments(connection)
         tab = tt.Texttable()
-        header = ['Id', 'Terminals', 'Nonterminals', 'Rec. Part.', 'Punct.', 'Corpus train', 'Corpus test', 'Date (start)']
+        header = ['Id', 'Terminals', 'Nonterminals', 'Rec. Part.', 'Punct.', 'Corpus train', 'Corpus test',
+                  'Date (start)']
         tab.header(header)
         tab.set_cols_width([4, 9, 15, 10, 6, 26, 26, 20])
         for row in rows:
@@ -87,11 +88,12 @@ def plot_table(exp_db):
                     if low < high:
                         experiments += range(low, high + 1)
                     else:
-                        print "Error: Parse failure at " + string + ": " + str(low) + " is not smaller than " + str(high)
+                        print "Error: Parse failure at " + string + ": " + str(low) + " is not smaller than " + str(
+                            high)
                         exit(1)
                     string = match.group(3)
                     continue
-                print "Error: Parse failure at " +string
+                print "Error: Parse failure at " + string
                 exit(1)
 
         match = re.search(r'^--outfile=(.+)$', arg)
@@ -125,9 +127,10 @@ def plot_table(exp_db):
 
     file = open(outfile, 'w')
     connection = experiment_database.initialize_database(exp_db)
-    experiment_database.create_latex_table_from_database(connection, experiments, max_length, file)
+    evaluation.table_plotting.create_latex_table_from_database(connection, experiments, max_length, file)
     experiment_database.finalize_database(connection)
     file.close()
+
 
 if __name__ == '__main__':
     # print "List of command line options:"

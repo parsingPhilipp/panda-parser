@@ -2,7 +2,7 @@
 
 from os.path import expanduser
 
-from hybridtree.constituent_tree import HybridTree
+from hybridtree.constituent_tree import ConstituentTree
 from grammar.LCFRS.lcfrs import *
 
 # Location of Negra corpus.
@@ -11,6 +11,7 @@ negra_dir = '~/Data/Negra'
 # The non-projective and projective versions of the negra corpus.
 negra_nonproj = negra_dir + '/negra-corpus.export'
 negra_proj = negra_dir + '/negra-corpus.cfg'
+
 
 # Sentence number to name.
 # file_name: int
@@ -41,7 +42,7 @@ def sentence_names_to_hybridtrees(names, file_name):
             this_name = match_sent_start.group(1)
             if this_name in names:
                 name = this_name
-                tree = HybridTree(name)
+                tree = ConstituentTree(name)
                 n_leaves = 0
                 node_to_children = {}
         elif match_sent_end:
@@ -57,7 +58,7 @@ def sentence_names_to_hybridtrees(names, file_name):
                 parent = match_nont.group(5)
                 tree.set_label(id, nont)
                 if parent == '0':
-                    tree.set_root(id)
+                    tree.add_to_root(id)
                 else:
                     tree.add_child(parent, id)
             elif match_term:

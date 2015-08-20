@@ -1,11 +1,11 @@
 __author__ = 'kilian'
 
 import unittest
-from parsing import *
+from parser.naive.parsing import *
 from parser.active.test_parser import ambiguous_copy_grammar
 
 
-class MyTestCase(unittest.TestCase):
+class PassiveParserTest(unittest.TestCase):
     def test_LHS_instance(self):
         lhs = LHS_instance("A")
         lhs.add_arg()
@@ -31,7 +31,8 @@ class MyTestCase(unittest.TestCase):
 
         self.assertEqual(lhs.consistent(), True)
 
-        self.assertEqual(str(lhs), "A(Span(low=0, high=2) Span(low=2, high=4); Span(low=6, high=9) Span(low=9, high=12))")
+        self.assertEqual(str(lhs),
+                         "A(Span(low=0, high=2) Span(low=2, high=4); Span(low=6, high=9) Span(low=9, high=12))")
 
         lhs.collapse()
 
