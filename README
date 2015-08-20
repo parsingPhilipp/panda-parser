@@ -8,7 +8,21 @@ Installation/ Preparation:
 
 To run an experiment you have to create a configuration file:
 
-TODO!
+#                            This is a comment
+Database:                    path/to/experiment-db
+Training Corpus:             path/to/training/corpus
+Test Corpus:                 path/to/test/corpus
+Nonterminal Labeling:        child-cpos+deprel
+Terminal Labeling:           pos
+Recursive Partitioning:      left-branching
+Training Limit:              1000                   # default: unlimited
+Test Limit:                  200                    # default: unlimited
+Test Length Limit:           25                     # default: unlimited
+# Pre/Post-processing options
+Default Root DEPREL:         ROOT                   # default: do not overwrite
+Ignore Punctuation:          NO    # YES or NO      # default: NO
+Default Disconnected DEPREL: PUNC                   # default: _ (underscore)
+
 
 Then (assuming python ~ python2.7) run 'python dependency_experiments_db.py run-experiment path/to/configuration/file'.
 

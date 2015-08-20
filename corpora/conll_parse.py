@@ -131,10 +131,16 @@ def node_to_conll_str(tree, id):
     s = ''
     s += str(tree.node_index_full(id) + 1) + delimiter
     s += token.form() + delimiter
-    s += token.lemma() + delimiter
-    s += token.cpos() + delimiter
+    # TODO the database does not store these fields of a CoNLLToken yet,
+    # TODO but eval.pl rejects to compare two tokens if they differ
+    # TODO extend the database, then fix this
+    # s += token.lemma() + delimiter
+    s += '_' + delimiter
+    # s += token.cpos() + delimiter
+    s += '_' + delimiter
     s += token.pos() + delimiter
-    s += token.feats() + delimiter
+    # s += token.feats() + delimiter
+    s += '_' + delimiter
     dependency_info = ''
     if id in tree.root:
         dependency_info += '0' + delimiter

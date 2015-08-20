@@ -5,6 +5,7 @@ import os
 from evaluation import experiment_database
 import corpora.conll_parse
 import dependency_experiments_db
+from hybridtree.general_hybrid_tree import HybridTree
 
 # use the subprocess32 module (python3 backport) instead of subprocess
 # import subprocess
@@ -115,6 +116,10 @@ def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
     assert tree_id_in_db
 
     flag, hypothesis_tree = experiment_database.query_result_tree(connection, experiment, tree_id_in_db)
+
+    # if hypothesis_tree.sent_label() == 'tree1':
+    #      print hypothesis_tree
+    #      print corpora.conll_parse.tree_to_conll_str(hypothesis_tree)
 
     return corpora.conll_parse.tree_to_conll_str(hypothesis_tree)
 

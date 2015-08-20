@@ -281,6 +281,13 @@ def query_tree_id(connection, corpus, name):
 
 
 def query_result_tree(connection, exp, tree_id):
+    """
+    :param connection:
+    :param exp:
+    :param tree_id:
+    :rtype: str, HybridTree
+    :return:
+    """
     cursor = connection.cursor()
     result_tree_ids = cursor.execute('''SELECT rt_id, status FROM result_trees WHERE exp_id = ? AND t_id = ?''',
                                      (exp, tree_id)).fetchall()
@@ -290,6 +297,7 @@ def query_result_tree(connection, exp, tree_id):
         assert (len(result_tree_ids) == 1)
         result_tree_id, status = result_tree_ids[0]
         if status in ["parse", "fallback"]:
+            name = cursor.execute('''SELECT name FROM trees WHERE t_id = ?''', (tree_id,)).fetchall()[0][0]
             tree_nodes = cursor.execute(
                 (
                     ' SELECT tree_nodes.sent_position, label, pos, result_tree_nodes.head, result_tree_nodes.deprel FROM result_tree_nodes\n'
@@ -300,11 +308,11 @@ def query_result_tree(connection, exp, tree_id):
                     '                  AND result_tree_nodes.sent_position = tree_nodes.sent_position\n'
                     '                WHERE result_tree_nodes.rt_id = ?'
                 ), (result_tree_id,))
-            tree = HybridTree()
+            tree = HybridTree(name)
             for i, label, pos, head, deprel in tree_nodes:
                 if deprel is None:
                     deprel = 'UNKNOWN'
-                token = CoNLLToken(label, '_', pos, '_', '_', deprel)
+                token = CoNLLToken(label, '_', pos, pos, '_', deprel)
                 tree.add_node(str(i), token, True, True)
                 if head == 0:
                     tree.add_to_root(str(i))
@@ -328,7 +336,7 @@ def query_result_tree(connection, exp, tree_id):
     length = len(tree_nodes)
     tree = HybridTree()
     for i, label, pos in tree_nodes:
-        token = CoNLLToken(label, '_', pos, '_', '_', '_')
+        token = CoNLLToken(label, '_', pos, pos, '_', '_')
         tree.add_node(str(i), token, True, True)
         parent = strategy(i)
         if (parent == 0 and strategy == left_branch) or (parent == length + 1 and strategy == right_branch):

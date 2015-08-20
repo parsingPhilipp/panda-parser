@@ -67,12 +67,12 @@ class CoNLLToken(MonadicToken):
             return False
         else:
             return all([self.form() == other.form()
-                , self.cpos() == other.cpos()
-                , self.pos() == other.pos()
-                , self.lemma() == other.lemma()
-                , self.deprel() == other.deprel()
-                        ])
-
+                           , self.cpos() == other.cpos()
+                           , self.pos() == other.pos()
+                           , self.feats() == other.feats()
+                           , self.lemma() == other.lemma()
+                           , self.deprel() == other.deprel()])
+4
 
 class ConstituencyToken(MonadicToken):
     def __init__(self):
