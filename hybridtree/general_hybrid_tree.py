@@ -330,6 +330,7 @@ class HybridTree:
         if len(tail) == 1 and head == tail[0][0]:
             return tail[0]
         else:
+            tail.sort(key=lambda elem: min(elem[0]))
             return head, tail
 
     def node_id_rec_par(self, rec_par):
