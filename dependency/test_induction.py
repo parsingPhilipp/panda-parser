@@ -6,7 +6,8 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from dependency.induction import induce_grammar, direct_extraction, left_branching, the_terminal_labeling_factory, \
     the_recursive_partitioning_factory
-from parser.naive.parsing import LCFRS_parser
+# from parser.naive.parsing import LCFRS_parser
+from parser.viterbi.viterbi import ViterbiParser as LCFRS_parser
 from dependency.labeling import the_labeling_factory
 from grammar.sDCP.dcp import DCP_string
 from hybridtree.test_multiroot import multi_dep_tree

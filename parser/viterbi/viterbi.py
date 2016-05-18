@@ -127,7 +127,7 @@ def item_to_active_item_rec(item, input, low, arg, pattern_pos):
                 if pattern[pattern_pos + i] == input[left + i]:
                     i += 1
                 else:
-                    if isinstance(pattern[pattern_pos + i], LCFRS_var):
+                    if isinstance(pattern[pattern_pos + i], LCFRS_var) and i > 0:
                         tmp_item = item.copy()
                         if len(tmp_item.ranges) == arg:
                             tmp_item.ranges.append([])
@@ -143,15 +143,19 @@ def item_to_active_item_rec(item, input, low, arg, pattern_pos):
                                 arg,
                                 pattern_pos + i + 1):
                             yield new_item
-                    left += 1
-                    i = 0
+                    else:
+                        if len(item.ranges) == arg:
+                            item.ranges.append([])
+                        item.ranges[arg].append(pattern[pattern_pos])
+                        pattern_pos += 1
+                        left += 1
 
         if pattern_pos == len(pattern):
             arg += 1
             pattern_pos = 0
         else:
             return
-    print "Completely derived: ", item
+    # print "Completely derived: ", item
     yield item
 
 
@@ -159,7 +163,7 @@ class ActiveItem(PassiveItem):
     def __init__(self, nonterminal, rule):
         PassiveItem.__init__(self, nonterminal, rule)
         self.next_low = None
-        self.next_low_max = maxint
+        self.next_low_max = maxint - 1
 
     def next_nont(self):
         return self.rule.rhs_nont(len(self.children))
@@ -273,18 +277,20 @@ class ViterbiParser(AbstractParser):
                     self.__record_item(item)
         while self.agenda:
             item = heapq.heappop(self.agenda)
-            print "Process: ", item
+            # print "Process: ", item
             if not item.valid:
                 continue
             if isinstance(item, ActiveItem):
-                if item.nonterminal == '{1:V,0}':
-                    pass
-                key = item.next_nont(), item.next_low
-                for passive_item in self.passive_chart.get(key, []):
-                    self.__combine(item, passive_item)
+                # if item.nonterminal == '{2:V:VBI,0}':
+                #    pass
+                for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
+                    key = item.next_nont(), low
+                    for passive_item in self.passive_chart.get(key, []):
+                        self.__combine(item, passive_item)
             elif isinstance(item, PassiveItem):
-                if item.nonterminal == '{2:V,0}':
-                    pass
+                #if item.nonterminal == '{2:V,0}':
+                #    pass
+                # STOPPING EARLY:
                 if item.nonterminal == self.grammar.start() and item.ranges[0] == Range(0, len(self.input)):
                     self.goal = item
                     return
@@ -310,26 +316,39 @@ class ViterbiParser(AbstractParser):
 
     def __record_item(self, item):
         if isinstance(item, ActiveItem):
+            recorded = False
             for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
+                updated = False
+                skipped = False
                 key = item.next_nont(), low
-                print "Record: A ", key, item
                 for i in range(len(self.active_chart[key])):
                     active_item = self.active_chart[key][i]
                     if item.rule == active_item.rule and item.children == active_item.children and item.ranges == active_item.ranges:
                         if item.weight > active_item.weight:
                             self.active_chart[key][i] = item
                             active_item.valid = False
-                            heapq.heappush(self.agenda, item)
-                        return
-                if not self.active_chart[key]:
-                    self.active_chart[key] = [item]
-                else:
-                    self.active_chart[key].append(item)
+                            updated = True
+                            # print "Update: A ", key, item
+                        else:
+                            skipped = True
+                        break
+
+                if not (skipped or updated):
+                    # print "Record: A ", key, item
+                    recorded = True
+                    if not self.active_chart[key]:
+                        self.active_chart[key] = [item]
+                    else:
+                        self.active_chart[key].append(item)
+
+                recorded = recorded or updated
+
+            if recorded:
                 heapq.heappush(self.agenda, item)
 
         elif isinstance(item, PassiveItem):
             key = item.nonterminal, item.left_position()
-            print "Record: P ", key, item
+            # print "Record: P ", key, item
             for i in range(len(self.passive_chart[key])):
                 passive_item = self.passive_chart[key][i]
                 # TODO: remove after testing
