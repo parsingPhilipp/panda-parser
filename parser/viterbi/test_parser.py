@@ -52,6 +52,8 @@ class MyTestCase(unittest.TestCase):
         dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,
                           construct_conll_token)
 
+        print h_tree_2
+
             # correct = h_tree_2.__eq__(tree) or h_tree_2.__eq__(tree2)
             # self.assertEqual(correct, True)
 

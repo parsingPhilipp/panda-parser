@@ -1,9 +1,13 @@
+#!/usr/bin/python
+#-*- coding: iso-8859-15 -*-
+
 from parser.parser_interface import AbstractParser
 from grammar.LCFRS.lcfrs import LCFRS, LCFRS_rule, LCFRS_var
 import heapq
 from collections import defaultdict
 from math import log
 from parser.derivation_interface import AbstractDerivation
+from sys import maxint
 
 
 class Range:
@@ -16,7 +20,12 @@ class Range:
         self.right = right
 
     def __eq__(self, other):
+        if not isinstance(other, Range):
+            return False
         return other.left == self.left and other.right == self.right
+
+    def __str__(self):
+        return "⟨{0!s},{1!s}⟩".format(self.left, self.right)
 
 
 class PassiveItem:
@@ -48,7 +57,11 @@ class PassiveItem:
         return new_item
 
     def __lt__(self, other):
-        return self.weight < other.weight
+        # This is since we use the min-heap as a max-heap!
+        return self.weight > other.weight
+
+    def __str__(self):
+        return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(str,self.ranges)))
 
 
 def rule_to_passive_items(rule, input):
@@ -98,17 +111,17 @@ def rule_to_active_item(rule, input, low):
     empty.next_low = low
     left = low - first_var
     if pattern[0:first_var] == input[left:low]:
-        empty.ranges.append([Range(left, low)])
-        active_items = item_to_active_item_rec(empty, input, low, 0, first_var)
-        map(lambda x: x.merge_ranges(), active_items)
-        return active_items
+        # empty.ranges.append([Range(left, low)])
+        for item in item_to_active_item_rec(empty, input, low, 0, first_var):
+            item.merge_ranges()
+            yield item
 
 
 def item_to_active_item_rec(item, input, low, arg, pattern_pos):
     left = low
     while arg < item.rule.lhs().fanout():
         pattern = item.rule.lhs().arg(arg)
-        while pattern_pos < len(pattern) and left <= len(input):
+        while pattern_pos < len(pattern) and left < len(input):
             i = 0
             while pattern_pos + i < len(pattern) and left + i < len(input):
                 if pattern[pattern_pos + i] == input[left + i]:
@@ -118,7 +131,10 @@ def item_to_active_item_rec(item, input, low, arg, pattern_pos):
                         tmp_item = item.copy()
                         if len(tmp_item.ranges) == arg:
                             tmp_item.ranges.append([])
-                        tmp_item.ranges[arg].append(Range(left, left + i))
+                        #if left > 0 and Range(left, left + i) in tmp_item.ranges[arg]:
+                         #   pass
+                        if i > 0:
+                            tmp_item.ranges[arg].append(Range(left, left + i))
                         tmp_item.ranges[arg].append(pattern[pattern_pos + i])
                         for new_item in item_to_active_item_rec(
                                 tmp_item,
@@ -135,6 +151,7 @@ def item_to_active_item_rec(item, input, low, arg, pattern_pos):
             pattern_pos = 0
         else:
             return
+    print "Completely derived: ", item
     yield item
 
 
@@ -142,6 +159,7 @@ class ActiveItem(PassiveItem):
     def __init__(self, nonterminal, rule):
         PassiveItem.__init__(self, nonterminal, rule)
         self.next_low = None
+        self.next_low_max = maxint
 
     def next_nont(self):
         return self.rule.rhs_nont(len(self.children))
@@ -159,16 +177,16 @@ class ActiveItem(PassiveItem):
                 if isinstance(self.ranges[i][j], LCFRS_var) or isinstance(self.ranges[i][j+1], LCFRS_var):
                     j += 1
                 elif self.ranges[i][j].right == self.ranges[i][j+1].left:
-                    self.ranges[i][j].right = self.ranges[i][j+1].right
-                    del self.ranges[i][j+1]
+                    self.ranges[i][j] = Range(self.ranges[i][j].left, self.ranges[i][j+1].right)
+                    self.ranges[i] = self.ranges[i][:j+1] + self.ranges[i][j+2:]
                 else:
                     raise Exception()
 
     def copy(self):
-        new_item = PassiveItem.copy(self)
-        new_item.next_low = self.next_low
-        # Todo remove this assertion after testing
-        assert self.__class__ == ActiveItem
+        new_item = self.__class__(self.nonterminal, self.rule)
+        new_item.weight = self.weight
+        new_item.ranges = [list(r) for r in self.ranges]
+        new_item.children = list(self.children)
         return new_item
 
     def replace_consistent(self, passive_item):
@@ -178,32 +196,35 @@ class ActiveItem(PassiveItem):
         """
         arg = len(self.children)
         pos = 0
-        for rangeIdx in range(self.ranges):
+        for rangeIdx in range(len(self.ranges)):
             gap = True
             i = 0
             while i < len(self.ranges[rangeIdx]):
-                elem = self.ranges[rangeIdx]
+                elem = self.ranges[rangeIdx][i]
                 if isinstance(elem, Range):
-                    if elem.low < pos:
+                    if elem.left < pos:
                         return False
                     elif not gap and elem.left != pos:
                         return False
                     if not gap:
-                        self.ranges[rangeIdx][i-1].right = elem.right
+                        self.ranges[rangeIdx][i-1] = Range(self.ranges[rangeIdx][i-1].left, elem.right)
+                        # self.ranges[rangeIdx][i-1].right = elem.right
                         del self.ranges[rangeIdx][i]
                     else:
                         i += 1
+                    if self.next_low is not None and self.next_low <= self.next_low_max and elem.left < self.next_low_max:
+                        self.next_low_max = elem.left
                     pos = elem.right
                     gap = False
                 elif isinstance(elem, LCFRS_var) and elem.mem == arg:
                     subst_range = passive_item.ranges[elem.arg]
-                    if subst_range.low < pos:
+                    if subst_range.left < pos:
                         return False
                     elif not gap and subst_range.left != pos:
                         return False
                     self.ranges[rangeIdx][i] = subst_range
-                    gap = False
-                    pos = subst_range.right
+                    # gap = False
+                    # pos = subst_range.right
                 elif elem.mem == arg + 1 and elem.arg == 0:
                     self.next_low = pos
                     gap = True
@@ -222,6 +243,11 @@ class ActiveItem(PassiveItem):
             i += 1
         del self.next_low
 
+    def __str__(self):
+        return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(help, self.ranges)))
+
+def help(r):
+    return "[{0}]".format(', '.join(map(str, r)))
 
 class ViterbiParser(AbstractParser):
     def __init__(self, grammar, input):
@@ -247,13 +273,18 @@ class ViterbiParser(AbstractParser):
                     self.__record_item(item)
         while self.agenda:
             item = heapq.heappop(self.agenda)
+            print "Process: ", item
             if not item.valid:
                 continue
             if isinstance(item, ActiveItem):
+                if item.nonterminal == '{1:V,0}':
+                    pass
                 key = item.next_nont(), item.next_low
                 for passive_item in self.passive_chart.get(key, []):
                     self.__combine(item, passive_item)
             elif isinstance(item, PassiveItem):
+                if item.nonterminal == '{2:V,0}':
+                    pass
                 if item.nonterminal == self.grammar.start() and item.ranges[0] == Range(0, len(self.input)):
                     self.goal = item
                     return
@@ -272,31 +303,33 @@ class ViterbiParser(AbstractParser):
         new_active = active_item.copy()
         if new_active.replace_consistent(passive_item):
             new_active.weight += passive_item.weight
-            new_active.children += passive_item
+            new_active.children.append(passive_item)
             if new_active.complete():
                 new_active.make_passive()
             self.__record_item(new_active)
 
     def __record_item(self, item):
         if isinstance(item, ActiveItem):
-            key = item.next_nont(), item.next_low
-            for i in range(len(self.active_chart[key])):
-                active_item = self.active_chart[key][i]
-                if item.rule == active_item.rule and item.children == active_item.children and item.ranges == active_item.ranges:
-                    if item.weight > active_item.weight:
-                        self.active_chart[key][i] = item
-                        active_item.valid = False
-                        heapq.heappush(self.agenda, item)
-                    else:
+            for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
+                key = item.next_nont(), low
+                print "Record: A ", key, item
+                for i in range(len(self.active_chart[key])):
+                    active_item = self.active_chart[key][i]
+                    if item.rule == active_item.rule and item.children == active_item.children and item.ranges == active_item.ranges:
+                        if item.weight > active_item.weight:
+                            self.active_chart[key][i] = item
+                            active_item.valid = False
+                            heapq.heappush(self.agenda, item)
                         return
-            if not self.active_chart[key]:
-                self.active_chart[key] = [item]
-            else:
-                self.active_chart[key] += item
-            heapq.heappush(self.agenda, item)
+                if not self.active_chart[key]:
+                    self.active_chart[key] = [item]
+                else:
+                    self.active_chart[key].append(item)
+                heapq.heappush(self.agenda, item)
 
         elif isinstance(item, PassiveItem):
             key = item.nonterminal, item.left_position()
+            print "Record: P ", key, item
             for i in range(len(self.passive_chart[key])):
                 passive_item = self.passive_chart[key][i]
                 # TODO: remove after testing
@@ -306,13 +339,11 @@ class ViterbiParser(AbstractParser):
                         self.passive_chart[key][i] = item
                         passive_item.valid = False
                         heapq.heappush(self.agenda, item)
-                        return
-                    else:
-                        return
+                    return
             if not self.passive_chart[key]:
                 self.passive_chart[key] = [item]
             else:
-                self.passive_chart[key] += item
+                self.passive_chart[key].append(item)
             heapq.heappush(self.agenda, item)
 
     def recognized(self):
@@ -327,25 +358,24 @@ class ViterbiParser(AbstractParser):
     def best_derivation_tree(self):
         return ViterbiDerivation(self.goal)
 
+
 class ViterbiDerivation(AbstractDerivation):
     def __init__(self, rootItem):
         """
         :type rootItem: PassiveItem
         """
         self.rootItem = rootItem
-        self.parent[rootItem] = None
+        self.parent = {rootItem: None}
+        self.insert_items(rootItem)
 
-    def getRule(self, id):
-        return id.rule
+    def getRule(self, item):
+        return item.rule
 
     def position_relative_to_parent(self, id):
-        return self.parent[id].children.index(id)
-
-    def __str__(self):
-        pass
+        return self. parent[id], self.parent[id].children.index(id)
 
     def ids(self):
-        return self.parent.keyset
+        return self.parent.keys()
 
     def child_ids(self, id):
         return id.children
@@ -368,3 +398,12 @@ class ViterbiDerivation(AbstractDerivation):
         for child in item.children:
             self.parent[child] = item
             self.insert_items(child)
+
+    def __str__(self):
+        return self.der_to_str_rec(self.root_id(), 0)
+
+    def der_to_str_rec(self, item, indentation):
+        s = ' ' * indentation * 2 + str(self.getRule(item)) + '\t(' + str(item) + ')\n'
+        for child in self.child_ids(item):
+            s += self.der_to_str_rec(child, indentation + 1)
+        return s
