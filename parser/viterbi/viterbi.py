@@ -27,6 +27,9 @@ class Range:
     def __str__(self):
         return "⟨{0!s},{1!s}⟩".format(self.left, self.right)
 
+    def __hash__(self):
+        return hash((self.left, self.right))
+
 
 class PassiveItem:
     def __init__(self, nonterminal, rule):
@@ -37,7 +40,7 @@ class PassiveItem:
         self.rule = rule
         self.nonterminal = nonterminal
         self.children = []
-        self.weight = log(rule.weight())
+        self.weight = 0
         self.ranges = []
         self.valid = True
 
@@ -77,6 +80,7 @@ def rule_to_passive_items(rule, input):
     :return:
     """
     empty = PassiveItem(rule.lhs().nont(), rule)
+    empty.weight = log(rule.weight())
     return rule_to_passive_items_rec(empty, input)
 
 
@@ -110,6 +114,7 @@ def rule_to_passive_items_rec(item, input):
 
 def rule_to_active_item(rule, input, low):
     empty = ActiveItem(rule.lhs().nont(), rule)
+    empty.weight = log(rule.weight())
 
     # TODO: We assume that LCFRS_var(0,0) occurs in the first component of the word tuple function
     pattern = empty.rule.lhs().arg(0)
@@ -119,7 +124,7 @@ def rule_to_active_item(rule, input, low):
     if pattern[0:first_var] == input[left:low]:
         # empty.ranges.append([Range(left, low)])
         for item in item_to_active_item_rec(empty, input, low, 0, first_var):
-            item.merge_ranges()
+            # item.merge_ranges()
             yield item
 
 
@@ -135,7 +140,6 @@ def item_to_active_item_rec(item, input, low, arg, pattern_pos):
                 else:
                     if isinstance(pattern[pattern_pos + i], LCFRS_var) and i > 0:
                         tmp_item = item.copy()
-                        tmp_item.children = list(item.children)
                         if len(tmp_item.ranges) == arg:
                             tmp_item.ranges.append([])
                         #if left > 0 and Range(left, left + i) in tmp_item.ranges[arg]:
@@ -185,7 +189,7 @@ class ActiveItem(PassiveItem):
         for i in range(len(self.ranges)):
             j = 0
             while j < len(self.ranges[i]) - 1:
-                if isinstance(self.ranges[i][j], LCFRS_var): #  or isinstance(self.ranges[i][j+1], LCFRS_var):
+                if isinstance(self.ranges[i][j], LCFRS_var) or isinstance(self.ranges[i][j+1], LCFRS_var):
                     j += 1
                 else:
                 # elif self.ranges[i][j].right == self.ranges[i][j+1].left:
@@ -199,7 +203,7 @@ class ActiveItem(PassiveItem):
         new_item = self.__class__(self.nonterminal, self.rule)
         new_item.weight = self.weight
         new_item.ranges = [list(rs) for rs in self.ranges]
-        # new_item.children = list(self.children)
+        new_item.children = list(self.children)
         return new_item
 
     def replace_consistent(self, passive_item):
@@ -264,16 +268,10 @@ class ActiveItem(PassiveItem):
         return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(lambda r: "[{0}]".format(', '.join(map(str, r))), self.ranges)))
 
     def agenda_key(self):
-        return id(self.rule), self.__ranges_to_tuple(), self.next_nont()
+        return id(self.rule), self.__ranges_to_tuple(), len(self.children)
 
     def __ranges_to_tuple(self):
-        return tuple([tuple([self.__to_tuple(x) for x in rs]) for rs in self.ranges])
-
-    @staticmethod
-    def __to_tuple(x):
-        if isinstance(x, Range):
-            return x.left, x.right
-        return x
+        return tuple([tuple(rs) for rs in self.ranges])
 
     def is_active(self):
         return True
@@ -297,7 +295,9 @@ class ViterbiParser(AbstractParser):
         self.actives = defaultdict()
         self.passives = defaultdict()
         self.goal = None
+        # self.invalid_counter = 0
         self.__parse()
+        # print "Invalid: ", self.invalid_counter
 
     def __parse(self):
         for rule in self.grammar.epsilon_rules():
@@ -319,10 +319,7 @@ class ViterbiParser(AbstractParser):
                 for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
                     key = item.next_nont(), low
 
-                    if key in self.active_chart:
-                        self.active_chart[key].append(item)
-                    else:
-                        self.active_chart[key] = [item]
+                    self.active_chart[key].append(item)
 
                     for passive_item in self.passive_chart.get(key, []):
                         self.__combine(item, passive_item)
@@ -336,10 +333,8 @@ class ViterbiParser(AbstractParser):
                 low = item.left_position()
                 nont = item.nonterminal
                 key = nont, low
-                if self.passive_chart[key]:
-                    self.passive_chart[key].append(item)
-                else:
-                    self.passive_chart[key] = [item]
+
+                self.passive_chart[key].append(item)
 
                 for active_item in self.active_chart.get(key, []):
                     self.__combine(active_item, item)
@@ -379,6 +374,7 @@ class ViterbiParser(AbstractParser):
                 heapq.heappush(self.agenda, item)
             elif self.passives[key].weight < item.weight:
                 self.passives[key].valid = False
+                # self.invalid_counter += 1
                 self.passives[key] = item
                 heapq.heappush(self.agenda, item)
 
