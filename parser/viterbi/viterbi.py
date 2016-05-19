@@ -202,50 +202,54 @@ class ActiveItem(PassiveItem):
         # new_item.children = list(self.children)
         return new_item
 
-    def replace_consistent(self, passive_item, arg):
+    def replace_consistent(self, passive_item):
         """
         :type passive_item: PassiveItem
-        :rtype: Bool
+        :rtype: list[list[LCFRS_var|Range]], int, int
         """
-        # arg = len(self.children)
+        arg = len(self.children)
+        new_ranges = []
+        next_low_max = maxint - 1
+        next_low = None
         pos = 0
-        for rangeIdx in range(len(self.ranges)):
+        for r in self.ranges:
+            new_range = []
             gap = True
-            i = 0
-            while i < len(self.ranges[rangeIdx]):
-                elem = self.ranges[rangeIdx][i]
+            for elem in r:
                 if isinstance(elem, Range):
                     if elem.left < pos:
-                        return False
+                        return None, None, None
                     elif not gap and elem.left != pos:
-                        return False
+                        return None, None, None
                     if not gap:
-                        self.ranges[rangeIdx][i-1] = Range(self.ranges[rangeIdx][i-1].left, elem.right)
-                        # self.ranges[rangeIdx][i-1].right = elem.right
-                        del self.ranges[rangeIdx][i]
+                        new_range[-1] = Range(new_range[-1].left, elem.right)
                     else:
-                        i += 1
-                    if self.next_low is not None and self.next_low <= self.next_low_max and elem.left < self.next_low_max:
-                        self.next_low_max = elem.left
+                        new_range.append(elem)
+                    if next_low is not None and next_low <= next_low_max and elem.left < next_low_max:
+                        next_low_max = elem.left
                     pos = elem.right
                     gap = False
                 elif elem.mem == arg:
                     subst_range = passive_item.ranges[elem.arg]
                     if subst_range.left < pos:
-                        return False
+                        return None, None, None
                     elif not gap and subst_range.left != pos:
-                        return False
-                    self.ranges[rangeIdx][i] = subst_range
-                    # gap = False
-                    # pos = subst_range.right
+                        return None, None, None
+                    if not gap:
+                        new_range[-1] = Range(new_range[-1].left, subst_range.right)
+                    else:
+                        new_range.append(subst_range)
+                        gap = False
+                    pos = subst_range.right
                 elif elem.mem == arg + 1 and elem.arg == 0:
-                    self.next_low = pos
+                    next_low = pos
                     gap = True
-                    i += 1
+                    new_range.append(elem)
                 else:
-                    i += 1
+                    new_range.append(elem)
                     gap = True
-        return True
+            new_ranges.append(new_range)
+        return new_ranges, next_low, next_low_max
 
     def make_passive(self):
         self.__class__ = PassiveItem
@@ -346,9 +350,13 @@ class ViterbiParser(AbstractParser):
             #    raise Exception()
 
     def __combine(self, active_item, passive_item):
-        new_active = active_item.copy()
-        if new_active.replace_consistent(passive_item, len(active_item.children)):
-            new_active.weight += passive_item.weight
+        ranges, next_low, next_low_max = active_item.replace_consistent(passive_item)
+        if ranges:
+            new_active = ActiveItem(active_item.nonterminal, active_item.rule)
+            new_active.ranges = ranges
+            new_active.next_low = next_low
+            new_active.next_low_max = next_low_max
+            new_active.weight = active_item.weight + passive_item.weight
             new_active.children = list(active_item.children) + [passive_item]
 
             if new_active.complete():
@@ -361,68 +369,18 @@ class ViterbiParser(AbstractParser):
             if key not in self.actives:
                 self.actives[key] = item
                 heapq.heappush(self.agenda, item)
+            # elif self.actives[key].weight < item.weight:
+            #     self.actives[key].valid = False
+            #     self.actives[key] = item
+            #     heapq.heappush(self.agenda, item)
         else:
             if key not in self.passives:
-                # self.agenda_set.add(key)
                 self.passives[key] = item
                 heapq.heappush(self.agenda, item)
             elif self.passives[key].weight < item.weight:
                 self.passives[key].valid = False
                 self.passives[key] = item
                 heapq.heappush(self.agenda, item)
-
-            # elif self.actives[key].weight < item.weight:
-            #    self.actives[key].valid = False
-            #    self.actives[key] = item
-            #    heapq.heappush(self.agenda, item)
-
-        # if isinstance(item, ActiveItem):
-        #     recorded = False
-        #     for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
-        #         updated = False
-        #         skipped = False
-        #         key = item.next_nont(), low
-        #         for i in range(len(self.active_chart[key])):
-        #             active_item = self.active_chart[key][i]
-        #             if item.rule == active_item.rule and item.children == active_item.children and item.ranges == active_item.ranges:
-        #                 if item.weight > active_item.weight:
-        #                     self.active_chart[key][i] = item
-        #                     active_item.valid = False
-        #                     updated = True
-        #                     # print "Update: A ", key, item
-        #                 else:
-        #                     skipped = True
-        #                 break
-        #
-        #         if not (skipped or updated):
-        #             # print "Record: A ", key, item
-        #             recorded = True
-        #             if not self.active_chart[key]:
-        #                 self.active_chart[key] = [item]
-        #             else:
-        #                 self.active_chart[key].append(item)
-        #
-        #         recorded = recorded or updated
-        #
-        #     if recorded:
-        #         heapq.heappush(self.agenda, item)
-
-        # elif isinstance(item, PassiveItem):
-        #     key = item.nonterminal, item.left_position()
-        #     # print "Record: P ", key, item
-        #     for i in range(len(self.passive_chart[key])):
-        #         passive_item = self.passive_chart[key][i]
-        #         if item.ranges == passive_item.ranges:
-        #             if item.weight > passive_item.weight:
-        #                 self.passive_chart[key][i] = item
-        #                 passive_item.valid = False
-        #                 heapq.heappush(self.agenda, item)
-        #             return
-        #     if not self.passive_chart[key]:
-        #         self.passive_chart[key] = [item]
-        #     else:
-        #         self.passive_chart[key].append(item)
-        #     heapq.heappush(self.agenda, item)
 
     def recognized(self):
         return self.goal is not None
