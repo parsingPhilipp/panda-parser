@@ -128,7 +128,7 @@ class LHS_instance:
                             low = pos
                         else:
                             return pos, pos
-                            # TODO: why does one return [last span.high, list span.high] (= empty)
+                            # TODO: why does one return [last span.high, last span.high] (= empty)
                             # TODO: if no variable precedes <i,0>, and
                             # TODO: [last span.high, next span_low] or [last span.high, inp_length]
                             # TODO: otherwise

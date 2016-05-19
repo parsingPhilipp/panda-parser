@@ -20,8 +20,8 @@ class Range:
         self.right = right
 
     def __eq__(self, other):
-        if not isinstance(other, Range):
-            return False
+        # if not isinstance(other, Range):
+        #    return False
         return other.left == self.left and other.right == self.right
 
     def __str__(self):
@@ -61,7 +61,10 @@ class PassiveItem:
         return self.weight > other.weight
 
     def __str__(self):
-        return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(str,self.ranges)))
+        return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(str, self.ranges)))
+
+    def agenda_key(self):
+        return self.nonterminal, tuple([(r.left, r.right) for r in self.ranges])
 
 
 def rule_to_passive_items(rule, input):
@@ -129,6 +132,7 @@ def item_to_active_item_rec(item, input, low, arg, pattern_pos):
                 else:
                     if isinstance(pattern[pattern_pos + i], LCFRS_var) and i > 0:
                         tmp_item = item.copy()
+                        tmp_item.children = list(item.children)
                         if len(tmp_item.ranges) == arg:
                             tmp_item.ranges.append([])
                         #if left > 0 and Range(left, left + i) in tmp_item.ranges[arg]:
@@ -178,27 +182,29 @@ class ActiveItem(PassiveItem):
         for i in range(len(self.ranges)):
             j = 0
             while j < len(self.ranges[i]) - 1:
-                if isinstance(self.ranges[i][j], LCFRS_var) or isinstance(self.ranges[i][j+1], LCFRS_var):
+                if isinstance(self.ranges[i][j], LCFRS_var): #  or isinstance(self.ranges[i][j+1], LCFRS_var):
                     j += 1
-                elif self.ranges[i][j].right == self.ranges[i][j+1].left:
-                    self.ranges[i][j] = Range(self.ranges[i][j].left, self.ranges[i][j+1].right)
-                    self.ranges[i] = self.ranges[i][:j+1] + self.ranges[i][j+2:]
                 else:
-                    raise Exception()
+                # elif self.ranges[i][j].right == self.ranges[i][j+1].left:
+                    self.ranges[i][j] = Range(self.ranges[i][j].left, self.ranges[i][j+1].right)
+                    del self.ranges[i][j+1]
+                    # self.ranges[i] = self.ranges[i][:j+1] + self.ranges[i][j+2:]
+                #else:
+                #    raise Exception()
 
     def copy(self):
         new_item = self.__class__(self.nonterminal, self.rule)
         new_item.weight = self.weight
-        new_item.ranges = [list(r) for r in self.ranges]
-        new_item.children = list(self.children)
+        new_item.ranges = [list(rs) for rs in self.ranges]
+        # new_item.children = list(self.children)
         return new_item
 
-    def replace_consistent(self, passive_item):
+    def replace_consistent(self, passive_item, arg):
         """
         :type passive_item: PassiveItem
         :rtype: Bool
         """
-        arg = len(self.children)
+        # arg = len(self.children)
         pos = 0
         for rangeIdx in range(len(self.ranges)):
             gap = True
@@ -220,7 +226,7 @@ class ActiveItem(PassiveItem):
                         self.next_low_max = elem.left
                     pos = elem.right
                     gap = False
-                elif isinstance(elem, LCFRS_var) and elem.mem == arg:
+                elif elem.mem == arg:
                     subst_range = passive_item.ranges[elem.arg]
                     if subst_range.left < pos:
                         return False
@@ -242,16 +248,29 @@ class ActiveItem(PassiveItem):
         self.__class__ = PassiveItem
         i = 0
         while i < len(self.ranges):
-            assert len(self.ranges[i]) == 1
+            # assert len(self.ranges[i]) == 1
             self.ranges[i] = self.ranges[i][0]
             i += 1
         del self.next_low
 
     def __str__(self):
-        return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(help, self.ranges)))
+        return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(lambda r: "[{0}]".format(', '.join(map(str, r))), self.ranges)))
 
-def help(r):
-    return "[{0}]".format(', '.join(map(str, r)))
+    def agenda_key(self):
+        return id(self.rule), self.__ranges_to_tuple(), self.next_nont()
+
+    def __ranges_to_tuple(self):
+        return tuple([tuple([self.__to_tuple(x) for x in rs]) for rs in self.ranges])
+
+    @staticmethod
+    def __to_tuple(x):
+        if isinstance(x, Range):
+            return x.left, x.right
+        return x
+
+
+#def help(r):
+#    return "[{0}]".format(', '.join(map(str, r)))
 
 class ViterbiParser(AbstractParser):
     def __init__(self, grammar, input):
@@ -264,6 +283,9 @@ class ViterbiParser(AbstractParser):
         self.agenda = []
         self.active_chart = defaultdict(list)
         self.passive_chart = defaultdict(list)
+        # self.agenda_set = set () # defaultdict()
+        self.actives = defaultdict()
+        self.passives = defaultdict()
         self.goal = None
         self.__parse()
 
@@ -283,11 +305,18 @@ class ViterbiParser(AbstractParser):
             if isinstance(item, ActiveItem):
                 # if item.nonterminal == '{2:V:VBI,0}':
                 #    pass
+
                 for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
                     key = item.next_nont(), low
+
+                    if key in self.active_chart:
+                        self.active_chart[key].append(item)
+                    else:
+                        self.active_chart[key] = [item]
+
                     for passive_item in self.passive_chart.get(key, []):
                         self.__combine(item, passive_item)
-            elif isinstance(item, PassiveItem):
+            else: # if isinstance(item, PassiveItem):
                 #if item.nonterminal == '{2:V,0}':
                 #    pass
                 # STOPPING EARLY:
@@ -297,85 +326,112 @@ class ViterbiParser(AbstractParser):
                 low = item.left_position()
                 nont = item.nonterminal
                 key = nont, low
+                if self.passive_chart[key]:
+                    self.passive_chart[key].append(item)
+                else:
+                    self.passive_chart[key] = [item]
+
                 for active_item in self.active_chart.get(key, []):
                     self.__combine(active_item, item)
                 for rule in self.grammar.nont_corner_of(nont):
                     for active_item in rule_to_active_item(rule, self.input, low):
                         self.__combine(active_item, item)
-            else:
-                raise Exception()
+            # else:
+            #    raise Exception()
 
     def __combine(self, active_item, passive_item):
         new_active = active_item.copy()
-        if new_active.replace_consistent(passive_item):
+        if new_active.replace_consistent(passive_item, len(active_item.children)):
             new_active.weight += passive_item.weight
-            new_active.children.append(passive_item)
+            new_active.children = list(active_item.children) + [passive_item]
+
             if new_active.complete():
                 new_active.make_passive()
             self.__record_item(new_active)
 
     def __record_item(self, item):
+        key = item.agenda_key()
         if isinstance(item, ActiveItem):
-            recorded = False
-            for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
-                updated = False
-                skipped = False
-                key = item.next_nont(), low
-                for i in range(len(self.active_chart[key])):
-                    active_item = self.active_chart[key][i]
-                    if item.rule == active_item.rule and item.children == active_item.children and item.ranges == active_item.ranges:
-                        if item.weight > active_item.weight:
-                            self.active_chart[key][i] = item
-                            active_item.valid = False
-                            updated = True
-                            # print "Update: A ", key, item
-                        else:
-                            skipped = True
-                        break
-
-                if not (skipped or updated):
-                    # print "Record: A ", key, item
-                    recorded = True
-                    if not self.active_chart[key]:
-                        self.active_chart[key] = [item]
-                    else:
-                        self.active_chart[key].append(item)
-
-                recorded = recorded or updated
-
-            if recorded:
+            if key not in self.actives:
+                self.actives[key] = item
+                heapq.heappush(self.agenda, item)
+        else:
+            if key not in self.passives:
+                # self.agenda_set.add(key)
+                self.passives[key] = item
+                heapq.heappush(self.agenda, item)
+            elif self.passives[key].weight < item.weight:
+                self.passives[key].valid = False
+                self.passives[key] = item
                 heapq.heappush(self.agenda, item)
 
-        elif isinstance(item, PassiveItem):
-            key = item.nonterminal, item.left_position()
-            # print "Record: P ", key, item
-            for i in range(len(self.passive_chart[key])):
-                passive_item = self.passive_chart[key][i]
-                # TODO: remove after testing
-                assert item.nonterminal == passive_item.nonterminal
-                if item.ranges == passive_item.ranges:
-                    if item.weight > passive_item.weight:
-                        self.passive_chart[key][i] = item
-                        passive_item.valid = False
-                        heapq.heappush(self.agenda, item)
-                    return
-            if not self.passive_chart[key]:
-                self.passive_chart[key] = [item]
-            else:
-                self.passive_chart[key].append(item)
-            heapq.heappush(self.agenda, item)
+            # elif self.actives[key].weight < item.weight:
+            #    self.actives[key].valid = False
+            #    self.actives[key] = item
+            #    heapq.heappush(self.agenda, item)
+
+        # if isinstance(item, ActiveItem):
+        #     recorded = False
+        #     for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
+        #         updated = False
+        #         skipped = False
+        #         key = item.next_nont(), low
+        #         for i in range(len(self.active_chart[key])):
+        #             active_item = self.active_chart[key][i]
+        #             if item.rule == active_item.rule and item.children == active_item.children and item.ranges == active_item.ranges:
+        #                 if item.weight > active_item.weight:
+        #                     self.active_chart[key][i] = item
+        #                     active_item.valid = False
+        #                     updated = True
+        #                     # print "Update: A ", key, item
+        #                 else:
+        #                     skipped = True
+        #                 break
+        #
+        #         if not (skipped or updated):
+        #             # print "Record: A ", key, item
+        #             recorded = True
+        #             if not self.active_chart[key]:
+        #                 self.active_chart[key] = [item]
+        #             else:
+        #                 self.active_chart[key].append(item)
+        #
+        #         recorded = recorded or updated
+        #
+        #     if recorded:
+        #         heapq.heappush(self.agenda, item)
+
+        # elif isinstance(item, PassiveItem):
+        #     key = item.nonterminal, item.left_position()
+        #     # print "Record: P ", key, item
+        #     for i in range(len(self.passive_chart[key])):
+        #         passive_item = self.passive_chart[key][i]
+        #         if item.ranges == passive_item.ranges:
+        #             if item.weight > passive_item.weight:
+        #                 self.passive_chart[key][i] = item
+        #                 passive_item.valid = False
+        #                 heapq.heappush(self.agenda, item)
+        #             return
+        #     if not self.passive_chart[key]:
+        #         self.passive_chart[key] = [item]
+        #     else:
+        #         self.passive_chart[key].append(item)
+        #     heapq.heappush(self.agenda, item)
 
     def recognized(self):
-        return not self.goal is None
+        return self.goal is not None
 
     def all_derivation_trees(self):
         pass
 
     def best(self):
-        return self.goal
+        return self.goal.weight
 
     def best_derivation_tree(self):
-        return ViterbiDerivation(self.goal)
+        if self.goal:
+            return ViterbiDerivation(self.goal)
+        else:
+            return None
 
 
 class ViterbiDerivation(AbstractDerivation):

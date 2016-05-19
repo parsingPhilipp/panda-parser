@@ -15,7 +15,8 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
-from parser.naive.parsing import LCFRS_parser as NaiveParser
+# from parser.naive.parsing import LCFRS_parser as NaiveParser
+from parser.viterbi.viterbi import ViterbiParser as NaiveParser
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 from evaluation import experiment_database
 
