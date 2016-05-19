@@ -66,6 +66,9 @@ class PassiveItem:
     def agenda_key(self):
         return self.nonterminal, tuple([(r.left, r.right) for r in self.ranges])
 
+    def is_active(self):
+        return False
+
 
 def rule_to_passive_items(rule, input):
     """
@@ -268,6 +271,9 @@ class ActiveItem(PassiveItem):
             return x.left, x.right
         return x
 
+    def is_active(self):
+        return True
+
 
 #def help(r):
 #    return "[{0}]".format(', '.join(map(str, r)))
@@ -302,7 +308,7 @@ class ViterbiParser(AbstractParser):
             # print "Process: ", item
             if not item.valid:
                 continue
-            if isinstance(item, ActiveItem):
+            if item.is_active():
                 # if item.nonterminal == '{2:V:VBI,0}':
                 #    pass
 
@@ -351,7 +357,7 @@ class ViterbiParser(AbstractParser):
 
     def __record_item(self, item):
         key = item.agenda_key()
-        if isinstance(item, ActiveItem):
+        if item.is_active(): # instance(item, ActiveItem):
             if key not in self.actives:
                 self.actives[key] = item
                 heapq.heappush(self.agenda, item)
