@@ -117,15 +117,15 @@ def rule_to_active_item(rule, input, low):
     empty.weight = log(rule.weight())
 
     # TODO: We assume that LCFRS_var(0,0) occurs in the first component of the word tuple function
-    pattern = empty.rule.lhs().arg(0)
-    first_var = pattern.index(LCFRS_var(0, 0))
+    # pattern = empty.rule.lhs().arg(0)
+    # first_var = pattern.index(LCFRS_var(0, 0))
     empty.next_low = low
-    left = low - first_var
-    if pattern[0:first_var] == input[left:low]:
+    # left = low - first_var
+    # if pattern[0:first_var] == input[left:low]:
         # empty.ranges.append([Range(left, low)])
-        for item in item_to_active_item_rec(empty, input, low, 0, first_var):
+    for item in item_to_active_item_rec(empty, input, low, 0, 0):
             # item.merge_ranges()
-            yield item
+        yield item
 
 
 def item_to_active_item_rec(item, input, low, arg, pattern_pos):
@@ -268,7 +268,7 @@ class ActiveItem(PassiveItem):
         return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(lambda r: "[{0}]".format(', '.join(map(str, r))), self.ranges)))
 
     def agenda_key(self):
-        return id(self.rule), self.__ranges_to_tuple(), len(self.children)
+        return id(self.rule), self.__ranges_to_tuple() # , len(self.children)
 
     def __ranges_to_tuple(self):
         return tuple([tuple(rs) for rs in self.ranges])
