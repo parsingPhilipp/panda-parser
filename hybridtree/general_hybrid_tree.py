@@ -30,6 +30,7 @@ class HybridTree:
         self.__ordered_ids = []
         # list of node ids in ascending order, including disconnected nodes
         self.__full_yield = []
+        self.__parent = {}
         # maps node id to position in the ordering
         # self.__id_to_node_index = {}
         # maps node_index (position in ordering) to node id
@@ -94,8 +95,10 @@ class HybridTree:
         Add a pair of node ids in the tree's parent-child relation.
         """
         if parent not in self.__id_to_child_ids:
-            self.__id_to_child_ids[parent] = []
-        self.__id_to_child_ids[parent] += [child]
+            self.__id_to_child_ids[parent] = [child]
+        else:
+            self.__id_to_child_ids[parent] += [child]
+        self.__parent[child] = parent
 
     def parent(self, id):
         """
@@ -104,7 +107,7 @@ class HybridTree:
         :type id: str
         :return: id of parent node, or None.
         """
-        parent = self.__parent_recur(id, self.virtual_root)
+        parent = self.__parent.get(id, None) #__parent_recur(id, self.virtual_root)
         if parent == self.virtual_root:
             return None
         else:
