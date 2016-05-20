@@ -247,6 +247,8 @@ class ActiveItem(PassiveItem):
                     pos = subst_range.right
                 elif elem.mem == arg + 1 and elem.arg == 0:
                     next_low = pos
+                    if new_range:
+                        next_low_max = pos
                     gap = True
                     new_range.append(elem)
                 else:
