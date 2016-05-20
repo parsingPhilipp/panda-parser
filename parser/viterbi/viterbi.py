@@ -111,6 +111,47 @@ def rule_to_passive_items_rec(item, input):
                 yield new_item
         left += 1
 
+def rule_to_passive_items_lc(rule, input, low):
+    """
+    :type rule: LCFRS_rule
+    :type input: [str]
+    :return:
+    """
+    empty = PassiveItem(rule.lhs().nont(), rule)
+    empty.weight = log(rule.weight())
+    return rule_to_passive_items_lc_rec(empty, input, low, True)
+
+
+def rule_to_passive_items_lc_rec(item, input, low, force_low):
+    arg = len(item.ranges)
+    if arg == item.rule.lhs().fanout():
+        yield item
+        return
+
+    pattern = item.rule.lhs().arg(arg)
+    if item.ranges:
+        left = item.right_position()
+    else:
+        left = low
+
+    while left <= len(input) - len(pattern):
+        i = 0
+        while i < len(pattern) and (left + i) < len(input):
+            if pattern[i] == input[left + i]:
+                i += 1
+            else:
+                left += 1
+                i = 0
+        if i == len(pattern):
+            tmp_item = item.copy()
+            tmp_item.ranges.append(Range(left, left + i))
+            for new_item in rule_to_passive_items_lc_rec(tmp_item, input, 0, False):
+                yield new_item
+        if force_low:
+            return
+        else:
+            left += 1
+
 
 def rule_to_active_item(rule, input, low):
     empty = ActiveItem(rule.lhs().nont(), rule)
@@ -299,10 +340,12 @@ class ViterbiParser(AbstractParser):
         self.passives = defaultdict()
         self.goal = None
         # self.invalid_counter = 0
-        self.__parse()
+        self.__parse_bottom_up()
+        # self.__lc__query = set()
+        # self.__parse_left_corner()
         # print "Invalid: ", self.invalid_counter
 
-    def __parse(self):
+    def __parse_bottom_up(self):
         for rule in self.grammar.epsilon_rules():
             for item in rule_to_passive_items(rule, self.input):
                 self.__record_item(item)
@@ -347,6 +390,55 @@ class ViterbiParser(AbstractParser):
             # else:
             #    raise Exception()
 
+    def __parse_left_corner(self):
+        if len(self.input) == 0:
+            raise Exception("not implemented")
+        terminal = self.input[0]
+        for rule in self.grammar.left_corner(self.grammar.start(), terminal):
+            for item in rule_to_passive_items_lc(rule, self.input, 0):
+                self.__record_item(item)
+        while self.agenda:
+            item = heapq.heappop(self.agenda)
+            # print "Process: ", item
+            if not item.valid:
+                continue
+            if item.is_active():
+                # if item.nonterminal == '{2:V:VBI,0}':
+                #    pass
+
+                for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
+                    key = item.next_nont(), low
+
+                    self.active_chart[key].append(item)
+
+                    if key not in self.__lc__query:
+                        self.__lc__query.add(key)
+                        for rule in self.grammar.left_corner(key[0], self.input[low]):
+                            for passive_item in rule_to_passive_items_lc(rule, self.input, low):
+                                self.__record_item(passive_item)
+
+                    for passive_item in self.passive_chart.get(key, []):
+                        self.__combine(item, passive_item)
+
+            else:  # if isinstance(item, PassiveItem):
+                # if item.nonterminal == '{2:V,0}':
+                #    pass
+                # STOPPING EARLY:
+                if item.nonterminal == self.grammar.start() and item.ranges[0] == Range(0, len(self.input)):
+                    self.goal = item
+                    return
+                low = item.left_position()
+                nont = item.nonterminal
+                key = nont, low
+
+                self.passive_chart[key].append(item)
+
+                for active_item in self.active_chart.get(key, []):
+                    self.__combine(active_item, item)
+                for rule in self.grammar.nont_corner_of(nont):
+                    for active_item in rule_to_active_item(rule, self.input, low):
+                        self.__combine(active_item, item)
+
     def __combine(self, active_item, passive_item):
         ranges, next_low, next_low_max = active_item.replace_consistent(passive_item)
         if ranges:
@@ -362,6 +454,7 @@ class ViterbiParser(AbstractParser):
             self.__record_item(new_active)
 
     def __record_item(self, item):
+        # print "Record: ", item
         key = item.agenda_key()
         if item.is_active(): # instance(item, ActiveItem):
             if key not in self.actives:

@@ -5,6 +5,7 @@
 from collections import defaultdict, namedtuple
 import codecs
 import re
+from time import time
 
 from grammar.sDCP.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
 
@@ -305,6 +306,9 @@ class LCFRS:
         # Mapping from nonterminal to rules where nonterminal occurs as
         # first element in RHS.
         self.__nont_corner_of = defaultdict(list)
+        # Mapping from nonterminal A to nonterminals B
+        # that may generate the first terminal A's first component
+        self.__left_corner_of = None
         if start:
             self.__start = start
             self.__nont_to_fanout[start] = 1
@@ -456,6 +460,32 @@ class LCFRS:
         :rtype: list[LCFRS_rule]
         """
         return self.__lhs_nont_to_rules[nont]
+
+    def init_left_corner(self):
+        time1 = time()
+        self.__left_corner_of = defaultdict(set)
+        changed = False
+        for term in self.__first_term_of.keys():
+            for rule in self.__first_term_of[term]:
+                self.__left_corner_of[rule.lhs().nont()].add(rule.lhs().nont())
+                changed = True
+        while changed:
+            changed = False
+            for nont in self.__left_corner_of.keys():
+                for rule in self.__nont_corner_of[nont]:
+                    for lex_nont in self.__left_corner_of[nont]:
+                        if lex_nont not in self.__left_corner_of[rule.lhs().nont()]:
+                            self.__left_corner_of[rule.lhs().nont()].add(lex_nont)
+                            changed = True
+        print "Left-corner: ", time() - time1
+
+    def left_corner(self, nont, term):
+        if not self.__left_corner_of:
+            self.init_left_corner()
+
+        for lex_rule in self.lex_rules(term):
+            if lex_rule.lhs().nont() in self.__left_corner_of[nont]:
+                yield lex_rule
 
 
 ############################################################
