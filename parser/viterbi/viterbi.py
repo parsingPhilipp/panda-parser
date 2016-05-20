@@ -269,7 +269,7 @@ class ActiveItem(PassiveItem):
         return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(lambda r: "[{0}]".format(', '.join(map(str, r))), self.ranges)))
 
     def agenda_key(self):
-        return id(self.rule), self.__ranges_to_tuple(), self.child_count
+        return id(self.rule), self.__ranges_to_tuple(), len(self.children)
 
     def __ranges_to_tuple(self):
         return tuple([tuple(rs) for rs in self.ranges])
