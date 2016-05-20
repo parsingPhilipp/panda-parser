@@ -257,18 +257,19 @@ class ActiveItem(PassiveItem):
 
     def make_passive(self):
         self.__class__ = PassiveItem
+        del self.next_low
+        del self.next_low_max
         i = 0
         while i < len(self.ranges):
             # assert len(self.ranges[i]) == 1
             self.ranges[i] = self.ranges[i][0]
             i += 1
-        del self.next_low
 
     def __str__(self):
         return "[{0!s}] {1!s} [{2}]".format(self.weight, self.nonterminal, ', '.join(map(lambda r: "[{0}]".format(', '.join(map(str, r))), self.ranges)))
 
     def agenda_key(self):
-        return id(self.rule), self.__ranges_to_tuple() # , len(self.children)
+        return id(self.rule), self.__ranges_to_tuple(), self.child_count
 
     def __ranges_to_tuple(self):
         return tuple([tuple(rs) for rs in self.ranges])
