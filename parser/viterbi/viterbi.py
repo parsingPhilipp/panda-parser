@@ -69,6 +69,9 @@ class PassiveItem:
     def agenda_key(self):
         return self.nonterminal, tuple([(r.left, r.right) for r in self.ranges])
 
+    def agenda_key_earley(self):
+        return self.nonterminal, tuple([(r.left, r.right) for r in self.ranges])
+
     def is_active(self):
         return False
 
@@ -320,6 +323,9 @@ class ActiveItem(PassiveItem):
     def agenda_key(self):
         return id(self.rule), self.__ranges_to_tuple(), len(self.children)
 
+    def agenda_key_earley(self):
+        return id(self.rule), self.__ranges_to_tuple(), len(self.children), self.next_low
+
     def __ranges_to_tuple(self):
         return tuple([tuple(rs) for rs in self.ranges])
 
@@ -341,13 +347,17 @@ class ViterbiParser(AbstractParser):
         self.agenda = []
         self.active_chart = defaultdict(list)
         self.passive_chart = defaultdict(list)
-        # self.agenda_set = set () # defaultdict()
         self.actives = defaultdict()
         self.passives = defaultdict()
         self.goal = None
+
+        # self.key = lambda x: x.agenda_key()
+        self.key = lambda x: x.agenda_key_earley()
+
         # self.invalid_counter = 0
         # self.__parse_bottom_up()
-        self.__parse_left_corner()
+        # self.__parse_left_corner()
+        self.__parse_earley()
         # print "Invalid: ", self.invalid_counter
 
     def __parse_bottom_up(self):
@@ -364,9 +374,6 @@ class ViterbiParser(AbstractParser):
             if not item.valid:
                 continue
             if item.is_active():
-                # if item.nonterminal == '{2:V:VBI,0}':
-                #    pass
-
                 for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
                     key = item.next_nont(), low
 
@@ -375,8 +382,6 @@ class ViterbiParser(AbstractParser):
                     for passive_item in self.passive_chart.get(key, []):
                         self.__combine(item, passive_item)
             else: # if isinstance(item, PassiveItem):
-                #if item.nonterminal == '{2:V,0}':
-                #    pass
                 # STOPPING EARLY:
                 if item.nonterminal == self.grammar.start() and item.ranges[0] == Range(0, len(self.input)):
                     self.goal = item
@@ -392,8 +397,6 @@ class ViterbiParser(AbstractParser):
                 for rule in self.grammar.nont_corner_of(nont):
                     for active_item in rule_to_active_item(rule, self.input, low):
                         self.__combine(active_item, item)
-            # else:
-            #    raise Exception()
 
     def __parse_left_corner(self):
         self.__lc__query = set()
@@ -403,17 +406,12 @@ class ViterbiParser(AbstractParser):
         for nont in self.grammar.left_corner(self.grammar.start()):
             for rule in self.grammar.nont_lex(nont, terminal):
                 self.__record_item(rule_to_passive_items_lc_opt(rule, 0))
-                #for item in rule_to_passive_items_lc(rule, self.input, 0):
-                #    self.__record_item(item)
         while self.agenda:
             item = heapq.heappop(self.agenda)
             # print "Process: ", item
             if not item.valid:
                 continue
             if item.is_active():
-                # if item.nonterminal == '{2:V:VBI,0}':
-                #    pass
-
                 for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
                     key = item.next_nont(), low
 
@@ -426,8 +424,6 @@ class ViterbiParser(AbstractParser):
                             self.__lc__query.add((nont, low))
                             for rule in self.grammar.nont_lex(nont, self.input[low]):
                                 self.__record_item(rule_to_passive_items_lc_opt(rule, low))
-                                #for passive_item in rule_to_passive_items_lc(rule, self.input, low):
-                                #    self.__record_item(passive_item)
                         self.__lc__query.add(key)
 
                     for passive_item in self.passive_chart.get(key, []):
@@ -452,6 +448,59 @@ class ViterbiParser(AbstractParser):
                     for active_item in rule_to_active_item(rule, self.input, low):
                         self.__combine(active_item, item)
 
+    def __parse_earley(self):
+        self.__lc__query = set()
+        if len(self.input) == 0:
+            raise Exception("not implemented")
+        for rule in self.grammar.nont_lex_predict(self.grammar.start(), self.input[0]):
+            if rule.rhs():
+                for active_item in rule_to_active_item(rule, self.input, 0):
+                    active_item.next_low = 0
+                    active_item.next_low_max = 0
+                    self.__record_item(active_item)
+            else:
+                self.__record_item(rule_to_passive_items_lc_opt(rule, 0))
+
+        self.__lc__query.add((self.grammar.start(), 0))
+
+        while self.agenda:
+            item = heapq.heappop(self.agenda)
+            # print "Process: ", item
+            if not item.valid:
+                continue
+            if item.is_active():
+
+                for low in range(item.next_low, min(item.next_low_max + 1, len(self.input))):
+                    key = item.next_nont(), low
+
+                    self.active_chart[key].append(item)
+
+                    if key not in self.__lc__query:
+                        for rule in self.grammar.nont_lex_predict(key[0], self.input[low]):
+                            if rule.rhs():
+                                for active_item in rule_to_active_item(rule, self.input, low):
+                                    active_item.next_low = low
+                                    active_item.next_low_max = low
+                                    self.__record_item(active_item)
+                            else:
+                                self.__record_item(rule_to_passive_items_lc_opt(rule, low))
+                        self.__lc__query.add(key)
+
+                    for passive_item in self.passive_chart.get(key, []):
+                        self.__combine(item, passive_item)
+
+            else:  # if isinstance(item, PassiveItem):
+                # STOPPING EARLY:
+                if item.nonterminal == self.grammar.start() and item.ranges[0] == Range(0, len(self.input)):
+                    self.goal = item
+                    return
+                key = item.nonterminal, item.left_position()
+
+                self.passive_chart[key].append(item)
+
+                for active_item in self.active_chart.get(key, []):
+                    self.__combine(active_item, item)
+
     def __combine(self, active_item, passive_item):
         ranges, next_low, next_low_max = active_item.replace_consistent(passive_item)
         if ranges:
@@ -464,12 +513,13 @@ class ViterbiParser(AbstractParser):
 
             if new_active.complete():
                 new_active.make_passive()
+
             self.__record_item(new_active)
 
     def __record_item(self, item):
         # print "Record: ", item
-        key = item.agenda_key()
-        if item.is_active(): # instance(item, ActiveItem):
+        key = self.key(item)
+        if item.is_active():
             if key not in self.actives:
                 self.actives[key] = item
                 heapq.heappush(self.agenda, item)
