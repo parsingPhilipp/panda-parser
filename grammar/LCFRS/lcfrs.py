@@ -311,6 +311,7 @@ class LCFRS:
         self.__left_corner_of = None
         self.__full_left_corner = None
         self.__nont_lex_predict = None
+        self.__left_branch_predict = None
         if start:
             self.__start = start
             self.__nont_to_fanout[start] = 1
@@ -547,6 +548,46 @@ class LCFRS:
 
             print "nont lex prediction table: ", time() - start
         return self.__nont_lex_predict[(nont_p, term_p)]
+
+    def left_branch_predict(self, nont_p, term_p):
+        if not self.__left_branch_predict:
+            start = time()
+            rc_tmp = defaultdict(set)
+
+            changed = False
+            for term in self.__first_term_of:
+                for rule in self.__first_term_of[term]:
+                    nont = rule.lhs().nont()
+                    if term not in rc_tmp[nont]:
+                        rc_tmp[nont].add(term)
+                        changed = True
+
+            nt_right_corner = defaultdict(list)
+            for rule in self.rules():
+                if rule.rhs():
+                    nt_right_corner[rule.rhs_nont(-1)].append(rule)
+
+            while changed:
+                changed = False
+                for term in self.__first_term_of:
+                    for nont in rc_tmp.keys():
+                        for rule in nt_right_corner[nont]:
+                            for term in rc_tmp[nont]:
+                                if term not in rc_tmp[rule.lhs().nont()]:
+                                    rc_tmp[rule.lhs().nont()].add(term)
+                                    changed = True
+
+            self.__left_branch_predict = defaultdict(list)
+
+            for nont in self.nonts():
+                for rule in self.lhs_nont_to_rules(nont):
+                    if rule.rhs():
+                        for term in rc_tmp[rule.rhs_nont(-1)]:
+                            self.__left_branch_predict[(nont, term)].append(rule)
+                    else:
+                        self.__left_branch_predict[(nont, rule.lhs().arg(0)[0])].append(rule)
+            print "left branching prediction table", time() - start
+        return self.__left_branch_predict[(nont_p, term_p)]
 
 ############################################################
 # Reading in grammar.

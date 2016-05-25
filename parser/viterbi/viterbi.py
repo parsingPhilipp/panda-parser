@@ -351,13 +351,13 @@ class ViterbiParser(AbstractParser):
         self.passives = defaultdict()
         self.goal = None
 
-        # self.key = lambda x: x.agenda_key()
-        self.key = lambda x: x.agenda_key_earley()
+        self.key = lambda x: x.agenda_key()
+        # self.key = lambda x: x.agenda_key_earley()
 
         # self.invalid_counter = 0
         # self.__parse_bottom_up()
-        # self.__parse_left_corner()
-        self.__parse_earley()
+        self.__parse_left_corner()
+        # self.__parse_earley()
         # print "Invalid: ", self.invalid_counter
 
     def __parse_bottom_up(self):

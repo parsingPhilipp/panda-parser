@@ -1,11 +1,12 @@
 import unittest
 
 from parser.viterbi.viterbi import ViterbiParser as Parser
+from parser.viterbi.left_branching import LeftBranchingParser
 from parser.viterbi.viterbi import ViterbiDerivation as Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
 from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
 from dependency.labeling import the_labeling_factory
-from dependency.induction import induce_grammar, direct_extraction, right_branching, the_terminal_labeling_factory
+from dependency.induction import induce_grammar, direct_extraction, left_branching, right_branching, the_terminal_labeling_factory
 from hybridtree.monadic_tokens import *
 from parser.sDCPevaluation.evaluator import *
 from hybridtree.general_hybrid_tree import HybridTree
@@ -33,7 +34,7 @@ class MyTestCase(unittest.TestCase):
         # print max([grammar.fanout(nont) for nont in grammar.nonts()])
         print grammar
 
-        parser = Parser(grammar, 'NP N V V'.split(' '))
+        parser = LeftBranchingParser(grammar, 'NP N V V'.split(' '))
 
         self.assertEqual(parser.recognized(), True)
 
