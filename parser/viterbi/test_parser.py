@@ -5,7 +5,7 @@ from parser.viterbi.viterbi import ViterbiDerivation as Derivation
 from parser.derivation_interface import derivation_to_hybrid_tree
 from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
 from dependency.labeling import the_labeling_factory
-from dependency.induction import induce_grammar, direct_extraction, the_terminal_labeling_factory
+from dependency.induction import induce_grammar, direct_extraction, right_branching, the_terminal_labeling_factory
 from hybridtree.monadic_tokens import *
 from parser.sDCPevaluation.evaluator import *
 from hybridtree.general_hybrid_tree import HybridTree
@@ -24,7 +24,7 @@ class MyTestCase(unittest.TestCase):
 
         labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
         term_pos = the_terminal_labeling_factory().get_strategy('pos').token_label
-        (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, direct_extraction, 'START')
+        (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, right_branching, 'START')
 
         # print grammar
 

@@ -111,6 +111,12 @@ def rule_to_passive_items_rec(item, input):
                 yield new_item
         left += 1
 
+def rule_to_passive_items_lc_opt(rule, low):
+    item = PassiveItem(rule.lhs().nont(), rule)
+    item.weight = log(rule.weight())
+    item.ranges.append(Range(low, low+1))
+    return item
+
 def rule_to_passive_items_lc(rule, input, low):
     """
     :type rule: LCFRS_rule
@@ -340,9 +346,8 @@ class ViterbiParser(AbstractParser):
         self.passives = defaultdict()
         self.goal = None
         # self.invalid_counter = 0
-        self.__parse_bottom_up()
-        # self.__lc__query = set()
-        # self.__parse_left_corner()
+        # self.__parse_bottom_up()
+        self.__parse_left_corner()
         # print "Invalid: ", self.invalid_counter
 
     def __parse_bottom_up(self):
@@ -391,12 +396,15 @@ class ViterbiParser(AbstractParser):
             #    raise Exception()
 
     def __parse_left_corner(self):
+        self.__lc__query = set()
         if len(self.input) == 0:
             raise Exception("not implemented")
         terminal = self.input[0]
-        for rule in self.grammar.left_corner(self.grammar.start(), terminal):
-            for item in rule_to_passive_items_lc(rule, self.input, 0):
-                self.__record_item(item)
+        for nont in self.grammar.left_corner(self.grammar.start()):
+            for rule in self.grammar.nont_lex(nont, terminal):
+                self.__record_item(rule_to_passive_items_lc_opt(rule, 0))
+                #for item in rule_to_passive_items_lc(rule, self.input, 0):
+                #    self.__record_item(item)
         while self.agenda:
             item = heapq.heappop(self.agenda)
             # print "Process: ", item
@@ -412,10 +420,15 @@ class ViterbiParser(AbstractParser):
                     self.active_chart[key].append(item)
 
                     if key not in self.__lc__query:
+                        for nont in self.grammar.left_corner(key[0]):
+                            if (nont, low) in self.__lc__query:
+                                continue
+                            self.__lc__query.add((nont, low))
+                            for rule in self.grammar.nont_lex(nont, self.input[low]):
+                                self.__record_item(rule_to_passive_items_lc_opt(rule, low))
+                                #for passive_item in rule_to_passive_items_lc(rule, self.input, low):
+                                #    self.__record_item(passive_item)
                         self.__lc__query.add(key)
-                        for rule in self.grammar.left_corner(key[0], self.input[low]):
-                            for passive_item in rule_to_passive_items_lc(rule, self.input, low):
-                                self.__record_item(passive_item)
 
                     for passive_item in self.passive_chart.get(key, []):
                         self.__combine(item, passive_item)

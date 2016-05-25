@@ -309,6 +309,7 @@ class LCFRS:
         # Mapping from nonterminal A to nonterminals B
         # that may generate the first terminal A's first component
         self.__left_corner_of = None
+        self.__full_left_corner = None
         if start:
             self.__start = start
             self.__nont_to_fanout[start] = 1
@@ -464,11 +465,15 @@ class LCFRS:
     def init_left_corner(self):
         time1 = time()
         self.__left_corner_of = defaultdict(set)
+        self.__left_corner_lex = defaultdict(list)
         changed = False
         for term in self.__first_term_of.keys():
             for rule in self.__first_term_of[term]:
-                self.__left_corner_of[rule.lhs().nont()].add(rule.lhs().nont())
+                nont = rule.lhs().nont()
+                self.__left_corner_of[nont].add(nont)
+                self.__left_corner_lex[nont, term].append(rule)
                 changed = True
+
         while changed:
             changed = False
             for nont in self.__left_corner_of.keys():
@@ -479,13 +484,34 @@ class LCFRS:
                             changed = True
         print "Left-corner: ", time() - time1
 
-    def left_corner(self, nont, term):
+    def full_left_corner(self, nontp):
         if not self.__left_corner_of:
             self.init_left_corner()
+        if not self.__full_left_corner:
+            self.__full_left_corner = defaultdict(list)
+            for nont in self.nonts():
+                for rule in self.lhs_nont_to_rules(nont):
+                    if rule.rhs():
+                        self.__full_left_corner[nont].append(rule.rhs_nont(0))
+                        changed = True
+            while changed:
+                changed = False
+                for nont in self.nonts():
+                    for nont2 in self.full_left_corner(nont):
+                        for nont3 in self.full_left_corner(nont2):
+                            if nont3 not in self.full_left_corner(nont):
+                                self.__full_left_corner[nont].append(nont3)
+                                changed = True
+        return self.__full_left_corner[nontp]
 
-        for lex_rule in self.lex_rules(term):
-            if lex_rule.lhs().nont() in self.__left_corner_of[nont]:
-                yield lex_rule
+    def left_corner(self, nont):
+        if not self.__left_corner_of:
+            self.init_left_corner()
+        return self.__left_corner_of[nont]
+
+    def nont_lex(self, nont, term):
+        return self.__left_corner_lex[nont, term]
+
 
 
 ############################################################
