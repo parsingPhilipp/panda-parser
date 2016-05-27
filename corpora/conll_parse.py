@@ -61,17 +61,20 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             # TODO: Create a definition-conform punctuation filter
             # cf. http://ilk.uvt.nl/conll/software.html#eval
             # How do you exclude tokens from scoring?
-            if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
-                tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, True)
-                if parent != '0':
-                    tree.add_child(parent, node_id)
+            if re.search(r'^[^\s]+-[^\s]+', node_id):
+              pass
             else:
-                tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, False)
+                if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
+                    tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, True)
+                    if parent != '0':
+                        tree.add_child(parent, node_id)
+                else:
+                    tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, False)
 
-            # TODO: If punctuation is ignored and the root is punctuation,
-            # TODO: it is added to the tree anyhow.
-            if parent == '0':
-                tree.add_to_root(node_id)
+                # TODO: If punctuation is ignored and the root is punctuation,
+                # TODO: it is added to the tree anyhow.
+                if parent == '0':
+                    tree.add_to_root(node_id)
 
             try:
                 line = file_content.next()
