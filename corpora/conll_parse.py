@@ -58,12 +58,14 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             parent = match.group(7)
             deprel = match.group(8)
 
-            # TODO: Create a definition-conform punctuation filter
-            # cf. http://ilk.uvt.nl/conll/software.html#eval
-            # How do you exclude tokens from scoring?
+            # We ignore information about multiple token's as present in the UD version of Prague Dep. TB
             if re.search(r'^[^\s]+-[^\s]+', node_id):
               pass
             else:
+                # TODO: Create a definition-conform punctuation filter
+                # cf. http://ilk.uvt.nl/conll/software.html#eval
+                # How do you exclude tokens from scoring?
+
                 if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
                     tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, True)
                     if parent != '0':
