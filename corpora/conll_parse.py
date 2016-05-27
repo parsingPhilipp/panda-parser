@@ -38,6 +38,8 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 
         try:
             line = file_content.next()
+            while line.startswith('#'):
+                line = file_content.next()
         except StopIteration:
             break
 
@@ -73,6 +75,8 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 
             try:
                 line = file_content.next()
+                while line.startswith('#'):
+                    line = file_content.next()
                 match = match_line(line)
             except StopIteration:
                 line = ''
