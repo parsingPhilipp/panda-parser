@@ -15,9 +15,7 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
-# from parser.naive.parsing import LCFRS_parser as NaiveParser
-# from parser.viterbi.viterbi import ViterbiParser as NaiveParser
-from parser.viterbi.left_branching import LeftBranchingParser as NaiveParser
+from parser.parser_factory import the_parser_factory
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 from evaluation import experiment_database
 
@@ -145,6 +143,7 @@ def induce_grammar_from_file(path
 
 
 def parse_sentences_from_file(grammar
+                              , parser_type
                               , experiment
                               , connection
                               , path
@@ -201,7 +200,7 @@ def parse_sentences_from_file(grammar
             continue
         time_stamp = time.clock()
 
-        parser = NaiveParser(grammar, tree_yield(tree.token_yield()))
+        parser = parser_type(grammar, tree_yield(tree.token_yield()))
         time_stamp = time.clock() - time_stamp
 
         cleaned_tokens = copy.deepcopy(tree.full_token_yield())
@@ -291,11 +290,16 @@ def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, le
         print("Error: Invalid recursive partitioning strategy: " + partitioning)
         exit(1)
 
+    parser_type = the_parser_factory().getParser(partitioning)
+    if parser_type is None:
+        print("Error: Invalid parser type: " + partitioning)
+        exit(1)
+
     connection = experiment_database.initialize_database(db_file)
     grammar, experiment = induce_grammar_from_file(training_corpus, connection, nont_labelling,
                                                    term_labeling_strategy, rec_par,
                                                    max_training, False, 'START', ignore_punctuation)
-    parse_sentences_from_file(grammar, experiment, connection, test_corpus, term_labeling_strategy.prepare_parser_input,
+    parse_sentences_from_file(grammar, parser_type, experiment, connection, test_corpus, term_labeling_strategy.prepare_parser_input,
                               length_limit, max_test, False, ignore_punctuation, root_default_deprel,
                               disconnected_default_deprel)
     experiment_database.finalize_database(connection)

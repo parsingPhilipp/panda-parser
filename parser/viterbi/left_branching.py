@@ -1,10 +1,9 @@
-from parser.parser_interface import AbstractParser
-from parser.viterbi.viterbi import ViterbiDerivation, Range, PassiveItem
+from parser.viterbi.viterbi import ViterbiParser, Range, PassiveItem
 from grammar.LCFRS.lcfrs import LCFRS_var
-from collections import defaultdict
 from sys import maxint
 from math import log
 import heapq
+
 
 class ActiveItem(PassiveItem):
     def __init__(self, nonterminal, rule):
@@ -113,6 +112,7 @@ class ActiveItem(PassiveItem):
     def is_active(self):
         return True
 
+
 def rule_to_active_item(rule, input, high):
     empty = ActiveItem(rule.lhs().nont(), rule)
     empty.weight = log(rule.weight())
@@ -169,29 +169,29 @@ def rule_to_passive_items_lc_opt(rule, high):
     return item
 
 
+class LeftBranchingParser(ViterbiParser):
+    def key(self, x):
+        return x.agenda_key_earley()
 
+    # def __init__(self, grammar, input):
+    #     """
+    #     :type grammar: LCFRS
+    #     :type input: list[str]
+    #     """
+    #     self.grammar = grammar
+    #     self.input = input
+    #     self.agenda = []
+    #     self.active_chart = defaultdict(list)
+    #     self.passive_chart = defaultdict(list)
+    #     self.actives = defaultdict()
+    #     self.passives = defaultdict()
+    #     self.goal = None
+    #
+    #     self.key = lambda x: x.agenda_key_earley()
+    #
+    #     self.__parse_earley()
 
-class LeftBranchingParser(AbstractParser):
-    def __init__(self, grammar, input):
-        """
-        :type grammar: LCFRS
-        :type input: list[str]
-        """
-        self.grammar = grammar
-        self.input = input
-        self.agenda = []
-        self.active_chart = defaultdict(list)
-        self.passive_chart = defaultdict(list)
-        self.actives = defaultdict()
-        self.passives = defaultdict()
-        self.goal = None
-
-        # self.key = lambda x: x.agenda_key()
-        self.key = lambda x: x.agenda_key_earley()
-
-        self.__parse_earley()
-
-    def __parse_earley(self):
+    def _parse(self):
         self.__lc__query = set()
         last_position = len(self.input)
         if last_position == 0:
@@ -200,9 +200,9 @@ class LeftBranchingParser(AbstractParser):
             if rule.rhs():
                 for active_item in rule_to_active_item(rule, self.input, last_position):
                     active_item.next_high = last_position
-                    self.__record_item(active_item)
+                    self._record_item(active_item)
             else:
-                self.__record_item(rule_to_passive_items_lc_opt(rule, last_position))
+                self._record_item(rule_to_passive_items_lc_opt(rule, last_position))
 
         self.__lc__query.add((self.grammar.start(), last_position))
 
@@ -222,13 +222,13 @@ class LeftBranchingParser(AbstractParser):
                         if rule.rhs():
                             for active_item in rule_to_active_item(rule, self.input, high):
                                 active_item.next_high = high
-                                self.__record_item(active_item)
+                                self._record_item(active_item)
                         else:
-                            self.__record_item(rule_to_passive_items_lc_opt(rule, high))
+                            self._record_item(rule_to_passive_items_lc_opt(rule, high))
                     self.__lc__query.add(key)
 
                 for passive_item in self.passive_chart.get(key, []):
-                    self.__combine(item, passive_item)
+                    self._combine(item, passive_item)
 
             else:  # if isinstance(item, PassiveItem):
                 # STOPPING EARLY:
@@ -241,9 +241,9 @@ class LeftBranchingParser(AbstractParser):
                 self.passive_chart[key].append(item)
 
                 for active_item in self.active_chart.get(key, []):
-                    self.__combine(active_item, item)
+                    self._combine(active_item, item)
 
-    def __combine(self, active_item, passive_item):
+    def _combine(self, active_item, passive_item):
         ranges, next_high = active_item.replace_consistent(passive_item)
         if ranges:
             new_active = ActiveItem(active_item.nonterminal, active_item.rule)
@@ -255,41 +255,26 @@ class LeftBranchingParser(AbstractParser):
             if new_active.complete():
                 new_active.make_passive()
 
-            self.__record_item(new_active)
+            self._record_item(new_active)
 
-    def __record_item(self, item):
-        key = self.key(item)
-        if item.is_active():
-            # print "Record: ", item.next_high, item
-            if key not in self.actives:
-                self.actives[key] = item
-                heapq.heappush(self.agenda, item)
-            # elif self.actives[key].weight < item.weight:
-            #     self.actives[key].valid = False
-            #     self.actives[key] = item
-            #     heapq.heappush(self.agenda, item)
-        else:
-            # print "Record: ", item
-            if key not in self.passives:
-                self.passives[key] = item
-                heapq.heappush(self.agenda, item)
-            elif self.passives[key].weight < item.weight:
-                self.passives[key].valid = False
-                # self.invalid_counter += 1
-                self.passives[key] = item
-                heapq.heappush(self.agenda, item)
-
-    def recognized(self):
-        return self.goal is not None
-
-    def all_derivation_trees(self):
-        pass
-
-    def best(self):
-        return self.goal.weight
-
-    def best_derivation_tree(self):
-        if self.goal:
-            return ViterbiDerivation(self.goal)
-        else:
-            return None
+    # def __record_item(self, item):
+    #     key = self.key(item)
+    #     if item.is_active():
+    #         # print "Record: ", item.next_high, item
+    #         if key not in self.actives:
+    #             self.actives[key] = item
+    #             heapq.heappush(self.agenda, item)
+    #         # elif self.actives[key].weight < item.weight:
+    #         #     self.actives[key].valid = False
+    #         #     self.actives[key] = item
+    #         #     heapq.heappush(self.agenda, item)
+    #     else:
+    #         # print "Record: ", item
+    #         if key not in self.passives:
+    #             self.passives[key] = item
+    #             heapq.heappush(self.agenda, item)
+    #         elif self.passives[key].weight < item.weight:
+    #             self.passives[key].valid = False
+    #             # self.invalid_counter += 1
+    #             self.passives[key] = item
+    #             heapq.heappush(self.agenda, item)
