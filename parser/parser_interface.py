@@ -71,6 +71,13 @@ class AbstractParser:
         else:
             return []
 
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        pass
+
 
 def best_hybrid_tree_for_best_derivation():
     pass

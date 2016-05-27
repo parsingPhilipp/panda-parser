@@ -499,6 +499,10 @@ class ViterbiParser(AbstractParser):
         else:
             return None
 
+    @staticmethod
+    def preprocess_grammar(grammar):
+        pass
+
 
 class RightBranchingParser(ViterbiParser):
     def key(self, x):
@@ -506,6 +510,14 @@ class RightBranchingParser(ViterbiParser):
 
     def _parse(self):
         self._parse_earley()
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        # precompute the prediction table for the earely parser
+        grammar.nont_lex_predict(None, None)
 
 
 class LeftCornerParser(ViterbiParser):
@@ -562,6 +574,13 @@ class LeftCornerParser(ViterbiParser):
                     for active_item in rule_to_active_item(rule, self.input, low):
                         self._combine(active_item, item)
 
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        # Precompute the left corner table
+        grammar.init_left_corner()
 
 class ViterbiDerivation(AbstractDerivation):
     def __init__(self, rootItem):

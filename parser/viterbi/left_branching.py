@@ -1,5 +1,5 @@
 from parser.viterbi.viterbi import ViterbiParser, Range, PassiveItem
-from grammar.LCFRS.lcfrs import LCFRS_var
+from grammar.LCFRS.lcfrs import LCFRS, LCFRS_var
 from sys import maxint
 from math import log
 import heapq
@@ -257,24 +257,10 @@ class LeftBranchingParser(ViterbiParser):
 
             self._record_item(new_active)
 
-    # def __record_item(self, item):
-    #     key = self.key(item)
-    #     if item.is_active():
-    #         # print "Record: ", item.next_high, item
-    #         if key not in self.actives:
-    #             self.actives[key] = item
-    #             heapq.heappush(self.agenda, item)
-    #         # elif self.actives[key].weight < item.weight:
-    #         #     self.actives[key].valid = False
-    #         #     self.actives[key] = item
-    #         #     heapq.heappush(self.agenda, item)
-    #     else:
-    #         # print "Record: ", item
-    #         if key not in self.passives:
-    #             self.passives[key] = item
-    #             heapq.heappush(self.agenda, item)
-    #         elif self.passives[key].weight < item.weight:
-    #             self.passives[key].valid = False
-    #             # self.invalid_counter += 1
-    #             self.passives[key] = item
-    #             heapq.heappush(self.agenda, item)
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        # precompute the left branching prediction table
+        grammar.left_branch_predict(None, None)

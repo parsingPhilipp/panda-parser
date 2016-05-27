@@ -172,6 +172,9 @@ def parse_sentences_from_file(grammar
     
     Parse sentences from corpus and compare derived dependency structure with gold standard information.
     """
+    if not quiet:
+        print "Building lookahead tables for grammar"
+        parser_type.preprocess_grammar(grammar)
 
     experiment_database.set_experiment_test_corpus(connection, experiment, path)
 
