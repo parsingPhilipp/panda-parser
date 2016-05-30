@@ -14,8 +14,28 @@ from hybridtree.test_multiroot import multi_dep_tree
 
 
 class InductionTest(unittest.TestCase):
-    def test_something(self):
-        self.assertEqual(True, True)
+    def test_recursive_partitioning_transformation(self):
+        tree = HybridTree("mytree")
+        ids = ['a', 'b', 'c', 'd']
+        for f in ids:
+            tree.add_node(f, CoNLLToken(f, '_', '_', '_', '_', '_'), True, True)
+            if f != 'a':
+                tree.add_child('a', f)
+        tree.add_to_root('a')
+
+        print tree
+        self.assertEqual([token.form() for token in tree.token_yield()], ids)
+        self.assertEqual(tree.recursive_partitioning(), (set([0, 1, 2, 3]), [(set([0]), []), (set([1]), []), (set([2]), []), (set([3]), [])]))
+        print tree.recursive_partitioning()
+
+        fanout_1 = the_recursive_partitioning_factory().getPartitioning('fanout-1')
+
+        print fanout_1(tree)
+
+
+
+        # self.assertEqual(True, True)
+
 
     def test_single_root_induction(self):
         tree = hybrid_tree_1()
