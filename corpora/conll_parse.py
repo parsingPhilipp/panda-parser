@@ -4,6 +4,7 @@ __author__ = 'kilian'
 
 import re
 import sys
+import string
 
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
@@ -13,6 +14,13 @@ def match_line(line):
     match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)'
                       r'\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)$', line)
     return match
+
+
+no_translation = string.maketrans("", "")
+
+
+def is_punctuation(form):
+    return not str(form).translate(no_translation, string.punctuation)
 
 
 def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
@@ -62,16 +70,17 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             if re.search(r'^[^\s]+-[^\s]+', node_id):
               pass
             else:
-                # TODO: Create a definition-conform punctuation filter
+                # If punctuation is to be ignored, we
+                # remove it from the hybrid tree
+                # Punctuation according to definition
                 # cf. http://ilk.uvt.nl/conll/software.html#eval
-                # How do you exclude tokens from scoring?
 
-                if not ignore_punctuation or (not re.search(r'^\$.*$', pos)):
-                    tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, True)
-                    if parent != '0':
-                        tree.add_child(parent, node_id)
-                else:
-                    tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, False)
+                # if not ignore_punctuation or form.translate(no_translation, string.punctuation):
+                tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, True)
+                if parent != '0':
+                    tree.add_child(parent, node_id)
+                # else:
+                #    tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, False)
 
                 # TODO: If punctuation is ignored and the root is punctuation,
                 # TODO: it is added to the tree anyhow.

@@ -7,7 +7,6 @@ sample_db = 'examples/sampledb.db'
 import re
 import os
 import copy
-
 import time
 import sys
 import itertools
@@ -16,7 +15,7 @@ from hybridtree.monadic_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as label
 from parser.parser_factory import the_parser_factory
-from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
+from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees, is_punctuation
 from evaluation import experiment_database
 
 
@@ -51,7 +50,7 @@ def disconnect_punctuation(trees):
             tree2.add_to_root(root_id)
         for id in tree.full_yield():
             token = tree.node_token(id)
-            if not re.search(r'^\$.*$', token.pos()):
+            if not is_punctuation(token.form()):
                 parent = tree.parent(id)
                 tree2.add_node(id, token, True, True)
                 tree2.add_child(parent, id)

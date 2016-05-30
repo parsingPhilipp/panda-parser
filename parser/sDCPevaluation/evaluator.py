@@ -2,8 +2,7 @@ __author__ = 'kilian'
 
 from grammar.sDCP.dcp import DCP_evaluator, DCP_term, DCP_position, DCP_string
 from parser.derivation_interface import AbstractDerivation
-import re
-
+from corpora.conll_parse import is_punctuation
 
 class The_DCP_evaluator(DCP_evaluator):
     # der: Derivation
@@ -83,7 +82,7 @@ def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token):
     j = 0
     for (i, token) in enumerate(tokens):
         # TODO: better punctuation detection
-        if ignore_punctuation and re.search('^\$.*$', token.pos()):
+        if ignore_punctuation and is_punctuation(token.form()):
             tree.add_node(str(i) + 'p', token, True, False)
         elif ignore_punctuation:
             tree.add_node(str(j), token, True, True)
