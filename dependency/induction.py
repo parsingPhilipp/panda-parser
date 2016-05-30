@@ -130,6 +130,10 @@ def direct_extraction(tree):
     return tree.recursive_partitioning()
 
 
+def cfg(tree):
+    return fanout_k(tree, 1)
+
+
 fanout_k = lambda tree, k: fanout_limited_partitioning(tree.recursive_partitioning(), k)
 
 
@@ -157,6 +161,7 @@ def the_recursive_partitioning_factory():
     factory.registerPartitioning('left-branching', left_branching)
     factory.registerPartitioning('right-branching', right_branching)
     factory.registerPartitioning('direct-extraction', direct_extraction)
+    factory.registerPartitioning('cfg', cfg)
     return factory
 
 
