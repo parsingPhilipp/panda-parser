@@ -12,10 +12,11 @@ import sys
 import itertools
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
+from hybridtree.dependency_tree import disconnect_punctuation
 import dependency.induction as d_i
 import dependency.labeling as label
 from parser.parser_factory import the_parser_factory
-from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees, is_punctuation
+from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 from evaluation import experiment_database
 
 
@@ -34,36 +35,6 @@ def add_trees_to_db(path, connection, trees):
     for tree in trees:
         experiment_database.add_tree(connection, tree, path)
         yield tree
-
-
-def disconnect_punctuation(trees):
-    """
-    :param trees: corpus of hybrid trees
-    :type trees: __generator[HybridTree]
-    :return: corpus of hybrid trees
-    :rtype: __generator[GeneralHybridTree]
-    lazily disconnect punctuation from each hybrid tree in a corpus of hybrid trees
-    """
-    for tree in trees:
-        tree2 = HybridTree(tree.sent_label())
-        for root_id in tree.root:
-            tree2.add_to_root(root_id)
-        for id in tree.full_yield():
-            token = tree.node_token(id)
-            if not is_punctuation(token.form()):
-                parent = tree.parent(id)
-                tree2.add_node(id, token, True, True)
-                tree2.add_child(parent, id)
-            else:
-                tree2.add_node(id, token, True, False)
-
-        if tree2:
-            # basic sanity checks
-            if not tree2.root:
-                continue
-            elif tree2.n_nodes() != len(tree2.id_yield()) or len(tree2.nodes()) != len(tree2.full_yield()):
-                continue
-            yield tree2
 
 
 def induce_grammar_from_file(path
