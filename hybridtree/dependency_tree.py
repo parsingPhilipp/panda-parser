@@ -1,6 +1,7 @@
 from corpora.conll_parse import is_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
 
+
 def disconnect_punctuation(trees):
     """
     :param trees: corpus of hybrid trees
@@ -31,6 +32,11 @@ def disconnect_punctuation(trees):
         if tree2:
             # basic sanity checks
             if not tree2.root \
+                    and len(tree2.id_yield()) == 0 \
+                    and len(tree2.nodes()) == len(tree2.full_yield()):
+                # Tree consists only of punctuation
+                continue
+            elif not tree2.root \
                     or tree2.n_nodes() != len(tree2.id_yield()) \
                     or len(tree2.nodes()) != len(tree2.full_yield()):
                 print tree
