@@ -77,6 +77,10 @@ class GeneralHybridTreeTestCase(unittest.TestCase):
         self.tree.reorder()
         self.assertListEqual([token.pos() for token in self.tree.token_yield()], "NP N VP V".split(' '))
 
+    def test_recursive_partitioning(self):
+        self.tree.reorder()
+        self.assertEqual(self.tree.recursive_partitioning(), ({0, 1, 2, 3}, [({0}, []), ({1, 3}, [({1}, []), ({3}, [])]), ({2}, [])]))
+
 
 if __name__ == '__main__':
     unittest.main()

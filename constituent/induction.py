@@ -121,7 +121,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming):
     args = []
     for span in spans:
         args += [span_to_arg(span, child_spans, tree, term_to_pos)]
-    # TODO: this root[0] is legaccy for single-rooted constituent trees
+    # root[0] is legacy for single-rooted constituent trees
     id_seq = make_id_seq(tree, tree.root[0], fringe)
     dcp_rules = []
     for (i, seq) in enumerate(id_seq):

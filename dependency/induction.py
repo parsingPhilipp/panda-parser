@@ -219,7 +219,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labell
             for arg in range(len(child[1])):
                 dcp.append(create_dcp_rule(cI, arg, t_max, b_max, child_t_b_max))
 
-                # create LCFRS-rule, attach dcp and add to grammar
+        # create LCFRS-rule, attach dcp and add to grammar
         lhs = create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling)
         rhs = [nont_name for (_, _, nont_name) in child_t_b_max]
         grammar.add_rule(lhs, rhs, 1.0, dcp)
