@@ -21,7 +21,8 @@ no_translation = string.maketrans("", "")
 
 def is_punctuation(form):
     # this is string.punctuation with $, % removed (which are PMOD, NMOD, COORD, NMOD with dependents in WSJ)
-    return not str(form).translate(no_translation, '!"&\'()*+#,/-:.?;<=>@[\\]^_`{|}~')
+    return not str(form).translate(no_translation, '!"&()*+#,/-:.?;<=>@[\\]^_{|}~')
+    # we allow the dollar sign $ and the quotation marks `` and ''
 
 
 def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
