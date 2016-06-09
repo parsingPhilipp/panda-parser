@@ -45,11 +45,11 @@ def compute_line(connection, ids, exp, max_length):
 
     percent = lambda x: percentify(x, precicion)
     line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(
-        map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids)))
+        map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids, 'recognized')))
     line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(
-        map(percent, eval_pl_scores(connection, test_corpus, exp)))
+        map(percent, eval_pl_scores(connection, test_corpus, exp, None, 'all')))
     line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(
-        map(percent, eval_pl_scores(connection, test_corpus, exp, ids)))
+        map(percent, eval_pl_scores(connection, test_corpus, exp, ids, 'intersection')))
 
     # UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, LEN_c = 0, 0, 0, 0, 0
     # for id in recogn_ids:

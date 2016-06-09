@@ -17,7 +17,7 @@ gold_prefix = '.tmp/gold-output'
 eval_pl = 'util/eval.pl'
 
 
-def eval_pl_scores(connection, corpus, experiment, filter=None):
+def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = ""):
     """
     :param connection: database connection
     :param corpus:  path to the gold standard corpus (CoNLL)
@@ -29,11 +29,11 @@ def eval_pl_scores(connection, corpus, experiment, filter=None):
     """
     if filter is None:
         filter = []
-    test_file_path = hypothesis_test_path(hypothesis_prefix, corpus, experiment)
+    test_file_path = hypothesis_test_path(hypothesis_prefix, corpus, experiment, filter_descr)
     if not filter:
         gold_file_path = corpus
     else:
-        gold_file_path = hypothesis_test_path(gold_prefix, corpus, experiment)
+        gold_file_path = hypothesis_test_path(gold_prefix, corpus, experiment, filter_descr)
 
     trees = dependency_experiments_db.parse_conll_corpus(corpus, False)
 
@@ -96,14 +96,14 @@ def eval_pl_scores(connection, corpus, experiment, filter=None):
     return las, uas, la
 
 
-def hypothesis_test_path(prefix, corpus, experiment):
+def hypothesis_test_path(prefix, corpus, experiment, filter_descr):
     """
     :param prefix: common prefix for system output
     :param corpus: path to corpus
     :param experiment: experiment id in database
     :return: path of system output file
     """
-    return '{:s}-{:s}-{:d}.conll'.format(prefix, corpus.split('/')[-1], experiment)
+    return '{:s}-{:s}-{:d}-{:s}.conll'.format(prefix, corpus.split('/')[-1], experiment, filter_descr)
 
 
 def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
