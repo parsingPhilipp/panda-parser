@@ -6,8 +6,11 @@ import copy
 import dependency.induction as d_i
 from dependency.labeling import the_labeling_factory
 from hybridtree.monadic_tokens import construct_conll_token
+from hybridtree.dependency_tree import disconnect_punctuation
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import *
+import subprocess32 as subprocess
+import os
 
 test_file = '../examples/Dependency_Corpus.conll'
 test_file_modified = '../examples/Dependency_Corpus_modified.conll'
@@ -15,6 +18,10 @@ slovene = 'slovene_multi_root.conll'
 
 conll_test = '../../dependency_conll/german/tiger/test/german_tiger_test.conll'
 conll_train = '../../dependency_conll/german/tiger/train/german_tiger_train.conll'
+
+hypothesis_prefix = '.tmp/sys-output'
+eval_pl = '../util/eval.pl'
+test_file_path = '/tmp/no-punctuation.conll'
 
 global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4       NK
 2       Göttinger       _       ADJA    ADJA    _       4       NK      4       NK
@@ -98,6 +105,50 @@ class CoNLLParserTest(unittest.TestCase):
             # print node_to_conll_str(trees[0], trees[0].root())
 
             # print tree_to_conll_str(trees[0])
+
+    def test_conll_generation(self):
+        test_trees = disconnect_punctuation(parse_conll_corpus(conll_test, True))
+        CoNLL_strings = []
+        for tree in test_trees:
+            CoNLL_strings.append(tree_to_conll_str(tree))
+
+        CoNLL_strings.append('')
+
+        # Remove file if exists
+        try:
+            os.remove(test_file_path)
+        except OSError:
+            pass
+
+        test_file = open(test_file_path, 'a+')
+        test_file.write('\n\n'.join(CoNLL_strings))
+        test_file.close()
+
+        eval_pl_call_strings = ["-g {!s}".format(conll_test), "-s {!s}".format(test_file_path), ""]
+        print eval_pl_call_strings
+        p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+
+        print out
+        print err
+
+        lines = out.split('\n')
+        # print lines
+        uas = 0.0
+        las = 0.0
+        la = 0.0
+        # for line in lines:
+        #     m = re.search(r'^\s*Labeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
+        #     if m:
+        #         las = float(m.group(1)) / 100
+        #     m = re.search(r'^\s*Unlabeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
+        #     if m:
+        #         uas = float(m.group(1)) / 100
+        #     m = re.search(r'^\s*Label\s*accuracy\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
+        #     if m:
+        #         la = float(m.group(1)) / 100
+
+        print uas, las, la
 
 
 if __name__ == '__main__':
