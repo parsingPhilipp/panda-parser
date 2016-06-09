@@ -62,8 +62,8 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
             node_id = match.group(1)
             form = match.group(2)
             lemma = match.group(3)
-            pos = match.group(4)
-            fine_grained_pos = match.group(5)
+            cpos = match.group(4)
+            pos = match.group(5)
             feats = match.group(6)
             parent = match.group(7)
             deprel = match.group(8)
@@ -78,7 +78,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
                 # cf. http://ilk.uvt.nl/conll/software.html#eval
 
                 # if not ignore_punctuation or form.translate(no_translation, string.punctuation):
-                tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, True)
+                tree.add_node(node_id, CoNLLToken(form, lemma, cpos, pos, feats, deprel), True, True)
                 if parent != '0':
                     tree.add_child(parent, node_id)
                 # else:
