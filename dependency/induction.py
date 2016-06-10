@@ -87,6 +87,18 @@ class PosTerminals(TerminalLabeling):
         return 'pos'
 
 
+class CPOS_KON_APPR(TerminalLabeling):
+    def token_label(self, token):
+        cpos = token.pos()
+        if cpos in ['KON', 'APPR']:
+            return cpos + token.form().lower()
+        else:
+            return cpos
+
+    def __str__(self):
+        return 'cpos-KON-APPR'
+
+
 class TerminalLabelingFactory:
     def __init__(self):
         self.__strategies = {}
@@ -114,6 +126,7 @@ def the_terminal_labeling_factory():
     factory.register_strategy('form', FormTerminals())
     factory.register_strategy('pos', PosTerminals())
     factory.register_strategy('cpos', CPosTerminals())
+    factory.register_strategy('cpos-KON-APPR', CPOS_KON_APPR())
     return factory
 
 
