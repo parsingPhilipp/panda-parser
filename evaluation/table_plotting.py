@@ -8,7 +8,7 @@ from evaluation.experiment_database import nontlabelling_strategies, recpac_stat
 __author__ = 'kilian'
 
 
-def compute_line(connection, ids, exp, max_length):
+def compute_line(connection, ids, exp, max_length, ignore_punctuation):
     line = {}
 
     cursor = connection.cursor()
@@ -36,10 +36,10 @@ def compute_line(connection, ids, exp, max_length):
 
     UAS_a, LAS_a, UAS_t, LAS_t, time_on_int = scores_and_parse_time(connection, ids, exp)
 
-    recogn_ids = recognised_sentences_lesseq_than(connection, exp, max_length, test_corpus)
+    recogn_ids = recognised_sentences_lesseq_than(connection, exp, max_length, test_corpus, ignore_punctuation)
     UAS_c_a, LAS_c_a, UAS_c_t, LAS_c_t, _ = scores_and_parse_time(connection, recogn_ids, exp)
 
-    total_parse_time = parse_time_trees_lesseq_than(connection, exp, max_length, test_corpus)
+    total_parse_time = parse_time_trees_lesseq_than(connection, exp, max_length, test_corpus, ignore_punctuation)
 
     precicion = 1
 
@@ -69,9 +69,9 @@ def compute_line(connection, ids, exp, max_length):
     # line['test_total'] = 'test sent.'
     # line['test_succ'] = 'succ'
     line['fail'] = test_sentences_length_lesseq_than(connection, test_corpus,
-                                                     max_length) - all_recognised_sentences_lesseq_than(connection, exp,
+                                                     max_length, ignore_punctuation) - all_recognised_sentences_lesseq_than(connection, exp,
                                                                                                         max_length,
-                                                                                                        test_corpus)
+                                                                                                        test_corpus, ignore_punctuation)
 
     line['UAS_avg'] = percentify(UAS_a, precicion)
     line['LAS_avg'] = percentify(LAS_a, precicion)
@@ -93,7 +93,7 @@ def compute_line(connection, ids, exp, max_length):
     return line
 
 
-def create_latex_table_from_database(connection, experiments, max_length=sys.maxint, pipe=sys.stdout):
+def create_latex_table_from_database(connection, experiments, max_length=sys.maxint, ignore_punctuation = False, pipe=sys.stdout):
     columns_style = {}
     table_columns = ['exp'
         , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
@@ -172,7 +172,7 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
             header[prefix + center + '_e'] = '$' + prefix + center + '_e$'
             columns_style[prefix + center + '_e'] = 'r'
 
-    common_results = common_recognised_sentences(connection, experiments, max_length)
+    common_results = common_recognised_sentences(connection, experiments, max_length, ignore_punctuation)
 
     pipe.write('''
     \\documentclass[a4paper,10pt, fullpage]{scrartcl}
@@ -200,11 +200,11 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
         pipe.write(' of length $\leq$ ' + str(max_length))
     pipe.write(': ' + str(
         len(common_results)) + ' / ' + str(
-        test_sentences_length_lesseq_than(connection, test_corpus, max_length)) + '}\\\\\n')
+        test_sentences_length_lesseq_than(connection, test_corpus, max_length, ignore_punctuation)) + '}\\\\\n')
     pipe.write('\t\\toprule\n')
     pipe.write('\t' + ' & '.join([header[id] for id in selected_columns]) + '\\\\\n')
     for exp in experiments:
-        line = compute_line(connection, common_results, exp, max_length)
+        line = compute_line(connection, common_results, exp, max_length, ignore_punctuation)
         pipe.write('\t' + ' & '.join([str(line[id]) for id in selected_columns]) + '\\\\\n')
     pipe.write('\t\\bottomrule\n')
     pipe.write('\\end{tabular}\n')

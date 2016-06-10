@@ -71,6 +71,7 @@ def plot_table(exp_db):
     experiments = []
     outfile = ''
     max_length = sys.maxint
+    ignore_punctuation = False
     for arg in sys.argv:
         match = re.search(r'^--experiments=((?:[0-9]|,|-)+)$', arg)
         if match:
@@ -114,6 +115,10 @@ def plot_table(exp_db):
         if match:
             max_length = int(match.group(1))
 
+        match = re.search(r'^--ignore-punctuation', arg)
+        if match:
+            ignore_punctuation = True
+
     # remove duplicates
     experiments = list(OrderedDict.fromkeys(experiments))
 
@@ -121,13 +126,14 @@ def plot_table(exp_db):
     print "exp: ", experiments
     print "out: ", outfile
     print "max_length: ", max_length
+    print "ignore punctuation ", ignore_punctuation
     if not outfile:
         print "No outfile specified!"
         exit(1)
 
     file = open(outfile, 'w')
     connection = experiment_database.initialize_database(exp_db)
-    evaluation.table_plotting.create_latex_table_from_database(connection, experiments, max_length, file)
+    evaluation.table_plotting.create_latex_table_from_database(connection, experiments, max_length, ignore_punctuation, file)
     experiment_database.finalize_database(connection)
     file.close()
 

@@ -466,13 +466,12 @@ def punct(p):
         assert ()
 
 
-def common_recognised_sentences(connection, experiments, max_length=sys.maxint):
+def common_recognised_sentences(connection, experiments, max_length=sys.maxint, ignore_punctuation = False):
     statement = '''
       SELECT trees.t_id
       FROM trees INNER JOIN result_trees
       ON trees.t_id = result_trees.t_id
       WHERE result_trees.exp_id IN ({0})
-      AND   trees.length <= ?
       AND status = "parse"
       GROUP BY trees.t_id
       HAVING count (DISTINCT result_trees.exp_id) = ?
@@ -480,58 +479,84 @@ def common_recognised_sentences(connection, experiments, max_length=sys.maxint):
     # statement = "SELECT * FROM tab WHERE obj IN ({0})".format(', '.join(['?' * len(list_of_vars)]))
     # print statement
     cursor = connection.cursor()
-    ids = cursor.execute(statement, experiments + [max_length, len(experiments)]).fetchall()
-    ids = map(lambda x: x[0], ids)
+    ids = cursor.execute(statement, experiments + [len(experiments)]).fetchall()
     # print ids
-    return ids
+    return filter_by_length(connection, map(lambda x: x[0], ids), max_length, ignore_punctuation)
 
 
-def test_sentences_length_lesseq_than(connection, test_corpus, length):
+def filter_by_length(connection, ids, max_length, ignore_punctuation):
     cursor = connection.cursor()
-    number = \
-        cursor.execute('SELECT count(t_id) FROM trees WHERE corpus = ? AND length <= ?',
-                       (test_corpus, length,)).fetchone()[
-            0]
-    return number
+    ids2 = []
+    for id in ids:
+        statement = '''
+        SELECT tree_nodes.label
+        FROM tree_nodes
+        WHERE tree_nodes.t_id = ?
+        '''
+        # print id, statement
+        nodes = cursor.execute(statement, [id]).fetchall()
+        if (not ignore_punctuation and len(nodes) <= max_length) \
+                or (ignore_punctuation and len(
+                    filter(lambda x: not conll_parse.is_punctuation(x[0]), nodes)) <= max_length):
+            ids2.append(id)
+    return ids2
 
 
-def all_recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
+def test_sentences_length_lesseq_than(connection, test_corpus, length, ignore_punctuation):
     cursor = connection.cursor()
-    number = cursor.execute('''
-    SELECT count(trees.t_id)
-    FROM trees JOIN result_trees
-      ON trees.t_id = result_trees.t_id
-    WHERE trees.corpus = ?
-      AND trees.length <= ?
-      AND status = "parse"
-      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id,)).fetchone()[0]
-    return number
+    ids = cursor.execute('SELECT t_id FROM trees WHERE corpus = ?',
+                       (test_corpus,)).fetchall()
+    return len(filter_by_length(connection, map(lambda x: x[0], ids), length, ignore_punctuation))
 
 
-def recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus):
+def all_recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus, ignore_punctuation):
     cursor = connection.cursor()
     ids = cursor.execute('''
     SELECT trees.t_id
     FROM trees JOIN result_trees
       ON trees.t_id = result_trees.t_id
     WHERE trees.corpus = ?
-      AND trees.length <= ?
       AND status = "parse"
-      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id,)).fetchall()
-    ids = map(lambda x: x[0], ids)
-    return ids
+      AND result_trees.exp_id = ?''', (test_corpus, exp_id,)).fetchall()
+    return len(filter_by_length(connection, map(lambda x: x[0], ids), length, ignore_punctuation))
 
 
-def parse_time_trees_lesseq_than(connection, exp_id, length, test_corpus):
+def recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus, ignore_punctuation):
     cursor = connection.cursor()
-    time = cursor.execute('''
-    SELECT sum(result_trees.parse_time)
+    ids = cursor.execute('''
+    SELECT trees.t_id
     FROM trees JOIN result_trees
       ON trees.t_id = result_trees.t_id
     WHERE trees.corpus = ?
-      AND trees.length <= ?
-      AND result_trees.exp_id = ?''', (test_corpus, length, exp_id,)).fetchall()
-    return time[0][0]
+      AND status = "parse"
+      AND result_trees.exp_id = ?''', (test_corpus, exp_id,)).fetchall()
+
+    return filter_by_length(connection, map(lambda x: x[0], ids), length, ignore_punctuation)
+
+
+def parse_time_trees_lesseq_than(connection, exp_id, length, test_corpus, ignore_punctuation):
+    cursor = connection.cursor()
+    total_time = 0
+
+    ids = cursor.execute('''
+    SELECT trees.t_id
+    FROM trees JOIN result_trees
+      ON trees.t_id = result_trees.t_id
+    WHERE trees.corpus = ?
+      AND result_trees.exp_id = ?''', (test_corpus, exp_id,)).fetchall()
+
+    ids = filter_by_length(connection, map(lambda x: x[0], ids), length, ignore_punctuation)
+
+    for tree_id in ids:
+        time = cursor.execute('''
+        SELECT result_trees.parse_time
+        FROM trees JOIN result_trees
+          ON trees.t_id = result_trees.t_id
+        WHERE trees.corpus = ?
+          AND result_trees.exp_id = ?
+          AND trees.t_id = ?''', (test_corpus, exp_id, tree_id, )).fetchone()[0]
+        total_time += time
+    return total_time
 
 
 def percentify(value, precicion):
