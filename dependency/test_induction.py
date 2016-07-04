@@ -1,3 +1,4 @@
+#-*- coding: iso-8859-15 -*-
 __author__ = 'kilian'
 
 import unittest
@@ -11,6 +12,7 @@ from parser.viterbi.viterbi import ViterbiParser as LCFRS_parser
 from dependency.labeling import the_labeling_factory
 from grammar.sDCP.dcp import DCP_string
 from hybridtree.test_multiroot import multi_dep_tree
+from grammar.linearization import linearize
 
 
 class InductionTest(unittest.TestCase):
@@ -117,6 +119,8 @@ class InductionTest(unittest.TestCase):
         dcp_string = DCP_string(string)
         dcp_string.set_dep_label("bar")
         print dcp_string, dcp_string.dep_label()
+
+        linearize(grammar, the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'), the_terminal_labeling_factory().get_strategy('pos'))
 
     def test_multiroot(self):
         tree = multi_dep_tree()

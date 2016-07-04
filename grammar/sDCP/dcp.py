@@ -17,7 +17,7 @@ class DCP_rhs_object:
     # evaluator: DCP_evaluator
     # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
-    def evaluateMe(self, evaluator, id):
+    def evaluateMe(self, evaluator, id=None):
         """
         :type evaluator: DCP_evaluator
         :param id: node id (gorn term) in LCFRS-derivation tree
@@ -68,6 +68,10 @@ class DCP_evaluator:
     def evaluateIndex(self, var, id):
         pass
 
+    @abstractmethod
+    def evaluateVariable(self, var, id):
+        pass
+
 
 # Variable identifying argument (synthesized or inherited).
 # In LHS this is (-1,j) and in RHS this is (i,j),
@@ -98,8 +102,9 @@ class DCP_var(DCP_rhs_object):
         else:
             return '<' + str(self.mem()) + ',' + str(self.arg()) + '>'
 
-    def evaluateMe(self, evaluator, id):
+    def evaluateMe(self, evaluator, id=None):
         return evaluator.evaluateVariable(self, id)
+
 
 
 # Index, pointing to terminal in left (LCFRS) component of hybrid grammar.
@@ -130,7 +135,7 @@ class DCP_index(DCP_rhs_object):
         return '[' + str(self.index()) + s + ']'
 
     # Evaluator Invocation
-    def evaluateMe(self, evaluator, id):
+    def evaluateMe(self, evaluator, id=None):
         return evaluator.evaluateIndex(self, id)
 
 
@@ -146,7 +151,7 @@ class DCP_string(str, DCP_rhs_object):
         return self.__dep_label
 
     # Evaluator invocation
-    def evaluateMe(self, evaluator, id):
+    def evaluateMe(self, evaluator, id=None):
         return evaluator.evaluateString(self, id)
 
 
@@ -203,17 +208,17 @@ class DCP_term(DCP_rhs_object):
         return str(self.head()) + '(' + dcp_terms_to_str(self.arg()) + ')'
 
     # Evaluator invocation
-    def evaluateMe(self, evaluator, id):
+    def evaluateMe(self, evaluator, id=None):
         return evaluator.evaluateTerm(self, id)
 
 
 # Rule defining argument value by term.
 class DCP_rule:
-    # Constructor.
-    # lhs: DCP_var
-    # rhs: list of DCP_term/DCP_index TODO: outdated
-    # rhs: list of DCP_rhs_object (DCP_term / DCP_var)
     def __init__(self, lhs, rhs):
+        """
+        :type lhs: DCP_var
+        :type rhs: list(DCP_rhs_object)
+        """
         self.__lhs = lhs
         self.__rhs = rhs
 
