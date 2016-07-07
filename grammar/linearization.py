@@ -26,13 +26,20 @@ def linearize(grammar, nonterminal_labeling, terminal_labeling):
 
         sync_index = {}
         inh_args = defaultdict(lambda: 0)
+        lhs_var_counter = CountLHSVars()
         for dcp in rule.dcp():
-            inh_args[dcp.lhs().mem()] += 1
+            if dcp.lhs().mem() != -1:
+                inh_args[dcp.lhs().mem()] += 1
+            inh_args[-1] += lhs_var_counter.evaluateList(dcp.rhs())
+
         for dcp in rule.dcp():
             printer = OUTPUT_DCP(terminals.object_index, rule, sync_index, inh_args)
             printer.evaluateList(dcp.rhs())
             var = dcp.lhs()
-            var_string = 's<' + str(var.mem() + 1) + "," + str(var.arg() + 1) + ">"
+            if var.mem() == -1:
+                var_string = 's<0,' + str(var.arg() + 1 - inh_args[-1]) + ">"
+            else:
+                var_string = 's<' + str(var.mem() + 1) + "," + str(var.arg() + 1) + ">"
             print rid, 'sDCP  ', var_string, '==', printer.string, ';'
 
         s = 0
@@ -121,9 +128,33 @@ class DCP_Labels(DCP_evaluator):
     def __init__(self):
         self.labels = set()
 
+class CountLHSVars(DCP_evaluator):
+    def evaluateVariable(self, var, id):
+        if var.mem() == -1:
+            return 1
+        else:
+            return 0
+
+    def evaluateString(self, s, id):
+        return 0
+
+    def evaluateTerm(self, term, id):
+        return term.head().evaluateMe(self) + self.evaluateList(term.arg())
+
+    def evaluateList(self, xs):
+        return sum([x.evaluateMe(self) for x in xs])
+
+    def evaluateIndex(self, index, id):
+        return 0
+
+
 class OUTPUT_DCP(DCP_evaluator):
     def evaluateVariable(self, var, id):
-        self.string += 'x<' + str(var.mem() + 1) + "," + str(var.arg() + 1 - self.inh_args[var.mem()]) + "> "
+        if (var.mem() != -1):
+            self.string += 'x<' + str(var.mem() + 1) + "," + str(var.arg() + 1 - self.inh_args[var.mem()]) + "> "
+        else:
+            self.string += 'x<' + str(var.mem() + 1) + "," + str(var.arg() + 1) + "> "
+
 
     def __init__(self, terminal_to_index, rule, sync_index, inh_args):
         self.terminal_to_index = terminal_to_index
