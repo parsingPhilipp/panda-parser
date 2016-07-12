@@ -74,12 +74,17 @@ def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
     print >>file
 
     print >>file, "Nonterminal ID, nonterminal name, fanout, #inh, #synth: "
-    max_fanout, max_inh, max_syn, max_args = nonterminals.print_index_and_stats(grammar, num_inherited_args, num_synthezied_args)
+    max_fanout, max_inh, max_syn, max_args, fanouts, inherits, synths, args = nonterminals.print_index_and_stats(grammar, num_inherited_args, num_synthezied_args)
     print >>file
     print >>file, "max fanout:", max_fanout
     print >>file, "max inh:", max_inh
     print >>file, "max synth:", max_syn
     print >>file, "max args:", max_args
+    print >>file
+    for s, d, m in [('fanout', fanouts, max_fanout), ('inh', inherits, max_inh), ('syn', synths, max_syn), ('args', args, max_args)]:
+        for i in range(m + 1):
+            print >> file, '# the number of nonterminals with', s, '=', i, 'is', d[i]
+        print >> file
     print >>file
 
     print >>file, "Initial nonterminal: ", nonterminals.object_index(grammar.start())
@@ -114,18 +119,26 @@ class Enumerator:
             print >> self.file, i, self.index_object(i)
 
     def print_index_and_stats(self, grammar, inh, syn):
+        fanouts = defaultdict(lambda: 0)
+        inherits = defaultdict(lambda: 0)
+        synths = defaultdict(lambda: 0)
+        args = defaultdict(lambda: 0)
         max_fanout = 0
         max_inh = 0
         max_syn = 0
         max_args = 0
         for i in range (1, self.counter + 1):
             fanout = grammar.fanout(self.index_object(i))
+            fanouts[fanout] += 1
             max_fanout = max(max_fanout, fanout)
+            inherits[inh[i]] += 1
             max_inh = max(max_inh, inh[i])
+            synths[syn[i]] += 1
             max_syn = max(max_syn, syn[i])
+            args[inh[i] + syn[i]] += 1
             max_args = max(max_args, inh[i] + syn[i])
             print >>self.file, i, self.index_object(i), fanout, inh[i], syn[i]
-        return max_fanout, max_inh, max_syn, max_args
+        return max_fanout, max_inh, max_syn, max_args, fanouts, inherits, synths, args
 
 class DCP_Labels(DCP_evaluator):
     def evaluateString(self, s, id):
