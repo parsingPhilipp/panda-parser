@@ -18,6 +18,7 @@ import dependency.labeling as label
 from parser.parser_factory import the_parser_factory
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 from evaluation import experiment_database
+from grammar.linearization import linearize
 
 
 def add_trees_to_db(path, connection, trees):
@@ -108,6 +109,9 @@ def induce_grammar_from_file(path
 
     print experiment
     experiment_database.add_grammar(connection, grammar, experiment)
+    grammar_output = open('.tmp/grammar-' + str(experiment) + '.gra', 'w')
+    linearize(grammar, nont_labelling, term_labelling, grammar_output)
+
     assert grammar.ordered()
     return grammar, experiment
 
@@ -239,7 +243,7 @@ def test_conll_grammar_induction():
     experiment_database.finalize_database(db_connection)
 
 
-def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, length_limit, labeling, terminal_labeling,
+def run_experiment(db_file, training_corpus, test_corpus, do_parse, ignore_punctuation, length_limit, labeling, terminal_labeling,
                    partitioning, root_default_deprel, disconnected_default_deprel, max_training, max_test):
     labeling_choices = labeling.split('-')
     if len(labeling_choices) == 2:
@@ -272,9 +276,10 @@ def run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, le
     grammar, experiment = induce_grammar_from_file(training_corpus, connection, nont_labelling,
                                                    term_labeling_strategy, rec_par,
                                                    max_training, False, 'START', ignore_punctuation)
-    parse_sentences_from_file(grammar, parser_type, experiment, connection, test_corpus, term_labeling_strategy.prepare_parser_input,
-                              length_limit, max_test, False, ignore_punctuation, root_default_deprel,
-                              disconnected_default_deprel)
+    if do_parse:
+        parse_sentences_from_file(grammar, parser_type, experiment, connection, test_corpus, term_labeling_strategy.prepare_parser_input,
+                                  length_limit, max_test, False, ignore_punctuation, root_default_deprel,
+                                  disconnected_default_deprel)
     experiment_database.finalize_database(connection)
 
 
@@ -292,6 +297,7 @@ def single_experiment_from_config_file(config_path):
     ignore_punctuation = False
     root_default_deprel = None
     disconnected_default_deprel = None
+    do_parse = not "--no-parsing" in sys.argv
     max_train = sys.maxint
     max_test = sys.maxint
     max_length = sys.maxint
@@ -388,7 +394,7 @@ def single_experiment_from_config_file(config_path):
         print "Error: no recursive partitioning strategy specified."
         exit(1)
 
-    run_experiment(db_file, training_corpus, test_corpus, ignore_punctuation, max_length, labeling, terminal_labeling,
+    run_experiment(db_file, training_corpus, test_corpus, do_parse, ignore_punctuation, max_length, labeling, terminal_labeling,
                    partitioning, root_default_deprel, disconnected_default_deprel, max_train, max_test)
 
 

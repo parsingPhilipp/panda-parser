@@ -3,6 +3,7 @@ __author__ = 'kilian'
 
 import unittest
 import copy
+import sys
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from dependency.induction import induce_grammar, direct_extraction, left_branching, the_terminal_labeling_factory, \
@@ -120,7 +121,7 @@ class InductionTest(unittest.TestCase):
         dcp_string.set_dep_label("bar")
         print dcp_string, dcp_string.dep_label()
 
-        linearize(grammar, the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'), the_terminal_labeling_factory().get_strategy('pos'))
+        linearize(grammar, the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'), the_terminal_labeling_factory().get_strategy('pos'), sys.stdout)
 
     def test_multiroot(self):
         tree = multi_dep_tree()

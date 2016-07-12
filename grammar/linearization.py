@@ -2,35 +2,42 @@ from LCFRS.lcfrs import *
 from sDCP.dcp import *
 
 
-def linearize(grammar, nonterminal_labeling, terminal_labeling):
+def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
     """
     :type grammar: LCFRS
     :param nonterminal_labeling:
     :param terminal_labeling:
     :return:
     """
-    print "Nonterminal Labeling: ", nonterminal_labeling
-    print "Terminal Labeling: ", terminal_labeling
-    print
+    print >>file, "Nonterminal Labeling: ", nonterminal_labeling
+    print >>file, "Terminal Labeling: ", terminal_labeling
+    print >>file
 
-    terminals = Enumerator()
-    nonterminals = Enumerator()
+    terminals = Enumerator(file)
+    nonterminals = Enumerator(file)
+    num_inherited_args = {}
+    num_synthezied_args = {}
 
     for i, rule in enumerate(grammar.rules()):
         rid = 'r'+str(i+1)
-        print rid, 'RTG   ', nonterminals.object_index(rule.lhs().nont()), '->',
-        print map(lambda nont: nonterminals.object_index(nont), rule.rhs()), ';'
+        print >>file, rid, 'RTG   ', nonterminals.object_index(rule.lhs().nont()), '->',
+        print >>file, map(lambda nont: nonterminals.object_index(nont), rule.rhs()), ';'
         #for rhs_nont in rule.rhs():
         #    print nonterminals[rhs_nont],
-        print rid , 'WEIGHT', rule.weight(), ';'
+        print >>file, rid , 'WEIGHT', rule.weight(), ';'
 
         sync_index = {}
         inh_args = defaultdict(lambda: 0)
         lhs_var_counter = CountLHSVars()
+        synth_attributes = 0
         for dcp in rule.dcp():
             if dcp.lhs().mem() != -1:
                 inh_args[dcp.lhs().mem()] += 1
+            else:
+                synth_attributes += 1
             inh_args[-1] += lhs_var_counter.evaluateList(dcp.rhs())
+        num_inherited_args[nonterminals.object_index(rule.lhs().nont())] = inh_args[-1]
+        num_synthezied_args[nonterminals.object_index(rule.lhs().nont())] = synth_attributes
 
         for dcp in rule.dcp():
             printer = OUTPUT_DCP(terminals.object_index, rule, sync_index, inh_args)
@@ -40,43 +47,50 @@ def linearize(grammar, nonterminal_labeling, terminal_labeling):
                 var_string = 's<0,' + str(var.arg() + 1 - inh_args[-1]) + ">"
             else:
                 var_string = 's<' + str(var.mem() + 1) + "," + str(var.arg() + 1) + ">"
-            print rid, 'sDCP  ', var_string, '==', printer.string, ';'
+            print >>file, rid, 'sDCP  ', var_string, '==', printer.string, ';'
 
         s = 0
         for j, arg in enumerate(rule.lhs().args()):
-            print rid, 'LCFRS ', 's<0,' + str(j + 1) + '>', '==', '[',
+            print >>file, rid, 'LCFRS ', 's<0,' + str(j + 1) + '>', '==', '[',
             first = True
             for a in arg:
                 if not first:
-                    print ",",
+                    print >>file, ",",
                 if isinstance(a, LCFRS_var):
-                    print "x<{0!s},{1!s}>".format(a.mem + 1, a.arg + 1),
+                    print >>file, "x<{0!s},{1!s}>".format(a.mem + 1, a.arg + 1),
                     pass
                 else:
                     if s in sync_index:
-                        print str(terminals.object_index(a)) + '^{' + str(sync_index[s]) +'}',
+                        print >>file, str(terminals.object_index(a)) + '^{' + str(sync_index[s]) +'}',
                     else:
-                        print str(terminals.object_index(a)),
+                        print >>file, str(terminals.object_index(a)),
                     s += 1
                 first = False
-            print '] ;'
-        print
+            print >>file, '] ;'
+        print >>file
 
-    print "Terminals: "
+    print >>file, "Terminals: "
     terminals.print_index()
-    print
+    print >>file
 
-    print "Nonterminals: "
-    nonterminals.print_index()
-    print
+    print >>file, "Nonterminal ID, nonterminal name, fanout, #inh, #synth: "
+    max_fanout, max_inh, max_syn, max_args = nonterminals.print_index_and_stats(grammar, num_inherited_args, num_synthezied_args)
+    print >>file
+    print >>file, "max fanout:", max_fanout
+    print >>file, "max inh:", max_inh
+    print >>file, "max synth:", max_syn
+    print >>file, "max args:", max_args
+    print >>file
 
-    print "Initial nonterminal: ", nonterminals.object_index(grammar.start())
+    print >>file, "Initial nonterminal: ", nonterminals.object_index(grammar.start())
+    print >>file
 
 class Enumerator:
-    def __init__(self):
+    def __init__(self, file):
         self.counter = 0
         self.obj_to_ind = {}
         self.ind_to_obj = {}
+        self.file = file
 
     def index_object(self, i):
         """
@@ -96,9 +110,22 @@ class Enumerator:
             return self.counter
 
     def print_index(self):
-        for i in range (1, self.counter + 1):
-            print i, self.index_object(i)
+        for i in range(1, self.counter + 1):
+            print >> self.file, i, self.index_object(i)
 
+    def print_index_and_stats(self, grammar, inh, syn):
+        max_fanout = 0
+        max_inh = 0
+        max_syn = 0
+        max_args = 0
+        for i in range (1, self.counter + 1):
+            fanout = grammar.fanout(self.index_object(i))
+            max_fanout = max(max_fanout, fanout)
+            max_inh = max(max_inh, inh[i])
+            max_syn = max(max_syn, syn[i])
+            max_args = max(max_args, inh[i] + syn[i])
+            print >>self.file, i, self.index_object(i), fanout, inh[i], syn[i]
+        return max_fanout, max_inh, max_syn, max_args
 
 class DCP_Labels(DCP_evaluator):
     def evaluateString(self, s, id):
