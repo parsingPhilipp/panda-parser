@@ -5,7 +5,7 @@
 from collections import defaultdict, namedtuple
 import codecs
 import re
-from time import time
+import time
 
 from grammar.sDCP.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
 
@@ -465,7 +465,7 @@ class LCFRS:
         return self.__lhs_nont_to_rules[nont]
 
     def init_left_corner(self):
-        time1 = time()
+        time1 = time.time()
         self.__left_corner_of = defaultdict(set)
         self.__left_corner_lex = defaultdict(list)
         changed = False
@@ -484,7 +484,7 @@ class LCFRS:
                         if lex_nont not in self.__left_corner_of[rule.lhs().nont()]:
                             self.__left_corner_of[rule.lhs().nont()].add(lex_nont)
                             changed = True
-        print "Left-corner: ", time() - time1
+        print "Left-corner: ", time.time() - time1
 
     def full_left_corner(self, nontp):
         if not self.__left_corner_of:
@@ -516,7 +516,7 @@ class LCFRS:
 
     def nont_lex_predict(self, nont_p, term_p):
         if not self.__nont_lex_predict:
-            start = time()
+            start = time.time()
             lc_tmp = defaultdict(set)
 
             changed = False
@@ -546,12 +546,12 @@ class LCFRS:
                     else:
                         self.__nont_lex_predict[(nont, rule.lhs().arg(0)[0])].append(rule)
 
-            print "nont lex prediction table: ", time() - start
+            print "nont lex prediction table: ", time.time() - start
         return self.__nont_lex_predict[(nont_p, term_p)]
 
     def left_branch_predict(self, nont_p, term_p):
         if not self.__left_branch_predict:
-            start = time()
+            start = time.time()
             rc_tmp = defaultdict(set)
 
             changed = False
@@ -586,7 +586,7 @@ class LCFRS:
                             self.__left_branch_predict[(nont, term)].append(rule)
                     else:
                         self.__left_branch_predict[(nont, rule.lhs().arg(0)[0])].append(rule)
-            print "left branching prediction table", time() - start
+            print "left branching prediction table", time.time() - start
         return self.__left_branch_predict[(nont_p, term_p)]
 
 ############################################################

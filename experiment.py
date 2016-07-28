@@ -10,6 +10,8 @@ from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
     start as induction_start
 from parser.naive.parsing import *
+from parser.viterbi.left_branching import ViterbiParser as LeftBrachingParser
+from parser.viterbi.viterbi import RightBranchingParser, ViterbiParser
 from decomposition import *
 
 # Different corpora and subsets of the corpora
@@ -487,7 +489,7 @@ def add_gram(tree, gram, method):
 # Parse test sentences with induced corpus.
 # max_length: int
 # method: function from HybridTree to LCFRS
-def parse_test(max_length, method=direct_extract_lcfrs):
+def parse_test(max_length, method=direct_extract_lcfrs, parser=LCFRS_parser):
     g = induce(method=method)
     # print g # for testing
     accuracy = ParseAccuracy()
@@ -498,7 +500,7 @@ def parse_test(max_length, method=direct_extract_lcfrs):
     print 'Parsing', corpus, first, '-', last
     start_at = time.time()
     n = do_range(first, last,
-                 lambda tree: parse_tree_by_gram(tree, g, accuracy),
+                 lambda tree: parse_tree_by_gram(tree, g, parser, accuracy),
                  lambda tree: tree.complete() and not tree.empty_fringe() \
                               and 2 <= len(tree.word_yield()) <= max_length \
                  # UNCOMMENT following line to restrict attention to sentences with gaps   # and tree.n_gaps() > 0
@@ -519,7 +521,7 @@ def parse_test(max_length, method=direct_extract_lcfrs):
 
 
 # Parse test sentence (yield of tree) using grammar.
-def parse_tree_by_gram(tree, gram, accuracy):
+def parse_tree_by_gram(tree, gram, parser, accuracy):
     global n_nodes_gold
     global n_gaps_gold
     global n_nodes_test
@@ -530,7 +532,7 @@ def parse_tree_by_gram(tree, gram, accuracy):
     n_gaps_gold += tree.n_gaps()
     # tree.canvas() # for testing
     # print tree.n_gaps() # for testing
-    p = LCFRS_parser(gram, poss)
+    p = parser(gram, poss)
     if not p.recognized():
         accuracy.add_failure()
     # print 'failure', tree.sent_label() # for testing
@@ -552,11 +554,11 @@ def parse_tree_by_gram(tree, gram, accuracy):
 # parse_test(20, method=fanout_two_extraction)
 # parse_test(20, method=fanout_three_extraction)
 # parse_test(20, method=fanout_four_extraction)
-# parse_test(20, method=left_branch_extraction)
-# parse_test(20, method=right_branch_extraction)
+parse_test(20, method=left_branch_extraction, parser=LeftBrachingParser)
+parse_test(20, method=right_branch_extraction, parser=RightBranchingParser)
 
-parse_test(20, method=left_branch_extraction_child)
-# parse_test(20, method=right_branch_extraction_child)
+parse_test(20, method=left_branch_extraction_child, parser=LeftBrachingParser)
+parse_test(20, method=right_branch_extraction_child, parser=RightBranchingParser)
 # parse_test(20, method=cfg_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
 # parse_test(20, method=fanout_three_extraction_child)
