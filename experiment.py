@@ -23,8 +23,8 @@ tiger_any = ['tiger', 'tiger subset']
 # corpus = 'negra nonproj'
 # corpus = 'negra proj'
 # corpus = 'negra nonproj subset'
-# corpus = 'tiger'
-corpus = 'tiger subset'
+corpus = 'tiger'
+# corpus = 'tiger subset'
 
 # ## negra
 # The one sentence with fanout 3:
@@ -116,7 +116,8 @@ def last_training_sentence():
     elif corpus in negra_any:
         return 18602  # corresponding to Dubey & Keller (ACL2003)
     elif corpus == 'tiger':
-        return 7000
+        # return 7000
+	return 40000
     elif corpus == 'tiger subset':
         return 450
     else:
@@ -130,7 +131,8 @@ def first_test_sentence():
     elif corpus in negra_any:
         return 18603  # corresponding to Dubey & Keller (ACL2003)
     elif corpus == 'tiger':
-        return 7001
+#        return 7001
+	return 40001
     elif corpus == 'tiger subset':
         return 451
     else:
@@ -144,7 +146,8 @@ def last_test_sentence():
     elif corpus in negra_any:
         return 19602  # corresponding to Dubey & Keller (ACL2003)
     elif corpus == 'tiger':
-        return 7500
+#        return 7500
+	return 50474
     elif corpus == 'tiger subset':
         return 500
     else:
