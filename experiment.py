@@ -10,7 +10,7 @@ from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
     start as induction_start
 from parser.naive.parsing import *
-from parser.viterbi.left_branching import ViterbiParser as LeftBrachingParser
+from parser.viterbi.left_branching import LeftBranchingParser
 from parser.viterbi.viterbi import RightBranchingParser, ViterbiParser
 from decomposition import *
 
@@ -554,10 +554,10 @@ def parse_tree_by_gram(tree, gram, parser, accuracy):
 # parse_test(20, method=fanout_two_extraction)
 # parse_test(20, method=fanout_three_extraction)
 # parse_test(20, method=fanout_four_extraction)
-parse_test(20, method=left_branch_extraction, parser=LeftBrachingParser)
+parse_test(20, method=left_branch_extraction, parser=LeftBranchingParser)
 parse_test(20, method=right_branch_extraction, parser=RightBranchingParser)
 
-parse_test(20, method=left_branch_extraction_child, parser=LeftBrachingParser)
+parse_test(20, method=left_branch_extraction_child, parser=LeftBranchingParser)
 parse_test(20, method=right_branch_extraction_child, parser=RightBranchingParser)
 # parse_test(20, method=cfg_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
