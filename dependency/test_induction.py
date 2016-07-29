@@ -31,7 +31,7 @@ class InductionTest(unittest.TestCase):
         self.assertEqual(tree.recursive_partitioning(), (set([0, 1, 2, 3]), [(set([0]), []), (set([1]), []), (set([2]), []), (set([3]), [])]))
         print tree.recursive_partitioning()
 
-        fanout_1 = the_recursive_partitioning_factory().getPartitioning('fanout-1')
+        [fanout_1] = the_recursive_partitioning_factory().getPartitioning('fanout-1')
 
         print fanout_1(tree)
 
@@ -101,7 +101,7 @@ class InductionTest(unittest.TestCase):
 
         (_, grammar) = induce_grammar([tree, tree2],
                                       the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'),
-                                      terminal_labeling.token_label, direct_extraction, 'START')
+                                      terminal_labeling.token_label, [direct_extraction], 'START')
         print max([grammar.fanout(nont) for nont in grammar.nonts()])
         print grammar
 
@@ -130,7 +130,7 @@ class InductionTest(unittest.TestCase):
         for top_level_labeling_strategy in ['strict', 'child']:
             labeling_strategy = the_labeling_factory().create_simple_labeling_strategy(top_level_labeling_strategy,
                                                                                        'pos+deprel')
-            for recursive_partitioning in [direct_extraction, fanout_1, left_branching]:
+            for recursive_partitioning in [[direct_extraction], fanout_1, [left_branching]]:
                 (_, grammar) = induce_grammar([tree], labeling_strategy, term_pos, recursive_partitioning, 'START')
                 print grammar
 

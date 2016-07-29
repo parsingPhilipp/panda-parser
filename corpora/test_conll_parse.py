@@ -107,7 +107,7 @@ class CoNLLParserTest(unittest.TestCase):
             # print tree_to_conll_str(trees[0])
 
     def test_conll_generation(self):
-        test_trees = disconnect_punctuation(parse_conll_corpus(conll_test, True))
+        test_trees = disconnect_punctuation(parse_conll_corpus(conll_train, True))
         CoNLL_strings = []
         for tree in test_trees:
             CoNLL_strings.append(tree_to_conll_str(tree))
@@ -150,6 +150,18 @@ class CoNLLParserTest(unittest.TestCase):
 
         print uas, las, la
 
+    def test_compare_rec_par(self):
+        test_trees = disconnect_punctuation(parse_conll_corpus(conll_train, True))
+        mylist = []
+        [leftb,cfg] = d_i.the_recursive_partitioning_factory().getPartitioning('left-branching,fanout-1')
+        i = 0;
+        for tree in test_trees:
+            i = i + 1
+            if leftb(tree) == cfg(tree):
+                mylist.append(tree.sent_label())
+            if i == 1000:
+                break
+        print mylist
 
 if __name__ == '__main__':
     unittest.main()

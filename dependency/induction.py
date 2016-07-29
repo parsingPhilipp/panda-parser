@@ -31,19 +31,20 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     n_trees = 0
     for tree in trees:
         n_trees += 1
-        rec_par_int = recursive_partitioning(tree)
+        for rec_par in recursive_partitioning:
+            rec_par_int = rec_par(tree)
 
-        rec_par_nodes = tree.node_id_rec_par(rec_par_int)
+            rec_par_nodes = tree.node_id_rec_par(rec_par_int)
 
-        (_, _, nont_name) = add_rules_to_grammar_rec(tree, rec_par_nodes, grammar, nont_labelling, term_labelling)
+            (_, _, nont_name) = add_rules_to_grammar_rec(tree, rec_par_nodes, grammar, nont_labelling, term_labelling)
 
-        # Add rule from top start symbol to top most nonterminal for the hybrid tree
-        lhs = LCFRS_lhs(start_nont)
-        lhs.add_arg([LCFRS_var(0, 0)])
-        rhs = [nont_name]
-        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
+            # Add rule from top start symbol to top most nonterminal for the hybrid tree
+            lhs = LCFRS_lhs(start_nont)
+            lhs.add_arg([LCFRS_var(0, 0)])
+            rhs = [nont_name]
+            dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
 
-        grammar.add_rule(lhs, rhs, 1.0, [dcp_rule])
+            grammar.add_rule(lhs, rhs, 1.0, [dcp_rule])
 
     grammar.make_proper()
     return n_trees, grammar
@@ -158,16 +159,26 @@ class RecursivePartitioningFactory:
         self.__partitionings[name] = partitioning
 
     def getPartitioning(self, name):
-        match = re.search(r'fanout-(\d+)', name)
-        if match:
-            k = int(match.group(1))
-            rec_par = lambda tree: fanout_k(tree, k)
-            rec_par.__name__ = 'fanout_' + str(k)
-            return rec_par
+        partitioning_names = name.split(',')
+        partitionings = []
+        for name in partitioning_names:
+            match = re.search(r'fanout-(\d+)', name)
+            if match:
+                k = int(match.group(1))
+                rec_par = lambda tree: fanout_k(tree, k)
+                rec_par.__name__ = 'fanout_' + str(k)
+                partitionings.append(rec_par)
 
+            else:
+                rec_par = self.__partitionings[name]
+                if rec_par:
+                    partitionings.append(rec_par)
+                else:
+                    return None
+        if partitionings:
+            return partitionings
         else:
-            return self.__partitionings[name]
-
+            return None
 
 def the_recursive_partitioning_factory():
     factory = RecursivePartitioningFactory()

@@ -195,7 +195,7 @@ class ActiveParserTest(unittest.TestCase):
 
         labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
         term_pos = the_terminal_labeling_factory().get_strategy('pos').token_label
-        (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, direct_extraction, 'START')
+        (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, [direct_extraction], 'START')
 
         # print grammar
 

@@ -2,10 +2,11 @@ from parser.naive.parsing import LCFRS_parser as NaiveParser
 from parser.viterbi.viterbi import ViterbiParser, LeftCornerParser, RightBranchingParser
 from parser.viterbi.left_branching import LeftBranchingParser
 import re
+from collections import defaultdict
 
 class ParserFactory:
     def __init__(self):
-        self.__parsers = {}
+        self.__parsers = defaultdict(lambda: ViterbiParser)
 
     def registerParser(self, name, parser):
         self.__parsers[name] = parser

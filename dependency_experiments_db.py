@@ -74,7 +74,7 @@ def induce_grammar_from_file(path
     experiment = experiment_database.add_experiment(connection
                                                     , str(term_labelling)
                                                     , str(nont_labelling)
-                                                    , recursive_partitioning.func_name
+                                                    , ','.join([rec_par.func_name for rec_par in recursive_partitioning])
                                                     , ignore_punctuation
                                                     , path
                                                     , ''
@@ -86,7 +86,7 @@ def induce_grammar_from_file(path
         print 'file: ' + path
         print 'Nonterminal labelling strategy: ', nont_labelling.__str__()
         print 'Terminal labelling strategy:    ', str(term_labelling)
-        print 'Recursive partitioning strategy:', recursive_partitioning.func_name
+        print 'Recursive partitioning strategy:', ','.join([rec_par.func_name for rec_par in recursive_partitioning])
         print 'limit:                          ', str(limit)
         print 'Ignoring punctuation            ', ignore_punctuation
     start_clock = time.clock()

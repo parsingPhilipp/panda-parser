@@ -23,7 +23,7 @@ class MultiRootedHybridTreeTest(unittest.TestCase):
         self.assertEqual(tree2.recursive_partitioning(), ({0, 1, 2, 3, 4},
                                                           [({0, 2}, [({0}, []), ({2}, [])]), (
                                                               {1, 3, 4},
-                                                              [({3}, []), ({1}, []), ({4}, [])])]))
+                                                              [({1}, []), ({3}, []), ({4}, [])])]))
 
 
 if __name__ == '__main__':
