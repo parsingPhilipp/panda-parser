@@ -74,6 +74,22 @@ class AbstractLabeling:
         return self.__name
 
 
+class EmptyLabeling(AbstractLabeling):
+    def _label_top_seq(self, tree, id_seq, terminal_generating):
+        return ''
+
+    # @abstractmethod
+    def _top_node_name(self, token, terminal_generating):
+        pass
+
+    # @abstractmethod
+    def _bottom_node_name(self, token):
+        pass
+
+    def _label_bottom_seq(self, tree, id_seq):
+        return ''
+
+
 class StrictLabeling(AbstractLabeling):
     def _label_bottom_seq(self, tree, id_seq):
         return '#'.join(map(lambda id: self._bottom_node_name(tree.node_token(id)), id_seq))
@@ -278,6 +294,7 @@ def the_labeling_factory():
     :rtype : LabelingStrategyFactory
     """
     factory = LabelingStrategyFactory()
+    factory.register_top_level_strategy('empty', EmptyLabeling)
     factory.register_top_level_strategy('strict', StrictLabeling)
     factory.register_top_level_strategy('child', ChildLabeling)
 
