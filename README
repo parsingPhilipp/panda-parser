@@ -55,13 +55,13 @@ Default Disconnected DEPREL: PUNC                   # default: _ (underscore)
 #####################################################################################################
 
 Implemented nonterminal labeling strategies:
-[strict|child]-[pos|cpos|deprel|cpos+deprel|pos+deprel]
+[strict|child|stricttop|childtop|empty]-[pos|cpos|deprel|cpos+deprel|pos+deprel]
 
 Implemented terminal labeling strategies:
 [pos|cpos|form]
 
 Implemented recursive partitioning strategies:
-[left-branching|right-branching|direct-extraction|fanout-$K]
+[left-branching|right-branching|direct-extraction|cfg|fanout-$K]
 where $K > 0
 
 Warning: Ignoring Punctuation is experimental and may raise errors if a punctuation symbol
