@@ -100,7 +100,8 @@ class InductionTest(unittest.TestCase):
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
 
         (_, grammar) = induce_grammar([tree, tree2],
-                                      the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'),
+                                      the_labeling_factory().create_simple_labeling_strategy('empty','pos'),
+                                      # the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'),
                                       terminal_labeling.token_label, [direct_extraction], 'START')
         print max([grammar.fanout(nont) for nont in grammar.nonts()])
         print grammar

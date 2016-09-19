@@ -90,6 +90,48 @@ class EmptyLabeling(AbstractLabeling):
         return ''
 
 
+class TopOnlyStrictLabeling(AbstractLabeling):
+    def _label_bottom_seq(self, tree, id_seq):
+        return ''
+
+    # @abstractmethod
+    def _top_node_name(self, token, terminal_generating):
+        pass
+
+    # @abstractmethod
+    def _bottom_node_name(self, token):
+        pass
+
+    def _label_top_seq(self, tree, id_seq, terminal_generating):
+        return '#'.join(map(lambda id: self._top_node_name(tree.node_token(id), terminal_generating), id_seq))
+
+
+class TopOnlyChildLabeling(AbstractLabeling):
+    def _label_bottom_seq(self, tree, id_seq):
+        return ''
+
+    # @abstractmethod
+    def _top_node_name(self, token, terminal_generating):
+        pass
+
+    # @abstractmethod
+    def _bottom_node_name(self, token):
+        pass
+
+    def _label_top_seq(self, tree, id_seq, terminal_generating):
+        if len(id_seq) == 1:
+            return self._top_node_name(tree.node_token(id_seq[0]), terminal_generating)
+        elif len(id_seq) > 1:
+            if id_seq[0] in tree.root:
+                # only in case of multi-rooted hybrid trees
+                return 'children-of(VIRTUAL-ROOT)'
+            else:
+                # assuming that id_seq are siblings in tree, and not at root level
+                return 'children-of(' + self._top_node_name(tree.node_token(tree.parent(id_seq[0])), False) + ')'
+        else:
+            raise Exception('Empty components in top_max/ bottom_max!')
+
+
 class StrictLabeling(AbstractLabeling):
     def _label_bottom_seq(self, tree, id_seq):
         return '#'.join(map(lambda id: self._bottom_node_name(tree.node_token(id)), id_seq))
@@ -296,6 +338,8 @@ def the_labeling_factory():
     factory = LabelingStrategyFactory()
     factory.register_top_level_strategy('empty', EmptyLabeling)
     factory.register_top_level_strategy('strict', StrictLabeling)
+    factory.register_top_level_strategy('stricttop', TopOnlyStrictLabeling)
+    factory.register_top_level_strategy('childtop', TopOnlyChildLabeling)
     factory.register_top_level_strategy('child', ChildLabeling)
 
     factory.register_node_to_string_strategy('pos', token_to_pos)
