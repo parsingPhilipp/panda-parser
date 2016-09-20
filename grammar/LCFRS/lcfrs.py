@@ -280,6 +280,7 @@ class LCFRS_rule:
 # Grammar is assumed to be monotone: no re-ordering of variables from LHS to
 # RHS.
 class LCFRS:
+    tmp = None
     # Constructor.
     # start: string
     # unit: real 

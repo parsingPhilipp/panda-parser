@@ -1,19 +1,23 @@
 #-*- coding: iso-8859-15 -*-
 __author__ = 'kilian'
 
-import unittest
 import copy
 import sys
+import unittest
+from math import e
+
+from dependency.induction import induce_grammar, direct_extraction, left_branching, right_branching, the_terminal_labeling_factory, \
+    the_recursive_partitioning_factory
+from dependency.labeling import the_labeling_factory
+from grammar.linearization import linearize
+from grammar.sDCP.dcp import DCP_string
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
-from dependency.induction import induce_grammar, direct_extraction, left_branching, the_terminal_labeling_factory, \
-    the_recursive_partitioning_factory
-# from parser.naive.parsing import LCFRS_parser
-from parser.viterbi.viterbi import ViterbiParser as LCFRS_parser
-from dependency.labeling import the_labeling_factory
-from grammar.sDCP.dcp import DCP_string
 from hybridtree.test_multiroot import multi_dep_tree
-from grammar.linearization import linearize
+from parser.derivation_interface import derivation_to_hybrid_tree
+from parser.fst.fst_export import compile_wfst_from_right_branching_grammar, fsa_from_list_of_symbols, compose, shortestpath, shortestdistance, retrieve_rules, PolishDerivation
+from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.viterbi.viterbi import ViterbiParser as LCFRS_parser
 
 
 class InductionTest(unittest.TestCase):
@@ -146,6 +150,59 @@ class InductionTest(unittest.TestCase):
                                                                      construct_conll_token)
                 print hybrid_tree
                 self.assertEqual(tree, hybrid_tree)
+
+    def test_fst_compilation(self):
+        tree = hybrid_tree_1()
+        tree2 = hybrid_tree_2()
+        terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
+
+        (_, grammar) = induce_grammar([tree, tree2],
+                                      the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
+                                      terminal_labeling.token_label, [right_branching], 'START')
+
+        a, rules = compile_wfst_from_right_branching_grammar(grammar)
+
+        print a
+
+        symboltable = a.input_symbols()
+
+        string = ["NP", "N", "V", "V", "V"]
+
+        fsa = fsa_from_list_of_symbols(string, symboltable)
+        self.assertEqual(fsa.text(), '0\t1\tNP\tNP\n1\t2\tN\tN\n2\t3\tV\tV\n3\t4\tV\tV\n4\t5\tV\tV\n5\n')
+
+        b = compose(fsa, a)
+
+        print b.text(symboltable, symboltable)
+
+        print "Shortest path probability",
+        best = shortestpath(b)
+        best.topsort()
+        self.assertAlmostEquals(pow(e, -float(shortestdistance(best)[-1])), 1.80844898756e-05)
+        print best.text()
+
+        polish_rules = retrieve_rules(best, None)
+        self.assertSequenceEqual(polish_rules, [8, 7, 1, 6, 2, 5, 3, 10, 3, 3])
+
+        polish_rules = map(rules.index_object, polish_rules)
+
+        print polish_rules
+
+        der = PolishDerivation(polish_rules[1::])
+
+        print der
+
+        print derivation_to_hybrid_tree(der, string, "Piet Marie helpen lezen leren".split(), construct_conll_token)
+
+        dcp = The_DCP_evaluator(der).getEvaluation()
+
+        h_tree_2 = HybridTree()
+        token_sequence = [construct_conll_token(form, lemma) for form, lemma in
+                          zip('Piet Marie helpen lezen leren'.split(' '), 'NP N V V V'.split(' '))]
+        dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,
+                          construct_conll_token)
+
+        print h_tree_2
 
 
 def hybrid_tree_1():

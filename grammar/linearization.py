@@ -1,5 +1,6 @@
 from LCFRS.lcfrs import *
 from sDCP.dcp import *
+from sys import stdout
 
 
 def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
@@ -91,8 +92,9 @@ def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
     print >>file
 
 class Enumerator:
-    def __init__(self, file):
-        self.counter = 0
+    def __init__(self, file=stdout, first_index=1):
+        self.first_index = first_index
+        self.counter = first_index - 1
         self.obj_to_ind = {}
         self.ind_to_obj = {}
         self.file = file
@@ -115,7 +117,7 @@ class Enumerator:
             return self.counter
 
     def print_index(self):
-        for i in range(1, self.counter + 1):
+        for i in range(self.first_index, self.counter + 1):
             print >> self.file, i, self.index_object(i)
 
     def print_index_and_stats(self, grammar, inh, syn):
@@ -127,7 +129,7 @@ class Enumerator:
         max_inh = 0
         max_syn = 0
         max_args = 0
-        for i in range (1, self.counter + 1):
+        for i in range (self.first_index, self.counter + 1):
             fanout = grammar.fanout(self.index_object(i))
             fanouts[fanout] += 1
             max_fanout = max(max_fanout, fanout)
