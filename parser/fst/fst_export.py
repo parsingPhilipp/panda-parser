@@ -6,6 +6,8 @@ from parser.derivation_interface import AbstractDerivation
 from parser.parser_interface import AbstractParser
 
 FINAL = 'THE-FINAL-STATE'
+INITIAL = 'THE-INITIAL-STATE'
+
 
 def compile_wfst_from_right_branching_grammar(grammar):
     """
@@ -40,18 +42,78 @@ def compile_wfst_from_right_branching_grammar(grammar):
                 if len(rule2.rhs()) == 0:
                     arc = Arc(terminals.add_symbol(rule2.lhs().args()[0][0]),
                               terminals.add_symbol(str(rules.object_index(rule))
-                                                     + '-' + str(rules.object_index(rule2))),
+                                                   + '-' + str(rules.object_index(rule2))),
                               make_weight(rule.weight() * rule2.weight()),
                               nonterminals.find(rule.rhs_nont(1)))
                     myfst.add_arc(nonterminals.find(rule.lhs().nont()), arc)
         elif len(rule.rhs()) == 0:
             arc = Arc(terminals.add_symbol(rule.lhs().args()[0][0]),
-                      terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()), nonterminals.find(FINAL))
+                      terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()),
+                      nonterminals.find(FINAL))
             myfst.add_arc(nonterminals.find(rule.lhs().nont()), arc)
         else:
             assert rule.lhs().nont() == grammar.start()
-            arc = Arc(0, terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()), nonterminals.find(rule.rhs_nont(0)))
+            arc = Arc(0, terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()),
+                      nonterminals.find(rule.rhs_nont(0)))
             myfst.add_arc(myfst.start(), arc)
+
+    myfst.set_input_symbols(terminals)
+    myfst.set_output_symbols(terminals)
+
+    myfst.optimize(True)
+
+    return myfst, rules
+
+
+def compile_wfst_from_left_branching_grammar(grammar):
+    """
+        :type grammar: LCFRS
+        :rtype: Fst
+        Create a FST from a left-branching hybrid grammar.
+        The Output of the is a rule tree in `reverse polish notation <https://en.wikipedia.org/wiki/Reverse_Polish_notation>`_
+        """
+    myfst = Fst()
+
+    nonterminals = SymbolTable()
+    sid = myfst.add_state()
+    nonterminals.add_symbol(INITIAL)
+    myfst.set_start(sid)
+
+    for nont in grammar.nonts():
+        sid = myfst.add_state()
+        nonterminals.add_symbol(nont, sid)
+        if nont == grammar.start():
+            myfst.set_final(sid)
+
+    rules = Enumerator(first_index=1)
+    for rule in grammar.rules():
+        rules.object_index(rule)
+
+    terminals = SymbolTable()
+    terminals.add_symbol('<epsilon>', 0)
+
+    for rule in grammar.rules():
+        if len(rule.rhs()) == 2:
+            for rule2 in grammar.lhs_nont_to_rules(rule.rhs_nont(1)):
+                if len(rule2.rhs()) == 0:
+                    arc = Arc(terminals.add_symbol(rule2.lhs().args()[0][0]),
+                              terminals.add_symbol(
+                                  str(rules.object_index(rule2)) + '-' +
+                                  str(rules.object_index(rule))),
+                              make_weight(rule.weight() * rule2.weight()),
+                              nonterminals.find(rule.lhs().nont()))
+                    myfst.add_arc(nonterminals.find(rule.rhs_nont(0)), arc)
+        elif len(rule.rhs()) == 0:
+            arc = Arc(terminals.add_symbol(rule.lhs().args()[0][0]),
+                      terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()),
+                      nonterminals.find(rule.lhs().nont()))
+            myfst.add_arc(nonterminals.find(INITIAL), arc)
+        else:
+            assert rule.lhs().nont() == grammar.start()
+            arc = Arc(0, terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()),
+                      nonterminals.find(grammar.start())
+                      )
+            myfst.add_arc(nonterminals.find(rule.rhs_nont(0)), arc)
 
     myfst.set_input_symbols(terminals)
     myfst.set_output_symbols(terminals)
@@ -96,9 +158,7 @@ def make_weight(weight):
     return -log(weight)
 
 
-def retrieve_rules(linear_fst, rpn=False):
-    if rpn:
-        linear_fst = reverse(rpn)
+def retrieve_rules(linear_fst):
     linear_rules = []
     terminals = linear_fst.output_symbols()
     for s in range(linear_fst.num_states()):
@@ -113,11 +173,10 @@ def retrieve_rules(linear_fst, rpn=False):
 
 class PolishDerivation(AbstractDerivation):
     def child_ids(self, id):
-        if id % 2 == 1 or id == self._len-1:
+        if id % 2 == 1 or id == self._len - 1:
             return []
         else:
             return [id + 1, id + 2]
-
 
     def getRule(self, id):
         if id >= self._len:
@@ -159,12 +218,60 @@ class PolishDerivation(AbstractDerivation):
         self._ids = range(self._len)
 
 
+class ReversePolishDerivation(AbstractDerivation):
+    def child_ids(self, id):
+        if id % 2 == 1 or id == 0:
+            return []
+        else:
+            return [id - 2, id - 1]
+
+    def getRule(self, id):
+        if id >= self._len:
+            print
+            print id
+            print self._len
+        return self._rule_list[id]
+
+    def __str__(self):
+        return self.der_to_str_rec(self.root_id(), 0)
+
+    def der_to_str_rec(self, item, indentation):
+        s = ' ' * indentation * 2 + str(self.getRule(item)) + '\t(' + str(item) + ')\n'
+        for child in self.child_ids(item):
+            s += self.der_to_str_rec(child, indentation + 1)
+        return s
+
+    def child_id(self, id, i):
+        return id - 2 + i
+
+    def position_relative_to_parent(self, id):
+        return id + 2 - (id % 2), id % 2
+
+    def root_id(self):
+        return self._len - 1
+
+    def terminal_positions(self, id):
+        if id % 2 == 1 or id == 0:
+            return [(id + 3) / 2]
+        else:
+            return []
+
+    def ids(self):
+        return self._ids
+
+    def __init__(self, rule_list):
+        self._rule_list = rule_list
+        self._len = len(rule_list)
+        self._ids = range(self._len)
+
+
+
 class RightBranchingFSTParser(AbstractParser):
     def recognized(self):
         pass
 
     def best_derivation_tree(self):
-        polish_rules = retrieve_rules(self._best, None)
+        polish_rules = retrieve_rules(self._best)
         if polish_rules:
             polish_rules = map(self._rules.index_object, polish_rules)
             der = PolishDerivation(polish_rules[1::])
@@ -190,3 +297,36 @@ class RightBranchingFSTParser(AbstractParser):
     @staticmethod
     def preprocess_grammar(grammar):
         grammar.tmp = compile_wfst_from_right_branching_grammar(grammar)
+
+
+class LeftBranchingFSTParser(AbstractParser):
+    def recognized(self):
+        pass
+
+    def best_derivation_tree(self):
+        reverse_polish_rules = retrieve_rules(self._best)
+        if reverse_polish_rules:
+            polish_rules = map(self._rules.index_object, reverse_polish_rules)
+            der = ReversePolishDerivation(polish_rules[0:-1])
+            return der
+        else:
+            return None
+
+    def __init__(self, grammar, input):
+        fst, self._rules = grammar.tmp
+        fsa = fsa_from_list_of_symbols(input, fst.mutable_input_symbols())
+
+        intersection = fsa * fst
+
+        self._best = best = shortestpath(intersection)
+        best.topsort()
+
+    def best(self):
+        return pow(e, -float(shortestdistance(self._best)[-1]))
+
+    def all_derivation_trees(self):
+        pass
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        grammar.tmp = compile_wfst_from_left_branching_grammar(grammar)
