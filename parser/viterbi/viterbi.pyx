@@ -10,7 +10,10 @@ from parser.derivation_interface import AbstractDerivation
 from sys import maxint
 
 
-class Range:
+cdef class Range:
+    cdef public int left
+    cdef public int right
+
     def __init__(self, left, right):
         """
         :type left: int
@@ -19,10 +22,29 @@ class Range:
         self.left = left
         self.right = right
 
-    def __eq__(self, other):
-        # if not isinstance(other, Range):
-        #    return False
-        return other.left == self.left and other.right == self.right
+    # def __eq__(self, Range other):
+    #     # if not isinstance(other, Range):
+    #     #    return False
+    #     return other.left == self.left and other.right == self.right
+    def __richcmp__(self, Range other, int op):
+        # <	0
+        # ==	2
+        # >	4
+        # <=	1
+        # !=	3
+        # >=	5
+        if op == 2:
+            if other.left == self.left and other.right == self.right:
+                return True
+            else:
+                return False
+        if op == 3:
+            if other.left != self.left or other.right != self.right:
+                return True
+            else:
+                return False
+        return False
+
 
     def __str__(self):
         return "⟨{0!s},{1!s}⟩".format(self.left, self.right)
@@ -595,7 +617,7 @@ class ViterbiDerivation(AbstractDerivation):
         return item.rule
 
     def position_relative_to_parent(self, id):
-        return self. parent[id], self.parent[id].children.index(id)
+        return self.parent[id], self.parent[id].children.index(id)
 
     def ids(self):
         return self.parent.keys()

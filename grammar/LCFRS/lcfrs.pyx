@@ -182,12 +182,12 @@ class LCFRS_rule:
     # Get i-th RHS nonterminal.
     # return: string
     def rhs_nont(self, i):
-        return self.rhs()[i]
+        return self.__rhs[i]
 
     # Size in terms of RHS length plus 1.
     # return: int
     def size(self):
-        return 1 + len(self.rhs())
+        return 1 + len(self.__rhs)
 
     # Get occurrences of terminals.
     # return: list of string
