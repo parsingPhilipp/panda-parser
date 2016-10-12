@@ -43,7 +43,7 @@ def direct_extract_lcfrs_from(tree, id, gram):
     nont = label + '/' + str(nont_fanout)
     lhs = LCFRS_lhs(nont)
     children = [(child, join_spans(tree.fringe(child))) \
-                for child in tree.children(id)]
+                for child in tree.children]
     rhs = []
     n_terms = 0
     for (low, high) in spans:
@@ -204,7 +204,7 @@ def make_id_seq(tree, id, fringe):
     else:
         seqs = []
         seq = []
-        for child in tree.children(id):
+        for child in tree.children:
             child_fringe = set(tree.fringe(child))
             if child_fringe - fringe == set():
                 # fully included in fringe
@@ -249,7 +249,7 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos):
                 terms.append(DCP_term(DCP_index(pos), []))
             else:
                 lab = tree.label(elem)
-                arg = make_fringe_terms(tree, tree.children(elem), \
+                arg = make_fringe_terms(tree, tree.children, \
                                         child_seqss, term_to_pos)
                 terms.append(DCP_term(DCP_string(lab), arg))
     return terms
