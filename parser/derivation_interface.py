@@ -1,8 +1,8 @@
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-
 from hybridtree.general_hybrid_tree import HybridTree
+from grammar.LCFRS.lcfrs import LCFRS_rule
 
 
 class AbstractDerivation:
@@ -17,6 +17,12 @@ class AbstractDerivation:
 
     @abstractmethod
     def getRule(self, id):
+        """
+        :param id:
+        :type id:
+        :return:
+        :rtype: LCFRS_rule
+        """
         pass
 
     @abstractmethod
@@ -60,6 +66,17 @@ class AbstractDerivation:
     @abstractmethod
     def __str__(self):
         pass
+
+    def check_integrity_recursive(self, id, nonterminal):
+        rule = self.getRule(id)
+        if not rule.lhs().nont() == nonterminal:
+            return False
+        if len(self.child_ids(id)) != len(rule.rhs()):
+            return False
+        for i,child in enumerate(self.child_ids(id)):
+            if not self.check_integrity_recursive(child, rule.rhs_nont(i)):
+                return False
+        return True
 
 
 def derivation_to_hybrid_tree(der, poss, ordered_labels, construct_token, disconnected=None):

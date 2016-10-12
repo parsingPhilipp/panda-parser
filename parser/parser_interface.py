@@ -66,7 +66,10 @@ class AbstractParser:
 
     def dcp_best_derivation(self):
         der = self.best_derivation_tree()
+        # print der
         if der is not None:
+            # todo: comment out the next integrity check
+            assert der.check_integrity_recursive(der.root_id(), der.getRule(der.root_id()).lhs().nont())
             return The_DCP_evaluator(der).getEvaluation()
         else:
             return []
