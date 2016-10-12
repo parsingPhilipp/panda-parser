@@ -2,6 +2,7 @@ from parser.naive.parsing import LCFRS_parser as NaiveParser
 from parser.viterbi.viterbi import ViterbiParser, LeftCornerParser, RightBranchingParser
 from parser.viterbi.left_branching import LeftBranchingParser
 from parser.fst.fst_export import RightBranchingFSTParser, LeftBranchingFSTParser
+from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 import re
 from collections import defaultdict
 
@@ -13,6 +14,8 @@ class ParserFactory:
         self.__parsers[name] = parser
 
     def getParser(self, name):
+        if name == "fanout-1":
+            return self.__parsers["cfg-parser"]
         match = re.search(r'fanout-(\d+)', name)
         if match:
             return ViterbiParser
@@ -32,4 +35,5 @@ def the_parser_factory():
     factory.registerParser('earley-left-to-right', RightBranchingParser)
     factory.registerParser('fst-right-branching', RightBranchingFSTParser)
     factory.registerParser('fst-left-branching', LeftBranchingFSTParser)
+    factory.registerParser('cfg-parser', CFGParser)
     return factory
