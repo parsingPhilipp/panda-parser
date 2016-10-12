@@ -25,7 +25,7 @@ class MyTestCase(unittest.TestCase):
 
         labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
         term_pos = the_terminal_labeling_factory().get_strategy('pos').token_label
-        (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, left_branching, 'START')
+        (_, grammar) = induce_grammar([tree, tree2], labeling, term_pos, [direct_extraction], 'START')
 
         # print grammar
 
@@ -34,7 +34,7 @@ class MyTestCase(unittest.TestCase):
         # print max([grammar.fanout(nont) for nont in grammar.nonts()])
         print grammar
 
-        parser = LeftBranchingParser(grammar, 'NP N V V'.split(' '))
+        parser = Parser(grammar, 'NP N V V'.split(' '))
 
         self.assertEqual(parser.recognized(), True)
 

@@ -470,7 +470,7 @@ class HybridTree:
         """
         # Compare current nodes
         if not self.node_token(self_node).__eq__(other.node_token(other_node)):
-            print self.node_token(self_node), other.node_token(other_node)
+            # print self.node_token(self_node), other.node_token(other_node)
             return False
         if self.in_ordering(self_node):
             if other.in_ordering(other_node):
