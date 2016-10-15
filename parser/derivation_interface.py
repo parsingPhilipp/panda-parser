@@ -2,7 +2,8 @@ __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 from hybridtree.general_hybrid_tree import HybridTree
-from grammar.LCFRS.lcfrs import LCFRS_rule
+from grammar.LCFRS.lcfrs import LCFRS_rule, LCFRS_var
+from collections import defaultdict
 
 
 class AbstractDerivation:
@@ -67,9 +68,9 @@ class AbstractDerivation:
     def __str__(self):
         pass
 
-    def check_integrity_recursive(self, id, nonterminal):
+    def check_integrity_recursive(self, id, nonterminal=None):
         rule = self.getRule(id)
-        if not rule.lhs().nont() == nonterminal:
+        if nonterminal is not None and not rule.lhs().nont() == nonterminal:
             return False
         if len(self.child_ids(id)) != len(rule.rhs()):
             return False
@@ -77,6 +78,28 @@ class AbstractDerivation:
             if not self.check_integrity_recursive(child, rule.rhs_nont(i)):
                 return False
         return True
+
+    def _compute_spans(self):
+        self.spans = defaultdict(list)
+        self.spans[self.root_id()] = [[0, None]]
+        self._compute_spans_recursive(self.root_id(), 0)
+
+    def _compute_spans_recursive(self, id, k):
+        arg = self.getRule(id).lhs().arg(k)
+        try:
+            pos = self.spans[id][k][0]
+        except Exception:
+            pass
+        for elem in arg:
+            if isinstance(elem, LCFRS_var):
+                while len(self.spans[self.child_id(id, elem.mem)]) <= elem.arg:
+                    self.spans[self.child_id(id, elem.mem)] += [[None, None]]
+                self.spans[self.child_id(id, elem.mem)][elem.arg][0] = pos
+                pos = self._compute_spans_recursive(self.child_id(id, elem.mem), elem.arg)
+            else:
+                pos += 1
+        self.spans[id][k][1] = pos
+        return pos
 
 
 def derivation_to_hybrid_tree(der, poss, ordered_labels, construct_token, disconnected=None):

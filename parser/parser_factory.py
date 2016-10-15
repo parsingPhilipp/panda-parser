@@ -3,6 +3,7 @@ from parser.viterbi.viterbi import ViterbiParser, LeftCornerParser, RightBranchi
 from parser.viterbi.left_branching import LeftBranchingParser
 from parser.fst.fst_export import RightBranchingFSTParser, LeftBranchingFSTParser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
+from parser.gf_parser.gf_interface import GFParser
 import re
 from collections import defaultdict
 
@@ -18,7 +19,8 @@ class ParserFactory:
             return self.__parsers["cfg-parser"]
         match = re.search(r'fanout-(\d+)', name)
         if match:
-            return ViterbiParser
+            # return ViterbiParser
+            return GFParser
         return self.__parsers[name]
 
 
@@ -36,4 +38,5 @@ def the_parser_factory():
     factory.registerParser('fst-right-branching', RightBranchingFSTParser)
     factory.registerParser('fst-left-branching', LeftBranchingFSTParser)
     factory.registerParser('cfg-parser', CFGParser)
+    factory.registerParser('gf-parser', GFParser)
     return factory
