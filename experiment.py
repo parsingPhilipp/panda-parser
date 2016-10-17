@@ -12,6 +12,7 @@ from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
 from parser.naive.parsing import *
 from parser.viterbi.left_branching import LeftBranchingParser
 from parser.viterbi.viterbi import RightBranchingParser, ViterbiParser
+from parser.parser_factory import the_parser_factory
 from decomposition import *
 
 # Different corpora and subsets of the corpora
@@ -500,6 +501,7 @@ def parse_test(max_length, method=direct_extract_lcfrs, parser=LCFRS_parser):
     first = first_test_sentence()
     last = last_test_sentence()
     print_grammar_properties(g)
+    parser.preprocess_grammar(g)
     print 'Parsing', corpus, first, '-', last
     start_at = time.time()
     n = do_range(first, last,
@@ -557,11 +559,11 @@ def parse_tree_by_gram(tree, gram, parser, accuracy):
 # parse_test(20, method=fanout_two_extraction)
 # parse_test(20, method=fanout_three_extraction)
 # parse_test(20, method=fanout_four_extraction)
-parse_test(20, method=left_branch_extraction, parser=LeftBranchingParser)
-parse_test(20, method=right_branch_extraction, parser=RightBranchingParser)
+parse_test(20, method=left_branch_extraction, parser=the_parser_factory().getParser("left-branching"))
+parse_test(20, method=right_branch_extraction, parser=the_parser_factory().getParser("right-branching"))
 
-parse_test(20, method=left_branch_extraction_child, parser=LeftBranchingParser)
-parse_test(20, method=right_branch_extraction_child, parser=RightBranchingParser)
+parse_test(20, method=left_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
+parse_test(20, method=right_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
 # parse_test(20, method=cfg_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
 # parse_test(20, method=fanout_three_extraction_child)
