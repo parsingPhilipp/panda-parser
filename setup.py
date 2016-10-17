@@ -7,8 +7,8 @@ ext_modules=[
    Extension("parser.viterbi.viterbi",      ["parser/viterbi/viterbi.pyx"]),
    # Extension("parser.cfg_parser.cfg", ["parser/cfg_parser/cfg.pyx"], language='c++'),
    Extension("grammar.LCFRS.lcfrs",  ["grammar/LCFRS/lcfrs.pyx"]),
-   Extension("util.enumerator", ["util/enumerator.pyx"]),
-   Extension("parser.cpp_cfg_parser.parser_wrapper", sources=["parser/cpp_cfg_parser/parser_wrapper.pyx", "parser/cpp_cfg_parser/cfg.cpp", "parser/cpp_cfg_parser/parser.cpp"], language='c++')
+#   Extension("util.enumerator", ["util/enumerator.pyx"]),
+   Extension("parser.cpp_cfg_parser.parser_wrapper", sources=["parser/cpp_cfg_parser/parser_wrapper.pyx", "parser/cpp_cfg_parser/cfg.cpp", "parser/cpp_cfg_parser/parser.cpp"], language='c++', extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"])
 ]
 
 setup(
