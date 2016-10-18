@@ -268,13 +268,18 @@ class ReversePolishDerivation(AbstractDerivation):
 
 class RightBranchingFSTParser(AbstractParser):
     def recognized(self):
-        pass
+        if self._polish_rules:
+            return True
+        else:
+            return False
 
     def best_derivation_tree(self):
-        polish_rules = retrieve_rules(self._best)
-        if polish_rules:
-            polish_rules = map(self._rules.index_object, polish_rules)
-            der = PolishDerivation(polish_rules[1::])
+        if self._polish_rules:
+            polish_rules = map(self._rules.index_object, self._polish_rules)
+            # remove dummy chain rule in case of dependency structures
+            if len(polish_rules) % 2 == 0:
+                polish_rules = polish_rules[1::]
+            der = PolishDerivation(polish_rules)
             return der
         else:
             return None
@@ -287,6 +292,7 @@ class RightBranchingFSTParser(AbstractParser):
 
         self._best = best = shortestpath(intersection)
         best.topsort()
+        self._polish_rules = retrieve_rules(self._best)
 
     def best(self):
         return pow(e, -float(shortestdistance(self._best)[-1]))
@@ -301,13 +307,22 @@ class RightBranchingFSTParser(AbstractParser):
 
 class LeftBranchingFSTParser(AbstractParser):
     def recognized(self):
-        pass
+        if self._reverse_polish_rules:
+            return True
+        else:
+            return False
 
     def best_derivation_tree(self):
-        reverse_polish_rules = retrieve_rules(self._best)
-        if reverse_polish_rules:
-            polish_rules = map(self._rules.index_object, reverse_polish_rules)
-            der = ReversePolishDerivation(polish_rules[0:-1])
+        # polish_rules = retrieve_rules(self._best)
+        polish_rules = self._reverse_polish_rules
+        if polish_rules:
+            polish_rules = map(self._rules.index_object, polish_rules)
+            # for rule in polish_rules:
+            #    print rule
+            # remove dummy chain rule in case of dependency structures
+            if len(polish_rules) % 2 == 0:
+                polish_rules = polish_rules[0:-1]
+            der = ReversePolishDerivation(polish_rules)
             return der
         else:
             return None
@@ -316,10 +331,11 @@ class LeftBranchingFSTParser(AbstractParser):
         fst, self._rules = grammar.tmp
         fsa = fsa_from_list_of_symbols(input, fst.mutable_input_symbols())
 
-        intersection = fsa * fst
+        intersection = compose(fsa, fst)
 
         self._best = best = shortestpath(intersection)
         best.topsort()
+        self._reverse_polish_rules = retrieve_rules(self._best)
 
     def best(self):
         return pow(e, -float(shortestdistance(self._best)[-1]))
