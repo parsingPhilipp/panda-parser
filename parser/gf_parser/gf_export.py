@@ -7,6 +7,7 @@ SUFFIX = ".gf"
 COMPILED_SUFFIX = ".pgf"
 PROBS_SUFFIX = ".probs"
 
+
 def export(grammar, prefix, name):
     """
     :param grammar:
@@ -21,7 +22,8 @@ def export(grammar, prefix, name):
     nonterminals = Enumerator()
     rules = Enumerator()
 
-    with open(prefix + name + SUFFIX, 'w') as abstract, open(prefix + name + LANGUAGE + SUFFIX, 'w') as concrete, open(prefix + name + PROBS_SUFFIX, 'w') as probs:
+    with open(prefix + name + SUFFIX, 'w') as abstract, open(prefix + name + LANGUAGE + SUFFIX, 'w') as concrete, open(
+                            prefix + name + PROBS_SUFFIX, 'w') as probs:
 
         def print_nont(nont):
             return "Nont" + str(nonterminals.object_index(nont))
@@ -39,7 +41,8 @@ def export(grammar, prefix, name):
             abstract.write("    " + print_nont(nont) + " ;\n")
             # define fanout
             if grammar.fanout(nont) > 1:
-                concrete.write("  lincat " + print_nont(nont) + " = { " + ' ; '.join(['s' + str(i) + ' : Str' for i in range(grammar.fanout(nont))]) + " } ; \n\n")
+                concrete.write("  lincat " + print_nont(nont) + " = { " + ' ; '.join(
+                    ['s' + str(i) + ' : Str' for i in range(grammar.fanout(nont))]) + " } ; \n\n")
             else:
                 concrete.write("  lincat " + print_nont(nont) + " = Str ; \n\n")
 
@@ -90,8 +93,8 @@ def export(grammar, prefix, name):
                            + " = ")
             if grammar.fanout(rule.lhs().nont()) > 1:
                 concrete.write("{ "
-                           + transform(rule.lhs())
-                           + " } ; \n")
+                               + transform(rule.lhs())
+                               + " } ; \n")
             else:
                 concrete.write(transform_def(rule.lhs(), 0) + " ; \n")
 
@@ -106,4 +109,6 @@ def export(grammar, prefix, name):
 
 
 def compile_gf_grammar(prefix, name):
-    return call(["gf", "-make", "-D", prefix, "--probs=" + prefix + name + PROBS_SUFFIX, prefix + name + LANGUAGE + SUFFIX])
+    return call(["gf", "-make", "-D", prefix, "--probs=" + prefix + name + PROBS_SUFFIX
+                    , "+RTS", "-K100M", "-RTS" # compilation of large grammars requires larger run-time stack
+                    , prefix + name + LANGUAGE + SUFFIX])
