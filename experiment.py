@@ -318,6 +318,9 @@ def basic_extraction(t):
     tree_part = t.unlabelled_structure()
     return fringe_extract_lcfrs(t, tree_part)
 
+def basic_extraction_child(t):
+    tree_part = t.unlabelled_structure()
+    return fringe_extract_lcfrs(t, tree_part, naming="child")
 
 # Novel way of extracting LCFRS, placing maximum on fanout of LCFRS.
 def cfg_extraction(t):
@@ -554,16 +557,18 @@ def parse_tree_by_gram(tree, gram, parser, accuracy):
 
 # UNCOMMENT one or more of the following for running experiments
 # parse_test(25)
-# parse_test(20, method=basic_extraction)
+parse_test(20, method=basic_extraction, parser=the_parser_factory().getParser("gf-parser"))
 # parse_test(20, method=cfg_extraction)
 # parse_test(20, method=fanout_two_extraction)
 # parse_test(20, method=fanout_three_extraction)
 # parse_test(20, method=fanout_four_extraction)
-parse_test(20, method=left_branch_extraction, parser=the_parser_factory().getParser("left-branching"))
-parse_test(20, method=right_branch_extraction, parser=the_parser_factory().getParser("right-branching"))
+# parse_test(20, method=left_branch_extraction, parser=the_parser_factory().getParser("fst-left-branching"))
+# parse_test(20, method=right_branch_extraction, parser=the_parser_factory().getParser("fst-right-branching"))
 
-parse_test(20, method=left_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
-parse_test(20, method=right_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
+parse_test(20, method=basic_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
+# parse_test(20, method=left_branch_extraction_child, parser=the_parser_factory().getParser("fst-left-branching"))
+# parse_test(20, method=left_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
+# parse_test(20, method=right_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
 # parse_test(20, method=cfg_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
 # parse_test(20, method=fanout_three_extraction_child)
