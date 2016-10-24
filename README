@@ -20,10 +20,25 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #####################################################################################################
 
 Installation/ Preparation:
-- acquire python2.7 and sqlite3
-- install the packages subprocess32 available at https://pypi.python.org/pypi/subprocess32/
-  and texttable available at https://pypi.python.org/pypi/texttable
-- download and unpack this software
+
+See the wiki at https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars/wikis/install-prerequesits
+
+#####################################################################################################
+
+Resources / Corpora
+We assume that various corpora are avialable in the `res` directory. You may want to download
+or symlink them there:
+
+`res/dependency_conll` -> various corpora of CONLL-X shared task
+`res/tiger/tiger_release_aug07.corrected.16012013.xml -> the tiger corpus
+`res/negra-corpus/downloadv2/negra-corpus.{cfg,export}` -> the negra-corpus
+`res/wsj_dependency/{02-22,23,24}.conll` -> various section of PTB/WSJ in conll format
+
+#####################################################################################################
+
+Running unit tests (requires CONLL-X and wsj corpora to be installed)
+`cd tests`
+`PYTHONPATH=.. python2.7 -m unittest discover`
 
 #####################################################################################################
 
