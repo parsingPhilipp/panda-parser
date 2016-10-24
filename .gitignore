@@ -4,3 +4,5 @@
 *.pdf
 *.idea
 *.tex
+*.tmp/*
+*.so
