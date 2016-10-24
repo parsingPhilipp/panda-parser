@@ -4,8 +4,8 @@ __author__ = 'kilian'
 import copy
 import sys
 import unittest
-from math import e
 from collections import defaultdict
+from math import e
 
 from dependency.induction import induce_grammar, direct_extraction, left_branching, right_branching, the_terminal_labeling_factory, \
     the_recursive_partitioning_factory, cfg
@@ -14,12 +14,13 @@ from grammar.linearization import linearize
 from grammar.sDCP.dcp import DCP_string
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
-from hybridtree.test_multiroot import multi_dep_tree
+from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from parser.derivation_interface import derivation_to_hybrid_tree
-from parser.fst.fst_export import compile_wfst_from_right_branching_grammar, fsa_from_list_of_symbols, compose, shortestpath, shortestdistance, retrieve_rules, PolishDerivation, ReversePolishDerivation, compile_wfst_from_left_branching_grammar, local_rule_stats, paths
+from parser.fst.fst_export import compile_wfst_from_right_branching_grammar, fsa_from_list_of_symbols, compose, shortestpath, shortestdistance, retrieve_rules, PolishDerivation, ReversePolishDerivation, compile_wfst_from_left_branching_grammar, local_rule_stats, paths, \
+    LeftBranchingFSTParser
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from parser.viterbi.viterbi import ViterbiParser as LCFRS_parser
-from parser.cpp_cfg_parser.parser_wrapper import CFGParser
+from tests.test_multiroot import multi_dep_tree
 
 
 class InductionTest(unittest.TestCase):
@@ -243,18 +244,18 @@ class InductionTest(unittest.TestCase):
                                       the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
                                       terminal_labeling.token_label, [left_branching], 'START')
 
-        a, rules = compile_wfst_from_left_branching_grammar(grammar)
+        fst, rules = compile_wfst_from_left_branching_grammar(grammar)
 
-        print a
+        print fst
 
-        symboltable = a.input_symbols()
+        symboltable = fst.input_symbols()
 
         string = ["NP", "N", "V", "V", "V"]
 
         fsa = fsa_from_list_of_symbols(string, symboltable)
         self.assertEqual(fsa.text(), '0\t1\tNP\tNP\n1\t2\tN\tN\n2\t3\tV\tV\n3\t4\tV\tV\n4\t5\tV\tV\n5\n')
 
-        b = compose(fsa, a)
+        b = compose(fsa, fst)
 
         print b.text(symboltable, symboltable)
 
@@ -269,13 +270,25 @@ class InductionTest(unittest.TestCase):
 
         polish_rules = map(rules.index_object, polish_rules)
 
-        print polish_rules
+        for rule in polish_rules:
+            print rule
+        print
 
         der = ReversePolishDerivation(polish_rules[0:-1])
+        self.assertTrue(der.check_integrity_recursive(der.root_id()))
 
         print der
 
+        LeftBranchingFSTParser.preprocess_grammar(grammar)
+        parser = LeftBranchingFSTParser(grammar, string)
+        der_ = parser.best_derivation_tree()
+
+        print der_
+        self.assertTrue(der_.check_integrity_recursive(der_.root_id()))
+
         print derivation_to_hybrid_tree(der, string, "Piet Marie helpen lezen leren".split(), construct_conll_token)
+
+        print derivation_to_hybrid_tree(der_, string, "Piet Marie helpen lezen leren".split(), construct_conll_token)
 
         dcp = The_DCP_evaluator(der).getEvaluation()
 

@@ -17,7 +17,7 @@ gold_prefix = '.tmp/gold-output'
 eval_pl = 'util/eval.pl'
 
 
-def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = ""):
+def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = "", punctuation=False):
     """
     :param connection: database connection
     :param corpus:  path to the gold standard corpus (CoNLL)
@@ -75,6 +75,8 @@ def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = "
         gold_file.close()
 
     eval_pl_call_strings = ["-g {!s}".format(gold_file_path), "-s {!s}".format(test_file_path), "-q"]
+    if punctuation:
+        eval_pl_call_strings.append("-p")
     p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
 

@@ -4,6 +4,8 @@ from grammar.linearization import Enumerator
 from math import log, e
 from parser.derivation_interface import AbstractDerivation
 from parser.parser_interface import AbstractParser
+from collections import defaultdict
+import sys
 
 FINAL = 'THE-FINAL-STATE'
 INITIAL = 'THE-INITIAL-STATE'
@@ -68,7 +70,7 @@ def compile_wfst_from_right_branching_grammar(grammar):
 def compile_wfst_from_left_branching_grammar(grammar):
     """
         :type grammar: LCFRS
-        :rtype: Fst
+        :rtype: Fst, Enumerator
         Create a FST from a left-branching hybrid grammar.
         The Output of the is a rule tree in `reverse polish notation <https://en.wikipedia.org/wiki/Reverse_Polish_notation>`_
         """
@@ -93,7 +95,8 @@ def compile_wfst_from_left_branching_grammar(grammar):
     terminals.add_symbol('<epsilon>', 0)
 
     for rule in grammar.rules():
-        if len(rule.rhs()) == 2:
+        if rule.rank() == 2:
+            assert len(rule.lhs().arg(0)) == 2
             for rule2 in grammar.lhs_nont_to_rules(rule.rhs_nont(1)):
                 if len(rule2.rhs()) == 0:
                     arc = Arc(terminals.add_symbol(rule2.lhs().args()[0][0]),
@@ -103,13 +106,16 @@ def compile_wfst_from_left_branching_grammar(grammar):
                               make_weight(rule.weight() * rule2.weight()),
                               nonterminals.find(rule.lhs().nont()))
                     myfst.add_arc(nonterminals.find(rule.rhs_nont(0)), arc)
-        elif len(rule.rhs()) == 0:
+        elif rule.rank() == 0:
+            assert len(rule.lhs().arg(0)) == 1
             arc = Arc(terminals.add_symbol(rule.lhs().args()[0][0]),
                       terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()),
                       nonterminals.find(rule.lhs().nont()))
             myfst.add_arc(nonterminals.find(INITIAL), arc)
         else:
+            assert rule.rank() == 1
             assert rule.lhs().nont() == grammar.start()
+            assert len(rule.lhs().arg(0)) == 1
             arc = Arc(0, terminals.add_symbol(str(rules.object_index(rule))), make_weight(rule.weight()),
                       nonterminals.find(grammar.start())
                       )
@@ -285,7 +291,7 @@ class RightBranchingFSTParser(AbstractParser):
             return None
 
     def __init__(self, grammar, input):
-        fst, self._rules = grammar.tmp
+        fst, self._rules = grammar.tmp_fst
         fsa = fsa_from_list_of_symbols(input, fst.mutable_input_symbols())
 
         intersection = fsa * fst
@@ -302,7 +308,7 @@ class RightBranchingFSTParser(AbstractParser):
 
     @staticmethod
     def preprocess_grammar(grammar):
-        grammar.tmp = compile_wfst_from_right_branching_grammar(grammar)
+        grammar.tmp_fst = compile_wfst_from_right_branching_grammar(grammar)
 
 
 class LeftBranchingFSTParser(AbstractParser):
@@ -328,7 +334,7 @@ class LeftBranchingFSTParser(AbstractParser):
             return None
 
     def __init__(self, grammar, input):
-        fst, self._rules = grammar.tmp
+        fst, self._rules = grammar.tmp_fst
         fsa = fsa_from_list_of_symbols(input, fst.mutable_input_symbols())
 
         intersection = compose(fsa, fst)
@@ -345,4 +351,4 @@ class LeftBranchingFSTParser(AbstractParser):
 
     @staticmethod
     def preprocess_grammar(grammar):
-        grammar.tmp = compile_wfst_from_left_branching_grammar(grammar)
+        grammar.tmp_fst = compile_wfst_from_left_branching_grammar(grammar)

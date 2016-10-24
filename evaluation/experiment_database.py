@@ -599,7 +599,7 @@ def uas(connection, tree_id, e_id):
     cursor = connection.cursor()
     try:
         correct, length = cursor.execute('''
-        SELECT count(tree_nodes.head), trees.length
+        SELECT count(DISTINCT tree_nodes.sent_position), trees.length
         FROM tree_nodes JOIN trees JOIN result_trees JOIN result_tree_nodes
         ON tree_nodes.t_id =  trees.t_id
             AND trees.t_id = result_trees.t_id
@@ -613,7 +613,7 @@ def uas(connection, tree_id, e_id):
     except TypeError:
         try:
             incorrect, length = cursor.execute('''
-            SELECT count(tree_nodes.head), trees.length
+            SELECT count(DISTINCT tree_nodes.sent_position), trees.length
             FROM tree_nodes JOIN trees JOIN result_trees JOIN result_tree_nodes
             ON tree_nodes.t_id =  trees.t_id
                 AND trees.t_id = result_trees.t_id
@@ -651,7 +651,7 @@ def las(connection, tree_id, e_id):
     except TypeError:
         try:
             incorrect, length = cursor.execute('''
-            SELECT count(tree_nodes.head), trees.length
+            SELECT count(DISTINCT tree_nodes.sent_position), trees.length
             FROM tree_nodes JOIN trees JOIN result_trees JOIN result_tree_nodes
             ON tree_nodes.t_id =  trees.t_id
                 AND trees.t_id = result_trees.t_id

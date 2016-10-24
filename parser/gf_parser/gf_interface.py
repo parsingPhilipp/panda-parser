@@ -74,7 +74,7 @@ class GFParser(AbstractParser):
         pass
 
     def __init__(self, grammar, input):
-        gf_grammar, self.rules = grammar.tmp
+        gf_grammar, self.rules = grammar.tmp_gf
         # assert isinstance(gf_grammar, pgf.Concr)
         assert isinstance(self.rules, Enumerator)
         try:
@@ -102,4 +102,4 @@ class GFParser(AbstractParser):
         compile_gf_grammar(prefix, name)
         gf_grammar = pgf.readPGF(prefix + name + COMPILED_SUFFIX).languages[name + LANGUAGE]
         # print gf_grammar
-        grammar.tmp = gf_grammar, rules
+        grammar.tmp_gf = gf_grammar, rules

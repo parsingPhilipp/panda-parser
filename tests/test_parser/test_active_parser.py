@@ -2,16 +2,16 @@ __author__ = 'kilian'
 
 import unittest
 
-from parser.active.parsing import *
-from grammar.LCFRS.lcfrs import *
-from parser.active.derivation import Derivation
-from parser.derivation_interface import derivation_to_hybrid_tree
-from hybridtree.general_hybrid_tree import HybridTree
-from hybridtree.monadic_tokens import *
 from dependency.induction import induce_grammar, direct_extraction, the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
-from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
+from grammar.LCFRS.lcfrs import *
+from hybridtree.general_hybrid_tree import HybridTree
+from hybridtree.monadic_tokens import *
+from parser.active.derivation import Derivation
+from parser.active.parsing import *
+from parser.derivation_interface import derivation_to_hybrid_tree
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 
 
 class ActiveParserTest(unittest.TestCase):
@@ -236,7 +236,7 @@ class ActiveParserTest(unittest.TestCase):
         parser = Parser(grammar, word)
         counter = 0
 
-        # for passive_item in parser.query_passive_items('A', [0]):
+        # for passive_item in test_parser.query_passive_items('A', [0]):
         # if passive_item.range(LCFRS_var(-1, 0)) != Range(0, 4):
         # continue
         # else:

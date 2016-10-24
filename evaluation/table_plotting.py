@@ -4,6 +4,7 @@ from evaluation.experiment_database import nontlabelling_strategies, recpac_stat
     scores_and_parse_time, recognised_sentences_lesseq_than, parse_time_trees_lesseq_than, percentify, \
     test_sentences_length_lesseq_than, all_recognised_sentences_lesseq_than, common_recognised_sentences, openDatabase, \
     sampledb, finalize_database
+from collections import defaultdict
 
 __author__ = 'kilian'
 
@@ -46,6 +47,10 @@ def compute_line(connection, ids, exp, max_length, ignore_punctuation):
     percent = lambda x: percentify(x, precicion)
     line['LAS_e'], line['UAS_e'], line['LAc_e'] = tuple(
         map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids, 'recognized')))
+    line['LAS^rp_e'], line['UAS^rp_e'], line['LAc_e'] = tuple(
+        map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids, 'recognized', punctuation=True)))
+    line['LAS^tp_e'], line['UAS^tp_e'], line['LAc^tp_e'] = tuple(
+        map(percent, eval_pl_scores(connection, test_corpus, exp, None, 'all', punctuation=True)))
     line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(
         map(percent, eval_pl_scores(connection, test_corpus, exp, None, 'all')))
     line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(
@@ -94,22 +99,24 @@ def compute_line(connection, ids, exp, max_length, ignore_punctuation):
 
 
 def create_latex_table_from_database(connection, experiments, max_length=sys.maxint, ignore_punctuation = False, pipe=sys.stdout):
-    columns_style = {}
+    columns_style = defaultdict(lambda: 'r')
     table_columns = ['exp'
         , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
-    selected_columns = ['rec_par', 'term_labelling', 'nont_labelling', 'f1', 'f2'  # , 'f3', 'f4', 'f5'
+    selected_columns = ['rec_par', 'term_labelling', 'nont_labelling', 'f1', 'f2', 'f3', 'f4'# , 'f5'
         , 'limit'
                         # , 'fail'
                         # , 'UAS_avg', 'LAS_avg'
                         # , 'UAS_t', 'LAS_t'
         , 'fail'
-        , 'UAS^c_avg', 'LAS^c_avg'
+        # , 'UAS^c_t', 'LAS^c_t'
+        # , 'UAS^rp_e', 'LAS^rp_e'
+        , 'UAS^tp_e', 'LAS^tp_e' # total number with punctuation
                         # 'UAS^c_t', 'LAS^c_t'
-        , 'UAS_e', 'LAS_e', 'LAc_e'
+        # , 'UAS_e', 'LAS_e', 'LAc_e'
                         # , 'UAS^c_e', 'LAS^c_e', 'LAc^c_e'
-                        # , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
+        , 'UAS^t_e', 'LAS^t_e', 'LAc^t_e'
         , 'parse_time_tot'
                         # , 'n_gaps_test', 'parse_time'
                         ]
@@ -140,6 +147,10 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
     columns_style['fail'] = 'r'
     header['UAS_avg'] = '$UAS_a$'
     columns_style['UAS_avg'] = 'r'
+    header['UAS^tp_e'] = '$UAS^{tp}$'
+    header['LAS^tp_e'] = '$LAS^{tp}$'
+    header['UAS^rp_e'] = '$UAS^{rp}$'
+    header['LAS^rp_e'] ='$LAS^{rp}$'
     header['LAS_avg'] = '$LAS_a$'
     columns_style['LAS_avg'] = 'r'
     header['UAS_t'] = '$UAS_t$'

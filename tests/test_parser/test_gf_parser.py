@@ -1,14 +1,14 @@
 import unittest
-from dependency.test_induction import hybrid_tree_1, hybrid_tree_2
+
 from dependency.induction import the_terminal_labeling_factory, induce_grammar, direct_extraction
 from dependency.labeling import the_labeling_factory
-from hybridtree.monadic_tokens import construct_conll_token
 from hybridtree.general_hybrid_tree import HybridTree
-
+from hybridtree.monadic_tokens import construct_conll_token
+from parser.derivation_interface import derivation_to_hybrid_tree
 from parser.gf_parser.gf_export import *
 from parser.gf_parser.gf_interface import GFParser
-from parser.derivation_interface import derivation_to_hybrid_tree
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 
 
 class MyTestCase(unittest.TestCase):

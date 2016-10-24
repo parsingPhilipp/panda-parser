@@ -1,8 +1,9 @@
 __author__ = 'kilian'
 
 import unittest
+
 from parser.naive.parsing import *
-from parser.active.test_parser import ambiguous_copy_grammar
+from tests.test_parser.test_active_parser import ambiguous_copy_grammar
 
 
 class PassiveParserTest(unittest.TestCase):

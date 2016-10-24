@@ -69,7 +69,9 @@ class AbstractParser:
         # print der
         if der is not None:
             # todo: comment out the next integrity check
-            assert der.check_integrity_recursive(der.root_id(), der.getRule(der.root_id()).lhs().nont())
+            if not der.check_integrity_recursive(der.root_id(), der.getRule(der.root_id()).lhs().nont()):
+                print der
+                raise Exception()
             return The_DCP_evaluator(der).getEvaluation()
         else:
             return []

@@ -128,7 +128,6 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
 
 def tree_to_conll_str(tree):
     """
-    :param tree: hybrid tree
     :type tree: HybridTree
     :return: ConLL format of tree!
     :rtype: str
@@ -176,9 +175,10 @@ def node_to_conll_str(tree, id):
 
 def compare_dependency_trees(reference, test):
     """
-    :param reference: GeneralHybridTree
-    :param test: GeneralHybridTree
-    :return: 5-tuple of int :raise Exception:
+    :type reference: HybridTree
+    :type test: HybridTree
+    :return: 5-tuple of int
+    :raise Exception:
     :rtype: int,int,int,int,int
     Compute UAS, LAS, UEM, LEM, length (of front) for the parsed dependency tree, given some reference tree.
     """
@@ -219,8 +219,8 @@ def compare_dependency_trees(reference, test):
 
 def score_cmp_dep_trees(reference, test):
     """
-    :param reference: GeneralHybridTree
-    :param test: GeneralHybridTree
+    :type reference: HybridTree
+    :type test: HybridTree
     :rtype: float,float,float,float
     :raise Exception:
     Compute UAS, LAS, UEM, LEM for the parsed dependency tree, given some reference tree,

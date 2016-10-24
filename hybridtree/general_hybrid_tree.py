@@ -1,3 +1,4 @@
+#-*- coding: iso-8859-15 -*-
 __author__ = 'kilian'
 
 from collections import defaultdict
@@ -442,7 +443,9 @@ class HybridTree:
             return self.children(parent)
 
     def __hybrid_tree_str(self, root, level):
-        s = level * ' ' + str(self.node_token(root)) + '\n'
+        my_string = self.node_token(root)
+        my_string = my_string.__str__()
+        s = level * ' ' + my_string.encode('utf-8') + '\n'
         for child in self.children(root):
             s += self.__hybrid_tree_str(child, level + 1)
         return s
