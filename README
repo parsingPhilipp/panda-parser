@@ -21,7 +21,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 Installation/ Preparation:
 
-See the wiki at https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars/wikis/install-prerequesits
+See the wiki at
+https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars/wikis/install-prerequesites
 
 Compile C Python modules by running
 `python2.7 setup.py build_ext --inplace`
