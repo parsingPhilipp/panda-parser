@@ -177,6 +177,34 @@ def retrieve_rules(linear_fst):
     return linear_rules
 
 
+def local_rule_stats(fst, stats, lim=sys.maxint):
+    i = 0
+    for path in fst.paths(output_token_type="symbol"):
+        if i >= lim:
+            return stats
+        for lab in path[1].split(' '):
+            if isinstance(lab, str):
+                for rule in lab.split('-'):
+                    stats[int(rule)] += 1
+            else:
+                stats[int(lab)] += 1
+        i += 1
+
+    return stats
+
+
+def paths(fst):
+    for path in fst.paths(output_token_type="symbol"):
+        path_ = []
+        for lab in path[1].split(' '):
+            if isinstance(lab, str):
+                for rule in lab.split('-'):
+                    path_.append(int(rule))
+            else:
+                path_.append(int(lab))
+        yield path_
+
+
 class PolishDerivation(AbstractDerivation):
     def child_ids(self, id):
         if id % 2 == 1 or id == self._len - 1:
