@@ -26,7 +26,7 @@ See the wiki at https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-
 #####################################################################################################
 
 Resources / Corpora
-We assume that various corpora are avialable in the `res` directory. You may want to download
+We assume that various corpora are available in the `res` directory. You may want to download
 or symlink them there:
 
 `res/dependency_conll` -> various corpora of CONLL-X shared task
