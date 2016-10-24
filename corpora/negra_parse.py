@@ -6,7 +6,7 @@ from hybridtree.constituent_tree import ConstituentTree
 from grammar.LCFRS.lcfrs import *
 
 # Location of Negra corpus.
-negra_dir = '~/Data/Negra'
+negra_dir = 'res/negra-corpus/downloadv2'
 
 # The non-projective and projective versions of the negra corpus.
 negra_nonproj = negra_dir + '/negra-corpus.export'

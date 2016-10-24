@@ -12,15 +12,15 @@ from corpora.conll_parse import *
 import subprocess32 as subprocess
 import os
 
-test_file = '../examples/Dependency_Corpus.conll'
-test_file_modified = '../examples/Dependency_Corpus_modified.conll'
-slovene = 'slovene_multi_root.conll'
+test_file = '../res/tests/Dependency_Corpus.conll'
+test_file_modified = '../res/tests/Dependency_Corpus_modified.conll'
+slovene = '../res/tests/slovene_multi_root.conll'
 
-conll_test = '../../dependency_conll/german/tiger/test/german_tiger_test.conll'
-conll_train = '../../dependency_conll/german/tiger/train/german_tiger_train.conll'
+conll_test = '../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+conll_train = '../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
 
 hypothesis_prefix = '.tmp/sys-output'
-eval_pl = '../util/eval.pl'
+eval_pl = 'util/eval.pl'
 test_file_path = '/tmp/no-punctuation.conll'
 test_file_path2 = '/tmp/sent-leq-20.conll'
 

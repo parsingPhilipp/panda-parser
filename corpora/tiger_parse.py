@@ -11,14 +11,13 @@ except ImportError:
 from hybridtree.constituent_tree import ConstituentTree
 
 # Location of Tiger corpus.
-tiger_dir = '..'
+tiger_dir = 'res/tiger'
 
 # Uncomment depending on whether complete corpus is used or subsets.
 # For testing purposes, smaller portions where manually extracted from the
 # complete XML file, which takes a long time to parse.
 # Results were put in tiger_8000.xml and test.xml.
-# tiger = tiger_dir + '/tiger_release_aug07.corrected.16012013.xml'
-tiger = tiger_dir + '/tiger.xml'
+tiger = tiger_dir + '/tiger_release_aug07.corrected.16012013.xml'
 tiger_test = tiger_dir + '/tiger_8000.xml'
 
 
