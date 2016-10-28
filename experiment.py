@@ -24,8 +24,8 @@ tiger_any = ['tiger', 'tiger subset']
 # corpus = 'negra nonproj'
 # corpus = 'negra proj'
 # corpus = 'negra nonproj subset'
-corpus = 'tiger'
-# corpus = 'tiger subset'
+# corpus = 'tiger'
+corpus = 'tiger subset'
 
 # ## negra
 # The one sentence with fanout 3:
@@ -557,7 +557,7 @@ def parse_tree_by_gram(tree, gram, parser, accuracy):
 
 # UNCOMMENT one or more of the following for running experiments
 # parse_test(25)
-parse_test(20, method=basic_extraction, parser=the_parser_factory().getParser("gf-parser"))
+# parse_test(20, method=basic_extraction, parser=the_parser_factory().getParser("gf-parser"))
 # parse_test(20, method=cfg_extraction)
 # parse_test(20, method=fanout_two_extraction)
 # parse_test(20, method=fanout_three_extraction)
@@ -565,9 +565,9 @@ parse_test(20, method=basic_extraction, parser=the_parser_factory().getParser("g
 # parse_test(20, method=left_branch_extraction, parser=the_parser_factory().getParser("fst-left-branching"))
 # parse_test(20, method=right_branch_extraction, parser=the_parser_factory().getParser("fst-right-branching"))
 
-parse_test(20, method=basic_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
+# parse_test(20, method=basic_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
 # parse_test(20, method=left_branch_extraction_child, parser=the_parser_factory().getParser("fst-left-branching"))
-# parse_test(20, method=left_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
+parse_test(20, method=left_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
 # parse_test(20, method=right_branch_extraction_child, parser=the_parser_factory().getParser("gf-parser"))
 # parse_test(20, method=cfg_extraction_child)
 # parse_test(20, method=fanout_two_extraction_child)
