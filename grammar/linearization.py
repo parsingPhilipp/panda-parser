@@ -1,6 +1,8 @@
-from LCFRS.lcfrs import *
-from sDCP.dcp import *
 from sys import stdout
+
+from grammar.lcfrs import *
+
+from grammar.dcp import *
 
 
 def linearize(grammar, nonterminal_labeling, terminal_labeling, file):

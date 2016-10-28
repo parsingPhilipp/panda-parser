@@ -1,6 +1,6 @@
 __author__ = 'kilian'
 
-from grammar.LCFRS.lcfrs import LCFRS_var
+from grammar.lcfrs import LCFRS_var
 from collections import namedtuple
 
 nonterminal_type = str

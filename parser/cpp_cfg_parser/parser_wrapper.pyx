@@ -1,4 +1,4 @@
-from grammar.LCFRS.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs
+from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs
 # form util.enumerator cimport Enumerator
 from parser.derivation_interface import AbstractDerivation
 from parser.parser_interface import AbstractParser

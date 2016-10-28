@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 from hybridtree.general_hybrid_tree import HybridTree
-from grammar.LCFRS.lcfrs import LCFRS_rule, LCFRS_var
+from grammar.lcfrs import LCFRS_rule, LCFRS_var
 from collections import defaultdict
 
 

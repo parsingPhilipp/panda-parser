@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-from grammar.LCFRS.lcfrs import *
+from grammar.lcfrs import *
 from sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from hybridtree.monadic_tokens import MonadicToken
 

@@ -1,6 +1,6 @@
 __author__ = 'kilian'
 
-from grammar.LCFRS.lcfrs import *
+from grammar.lcfrs import *
 from collections import deque
 from parser.parser_interface import AbstractParser
 from derivation import Derivation, DerivationItem

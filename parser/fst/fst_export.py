@@ -1,5 +1,5 @@
 from pynini import *
-from grammar.LCFRS.lcfrs import LCFRS
+from grammar.lcfrs import LCFRS
 from grammar.linearization import Enumerator
 from math import log, e
 from parser.derivation_interface import AbstractDerivation

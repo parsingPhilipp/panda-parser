@@ -7,7 +7,7 @@ import codecs
 import re
 import time
 
-from grammar.sDCP.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
+from grammar.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
 
 # ##########################################################################
 # Parts of the grammar.

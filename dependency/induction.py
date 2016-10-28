@@ -1,14 +1,16 @@
 __author__ = 'kilian'
 
 import re
-from hybridtree.monadic_tokens import CoNLLToken
-from hybridtree.general_hybrid_tree import HybridTree
 from abc import ABCMeta, abstractmethod
-from grammar.sDCP.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
-from grammar.LCFRS.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
+
 from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
     right_branching_partitioning
+from grammar.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
+
 from dependency.labeling import AbstractLabeling
+from grammar.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
+from hybridtree.general_hybrid_tree import HybridTree
+from hybridtree.monadic_tokens import CoNLLToken
 
 
 # ##################   Top level methods for grammar induction.   ###################

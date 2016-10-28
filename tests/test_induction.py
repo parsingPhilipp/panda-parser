@@ -11,7 +11,7 @@ from dependency.induction import induce_grammar, direct_extraction, left_branchi
     the_recursive_partitioning_factory, cfg
 from dependency.labeling import the_labeling_factory
 from grammar.linearization import linearize
-from grammar.sDCP.dcp import DCP_string
+from grammar.dcp import DCP_string
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser

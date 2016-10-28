@@ -7,7 +7,7 @@ import sys
 
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
-from grammar.LCFRS.lcfrs import LCFRS
+from grammar.lcfrs import LCFRS
 from corpora import conll_parse
 
 dbfile = 'examples/example.db'

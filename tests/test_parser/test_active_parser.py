@@ -4,7 +4,7 @@ import unittest
 
 from dependency.induction import induce_grammar, direct_extraction, the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
-from grammar.LCFRS.lcfrs import *
+from grammar.lcfrs import *
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import *
 from parser.active.derivation import Derivation

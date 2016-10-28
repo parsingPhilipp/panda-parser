@@ -2,7 +2,7 @@
 #-*- coding: iso-8859-15 -*-
 
 from parser.parser_interface import AbstractParser
-from grammar.LCFRS.lcfrs import LCFRS, LCFRS_rule, LCFRS_var
+from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_var
 import heapq
 from collections import defaultdict
 from math import log

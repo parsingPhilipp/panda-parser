@@ -1,4 +1,4 @@
-from grammar.LCFRS.lcfrs import *
+from grammar.lcfrs import *
 from grammar.linearization import Enumerator
 from subprocess import call
 

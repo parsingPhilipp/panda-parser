@@ -1,11 +1,12 @@
 # Parsing of string with LCFRS/DCP hybrid grammar.
 
-import sys
 import math
+import sys
 
-from grammar.LCFRS.lcfrs import *
-from grammar.sDCP.dcp import *
+from grammar.lcfrs import *
+
 from derivation import Derivation
+from grammar.dcp import *
 from parser.parser_interface import AbstractParser
 
 RULE = 0

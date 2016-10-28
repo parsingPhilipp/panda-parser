@@ -1,5 +1,5 @@
 from parser.viterbi.viterbi import ViterbiParser, Range, PassiveItem
-from grammar.LCFRS.lcfrs import LCFRS, LCFRS_var
+from grammar.lcfrs import LCFRS, LCFRS_var
 from sys import maxint
 from math import log
 import heapq

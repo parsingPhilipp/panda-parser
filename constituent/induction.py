@@ -1,9 +1,10 @@
 # Extracting grammars out of hybrid trees.
 
 # from hybridtree import *
-from grammar.LCFRS.lcfrs import *
-from grammar.sDCP.dcp import *
 from decomposition import *
+from grammar.lcfrs import *
+
+from grammar.dcp import *
 
 # The root symbol.
 start = 'START'

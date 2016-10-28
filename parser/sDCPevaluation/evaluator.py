@@ -1,8 +1,9 @@
 __author__ = 'kilian'
 
-from grammar.sDCP.dcp import DCP_evaluator, DCP_term, DCP_position, DCP_string
-from parser.derivation_interface import AbstractDerivation
 from corpora.conll_parse import is_punctuation
+from grammar.dcp import DCP_evaluator, DCP_term, DCP_position, DCP_string
+from parser.derivation_interface import AbstractDerivation
+
 
 class The_DCP_evaluator(DCP_evaluator):
     # der: Derivation

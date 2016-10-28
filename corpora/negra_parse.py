@@ -3,7 +3,7 @@
 from os.path import expanduser
 
 from hybridtree.constituent_tree import ConstituentTree
-from grammar.LCFRS.lcfrs import *
+from grammar.lcfrs import *
 
 # Location of Negra corpus.
 negra_dir = 'res/negra-corpus/downloadv2'
