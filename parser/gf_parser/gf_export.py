@@ -109,6 +109,11 @@ def export(grammar, prefix, name):
 
 
 def compile_gf_grammar(prefix, name):
-    return call(["gf", "-make", "-D", prefix, "--probs=" + prefix + name + PROBS_SUFFIX
-                    , "+RTS", "-K100M", "-RTS" # compilation of large grammars requires larger run-time stack
-                    , prefix + name + LANGUAGE + SUFFIX])
+    #TODO 1) it seems that some additional arguments could make gf compile faster
+    #TODO 2) compile to other grammars than "/tmp/tmpGrammarLCFRS.gf"
+    #TODO 3) adding "shell=True" and joining the arguments to one string solved some
+    #TODO "IOError: [Errno 2] No such file or directory" on an arch linux machine
+    #TODO I (@kilian) have no idea why
+    return call(' '.join(["gf", "-make", "-D", prefix, "--probs=" + prefix + name + PROBS_SUFFIX
+                , "+RTS", "-K100M", "-RTS" # compilation of large grammars requires larger run-time stack
+                , prefix + name + LANGUAGE + SUFFIX]), shell=True)
