@@ -3,7 +3,7 @@ from evaluation.eval_pl_scorer import eval_pl_scores
 from evaluation.experiment_database import nontlabelling_strategies, recpac_stategies, punct, fanout, \
     scores_and_parse_time, recognised_sentences_lesseq_than, parse_time_trees_lesseq_than, percentify, \
     test_sentences_length_lesseq_than, all_recognised_sentences_lesseq_than, common_recognised_sentences, openDatabase, \
-    sampledb, finalize_database
+    sampledb, finalize_database, the_test_sentences_length_lesseq_than
 from collections import defaultdict
 
 __author__ = 'kilian'
@@ -42,6 +42,8 @@ def compute_line(connection, ids, exp, max_length, ignore_punctuation):
 
     total_parse_time = parse_time_trees_lesseq_than(connection, exp, max_length, test_corpus, ignore_punctuation)
 
+    test_ids_smaller_than_limit = the_test_sentences_length_lesseq_than(connection, test_corpus, max_length, ignore_punctuation)
+
     precicion = 1
 
     percent = lambda x: percentify(x, precicion)
@@ -50,9 +52,9 @@ def compute_line(connection, ids, exp, max_length, ignore_punctuation):
     line['LAS^rp_e'], line['UAS^rp_e'], line['LAc_e'] = tuple(
         map(percent, eval_pl_scores(connection, test_corpus, exp, recogn_ids, 'recognized', punctuation=True)))
     line['LAS^tp_e'], line['UAS^tp_e'], line['LAc^tp_e'] = tuple(
-        map(percent, eval_pl_scores(connection, test_corpus, exp, None, 'all', punctuation=True)))
+        map(percent, eval_pl_scores(connection, test_corpus, exp, test_ids_smaller_than_limit, 'all', punctuation=True)))
     line['LAS^t_e'], line['UAS^t_e'], line['LAc^t_e'] = tuple(
-        map(percent, eval_pl_scores(connection, test_corpus, exp, None, 'all')))
+        map(percent, eval_pl_scores(connection, test_corpus, exp, test_ids_smaller_than_limit, 'all')))
     line['LAS^c_e'], line['UAS^c_e'], line['LAc^c_e'] = tuple(
         map(percent, eval_pl_scores(connection, test_corpus, exp, ids, 'intersection')))
 

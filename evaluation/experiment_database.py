@@ -509,6 +509,13 @@ def test_sentences_length_lesseq_than(connection, test_corpus, length, ignore_pu
     return len(filter_by_length(connection, map(lambda x: x[0], ids), length, ignore_punctuation))
 
 
+def the_test_sentences_length_lesseq_than(connection, test_corpus, length, ignore_punctuation):
+    cursor = connection.cursor()
+    ids = cursor.execute('SELECT t_id FROM trees WHERE corpus = ?',
+                       (test_corpus,)).fetchall()
+    return filter_by_length(connection, map(lambda x: x[0], ids), length, ignore_punctuation)
+
+
 def all_recognised_sentences_lesseq_than(connection, exp_id, length, test_corpus, ignore_punctuation):
     cursor = connection.cursor()
     ids = cursor.execute('''
