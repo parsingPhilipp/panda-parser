@@ -271,7 +271,7 @@ def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forc
 
     #
     print "Compiling grammar with gf"
-    p = subprocess.Popen(["gf", "-make", "-probs=" + grammarName + "/bingrammargf.probs", "--cpu", "-D", grammarName, grammarName + "/bingrammargfconcrete.gf"])
+    p = subprocess.Popen(["gf", "+RTS", "-K100M", "-RTS", "-make", "-probs=" + grammarName + "/bingrammargf.probs", "--cpu", "-D", grammarName, grammarName + "/bingrammargfconcrete.gf"])
     p.communicate()
     gr = pgf.readPGF(grammarName + "/bingrammargfabstract.pgf")
 
