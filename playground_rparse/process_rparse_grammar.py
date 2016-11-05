@@ -181,7 +181,7 @@ def fall_back_left_branching(forms, poss):
     tree = HybridTree()
     n = len(poss)
     for i, (form, pos) in enumerate(zip(forms, poss)):
-        token = construct_conll_token(form, poss)
+        token = construct_conll_token(form, pos)
         token.set_deprel('_')
         tree.add_node(i, token, True)
         if i == 0:
@@ -213,7 +213,7 @@ def parse(gf, input, output, verbose=False):
                 poss.append(pos)
             elif re.search(r'^[^\s]*$', line):
                 if verbose:
-                    print poss
+                    print zip(forms, poss)
                 time_stamp = time.clock()
                 result = parse_with_pgf(gf, forms, poss)
                 parse_time = parse_time + (time.clock() - time_stamp)
@@ -222,6 +222,8 @@ def parse(gf, input, output, verbose=False):
                     result = fall_back_left_branching(forms, poss)
                     if verbose:
                         print "parse failure"
+                if verbose:
+                    print result
                 # print result
                 output_file.write(tree_to_conll_str(result))
                 output_file.write('\n\n')
