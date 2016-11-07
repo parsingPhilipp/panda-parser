@@ -457,6 +457,22 @@ def fanout(fanouts, f):
     return 0
 
 
+def avg_fanout(fanouts):
+    nonts = 0
+    count = 0
+    for fi, ni in fanouts:
+        nonts += ni
+        count += fi * ni
+    return count * 1.0 / nonts
+
+def max_fanout(fanouts):
+    max = 0
+    for fi, ni in fanouts:
+        if fi > max and ni > 0:
+            max = fi
+    return max
+
+
 def punct(p):
     if p == 1:
         return 'ignore'

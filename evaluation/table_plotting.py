@@ -3,7 +3,7 @@ from evaluation.eval_pl_scorer import eval_pl_scores
 from evaluation.experiment_database import nontlabelling_strategies, recpac_stategies, punct, fanout, \
     scores_and_parse_time, recognised_sentences_lesseq_than, parse_time_trees_lesseq_than, percentify, \
     test_sentences_length_lesseq_than, all_recognised_sentences_lesseq_than, common_recognised_sentences, openDatabase, \
-    sampledb, finalize_database, the_test_sentences_length_lesseq_than
+    sampledb, finalize_database, the_test_sentences_length_lesseq_than, max_fanout, avg_fanout
 from collections import defaultdict
 
 __author__ = 'kilian'
@@ -25,15 +25,21 @@ def compute_line(connection, ids, exp, max_length, ignore_punctuation):
     line['training_corpus'] = experiment[2]
     test_corpus = experiment[3]
     line['punc'] = punct(experiment[4])
-    line['n_nonterminals'] = nont
-    line['n_rules'] = rules
+    line['n_nonterminals'] = "{:,}".format(nont)
+    line['n_rules'] = "{:,}".format(rules)
     line['term_labelling'] = experiment[5].replace('_', '-')
     # line['fanout'] = 'fanout'
+
     line['f1'] = fanout(fanouts, 1)
     line['f2'] = fanout(fanouts, 2)
     line['f3'] = fanout(fanouts, 3)
     line['f4'] = fanout(fanouts, 4)
     line['f5'] = fanout(fanouts, 5)
+    line['f6'] = fanout(fanouts, 6)
+    line['f7'] = fanout(fanouts, 7)
+    line['f8'] = fanout(fanouts, 8)
+    line['fanout'] = max_fanout(fanouts)
+    line['favg'] = "{:.2f}".format(avg_fanout(fanouts))
 
     UAS_a, LAS_a, UAS_t, LAS_t, time_on_int = scores_and_parse_time(connection, ids, exp)
 
@@ -104,9 +110,10 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
     columns_style = defaultdict(lambda: 'r')
     table_columns = ['exp'
         , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
+        , 'favg'
         , 'f1', 'f2', 'f3', 'f4', 'f5', 'test_total', 'UAS^c_avg', 'LAS^c_avg', 'LAS^c_t', 'UAS^c_t'
         , 'fail', 'UAS_avg', 'LAS_avg', 'UAS_t', 'LAS_t', 'n_gaps_test', 'n_gaps_gold', 'parse_time', 'punc']
-    selected_columns = ['rec_par', 'term_labelling', 'nont_labelling', 'f1', 'f2', 'f3', 'f4'# , 'f5'
+    selected_columns = ['rec_par', 'term_labelling', 'nont_labelling', 'fanout', 'n_nonterminals', 'n_rules', 'favg', 'f1', 'f2', 'f3', 'f4'# , 'f5'
         , 'limit'
                         # , 'fail'
                         # , 'UAS_avg', 'LAS_avg'
@@ -137,6 +144,7 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
     header['n_rules'] = 'rules'
     columns_style['n_rules'] = 'r'
     header['fanout'] = 'fanout'
+    header['favg'] = 'fan avg.'
     columns_style['fanout'] = 'r'
     for i in range(1, 6, 1):
         header['f' + str(i)] = 'f ' + str(i)
