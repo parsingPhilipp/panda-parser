@@ -1,6 +1,7 @@
 from grammar.lcfrs import *
 from grammar.linearization import Enumerator
 from subprocess import call
+import os
 
 LANGUAGE = "LCFRS"
 SUFFIX = ".gf"
@@ -21,6 +22,14 @@ def export(grammar, prefix, name):
     """
     nonterminals = Enumerator()
     rules = Enumerator()
+
+    # do not overwrite grammar files
+    name_ = name
+    i = 1
+    while os.path.isfile(prefix + name_ + SUFFIX):
+        i += 1
+        name_ = name + '_' + str(i)
+    name = name_
 
     with open(prefix + name + SUFFIX, 'w') as abstract, open(prefix + name + LANGUAGE + SUFFIX, 'w') as concrete, open(
                             prefix + name + PROBS_SUFFIX, 'w') as probs:
@@ -105,7 +114,7 @@ def export(grammar, prefix, name):
         abstract.write("\n}\n")
         concrete.write("\n}\n")
 
-    return rules
+    return rules, name
 
 
 def compile_gf_grammar(prefix, name):

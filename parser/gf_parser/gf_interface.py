@@ -98,8 +98,8 @@ class GFParser(AbstractParser):
 
     @staticmethod
     def preprocess_grammar(grammar):
-        rules = export(grammar, prefix, name)
-        compile_gf_grammar(prefix, name)
-        gf_grammar = pgf.readPGF(prefix + name + COMPILED_SUFFIX).languages[name + LANGUAGE]
+        rules, name_ = export(grammar, prefix, name)
+        compile_gf_grammar(prefix, name_)
+        gf_grammar = pgf.readPGF(prefix + name_ + COMPILED_SUFFIX).languages[name_ + LANGUAGE]
         # print gf_grammar
         grammar.tmp_gf = gf_grammar, rules
