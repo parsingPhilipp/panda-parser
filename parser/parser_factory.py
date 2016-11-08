@@ -15,8 +15,8 @@ class ParserFactory:
         self.__parsers[name] = parser
 
     def getParser(self, name):
-        if name == "fanout-1":
-            return self.__parsers["cfg-parser"]
+        # if name == "fanout-1":
+        #    return self.__parsers["cfg-parser"]
         match = re.search(r'fanout-(\d+)', name)
         if match:
             # return ViterbiParser
@@ -30,7 +30,7 @@ def the_parser_factory():
     # factory.registerParser('right-branching', RightBranchingParser)
     factory.registerParser('left-branching', LeftBranchingFSTParser)
     factory.registerParser('right-branching', RightBranchingFSTParser)
-    factory.registerParser('direct-extraction', ViterbiParser)
+    factory.registerParser('direct-extraction', GFParser)
     factory.registerParser('viterbi-bottom-up', ViterbiParser)
     factory.registerParser('naive-bottom-up', NaiveParser)
     factory.registerParser('viterbi-left-corner', LeftCornerParser)
