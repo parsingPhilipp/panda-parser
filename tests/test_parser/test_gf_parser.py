@@ -29,9 +29,9 @@ class MyTestCase(unittest.TestCase):
         prefix = '/tmp/'
         name = 'tmpGrammar'
 
-        export(grammar, prefix, name)
+        _, name_ = export(grammar, prefix, name)
 
-        self.assertEqual(0, compile_gf_grammar(prefix, name))
+        self.assertEqual(0, compile_gf_grammar(prefix, name_))
 
         GFParser.preprocess_grammar(grammar)
 
