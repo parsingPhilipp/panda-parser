@@ -129,7 +129,7 @@ def process_log(path, the_name):
                 if punctuation:
                     lac_p = percentify(match.group(1), precision)
                     print '\t&\t',
-                    print '\t&\t'.join([parse_time, parse_failures, uas_p, las_p, lac_p, uas, las, lac]),
+                    print '\t&\t'.join([parse_failures, uas_p, las_p, lac_p, uas, las, lac, parse_time]),
                     print "\\\\"
                 else:
                     lac = percentify(match.group(1), precision)
