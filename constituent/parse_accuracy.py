@@ -1,7 +1,7 @@
 # Auxiliary classes to determine parsing accuracy.
 
 # Keep records needed to compute recall/precision.
-class ParseAccuracy:
+class ParseAccuracy(object):
     # Constructor.
     def __init__(self):
         # Sum of sentence precisions
@@ -22,7 +22,14 @@ class ParseAccuracy:
         retrieved = set([tuple(t) for t in found])
         relevant = set([tuple(t) for t in correct])
         inters = retrieved & relevant
-        precision = 1.0 * len(inters) / len(retrieved)
+        if len(retrieved) == 0:
+            # happens in case of parse failure
+            # there are two options here: 
+            #   - parse failure -> no spans at all, thus precision = 1 
+            #   - parse failure -> a dummy tree with all spans wrong, thus precision = 0
+	    precision = 0
+        else: 
+            precision = 1.0 * len(inters) / len(retrieved)
         recall = 1.0 * len(inters) / len(relevant)
         if precision + recall == 0:
             fmeasure = 0
@@ -65,7 +72,9 @@ class ParseAccuracy:
 
 # Keep records needed to compute recall/precision.
 class ParseAccuracyPenalizeFailures(ParseAccuracy):
+    def __init__(self):
+        super(ParseAccuracyPenalizeFailures, self).__init__()
     # Count one more failure.
     def add_failure(self, correct=[]):
-        self.__n_failures += 1
+        super(ParseAccuracyPenalizeFailures, self).add_failure()
         self.add_accuracy([], correct)
