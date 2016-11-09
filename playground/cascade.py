@@ -19,9 +19,9 @@ recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitionin
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')
-parser_type = parser.parser_factory.CFGParser
+# parser_type = parser.parser_factory.CFGParser
 parser_type = parser.parser_factory.GFParser
-# tree_yield = term_labelling.prepare_parser_input
+tree_yield = term_labelling.prepare_parser_input
 
 def main(limit=100000, ignore_punctuation=False):
     trees = parse_conll_corpus(train, False, limit)
