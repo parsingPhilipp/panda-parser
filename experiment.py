@@ -4,7 +4,7 @@ import time
 
 import corpora.negra_parse
 import corpora.tiger_parse
-from constituent.parse_accuracy import ParseAccuracy
+from constituent.parse_accuracy import ParseAccuracy, ParseAccuracyPenalizeFailures
 from hybridtree.constituent_tree import *
 from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
@@ -499,7 +499,7 @@ def add_gram(tree, gram, method):
 def parse_test(max_length, method=direct_extract_lcfrs, parser=LCFRS_parser):
     g = induce(method=method)
     # print g # for testing
-    accuracy = ParseAccuracy()
+    accuracy = ParseAccuracyPenalizeFailures()
     clear_globals()
     first = first_test_sentence()
     last = last_test_sentence()
@@ -542,7 +542,8 @@ def parse_tree_by_gram(tree, gram, parser, accuracy):
     # print tree.n_gaps() # for testing
     p = parser(gram, poss)
     if not p.recognized():
-        accuracy.add_failure()
+        relevant = tree.labelled_spans()
+        accuracy.add_failure(relevant)
     # print 'failure', tree.sent_label() # for testing
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)

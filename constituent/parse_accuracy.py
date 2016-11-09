@@ -34,7 +34,7 @@ class ParseAccuracy:
         self.__n += 1
 
     # Count one more failure.
-    def add_failure(self):
+    def add_failure(self, correct=[]):
         self.__n_failures += 1
 
     # Get number of instances.
@@ -61,3 +61,11 @@ class ParseAccuracy:
     # return: float
     def fmeasure(self):
         return self.__fmeasures / self.__n
+
+
+# Keep records needed to compute recall/precision.
+class ParseAccuracyPenalizeFailures(ParseAccuracy):
+    # Count one more failure.
+    def add_failure(self, correct=[]):
+        self.__n_failures += 1
+        self.add_accuracy([], correct)
