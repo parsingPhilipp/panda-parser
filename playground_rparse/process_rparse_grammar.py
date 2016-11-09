@@ -10,10 +10,10 @@ from corpora.conll_parse import tree_to_conll_str
 import plac
 import time
 
-def new_lex_files(abstract_path, output_abstract, output_concrete):
+def new_lex_files(abstract_path, output_abstract, output_concrete, bin):
     with open(abstract_path) as abstract, open(output_abstract, 'w') as abstract_new, open(output_concrete, 'w') as concrete_new:
-        abstract_new.write('abstract bingrammargflexabstract = {\n\n')
-        concrete_new.write('concrete bingrammargflexconcrete of bingrammargflexabstract = {\n\n')
+        abstract_new.write('abstract ' + bin + 'grammargflexabstract = {\n\n')
+        concrete_new.write('concrete ' + bin + 'grammargflexconcrete of ' + bin + 'grammargflexabstract = {\n\n')
         while True:
             try:
                 line = abstract.next()
@@ -67,13 +67,13 @@ def un_escape(s):
     s = s.replace("SQ", "\'")
     return s
 
-def parse_with_pgf(gr, forms, poss):
+def parse_with_pgf(gr, forms, poss, bin):
     """"
     :type gr: PGF
     :return:
     :rtype:
     """
-    lcfrs = gr.languages['bingrammargfconcrete']
+    lcfrs = gr.languages[bin + 'grammargfconcrete']
 
     # sentence = "ADJD ADV _COMMA_ KOUS ADV PIS PROAV VVINF VMFIN _PUNCT_"
     sentence = ' '.join(map(escape, poss))
@@ -191,7 +191,7 @@ def fall_back_left_branching(forms, poss):
     return tree
 
 
-def parse(gf, input, output, verbose=False):
+def parse(gf, input, output, verbose=False, bin=''):
     parse_failures = 0
     parse_time = 0.0
     with open(input) as input_file, open(output, 'w') as output_file:
@@ -215,7 +215,7 @@ def parse(gf, input, output, verbose=False):
                 if verbose:
                     print zip(forms, poss)
                 time_stamp = time.clock()
-                result = parse_with_pgf(gf, forms, poss)
+                result = parse_with_pgf(gf, forms, poss, bin)
                 parse_time = parse_time + (time.clock() - time_stamp)
                 if not result:
                     parse_failures += 1
@@ -242,43 +242,52 @@ rparse_path = "../util/rparse.jar"
     , binarization=('binarization strategy', 'option')
     , vMarkov=('vertical Markovization', 'option')
     , hMarkov=('horizontal Markov', 'option')
+    , plain=('plain induction', 'flag')
     , v=('verbose', 'flag')
 )
-def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forceRecompile=False, optional_args="", v=False):
-    rparse_params = ["-dep", "-doTrain", "-trainFormat", "conll", "-train", train, "-binType", binarization, "-vMarkov", str(vMarkov), "-hMarkov", str(hMarkov), "-binSave", grammarName] + optional_args.split(' ')
+def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forceRecompile=False, optional_args="", v=False, plain=False):
+    if plain: 
+        rparse_params = ["-dep", "-doTrain", "-trainFormat", "conll", "-train", train, "-trainSave", grammarName] + optional_args.split(' ')
+        grammar_prefix = '/grammargf'
+        bin = ''
+    else: 
+        rparse_params = ["-dep", "-doTrain", "-trainFormat", "conll", "-train", train, "-binType", binarization, "-vMarkov", str(vMarkov), "-hMarkov", str(hMarkov), "-binSave", grammarName] + optional_args.split(' ')
+        grammar_prefix = '/bingrammargf'
+	bin = 'bin'
     #
-    if forceRecompile or not os.path.isfile(grammarName + "/bingrammargfabstract.gf"):
+    if forceRecompile or not os.path.isfile(grammarName + grammar_prefix + "abstract.gf"):
         print "Extracting grammar with rparse"
         p = subprocess.Popen(['java', "-jar", rparse_path] + rparse_params, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         print out
         print err
     else:
-        print "Found grammar", grammarName + "/bingrammargfabstract.gf"
+        print "Found grammar", grammarName + grammar_prefix +  "abstract.gf"
 
     #
-    if forceRecompile or not os.path.isfile(grammarName + "/bingrammargflexabstract.gf.lex"):
+    if forceRecompile or not os.path.isfile(grammarName + grammar_prefix + "lexabstract.gf.lex"):
         print "Replacing Lexicon by Part-of-Speech tags"
         p = subprocess.Popen(
-            ["mv", grammarName + "/bingrammargflexabstract.gf", grammarName + "/bingrammargflexabstract.gf.lex"])
+            ["mv", grammarName + grammar_prefix + "lexabstract.gf", grammarName + grammar_prefix + "lexabstract.gf.lex"])
         p.communicate()
         p = subprocess.Popen(
-            ["mv", grammarName + "/bingrammargflexconcrete.gf", grammarName + "/bingrammargflexconcrete.gf.lex"])
+            ["mv", grammarName + grammar_prefix + "lexconcrete.gf", grammarName + grammar_prefix + "lexconcrete.gf.lex"])
         p.communicate()
-        new_lex_files(grammarName + "/bingrammargflexabstract.gf.lex",
-                      grammarName + "/bingrammargflexabstract.gf",
-                      grammarName + "/bingrammargflexconcrete.gf")
+        new_lex_files(grammarName + grammar_prefix + "lexabstract.gf.lex",
+                      grammarName + grammar_prefix + "lexabstract.gf",
+                      grammarName + grammar_prefix + "lexconcrete.gf", 
+                      bin)
 
     #
     print "Compiling grammar with gf"
-    p = subprocess.Popen(["gf", "+RTS", "-K100M", "-RTS", "-make", "-probs=" + grammarName + "/bingrammargf.probs", "--cpu", "-D", grammarName, grammarName + "/bingrammargfconcrete.gf"])
+    p = subprocess.Popen(["gf", "+RTS", "-K100M", "-RTS", "-make", "-probs=" + grammarName + grammar_prefix + ".probs", "--cpu", "-D", grammarName, grammarName + grammar_prefix + "concrete.gf"])
     p.communicate()
-    gr = pgf.readPGF(grammarName + "/bingrammargfabstract.pgf")
+    gr = pgf.readPGF(grammarName + grammar_prefix + "abstract.pgf")
 
     if os.path.isfile(test):
         if forceRecompile or not os.path.isfile(grammarName + "/parse-results.conll"):
             print "Parsing test sentences"
-            failures, time = parse(gr, test, grammarName + "/parse-results.conll", v)
+            failures, time = parse(gr, test, grammarName + "/parse-results.conll", v, bin)
             print "Parse time", time
             print "Parse failures", failures
 
@@ -308,6 +317,6 @@ if __name__ == '__main__':
 
         # lcfrs = gr.languages['bingrammargfconcrete']
 
-        print parse_with_pgf(gr, [], "ADJD ADV _COMMA_ KOUS ADV PIS PROAV VVINF VMFIN _PUNCT_".split(' '))
+        print parse_with_pgf(gr, [], "ADJD ADV _COMMA_ KOUS ADV PIS PROAV VVINF VMFIN _PUNCT_".split(' '), 'bin')
 
         parse(gr, "/home/kilian/uni/implementation/rparse/negra-lower-punct-test.conll", "/tmp/parse-results.conll")
