@@ -53,6 +53,10 @@ cdef extern from "SDCP_Parser.h":
         void do_parse()
         void set_input(HybridTree[Terminal,Position])
         void set_sDCP(SDCP[Nonterminal, Terminal])
+        void set_goal()
+        void reachability_simplification()
+        void print_chart()
+        void print_trace()
 
 
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
@@ -132,7 +136,9 @@ def print_grammar(grammar, tree):
     parser.set_input(c_tree[0])
     parser.set_sDCP(sdcp)
     parser.do_parse()
-
+    parser.set_goal()
+    parser.reachability_simplification()
+    parser.print_trace()
     del c_tree
 
 
