@@ -42,30 +42,42 @@ cdef extern from "HybridTree.h":
         void set_entry(Position)
         void set_exit(Position)
         void is_initial(Position)
-        get_label(Position)
-        get_next(Position)
+        Terminal get_label(Position)
+        Position get_next(Position)
+        void output()
+
+    cdef void output_helper(string)
+
+cdef extern from "SDCP_Parser.h":
+    cdef cppclass SDCPParser[Nonterminal,Terminal,Position]:
+        void do_parse()
+        void set_input(HybridTree[Terminal,Position])
+        void set_sDCP(SDCP[Nonterminal, Terminal])
+
 
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
     cdef HybridTree[string, int]* c_tree = new HybridTree[string, int]()
     assert isinstance(p_tree, gh.HybridTree)
     c_tree[0].set_entry(0)
-    (last, _) = insert_nodes_recursive(p_tree, c_tree[0], p_tree.root, 0, False, 0, 0)
+    output_helper(str(p_tree.root))
+    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0)
     c_tree[0].set_exit(last)
     return c_tree
 
 
-cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[string, int] c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id):
+cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[string, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id):
+    output_helper(str(p_ids))
     if p_ids == []:
         return pred_id, max_id
     p_id = p_ids[0]
     cdef c_id = max_id + 1
     max_id += 1
-    c_tree.add_node(pred_id, p_tree.node_token(p_id), c_id)
+    c_tree[0].add_node(pred_id, str(p_tree.node_token(p_id).pos()) + " : " + str(p_tree.node_token(p_id).deprel()), c_id)
     if attach_parent:
-        c_tree.add_child(parent_id, c_id)
+        c_tree[0].add_child(parent_id, c_id)
     if p_tree.children(p_id):
-        c_tree.add_child(c_id, c_id + 1)
-        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(), c_id + 1, True, c_id, c_id + 1)
+        c_tree[0].add_child(c_id, c_id + 1)
+        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1)
     return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id)
 
 
@@ -79,6 +91,7 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar):
     assert isinstance(grammar, gl.LCFRS)
 
     for rule in grammar.rules():
+        converter.set_rule(rule)
         c_rule = new Rule[string,string](rule.lhs().nont())
         for nont in rule.rhs():
             c_rule[0].add_nonterminal(nont)
@@ -97,6 +110,10 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar):
             py_builder.add_to_rule(c_rule)
             converter.clear()
             arg += 1
+        # create remaining empty attributes
+        while mem < len(rule.rhs()) - 2:
+            c_rule[0].next_outside_attribute()
+            mem += 1
 
         assert sdcp.add_rule(c_rule[0])
         del c_rule
@@ -105,9 +122,19 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar):
     return sdcp
 
 
-def print_grammar(grammar):
+def print_grammar(grammar, tree):
     cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar)
     sdcp.output()
+    cdef HybridTree[string,int]* c_tree = convert_hybrid_tree(tree)
+    c_tree[0].output()
+
+    cdef SDCPParser[string,string,int] parser
+    parser.set_input(c_tree[0])
+    parser.set_sDCP(sdcp)
+    parser.do_parse()
+
+    del c_tree
+
 
 cdef class PySTermBuilder:
     cdef STermBuilder[string, string] builder
@@ -133,7 +160,23 @@ cdef class PySTermBuilder:
 class STermConverter(gd.DCP_evaluator):
     def evaluateIndex(self, index, id):
         # print index
-        self.builder.add_terminal(str(index))
+        cdef int i = index.index()
+        rule = self.rule
+        assert isinstance(rule, gl.LCFRS_rule)
+        cdef int j = 0
+        pos = None
+        for arg in rule.lhs().args():
+            for obj in arg:
+                if isinstance(obj, gl.LCFRS_var):
+                    continue
+                if isinstance(obj, str):
+                    if i == j:
+                        pos = obj
+                        break
+                    j += 1
+            if pos:
+               break
+        self.builder.add_terminal(str(pos) + " : " + str(index.dep_label()))
 
     def evaluateString(self, s, id):
         # print s
@@ -141,7 +184,12 @@ class STermConverter(gd.DCP_evaluator):
 
     def evaluateVariable(self, var, id):
         # print var
-        self.builder.add_var(var.mem() + 1, var.arg() + 1)
+        cdef int offset = 0
+        if var.mem() >= 0:
+            for dcp_eq in self.rule.dcp():
+                if dcp_eq.lhs().mem() == var.mem():
+                    offset += 1
+        self.builder.add_var(var.mem() + 1, var.arg() + 1 - offset)
 
     def evaluateTerm(self, term, id):
         term.head().evaluateMe(self)
@@ -156,6 +204,9 @@ class STermConverter(gd.DCP_evaluator):
 
     def __init__(self, py_builder):
         self.builder = py_builder
+
+    def set_rule(self, rule):
+        self.rule = rule
 
     def get_evaluation(self):
         return self.builder.get_sTerm()

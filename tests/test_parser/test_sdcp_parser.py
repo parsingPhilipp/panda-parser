@@ -20,7 +20,7 @@ class MyTestCase(unittest.TestCase):
 
         # x = input("Press any key")
 
-        print_grammar(grammar)
+        print_grammar(grammar, tree)
 
 
 
