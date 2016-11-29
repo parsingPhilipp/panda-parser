@@ -419,7 +419,7 @@ def kaeshammer_grammar():
     return grammar
 
 
-def kallmayar_grammar():
+def kallmayer_grammar():
     # p. 174/175, Problem 8.2 Grammar G_1
     # made epsilon free
     grammar = LCFRS('S')

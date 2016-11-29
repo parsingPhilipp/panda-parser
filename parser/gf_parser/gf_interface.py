@@ -35,15 +35,6 @@ class GFDerivation(AbstractDerivation):
         child_count = len(exp.unpack()[1])
         return [tuple(list(id) + [c]) for c in range(child_count)]
 
-    def __str__(self):
-        return self.der_to_str_rec(self.root_id(), 0)
-
-    def der_to_str_rec(self, item, indentation):
-        s = ' ' * indentation * 2 + str(self.getRule(item)) + '\t(' + str(self.spans[item]) + ')\n'
-        for child in self.child_ids(item):
-            s += self.der_to_str_rec(child, indentation + 1)
-        return s
-
     def getRule(self, id):
         exp = self.nodes[id]
         rule_id = int(exp.unpack()[0][4:])
@@ -51,13 +42,6 @@ class GFDerivation(AbstractDerivation):
 
     def root_id(self):
         return tuple([])
-
-    def terminal_positions(self, id):
-        def spanned_positions(id_):
-            return [x + 1 for (l,r) in self.spans[id_] for x in range(l, r)]
-        own = spanned_positions(id)
-        children = [x for cid in self.child_ids(id) for x in spanned_positions(cid)]
-        return [x for x in own if not x in children]
 
     def ids(self):
         return self.nodes.keys()

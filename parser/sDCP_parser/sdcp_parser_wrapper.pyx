@@ -1,6 +1,10 @@
 import grammar.lcfrs as gl
 import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
+import parser.parser_interface as pi
+import parser.derivation_interface as di
+import copy
+from collections import defaultdict
 
 from libcpp.string cimport string
 from libcpp.vector cimport vector
@@ -11,6 +15,8 @@ cdef extern from "SDCP.h":
          Rule(Nonterminal)
          void add_nonterminal(Nonterminal)
          void next_outside_attribute()
+         void set_id(int)
+         int get_id()
          # void add_outside_attribute(STerm)
          # void add_sterm_from_builder(STermBuilder[Terminal])
 
@@ -51,13 +57,23 @@ cdef extern from "HybridTree.h":
 cdef extern from "SDCP_Parser.h":
     cdef cppclass SDCPParser[Nonterminal,Terminal,Position]:
         void do_parse()
+        void clear()
         void set_input(HybridTree[Terminal,Position])
+        HybridTree input;
         void set_sDCP(SDCP[Nonterminal, Terminal])
         void set_goal()
         void reachability_simplification()
         void print_chart()
         void print_trace()
+        bint recognized()
+        ParseItem* goal
+        # vector[pair[Rule[Nonterminal,Terminal], vector[ParseItem[Nonterminal,Position]]]] \
+        vector[pair[Rule,vector[ParseItem]]] query_trace(ParseItem)
 
+    cdef cppclass ParseItem[Nonterminal,Position]:
+        Nonterminal nonterminal
+        vector[pair[Position,Position]] spans_inh
+        vector[pair[Position,Position]] spans_syn
 
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
     cdef HybridTree[string, int]* c_tree = new HybridTree[string, int]()
@@ -85,7 +101,35 @@ cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[string, int]* c_tre
     return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id)
 
 
-cdef SDCP[string, string] grammar_to_SDCP(grammar):
+cdef class Enumerator:
+    cdef unsigned counter
+    cdef dict obj_to_ind
+    cdef dict ind_to_obj
+
+    def __init__(self, first_index=1):
+        self.counter = first_index
+        self.obj_to_ind = {}
+        self.ind_to_obj = {}
+
+    def index_object(self, i):
+        """
+        :type i: int
+        :return:
+        """
+        return self.ind_to_obj[i]
+
+    cdef int object_index(self, obj):
+        i = self.obj_to_ind.get(obj, None)
+        if i:
+            return i
+        else:
+            self.obj_to_ind[obj] = self.counter
+            self.ind_to_obj[self.counter] = obj
+            self.counter += 1
+            return self.counter - 1
+
+
+cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map):
     cdef SDCP[string, string] sdcp
     cdef Rule[string, string]* c_rule
     cdef int arg
@@ -97,6 +141,7 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar):
     for rule in grammar.rules():
         converter.set_rule(rule)
         c_rule = new Rule[string,string](rule.lhs().nont())
+        c_rule[0].set_id(rule_map.object_index(rule))
         for nont in rule.rhs():
             c_rule[0].add_nonterminal(nont)
         mem = -3
@@ -126,9 +171,16 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar):
     return sdcp
 
 
-def print_grammar(grammar, tree):
-    cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar)
+def print_grammar(grammar):
+    cdef Enumerator rule_map = Enumerator()
+    cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, rule_map)
     sdcp.output()
+
+def print_grammar_and_parse_tree(grammar, tree):
+    cdef Enumerator rule_map = Enumerator()
+    cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, rule_map)
+    sdcp.output()
+
     cdef HybridTree[string,int]* c_tree = convert_hybrid_tree(tree)
     c_tree[0].output()
 
@@ -224,14 +276,185 @@ class STermConverter(gd.DCP_evaluator):
         self.builder.clear()
 
 
+cdef class PyParseItem:
+    cdef ParseItem[string,int] item
+
+    cdef set_item(self, ParseItem[string,int] item):
+        self.item = item
+
+    @property
+    def nonterminal(self):
+        return self.item.nonterminal
+
+    @property
+    def inherited(self):
+        ranges = []
+        for range in self.item.spans_inh:
+            ranges.append((range.first, range.second))
+        return ranges
+
+    @property
+    def synthesized(self):
+        ranges = []
+        for range in self.item.spans_syn:
+            ranges.append((range.first, range.second))
+        return ranges
+
+    cdef ParseItem[string,int] get_c_item(self):
+        return self.item
+
+    def __str__(self):
+        return self.nonterminal + " " + str(self.inherited) + " " + str(self.synthesized)
+
+
+cdef class PySDCPParser(object):
+    cdef SDCP[string,string] sdcp
+    cdef SDCPParser[string,string,int] parser
+    cdef Enumerator rule_map
+
+    cdef void set_sdcp(self, SDCP[string,string] sdcp):
+        self.sdcp = sdcp
+        self.parser.set_sDCP(sdcp)
+
+    cdef void set_rule_map(self, Enumerator rule_map):
+        self.rule_map = rule_map
+
+    def do_parse(self):
+        self.parser.do_parse()
+        self.parser.reachability_simplification()
+        self.parser.print_trace()
+
+    def recognized(self):
+        return self.parser.recognized()
+
+    def set_input(self, tree):
+        cdef HybridTree[string,int]* c_tree = convert_hybrid_tree(tree)
+        self.parser.set_input(c_tree[0])
+        self.parser.set_goal()
+        c_tree[0].output()
+
+    def query_trace(self, PyParseItem item):
+        result = []
+        trace_items = self.parser.query_trace(item.item)
+        for p in trace_items:
+            children = []
+            for item_ in p.second:
+                py_item_ = PyParseItem()
+                py_item_.set_item(item_)
+                children.append(py_item_)
+            result.append((p.first.get_id(), children))
+        return result
+
+    def all_derivation_trees(self):
+        self.parser.input.output()
+        der = SDCPDerivation(0, self.rule_map)
+        goal_py = PyParseItem()
+        goal_py.set_item(self.parser.goal[0])
+        der.max_idx = 1
+        return self.derivations_rec([goal_py], [1], der)
+
+    # this expands the packed forest of parse items into an iterator over derivation trees
+    def derivations_rec(self, list items, positions, derivation):
+        assert isinstance(derivation, SDCPDerivation)
+
+        # output_helper("items = [" + ', '.join(map(str, items)) +  ']' + '\n')
+        # output_helper("positions = " + str(positions) + "\n")
+
+        if len(items) == 0:
+            yield derivation
+            return
+
+        position = positions[0]
+        for rule_id, children in self.query_trace(items[0]):
+            # output_helper("children = [" + ', '.join(map(str, children)) +  ']' + '\n')
+            extended_derivation, child_positions = derivation.extend_by(position, rule_id, len(children))
+            for vertical_extension in self.derivations_rec(children, child_positions, extended_derivation):
+                for horizontal_extension in self.derivations_rec(items[1:], positions[1:], vertical_extension):
+                    yield horizontal_extension
+
+    def clear(self):
+        self.parser.clear()
 
 
 
 
+class SDCPDerivation(di.AbstractDerivation):
+    def __init__(self, max_idx, rule_map, idx_to_rule=defaultdict(lambda: None), children=defaultdict(lambda: []), parent=defaultdict(lambda: None)):
+        self.max_idx = max_idx
+        self.idx_to_rule = idx_to_rule.copy()
+        self.children = children.copy()
+        self.parent = parent.copy()
+        self.rule_map = rule_map
+        self.spans = None
+
+    def root_id(self):
+        return min(self.max_idx, 1)
+
+    def child_id(self, idx, i):
+        return self.children[idx][i]
+
+    def child_ids(self, idx):
+        return self.children[idx]
+
+    def ids(self):
+        return range(1, self.max_idx + 1)
+
+    def getRule(self, idx):
+        return self.idx_to_rule[idx]
+
+    def position_relative_to_parent(self, idx):
+        p = self.parent[idx]
+        return p, self.children[p].index(idx)
+
+    def extend_by(self, int idx, int rule_id, int n_children):
+        new_deriv = SDCPDerivation(self.max_idx, self.rule_map, self.idx_to_rule, self.children, self.parent)
+
+        new_deriv.idx_to_rule[idx] = self.rule_map.index_object(rule_id)
+
+        child_idx = new_deriv.max_idx
+        first = child_idx + 1
+        for child in range(n_children):
+            child_idx += 1
+            new_deriv.children[idx].append(child_idx)
+            new_deriv.parent[child_idx] = idx
+        new_deriv.max_idx = child_idx
+
+        return new_deriv, range(first, child_idx + 1)
 
 
 
-        # c_rule[0]
 
-    # return sdcp
+class PysDCPParser(pi.AbstractParser):
+    def __init__(self, grammar, input):
+        self.parser = grammar.sdcp_parser
+        self.parser.clear()
+        self.parser.set_input(input)
+        self.parser.do_parse()
+
+    def recognized(self):
+        return self.parser.recognized()
+
+    def best_derivation_tree(self):
+        pass
+
+    def best(self):
+        pass
+
+    def all_derivation_trees(self):
+        if self.recognized():
+            return self.parser.all_derivation_trees()
+        else:
+            return []
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        cdef Enumerator enum = Enumerator()
+        cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum)
+        parser = PySDCPParser()
+        parser.set_sdcp(sdcp)
+        parser.set_rule_map(enum)
+        grammar.sdcp_parser = parser
 
