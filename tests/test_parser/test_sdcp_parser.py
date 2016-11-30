@@ -1,5 +1,5 @@
 import unittest
-from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser
+from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
 from dependency.labeling import the_labeling_factory
@@ -22,9 +22,17 @@ class MyTestCase(unittest.TestCase):
         for rule in grammar.rules():
             print >>stderr, rule
 
-        PysDCPParser.preprocess_grammar(grammar)
+        parser_type = LCFRS_sDCP_Parser
 
-        parser = PysDCPParser(grammar, tree)
+        print >>stderr, "preprocessing grammar"
+
+        parser_type.preprocess_grammar(grammar)
+
+        print >>stderr, "invoking parser"
+
+        parser = parser_type(grammar, tree)
+
+        print >>stderr, "listing derivations"
 
         for der in parser.all_derivation_trees():
             print der
@@ -34,7 +42,18 @@ class MyTestCase(unittest.TestCase):
             print tree
             print output_tree
 
+        print >>stderr, "completed test"
+
     def test_corpus_sdcp_parsing(self):
+        # parser_type = PysDCPParser
+        print >>stderr, "testing (plain) sDCP parser"
+        self.generic_parsing_test(PysDCPParser, 50, 20)
+
+    def test_corpus_lcfrs_sdcp_parsing(self):
+        print >> stderr, "testing LCFRS/sDCP hybrid parser"
+        self.generic_parsing_test(LCFRS_sDCP_Parser, 5000, 200)
+
+    def generic_parsing_test(self, parser_type, limit_train, limit_test):
         def filter_by_id(n, trees):
             j = 0
             for tree in trees:
@@ -44,9 +63,7 @@ class MyTestCase(unittest.TestCase):
         #params
         train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
         test = train
-        limit_train = 200
         trees = parse_conll_corpus(train, False, limit_train)
-        limit_test = 20
         primary_labelling = the_labeling_factory().create_simple_labeling_strategy("child", "deprel")
         term_labelling = the_terminal_labeling_factory().get_strategy('pos')
         start = 'START'
@@ -54,17 +71,21 @@ class MyTestCase(unittest.TestCase):
 
         (n_trees, grammar_prim) = induce_grammar(trees, primary_labelling, term_labelling.token_label,
                                                      recursive_partitioning, start)
-        PysDCPParser.preprocess_grammar(grammar_prim)
+
+        parser_type.preprocess_grammar(grammar_prim)
 
         trees = parse_conll_corpus(test, False, limit_test)
+
+        count_derivs = {}
 
         for i, tree in enumerate(trees):
             print >>stderr, "Parsing tree for ", i
 
             print >>stderr, tree
 
-            parser = PysDCPParser(grammar_prim, tree)
+            parser = parser_type(grammar_prim, tree)
             self.assertTrue(parser.recognized())
+            count_derivs[i] = 0
 
             print >>stderr, "Found derivations for ", i
             for der in parser.all_derivation_trees():
@@ -83,6 +104,10 @@ class MyTestCase(unittest.TestCase):
                 print >>stderr, output_tree
 
                 self.compare_hybrid_trees(tree, output_tree)
+                count_derivs[i] += 1
+
+        for key in count_derivs:
+            print key, count_derivs[key]
 
 
     def compare_hybrid_trees(self, tree1, tree2):

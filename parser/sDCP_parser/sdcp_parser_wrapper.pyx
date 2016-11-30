@@ -17,11 +17,15 @@ cdef extern from "SDCP.h":
          void next_outside_attribute()
          void set_id(int)
          int get_id()
+         void next_word_function_argument()
+         void add_var_to_word_function(int,int)
+         void add_terminal_to_word_function(Terminal)
          # void add_outside_attribute(STerm)
          # void add_sterm_from_builder(STermBuilder[Terminal])
 
     cdef cppclass STermBuilder[Nonterminal, Terminal]:
          void add_var(int, int)
+         void add_terminal(Terminal, int)
          void add_terminal(Terminal)
          bint add_children()
          bint move_up()
@@ -44,6 +48,7 @@ cdef extern from "SDCP.h" namespace "boost":
 cdef extern from "HybridTree.h":
     cdef cppclass HybridTree[Terminal, Position]:
         void add_node(Position, Terminal, Position)
+        void add_node(Position, Terminal, Terminal, Position)
         void add_child(Position, Position)
         void set_entry(Position)
         void set_exit(Position)
@@ -51,11 +56,14 @@ cdef extern from "HybridTree.h":
         Terminal get_label(Position)
         Position get_next(Position)
         void output()
+        void set_linearization(vector[Position])
 
     cdef void output_helper(string)
 
 cdef extern from "SDCP_Parser.h":
     cdef cppclass SDCPParser[Nonterminal,Terminal,Position]:
+        SDCPParser()
+        SDCPParser(bint,bint,bint,bint)
         void do_parse()
         void clear()
         void set_input(HybridTree[Terminal,Position])
@@ -76,29 +84,35 @@ cdef extern from "SDCP_Parser.h":
         vector[pair[Position,Position]] spans_syn
 
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
+    # output_helper("convert hybrid tree: " + str(p_tree))
     cdef HybridTree[string, int]* c_tree = new HybridTree[string, int]()
     assert isinstance(p_tree, gh.HybridTree)
+    cdef vector[int] linearization = [-1] * len(p_tree.id_yield())
     c_tree[0].set_entry(0)
-    output_helper(str(p_tree.root))
-    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0)
+    # output_helper(str(p_tree.root))
+    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization)
     c_tree[0].set_exit(last)
+    # output_helper(str(linearization))
+    c_tree[0].set_linearization(linearization)
     return c_tree
 
 
-cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[string, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id):
-    output_helper(str(p_ids))
+cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[string, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization):
+    # output_helper(str(p_ids))
     if p_ids == []:
         return pred_id, max_id
     p_id = p_ids[0]
     cdef c_id = max_id + 1
     max_id += 1
-    c_tree[0].add_node(pred_id, str(p_tree.node_token(p_id).pos()) + " : " + str(p_tree.node_token(p_id).deprel()), c_id)
+    c_tree[0].add_node(pred_id, str(p_tree.node_token(p_id).pos()) + " : " + str(p_tree.node_token(p_id).deprel()), str(p_tree.node_token(p_id).pos()), c_id)
+    if p_tree.in_ordering(p_id):
+        linearization[p_tree.node_index(p_id)] = c_id
     if attach_parent:
         c_tree[0].add_child(parent_id, c_id)
     if p_tree.children(p_id):
         c_tree[0].add_child(c_id, c_id + 1)
-        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1)
-    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id)
+        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization)
+    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization)
 
 
 cdef class Enumerator:
@@ -129,7 +143,7 @@ cdef class Enumerator:
             return self.counter - 1
 
 
-cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map):
+cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map, lcfrs_conversion=False):
     cdef SDCP[string, string] sdcp
     cdef Rule[string, string]* c_rule
     cdef int arg
@@ -164,10 +178,21 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map):
             c_rule[0].next_outside_attribute()
             mem += 1
 
+        # create LCFRS component
+        if (lcfrs_conversion):
+            for argument in rule.lhs().args():
+                c_rule[0].next_word_function_argument()
+                for obj in argument:
+                    if isinstance(obj, gl.LCFRS_var):
+                        c_rule[0].add_var_to_word_function(obj.mem + 1, obj.arg + 1)
+                    else:
+                        c_rule[0].add_terminal_to_word_function(str(obj))
+
         assert sdcp.add_rule(c_rule[0])
         del c_rule
 
     sdcp.set_initial(grammar.start())
+    # sdcp.output()
     return sdcp
 
 
@@ -198,8 +223,8 @@ cdef class PySTermBuilder:
     cdef STermBuilder[string, string] builder
     cdef STermBuilder[string, string] get_builder(self):
         return self.builder
-    def add_terminal(self, string term):
-        self.builder.add_terminal(term)
+    def add_terminal(self, string term, int position):
+        self.builder.add_terminal(term, position)
     def add_var(self, int mem, int arg):
         self.builder.add_var(mem, arg)
     def add_children(self):
@@ -234,7 +259,7 @@ class STermConverter(gd.DCP_evaluator):
                     j += 1
             if pos:
                break
-        self.builder.add_terminal(str(pos) + " : " + str(index.dep_label()))
+        self.builder.add_terminal(str(pos) + " : " + str(index.dep_label()), i)
 
     def evaluateString(self, s, id):
         # print s
@@ -309,33 +334,45 @@ cdef class PyParseItem:
 
 cdef class PySDCPParser(object):
     cdef SDCP[string,string] sdcp
-    cdef SDCPParser[string,string,int] parser
+    cdef SDCPParser[string,string,int]* parser
     cdef Enumerator rule_map
+    cdef bint debug
+
+    def __init__(self, lcfrs_parsing=False, debug=False):
+        self.debug = debug
+        self.parser = new SDCPParser[string,string,int](lcfrs_parsing, debug, True, True)
 
     cdef void set_sdcp(self, SDCP[string,string] sdcp):
         self.sdcp = sdcp
-        self.parser.set_sDCP(sdcp)
+        self.parser[0].set_sDCP(sdcp)
 
     cdef void set_rule_map(self, Enumerator rule_map):
         self.rule_map = rule_map
 
     def do_parse(self):
-        self.parser.do_parse()
-        self.parser.reachability_simplification()
-        self.parser.print_trace()
+        self.parser[0].do_parse()
+        if self.debug:
+            output_helper("parsing completed\n")
+        self.parser[0].reachability_simplification()
+        if self.debug:
+            output_helper("reachability simplification completed\n")
+        self.parser[0].print_trace()
+        if self.debug:
+            output_helper("trace printed\n")
 
     def recognized(self):
         return self.parser.recognized()
 
     def set_input(self, tree):
         cdef HybridTree[string,int]* c_tree = convert_hybrid_tree(tree)
-        self.parser.set_input(c_tree[0])
-        self.parser.set_goal()
-        c_tree[0].output()
+        self.parser[0].set_input(c_tree[0])
+        self.parser[0].set_goal()
+        if self.debug:
+            c_tree[0].output()
 
     def query_trace(self, PyParseItem item):
         result = []
-        trace_items = self.parser.query_trace(item.item)
+        trace_items = self.parser[0].query_trace(item.item)
         for p in trace_items:
             children = []
             for item_ in p.second:
@@ -346,10 +383,11 @@ cdef class PySDCPParser(object):
         return result
 
     def all_derivation_trees(self):
-        self.parser.input.output()
+        if self.debug:
+            self.parser[0].input.output()
         der = SDCPDerivation(0, self.rule_map)
         goal_py = PyParseItem()
-        goal_py.set_item(self.parser.goal[0])
+        goal_py.set_item(self.parser[0].goal[0])
         der.max_idx = 1
         return self.derivations_rec([goal_py], [1], der)
 
@@ -373,9 +411,10 @@ cdef class PySDCPParser(object):
                     yield horizontal_extension
 
     def clear(self):
-        self.parser.clear()
+        self.parser[0].clear()
 
-
+    def __del__(self):
+        del self.parser
 
 
 class SDCPDerivation(di.AbstractDerivation):
@@ -454,6 +493,20 @@ class PysDCPParser(pi.AbstractParser):
         cdef Enumerator enum = Enumerator()
         cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum)
         parser = PySDCPParser()
+        parser.set_sdcp(sdcp)
+        parser.set_rule_map(enum)
+        grammar.sdcp_parser = parser
+
+
+class LCFRS_sDCP_Parser(PysDCPParser):
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        cdef Enumerator enum = Enumerator()
+        cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum, lcfrs_conversion=True)
+        parser = PySDCPParser(lcfrs_parsing=True, debug=False)
         parser.set_sdcp(sdcp)
         parser.set_rule_map(enum)
         grammar.sdcp_parser = parser
