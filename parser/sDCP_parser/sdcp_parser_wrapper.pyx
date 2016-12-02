@@ -14,14 +14,12 @@ cdef extern from "SDCP.h":
     cdef cppclass Rule[Nonterminal, Terminal]:
          Rule(Nonterminal)
          void add_nonterminal(Nonterminal)
-         void next_outside_attribute()
+         void next_inside_attribute()
          void set_id(int)
          int get_id()
          void next_word_function_argument()
          void add_var_to_word_function(int,int)
          void add_terminal_to_word_function(Terminal)
-         # void add_outside_attribute(STerm)
-         # void add_sterm_from_builder(STermBuilder[Terminal])
 
     cdef cppclass STermBuilder[Nonterminal, Terminal]:
          void add_var(int, int)
@@ -164,7 +162,7 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map, lcfrs_co
             assert isinstance(equation, gd.DCP_rule)
             assert mem < equation.lhs().mem()
             while mem < equation.lhs().mem() - 1:
-                c_rule[0].next_outside_attribute()
+                c_rule[0].next_inside_attribute()
                 mem += 1
                 arg = 0
             assert mem == equation.lhs().mem() - 1
@@ -175,7 +173,7 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map, lcfrs_co
             arg += 1
         # create remaining empty attributes
         while mem < len(rule.rhs()) - 2:
-            c_rule[0].next_outside_attribute()
+            c_rule[0].next_inside_attribute()
             mem += 1
 
         # create LCFRS component
@@ -188,7 +186,9 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map, lcfrs_co
                     else:
                         c_rule[0].add_terminal_to_word_function(str(obj))
 
-        assert sdcp.add_rule(c_rule[0])
+        if not sdcp.add_rule(c_rule[0]):
+            output_helper(str(rule))
+            raise Exception("rule does not satisfy parser restrictions")
         del c_rule
 
     sdcp.set_initial(grammar.start())
