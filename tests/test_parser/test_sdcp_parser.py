@@ -1,5 +1,5 @@
 import unittest
-from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
+from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation, em_training
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
 from dependency.labeling import the_labeling_factory
@@ -43,6 +43,55 @@ class MyTestCase(unittest.TestCase):
             print output_tree
 
         print >>stderr, "completed test"
+
+    def test_basic_em_training(self):
+        tree = hybrid_tree_1()
+        tree2 = hybrid_tree_2()
+        terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
+
+        (_, grammar) = induce_grammar([tree, tree2],
+                                      the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
+                                      terminal_labeling.token_label, [cfg], 'START')
+
+        for rule in grammar.rules():
+            print >>stderr, rule
+
+        print >>stderr, "call em Training"
+
+        em_training(grammar, [tree, tree2], 20)
+
+        print >>stderr, "finished em Training"
+
+        for rule in grammar.rules():
+            print >>stderr, rule
+
+    def test_corpus_em_training(self):
+        train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+        limit_train = 200
+        test = train
+        # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+        trees = parse_conll_corpus(train, False, limit_train)
+        primary_labelling = the_labeling_factory().create_simple_labeling_strategy("childtop", "deprel")
+        term_labelling = the_terminal_labeling_factory().get_strategy('pos')
+        start = 'START'
+        recursive_partitioning = [cfg]
+
+        (n_trees, grammar_prim) = induce_grammar(trees, primary_labelling, term_labelling.token_label,
+                                                 recursive_partitioning, start)
+
+        # for rule in grammar.rules():
+        #    print >>stderr, rule
+
+        trees = parse_conll_corpus(train, False, limit_train)
+        print >>stderr, "call em Training"
+
+        em_training(grammar_prim, trees, 20)
+
+        print >>stderr, "finished em Training"
+
+        # for rule in grammar.rules():
+        #     print >>stderr, rule
+
 
     def test_corpus_sdcp_parsing(self):
         # parser_type = PysDCPParser

@@ -3,7 +3,6 @@ import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
 import parser.parser_interface as pi
 import parser.derivation_interface as di
-import copy
 from collections import defaultdict
 
 from libcpp.string cimport string
@@ -81,6 +80,17 @@ cdef extern from "SDCP_Parser.h":
         vector[pair[Position,Position]] spans_inh
         vector[pair[Position,Position]] spans_syn
 
+
+# this typedef seems necessary,
+# since the compiler does not accept "vector[unsigned int]"
+# but accepts "vector[unsigned_int]"
+ctypedef unsigned int unsigned_int
+
+cdef extern from "Trace.h":
+    cdef cppclass TraceManager[Nonterminal,Terminal,Position]:
+        void add_trace_from_parser(SDCPParser[Nonterminal, Terminal, Position], unsigned)
+        vector[double] do_em_training(vector[double], vector[vector[unsigned_int]], unsigned)
+
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
     # output_helper("convert hybrid tree: " + str(p_tree))
     cdef HybridTree[string, int]* c_tree = new HybridTree[string, int]()
@@ -117,8 +127,10 @@ cdef class Enumerator:
     cdef unsigned counter
     cdef dict obj_to_ind
     cdef dict ind_to_obj
+    cdef unsigned first_index
 
     def __init__(self, first_index=1):
+        self.first_index = first_index
         self.counter = first_index
         self.obj_to_ind = {}
         self.ind_to_obj = {}
@@ -511,3 +523,63 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         parser.set_rule_map(enum)
         grammar.sdcp_parser = parser
 
+
+cdef class PyTrace:
+    cdef TraceManager[string,string,int] trace_manager
+    cdef PySDCPParser parser
+    cdef bint debug
+
+    def __init__(self, grammar, lcfrs_parsing=True, debug=False):
+        """
+        :param grammar:
+        :type grammar: gl.LCFRS
+        :param lcfrs_parsing:
+        :type lcfrs_parsing:
+        :param debug:
+        :type debug:
+        """
+        output_helper("initializing PyTrace")
+        cdef Enumerator enum = Enumerator()
+        cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum, lcfrs_conversion=lcfrs_parsing)
+        self.parser = PySDCPParser(lcfrs_parsing, debug)
+        self.parser.set_sdcp(sdcp)
+        self.parser.set_rule_map(enum)
+
+    def compute_reducts(self, corpus):
+        for i, tree in enumerate(corpus):
+            self.parser.clear()
+            self.parser.set_input(tree)
+            self.parser.do_parse()
+            if self.parser.recognized():
+                self.trace_manager.add_trace_from_parser(self.parser.parser[0], i)
+
+    def em_training(self, grammar, n_epochs, init="rfe"):
+        assert isinstance(grammar, gl.LCFRS)
+        normalization_groups = []
+        rule_to_group = {}
+        for i, nont in enumerate(grammar.nonts()):
+            normalization_group = []
+            for rule in grammar.lhs_nont_to_rules(nont):
+                rule_idx = self.parser.rule_map.object_index(rule)
+                normalization_group.append(rule_idx)
+                rule_to_group[rule_idx] = i
+            normalization_groups.append(normalization_group)
+        initial_weights = [0.0] * self.parser.rule_map.first_index
+        for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+            if init == "rfe":
+                initial_weights.append(self.parser.rule_map.index_object(i).weight())
+            elif init == "equal":
+                initial_weights.append(1.0 / len(normalization_groups[rule_to_group[i]]))
+
+        final_weights = self.trace_manager.do_em_training(initial_weights, normalization_groups, n_epochs)
+
+        for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+            self.parser.rule_map.index_object(i).set_weight(final_weights[i])
+
+def em_training(grammar, corpus, n_epochs, init="rfe"):
+    output_helper("creating trace")
+    trace = PyTrace(grammar, debug=False)
+    output_helper("computing reducts")
+    trace.compute_reducts(corpus)
+    output_helper("starting actual training")
+    trace.em_training(grammar, n_epochs)
