@@ -3,6 +3,7 @@ import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
 import parser.parser_interface as pi
 import parser.derivation_interface as di
+import random
 from collections import defaultdict
 
 from libcpp.string cimport string
@@ -365,11 +366,12 @@ cdef class PySDCPParser(object):
         self.parser[0].do_parse()
         if self.debug:
             output_helper("parsing completed\n")
+
         self.parser[0].reachability_simplification()
+
         if self.debug:
             output_helper("reachability simplification completed\n")
-        self.parser[0].print_trace()
-        if self.debug:
+            self.parser[0].print_trace()
             output_helper("trace printed\n")
 
     def recognized(self):
@@ -552,8 +554,11 @@ cdef class PyTrace:
             self.parser.do_parse()
             if self.parser.recognized():
                 self.trace_manager.add_trace_from_parser(self.parser.parser[0], i)
+            if i % 100 == 0:
+                output_helper(str(i))
 
-    def em_training(self, grammar, n_epochs, init="rfe"):
+    def em_training(self, grammar, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
+        random.seed(seed)
         assert isinstance(grammar, gl.LCFRS)
         normalization_groups = []
         rule_to_group = {}
@@ -567,19 +572,29 @@ cdef class PyTrace:
         initial_weights = [0.0] * self.parser.rule_map.first_index
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             if init == "rfe":
-                initial_weights.append(self.parser.rule_map.index_object(i).weight())
-            elif init == "equal":
-                initial_weights.append(1.0 / len(normalization_groups[rule_to_group[i]]))
+                prob = self.parser.rule_map.index_object(i).weight()
+            elif init == "equal" or True:
+                prob = 1.0 / len(normalization_groups[rule_to_group[i]])
+
+            # this may violates properness
+            # but EM makes the grammar proper again
+            if tie_breaking:
+                prob_new = random.gauss(prob, sigma)
+                while prob_new < 0.0:
+                    prob_new = random.gauss(prob, sigma)
+                prob = prob_new
+
+            initial_weights.append(prob)
 
         final_weights = self.trace_manager.do_em_training(initial_weights, normalization_groups, n_epochs)
 
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             self.parser.rule_map.index_object(i).set_weight(final_weights[i])
 
-def em_training(grammar, corpus, n_epochs, init="rfe"):
+def em_training(grammar, corpus, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
     output_helper("creating trace")
     trace = PyTrace(grammar, debug=False)
     output_helper("computing reducts")
     trace.compute_reducts(corpus)
     output_helper("starting actual training")
-    trace.em_training(grammar, n_epochs)
+    trace.em_training(grammar, n_epochs, init, tie_breaking, sigma, seed)

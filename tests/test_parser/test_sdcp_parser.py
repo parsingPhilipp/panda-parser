@@ -85,7 +85,7 @@ class MyTestCase(unittest.TestCase):
         trees = parse_conll_corpus(train, False, limit_train)
         print >>stderr, "call em Training"
 
-        em_training(grammar_prim, trees, 20)
+        em_training(grammar_prim, trees, 20, tie_breaking=True, init="equal", sigma=0.05, seed=50)
 
         print >>stderr, "finished em Training"
 
