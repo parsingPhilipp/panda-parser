@@ -3,6 +3,8 @@ from parser.parser_interface import AbstractParser
 from parser.derivation_interface import AbstractDerivation
 from parser.gf_parser.gf_export import compile_gf_grammar, export, LANGUAGE, COMPILED_SUFFIX
 from grammar.linearization import Enumerator
+from collections import defaultdict
+from math import exp
 
 
 prefix = '/tmp/'
@@ -87,3 +89,47 @@ class GFParser(AbstractParser):
         gf_grammar = pgf.readPGF(prefix + name_ + COMPILED_SUFFIX).languages[name_ + LANGUAGE]
         # print gf_grammar
         grammar.tmp_gf = gf_grammar, rules
+
+
+class GFParser_k_best(GFParser):
+    def recognized(self):
+        return self._viterbi is not None
+
+    def __init__(self, grammar, input, k=1):
+        gf_grammar, self.rules = grammar.tmp_gf
+        # assert isinstance(gf_grammar, pgf.Concr)
+        assert isinstance(self.rules, Enumerator)
+        self._derivations = []
+        try:
+            i = gf_grammar.parse(' '.join(input), n=k)
+            for obj in i:
+                self._derivations.append(obj)
+            self._viterbi_weigth, self._viterbi = self._derivations[0]
+
+        except pgf.ParseError:
+            self._viterbi_weigth = None
+            self._viterbi = None
+
+    def k_best_derivation_trees(self):
+        for weight, gf_deriv in self._derivations:
+            yield weight, GFDerivation(self.rules, gf_deriv)
+
+    def viterbi_derivation(self):
+        if self._viterbi is not None:
+            return GFDerivation(self.rules, self._viterbi)
+        else:
+            return None
+
+    def viterbi_weight(self):
+        return exp(-self._viterbi_weigth)
+
+    def best_trees(self, derivation_to_tree):
+        weights = defaultdict(lambda: 0.0)
+        witnesses = defaultdict(list)
+        for i, (weight, der) in enumerate(self.k_best_derivation_trees()):
+            tree = derivation_to_tree(der)
+            weights[tree] += exp(-weight)
+            witnesses[tree] += [i+1]
+        the_derivations = weights.items()
+        the_derivations.sort(key=lambda x: x[1], reverse=True)
+        return [(tree, weight, witnesses[tree]) for tree,weight in the_derivations]
