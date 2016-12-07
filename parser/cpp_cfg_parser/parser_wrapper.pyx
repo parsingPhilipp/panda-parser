@@ -101,7 +101,10 @@ cdef PyCFG grammar_to_cfg(grammar, terminal_map, nonterminal_map, rule_map):
 
         nont_index = nonterminal_map.object_index(str(rule.lhs().nont()))
         rule_idx = rule_map.object_index(rule)
-        rule_weight = log(rule.weight())
+        if rule.weight() == 0.0:
+            rule_weight = float("-inf")
+        else:
+            rule_weight = log(rule.weight())
 
         # lexical rules
         if rule.rank() == 0:
