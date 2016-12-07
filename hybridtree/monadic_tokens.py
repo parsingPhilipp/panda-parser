@@ -72,7 +72,10 @@ class CoNLLToken(MonadicToken):
                            , self.feats() == other.feats()
                            , self.lemma() == other.lemma()
                            , self.deprel() == other.deprel()])
-4
+
+    def __hash__(self):
+        return hash((self.__form, self.__cpos, self.__pos, self.__feats, self.__lemma, self.__deprel))
+
 
 class ConstituencyToken(MonadicToken):
     def __init__(self):
@@ -105,6 +108,9 @@ class ConstituentTerminal(ConstituencyToken):
     def __str__(self):
         return self.form() + ' : ' + self.pos()
 
+    def __hash__(self):
+        return hash((self.__form, self.__pos))
+
 
 class ConstituentCategory(ConstituencyToken):
     def __init__(self, category):
@@ -119,6 +125,9 @@ class ConstituentCategory(ConstituencyToken):
 
     def __str__(self):
         return self.category()
+
+    def __hash__(self):
+        return hash(self.__category)
 
 
 def construct_conll_token(form, pos, _=True):

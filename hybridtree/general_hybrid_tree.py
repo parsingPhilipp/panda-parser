@@ -459,6 +459,12 @@ class HybridTree:
         return all([self.compare_recursive(other, self_node, other_node) for self_node, other_node in
                     zip(self.root, other.root)])
 
+    def __hash__(self):
+        return hash((tuple(self.token_yield()), tuple([self.__hash_recursive(id) for id in self.root])))
+
+    def __hash_recursive(self, id):
+        return hash((self.node_token(id), tuple([self.__hash_recursive(child) for child in self.children(id)])))
+
     def compare_recursive(self, other, self_node, other_node):
         """
         Synchronously traverses two hybrid trees and compares the labels, pos-tags, deprels, position in ordering and
