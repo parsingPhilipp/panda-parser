@@ -100,7 +100,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_corpus_lcfrs_sdcp_parsing(self):
         print >> stderr, "testing LCFRS/sDCP hybrid parser"
-        self.generic_parsing_test(LCFRS_sDCP_Parser, 100000, 500, True)
+        self.generic_parsing_test(LCFRS_sDCP_Parser, 2000, 100, True)
 
     def generic_parsing_test(self, parser_type, limit_train, limit_test, compare_order):
         def filter_by_id(n, trees):
