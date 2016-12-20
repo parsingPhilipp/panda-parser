@@ -9,6 +9,7 @@ from collections import defaultdict
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
+from libcpp.map cimport map
 
 cdef extern from "SDCP.h":
     cdef cppclass Rule[Nonterminal, Terminal]:
@@ -89,8 +90,16 @@ ctypedef unsigned int unsigned_int
 
 cdef extern from "Trace.h":
     cdef cppclass TraceManager[Nonterminal,Terminal,Position]:
+        TraceManager(bint)
         void add_trace_from_parser(SDCPParser[Nonterminal, Terminal, Position], unsigned)
         vector[double] do_em_training(vector[double], vector[vector[unsigned_int]], unsigned)
+        pair[vector[double], vector[vector[double]]] split_merge(
+                  vector[double]
+                , vector[vector[unsigned_int]]
+                , unsigned_int
+                , map[string,unsigned_int]
+                , unsigned_int
+        )
 
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
     # output_helper("convert hybrid tree: " + str(p_tree))
@@ -527,7 +536,7 @@ class LCFRS_sDCP_Parser(PysDCPParser):
 
 
 cdef class PyTrace:
-    cdef TraceManager[string,string,int] trace_manager
+    cdef TraceManager[string,string,int]* trace_manager
     cdef PySDCPParser parser
     cdef bint debug
 
@@ -541,9 +550,10 @@ cdef class PyTrace:
         :type debug:
         """
         output_helper("initializing PyTrace")
-        cdef Enumerator enum = Enumerator()
+        cdef Enumerator enum = Enumerator(first_index=0)
         cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum, lcfrs_conversion=lcfrs_parsing)
         self.parser = PySDCPParser(lcfrs_parsing, debug)
+        self.trace_manager = new TraceManager[string,string,int](debug)
         self.parser.set_sdcp(sdcp)
         self.parser.set_rule_map(enum)
 
@@ -553,7 +563,7 @@ cdef class PyTrace:
             self.parser.set_input(tree)
             self.parser.do_parse()
             if self.parser.recognized():
-                self.trace_manager.add_trace_from_parser(self.parser.parser[0], i)
+                self.trace_manager[0].add_trace_from_parser(self.parser.parser[0], i)
             if i % 100 == 0:
                 output_helper(str(i))
 
@@ -586,10 +596,59 @@ cdef class PyTrace:
 
             initial_weights.append(prob)
 
-        final_weights = self.trace_manager.do_em_training(initial_weights, normalization_groups, n_epochs)
+        final_weights = self.trace_manager[0].do_em_training(initial_weights, normalization_groups, n_epochs)
 
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             self.parser.rule_map.index_object(i).set_weight(final_weights[i])
+
+    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0):
+        random.seed(seed)
+        assert isinstance(grammar, gl.LCFRS)
+        normalization_groups = []
+        rule_to_nonterminals = []
+        rule_to_group = {}
+        nont_map = {}
+        for i, nont in enumerate(grammar.nonts()):
+            nont_map[nont] = i
+            normalization_group = []
+            for rule in grammar.lhs_nont_to_rules(nont):
+                rule_idx = self.parser.rule_map.object_index(rule)
+                normalization_group.append(rule_idx)
+                rule_to_group[rule_idx] = i
+            normalization_groups.append(normalization_group)
+
+        for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+            rule = self.parser.rule_map.index_object(i)
+            nonts = [nont_map[rule.lhs().nont()]] + [nont_map[nont] for nont in rule.rhs()]
+            rule_to_nonterminals.append(nonts)
+
+        initial_weights = [0.0] * self.parser.rule_map.first_index
+        for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+            if init == "rfe":
+                prob = self.parser.rule_map.index_object(i).weight()
+            elif init == "equal" or True:
+                prob = 1.0 / len(normalization_groups[rule_to_group[i]])
+
+            # this may violates properness
+            # but EM makes the grammar proper again
+            if tie_breaking:
+                prob_new = random.gauss(prob, sigma)
+                while prob_new < 0.0:
+                    prob_new = random.gauss(prob, sigma)
+                prob = prob_new
+
+            initial_weights.append(prob)
+
+        pre_weights = self.trace_manager[0].do_em_training(initial_weights, normalization_groups, em_epochs)
+
+        output_helper("computing split weights")
+
+        self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map, cycles)
+
+    def __del__(self):
+        del self.trace_manager
+
+
 
 def em_training(grammar, corpus, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
     output_helper("creating trace")
@@ -598,3 +657,15 @@ def em_training(grammar, corpus, n_epochs, init="rfe", tie_breaking=False, sigma
     trace.compute_reducts(corpus)
     output_helper("starting actual training")
     trace.em_training(grammar, n_epochs, init, tie_breaking, sigma, seed)
+
+def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
+    output_helper("creating trace")
+    trace = PyTrace(grammar, debug=True)
+    output_helper("computing reducts")
+    trace.compute_reducts(corpus)
+
+    for i in xrange(trace.parser.rule_map.first_index, trace.parser.rule_map.counter):
+        output_helper(str(i) + " " + str(trace.parser.rule_map.index_object(i)))
+
+    output_helper("starting actual split/merge training")
+    trace.split_merge_training(grammar, cycles, em_epochs, init, tie_breaking, sigma, seed)
