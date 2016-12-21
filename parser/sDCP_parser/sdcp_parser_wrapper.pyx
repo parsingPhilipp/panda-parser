@@ -11,6 +11,9 @@ from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.map cimport map
 
+cdef extern from "SplitMergeUtil.h":
+    pass
+
 cdef extern from "SDCP.h":
     cdef cppclass Rule[Nonterminal, Terminal]:
          Rule(Nonterminal)
@@ -99,6 +102,7 @@ cdef extern from "Trace.h":
                 , unsigned_int
                 , map[string,unsigned_int]
                 , unsigned_int
+                , double
         )
 
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
@@ -153,9 +157,8 @@ cdef class Enumerator:
         return self.ind_to_obj[i]
 
     cdef int object_index(self, obj):
-        i = self.obj_to_ind.get(obj, None)
-        if i:
-            return i
+        if obj in self.obj_to_ind:
+            return self.obj_to_ind[obj]
         else:
             self.obj_to_ind[obj] = self.counter
             self.ind_to_obj[self.counter] = obj
@@ -601,7 +604,7 @@ cdef class PyTrace:
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             self.parser.rule_map.index_object(i).set_weight(final_weights[i])
 
-    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0):
+    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0, merge_threshold=0.5):
         random.seed(seed)
         assert isinstance(grammar, gl.LCFRS)
         normalization_groups = []
@@ -643,7 +646,7 @@ cdef class PyTrace:
 
         output_helper("computing split weights")
 
-        self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map, cycles)
+        self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map, cycles, merge_threshold)
 
     def __del__(self):
         del self.trace_manager
@@ -658,9 +661,9 @@ def em_training(grammar, corpus, n_epochs, init="rfe", tie_breaking=False, sigma
     output_helper("starting actual training")
     trace.em_training(grammar, n_epochs, init, tie_breaking, sigma, seed)
 
-def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
+def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5):
     output_helper("creating trace")
-    trace = PyTrace(grammar, debug=True)
+    trace = PyTrace(grammar, debug=False)
     output_helper("computing reducts")
     trace.compute_reducts(corpus)
 
@@ -668,4 +671,4 @@ def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_bre
         output_helper(str(i) + " " + str(trace.parser.rule_map.index_object(i)))
 
     output_helper("starting actual split/merge training")
-    trace.split_merge_training(grammar, cycles, em_epochs, init, tie_breaking, sigma, seed)
+    trace.split_merge_training(grammar, cycles, em_epochs, init, tie_breaking, sigma, seed, merge_threshold)

@@ -250,12 +250,39 @@ class MyTestCase(unittest.TestCase):
 
         print >>stderr, "call em Training"
 
-        split_merge_training(grammar, [tree, tree2], 2, 10)
+        split_merge_training(grammar, [tree, tree2], 3, 5, merge_threshold=0.5)
 
         print >>stderr, "finished em Training"
 
         for rule in grammar.rules():
             print >>stderr, rule
+
+    def test_corpus_split_merge_training(self):
+        train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+        limit_train = 100
+        test = train
+        # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+        trees = parse_conll_corpus(train, False, limit_train)
+        primary_labelling = the_labeling_factory().create_simple_labeling_strategy("childtop", "deprel")
+        term_labelling = the_terminal_labeling_factory().get_strategy('pos')
+        start = 'START'
+        recursive_partitioning = [cfg]
+
+        (n_trees, grammar_prim) = induce_grammar(trees, primary_labelling, term_labelling.token_label,
+                                                 recursive_partitioning, start)
+
+        # for rule in grammar.rules():
+        #    print >>stderr, rule
+
+        trees = parse_conll_corpus(train, False, limit_train)
+        print >> stderr, "call S/M Training"
+
+        split_merge_training(grammar_prim, trees, 4, 10, tie_breaking=True, init="equal", sigma=0.05, seed=50, merge_threshold=0.1)
+
+        print >> stderr, "finished S/M Training"
+
+        # for rule in grammar.rules():
+        #     print >>stderr, rule
 
 if __name__ == '__main__':
     unittest.main()
