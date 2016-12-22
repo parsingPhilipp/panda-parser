@@ -4,15 +4,22 @@ import hybridtree.general_hybrid_tree as gh
 import parser.parser_interface as pi
 import parser.derivation_interface as di
 import random
+import itertools
 from collections import defaultdict
 
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from libcpp.map cimport map
+from math import exp
+
+# this typedef seems necessary,
+# since the compiler does not accept "vector[unsigned int]"
+# but accepts "vector[unsigned_int]"
+ctypedef unsigned int unsigned_int
 
 cdef extern from "SplitMergeUtil.h":
-    pass
+    unsigned_int indexation(vector[unsigned_int], vector[unsigned_int])
 
 cdef extern from "SDCP.h":
     cdef cppclass Rule[Nonterminal, Terminal]:
@@ -85,18 +92,12 @@ cdef extern from "SDCP_Parser.h":
         vector[pair[Position,Position]] spans_inh
         vector[pair[Position,Position]] spans_syn
 
-
-# this typedef seems necessary,
-# since the compiler does not accept "vector[unsigned int]"
-# but accepts "vector[unsigned_int]"
-ctypedef unsigned int unsigned_int
-
 cdef extern from "Trace.h":
     cdef cppclass TraceManager[Nonterminal,Terminal,Position]:
         TraceManager(bint)
         void add_trace_from_parser(SDCPParser[Nonterminal, Terminal, Position], unsigned)
         vector[double] do_em_training(vector[double], vector[vector[unsigned_int]], unsigned)
-        pair[vector[double], vector[vector[double]]] split_merge(
+        pair[vector[unsigned_int], vector[vector[double]]] split_merge(
                   vector[double]
                 , vector[vector[unsigned_int]]
                 , unsigned_int
@@ -604,7 +605,7 @@ cdef class PyTrace:
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             self.parser.rule_map.index_object(i).set_weight(final_weights[i])
 
-    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0, merge_threshold=0.5):
+    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0, merge_threshold=0.5, rule_pruning=exp(-100)):
         random.seed(seed)
         assert isinstance(grammar, gl.LCFRS)
         normalization_groups = []
@@ -646,29 +647,53 @@ cdef class PyTrace:
 
         output_helper("computing split weights")
 
-        self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map, cycles, merge_threshold)
+        cdef vector[unsigned_int] nont_dimensions
+        cdef vector[vector[double]] weights
+        nont_dimensions, weights = self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map, cycles, merge_threshold)
+
+        new_grammar = gl.LCFRS(grammar.start() + "[0]")
+        for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+            rule = self.parser.rule_map.index_object(i)
+
+            rule_dimensions = [nont_dimensions[nont] for nont in rule_to_nonterminals[i]]
+            rule_dimensions_exp =  itertools.product(*[xrange(dim) for dim in rule_dimensions])
+
+            for la in rule_dimensions_exp:
+                index = indexation(list(la), rule_dimensions)
+                # output_helper(str(i) + " " + str(rule_dimensions) + " " + str(list(la)) + " " + str(index))
+                weight = weights[i][index]
+                if weight > exp(-100):
+                    lhs_la = gl.LCFRS_lhs(rule.lhs().nont() + "[" + str(la[0]) + "]")
+                    for arg in rule.lhs().args():
+                        lhs_la.add_arg(arg)
+                    nonts = [rhs_nont + "[" + str(la[1 + j]) + "]" for j, rhs_nont in enumerate(rule.rhs())]
+                    new_grammar.add_rule(lhs_la, nonts, weight, rule.dcp())
+
+        return new_grammar
 
     def __del__(self):
         del self.trace_manager
 
 
 
-def em_training(grammar, corpus, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
+def em_training(grammar, corpus, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, debug=False):
     output_helper("creating trace")
-    trace = PyTrace(grammar, debug=False)
+    trace = PyTrace(grammar, debug=debug)
     output_helper("computing reducts")
     trace.compute_reducts(corpus)
     output_helper("starting actual training")
     trace.em_training(grammar, n_epochs, init, tie_breaking, sigma, seed)
 
-def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5):
+def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5, debug=False, rule_pruning=exp(-100)):
     output_helper("creating trace")
-    trace = PyTrace(grammar, debug=False)
+    trace = PyTrace(grammar, debug=debug)
     output_helper("computing reducts")
     trace.compute_reducts(corpus)
 
-    for i in xrange(trace.parser.rule_map.first_index, trace.parser.rule_map.counter):
-        output_helper(str(i) + " " + str(trace.parser.rule_map.index_object(i)))
+    if debug:
+        for i in xrange(trace.parser.rule_map.first_index, trace.parser.rule_map.counter):
+            output_helper(str(i) + " " + str(trace.parser.rule_map.index_object(i)))
 
     output_helper("starting actual split/merge training")
-    trace.split_merge_training(grammar, cycles, em_epochs, init, tie_breaking, sigma, seed, merge_threshold)
+    grammar = trace.split_merge_training(grammar, cycles, em_epochs, init, tie_breaking, sigma, seed, merge_threshold, rule_pruning)
+    return grammar
