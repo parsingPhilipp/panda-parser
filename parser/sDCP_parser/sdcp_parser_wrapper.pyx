@@ -105,6 +105,27 @@ cdef extern from "Trace.h":
                 , unsigned_int
                 , double
         )
+        pair [vector [pair [ Nonterminal
+                            , pair[vector [pair[Position,Position]]
+                            , pair[vector [pair[Position,Position]]
+                            , vector [pair[Position,Position]]]]
+                            ]
+                            ]
+             , pair [vector[vector[pair[unsigned_int, vector[unsigned_int]]]]
+             , unsigned_int]] serialize(unsigned_int)
+        void deserialize(
+                pair [vector [pair [ Nonterminal
+                            , pair[vector [pair[Position,Position]]
+                            , pair[vector [pair[Position,Position]]
+                            , vector [pair[Position,Position]]]]
+                            ]
+                            ]
+             , pair [vector[vector[pair[unsigned_int, vector[unsigned_int]]]]
+             , unsigned_int]]
+             , SDCP[Nonterminal, Terminal]
+        )
+        unsigned traces_size()
+
 
 cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
     # output_helper("convert hybrid tree: " + str(p_tree))
@@ -356,6 +377,9 @@ cdef class PyParseItem:
 
     def __str__(self):
         return self.nonterminal + " " + str(self.inherited) + " " + str(self.synthesized)
+
+    def serialize(self):
+        return self.nonterminal, self.inherited, self.synthesized
 
 
 cdef class PySDCPParser(object):
@@ -674,6 +698,15 @@ cdef class PyTrace:
     def __del__(self):
         del self.trace_manager
 
+    def serialize_trace(self):
+        the_trace_list = []
+        for i in range(self.trace_manager.traces_size()):
+            the_trace_list.append(self.trace_manager.serialize(i))
+        return the_trace_list
+
+    def deserialize_trace(self, serialization):
+        for entry in serialization:
+            self.trace_manager.deserialize(entry, self.parser.sdcp)
 
 
 def em_training(grammar, corpus, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, debug=False):
@@ -696,4 +729,19 @@ def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_bre
 
     output_helper("starting actual split/merge training")
     grammar = trace.split_merge_training(grammar, cycles, em_epochs, init, tie_breaking, sigma, seed, merge_threshold, rule_pruning)
+
     return grammar
+
+def compute_reducts(grammar, corpus, debug=False):
+    output_helper("creating trace")
+    trace = PyTrace(grammar, debug=debug)
+    output_helper("computing reducts")
+    trace.compute_reducts(corpus)
+    return trace
+
+def load_reducts(grammar, serialization, debug=False):
+    output_helper("creating trace")
+    trace = PyTrace(grammar, debug=debug)
+    output_helper("restoring reducts")
+    trace.deserialize_trace(serialization)
+    return trace

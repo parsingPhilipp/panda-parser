@@ -1,5 +1,5 @@
 import unittest
-from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation, em_training, split_merge_training
+from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation, em_training, split_merge_training, compute_reducts, load_reducts
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
 from dependency.labeling import the_labeling_factory
@@ -8,6 +8,7 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 from corpora.conll_parse import parse_conll_corpus
 from sys import stderr
+import cPickle as pickle
 
 class MyTestCase(unittest.TestCase):
     def test_basic_sdcp_parsing(self):
@@ -235,6 +236,35 @@ class MyTestCase(unittest.TestCase):
                 if comparator(l[i], l[j]):
                     return False
         return True
+
+    def test_trace_serialization(self):
+        tree = hybrid_tree_1()
+        tree2 = hybrid_tree_2()
+        terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
+
+        (_, grammar) = induce_grammar([tree, tree2],
+                                      the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
+                                      terminal_labeling.token_label, [cfg], 'START')
+
+        for rule in grammar.rules():
+            print >>stderr, rule
+
+        trace = compute_reducts(grammar, [tree, tree2])
+        reducts = trace.serialize_trace()
+
+        # pickle.dump(grammar, open("/tmp/grammar.p", "wb"))
+        pickle.dump(reducts, open("/tmp/reducts.p", "wb"))
+
+        grammar_load = grammar
+        # grammar_load = pickle.load(open("/tmp/grammar.p", "rb"))
+        reducts_load = pickle.load(open("/tmp/reducts.p", "rb"))
+
+        trace2 = load_reducts(grammar_load, reducts_load, debug=True)
+
+        for e1, e2 in zip(reducts, trace2.serialize_trace()):
+            print >>stderr, "1", e1
+            print >>stderr, "2", e2
+            self.assertEqual(e1, e2)
 
     def test_basic_split_merge(self):
         tree = hybrid_tree_1()
