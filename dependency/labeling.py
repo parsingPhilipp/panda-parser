@@ -313,7 +313,7 @@ class LabelingStrategyFactory:
 
         node_strategy = self.__node_to_string_strategies[node_to_string]
         if not isinstance(node_strategy, FunctionType):
-            s = 'Unknown top-level strategy ' + node_strategy + '\n'
+            s = 'Unknown node-level strategy ' + node_strategy + '\n'
             s += 'I know the following node-level strategies: \n'
             for name in self.__node_to_string_strategies.keys():
                 s += '\t' + name + '\n'
