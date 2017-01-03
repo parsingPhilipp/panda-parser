@@ -97,6 +97,14 @@ cdef extern from "Trace.h":
         TraceManager(bint)
         void add_trace_from_parser(SDCPParser[Nonterminal, Terminal, Position], unsigned)
         vector[double] do_em_training(vector[double], vector[vector[unsigned_int]], unsigned)
+        pair[vector[unsigned_int], vector[vector[double]]] split_merge_id(
+                  vector[double]
+                , vector[vector[unsigned_int]]
+                , unsigned_int
+                , unsigned_int
+                , unsigned_int
+                , double
+        )
         pair[vector[unsigned_int], vector[vector[double]]] split_merge(
                   vector[double]
                 , vector[vector[unsigned_int]]
@@ -126,37 +134,42 @@ cdef extern from "Trace.h":
         )
         unsigned traces_size()
 
+# this needs to be consistent
+DEF ENCODE_NONTERMINALS = True
+ctypedef unsigned_int NONTERMINAL
+DEF ENCODE_TERMINALS = True
+ctypedef unsigned_int TERMINAL
 
-cdef HybridTree[string, int]* convert_hybrid_tree(p_tree):
+cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, terminal_encoding=str) except * :
     # output_helper("convert hybrid tree: " + str(p_tree))
-    cdef HybridTree[string, int]* c_tree = new HybridTree[string, int]()
+    cdef HybridTree[TERMINAL, int]* c_tree = new HybridTree[TERMINAL, int]()
     assert isinstance(p_tree, gh.HybridTree)
     cdef vector[int] linearization = [-1] * len(p_tree.id_yield())
     c_tree[0].set_entry(0)
     # output_helper(str(p_tree.root))
-    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization)
+    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization, terminal_encoding)
     c_tree[0].set_exit(last)
     # output_helper(str(linearization))
     c_tree[0].set_linearization(linearization)
     return c_tree
 
 
-cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[string, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization):
+cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization, terminal_encoding) except *:
     # output_helper(str(p_ids))
     if p_ids == []:
         return pred_id, max_id
     p_id = p_ids[0]
     cdef c_id = max_id + 1
     max_id += 1
-    c_tree[0].add_node(pred_id, str(p_tree.node_token(p_id).pos()) + " : " + str(p_tree.node_token(p_id).deprel()), str(p_tree.node_token(p_id).pos()), c_id)
+    c_tree[0].add_node(pred_id, terminal_encoding(str(p_tree.node_token(p_id).pos()) + " : " + str(p_tree.node_token(p_id).deprel())), terminal_encoding(str(p_tree.node_token(p_id).pos())), c_id)
     if p_tree.in_ordering(p_id):
         linearization[p_tree.node_index(p_id)] = c_id
     if attach_parent:
         c_tree[0].add_child(parent_id, c_id)
     if p_tree.children(p_id):
         c_tree[0].add_child(c_id, c_id + 1)
-        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization)
-    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization)
+        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization, terminal_encoding)
+    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization, terminal_encoding)
 
 
 cdef class Enumerator:
@@ -165,7 +178,7 @@ cdef class Enumerator:
     cdef dict ind_to_obj
     cdef unsigned first_index
 
-    def __init__(self, first_index=1):
+    def __init__(self, first_index=0):
         self.first_index = first_index
         self.counter = first_index
         self.obj_to_ind = {}
@@ -188,21 +201,21 @@ cdef class Enumerator:
             return self.counter - 1
 
 
-cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map, lcfrs_conversion=False):
-    cdef SDCP[string, string] sdcp
-    cdef Rule[string, string]* c_rule
-    cdef int arg
+cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, Enumerator rule_map,  nonterminal_encoder, terminal_encoder, lcfrs_conversion=False) except *:
+    cdef SDCP[NONTERMINAL, TERMINAL] sdcp
+    cdef Rule[NONTERMINAL, TERMINAL]* c_rule
+    cdef int arg, mem
     cdef PySTermBuilder py_builder = PySTermBuilder()
-    converter = STermConverter(py_builder)
+    converter = STermConverter(py_builder, terminal_encoder)
 
     assert isinstance(grammar, gl.LCFRS)
 
     for rule in grammar.rules():
         converter.set_rule(rule)
-        c_rule = new Rule[string,string](rule.lhs().nont())
+        c_rule = new Rule[NONTERMINAL,TERMINAL](nonterminal_encoder(rule.lhs().nont()))
         c_rule[0].set_id(rule_map.object_index(rule))
         for nont in rule.rhs():
-            c_rule[0].add_nonterminal(nont)
+            c_rule[0].add_nonterminal(nonterminal_encoder(nont))
         mem = -3
         arg = 0
         for equation in rule.dcp():
@@ -231,32 +244,43 @@ cdef SDCP[string, string] grammar_to_SDCP(grammar, Enumerator rule_map, lcfrs_co
                     if isinstance(obj, gl.LCFRS_var):
                         c_rule[0].add_var_to_word_function(obj.mem + 1, obj.arg + 1)
                     else:
-                        c_rule[0].add_terminal_to_word_function(str(obj))
+                        c_rule[0].add_terminal_to_word_function(terminal_encoder(str(obj)))
+
 
         if not sdcp.add_rule(c_rule[0]):
             output_helper(str(rule))
             raise Exception("rule does not satisfy parser restrictions")
         del c_rule
 
-    sdcp.set_initial(grammar.start())
+    sdcp.set_initial(nonterminal_encoder(grammar.start()))
     # sdcp.output()
     return sdcp
 
 
 def print_grammar(grammar):
     cdef Enumerator rule_map = Enumerator()
-    cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, rule_map)
+    cdef Enumerator nonterminal_map = Enumerator()
+    cdef Enumerator terminal_map = Enumerator()
+    nonterminal_encoder = lambda s: nonterminal_map.object_index(s) if ENCODE_NONTERMINALS else str
+    terminal_encoder = lambda s: terminal_map.object_index(s) if ENCODE_TERMINALS else str
+
+    cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, rule_map, nonterminal_encoder, terminal_encoder)
     sdcp.output()
 
 def print_grammar_and_parse_tree(grammar, tree):
     cdef Enumerator rule_map = Enumerator()
-    cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, rule_map)
+    cdef Enumerator nonterminal_map = Enumerator()
+    cdef Enumerator terminal_map = Enumerator()
+    nonterminal_encoder = lambda s: nonterminal_map.object_index(s) if ENCODE_NONTERMINALS else str
+    terminal_encoder = lambda s: terminal_map.object_index(s) if ENCODE_TERMINALS else str
+
+    cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, rule_map, nonterminal_encoder, terminal_encoder)
     sdcp.output()
 
-    cdef HybridTree[string,int]* c_tree = convert_hybrid_tree(tree)
+    cdef HybridTree[TERMINAL,int]* c_tree = convert_hybrid_tree(tree, str)
     c_tree[0].output()
 
-    cdef SDCPParser[string,string,int] parser
+    cdef SDCPParser[NONTERMINAL,TERMINAL,int] parser
     parser.set_input(c_tree[0])
     parser.set_sDCP(sdcp)
     parser.do_parse()
@@ -267,10 +291,10 @@ def print_grammar_and_parse_tree(grammar, tree):
 
 
 cdef class PySTermBuilder:
-    cdef STermBuilder[string, string] builder
-    cdef STermBuilder[string, string] get_builder(self):
+    cdef STermBuilder[NONTERMINAL, TERMINAL] builder
+    cdef STermBuilder[NONTERMINAL, TERMINAL] get_builder(self):
         return self.builder
-    def add_terminal(self, string term, int position):
+    def add_terminal(self, TERMINAL term, int position):
         self.builder.add_terminal(term, position)
     def add_var(self, int mem, int arg):
         self.builder.add_var(mem, arg)
@@ -280,7 +304,7 @@ cdef class PySTermBuilder:
         self.builder.move_up()
     def clear(self):
         self.builder.clear()
-    cdef void add_to_rule(self, Rule[string, string]* rule):
+    cdef void add_to_rule(self, Rule[NONTERMINAL, TERMINAL]* rule):
         self.builder.add_to_rule(rule)
 
 
@@ -306,11 +330,11 @@ class STermConverter(gd.DCP_evaluator):
                     j += 1
             if pos:
                break
-        self.builder.add_terminal(str(pos) + " : " + str(index.dep_label()), i)
+        self.builder.add_terminal(self.terminal_encoder(str(pos) + " : " + str(index.dep_label())), i)
 
     def evaluateString(self, s, id):
         # print s
-        self.builder.add_terminal(s)
+        self.builder.add_terminal(self.terminal_encoder(s))
 
     def evaluateVariable(self, var, id):
         # print var
@@ -332,8 +356,9 @@ class STermConverter(gd.DCP_evaluator):
         for element in sequence:
             element.evaluateMe(self)
 
-    def __init__(self, py_builder):
+    def __init__(self, py_builder, terminal_encoder):
         self.builder = py_builder
+        self.terminal_encoder = terminal_encoder
 
     def set_rule(self, rule):
         self.rule = rule
@@ -349,9 +374,9 @@ class STermConverter(gd.DCP_evaluator):
 
 
 cdef class PyParseItem:
-    cdef ParseItem[string,int] item
+    cdef ParseItem[NONTERMINAL,int] item
 
-    cdef set_item(self, ParseItem[string,int] item):
+    cdef set_item(self, ParseItem[NONTERMINAL,int] item):
         self.item = item
 
     @property
@@ -372,7 +397,7 @@ cdef class PyParseItem:
             ranges.append((range.first, range.second))
         return ranges
 
-    cdef ParseItem[string,int] get_c_item(self):
+    cdef ParseItem[NONTERMINAL,int] get_c_item(self):
         return self.item
 
     def __str__(self):
@@ -383,21 +408,27 @@ cdef class PyParseItem:
 
 
 cdef class PySDCPParser(object):
-    cdef SDCP[string,string] sdcp
-    cdef SDCPParser[string,string,int]* parser
-    cdef Enumerator rule_map
+    cdef SDCP[NONTERMINAL,TERMINAL] sdcp
+    cdef SDCPParser[NONTERMINAL,TERMINAL,int]* parser
+    cdef Enumerator rule_map, terminal_map, nonterminal_map
     cdef bint debug
 
     def __init__(self, lcfrs_parsing=False, debug=False):
         self.debug = debug
-        self.parser = new SDCPParser[string,string,int](lcfrs_parsing, debug, True, True)
+        self.parser = new SDCPParser[NONTERMINAL,TERMINAL,int](lcfrs_parsing, debug, True, True)
 
-    cdef void set_sdcp(self, SDCP[string,string] sdcp):
+    cdef void set_sdcp(self, SDCP[NONTERMINAL,TERMINAL] sdcp):
         self.sdcp = sdcp
         self.parser[0].set_sDCP(sdcp)
 
     cdef void set_rule_map(self, Enumerator rule_map):
         self.rule_map = rule_map
+
+    cdef void set_terminal_map(self, Enumerator terminal_map):
+        self.terminal_map = terminal_map
+
+    cdef void set_nonterminal_map(self, Enumerator nonterminal_map):
+        self.nonterminal_map = nonterminal_map
 
     def do_parse(self):
         self.parser[0].do_parse()
@@ -415,7 +446,11 @@ cdef class PySDCPParser(object):
         return self.parser.recognized()
 
     def set_input(self, tree):
-        cdef HybridTree[string,int]* c_tree = convert_hybrid_tree(tree)
+        cdef HybridTree[TERMINAL,int]* c_tree
+        if ENCODE_TERMINALS:
+            c_tree = convert_hybrid_tree(tree, lambda s: self.terminal_map.object_index(s))
+        else:
+            c_tree = convert_hybrid_tree(tree)
         self.parser[0].set_input(c_tree[0])
         self.parser[0].set_goal()
         if self.debug:
@@ -541,11 +576,19 @@ class PysDCPParser(pi.AbstractParser):
         """
         :type grammar: LCFRS
         """
-        cdef Enumerator enum = Enumerator()
-        cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum)
+        cdef Enumerator rule_map = Enumerator()
+        cdef Enumerator nonterminal_map = Enumerator()
+        cdef Enumerator terminal_map = Enumerator()
+        nonterminal_encoder = (lambda s: nonterminal_map.object_index(s)) if ENCODE_NONTERMINALS else lambda s: str(s)
+        terminal_encoder = (lambda s: terminal_map.object_index(s)) if ENCODE_TERMINALS else lambda s: str(s)
+
+        cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, rule_map, nonterminal_encoder, terminal_encoder)
+
         parser = PySDCPParser()
         parser.set_sdcp(sdcp)
-        parser.set_rule_map(enum)
+        parser.set_rule_map(rule_map)
+        parser.set_terminal_map(terminal_map)
+        parser.set_nonterminal_map(nonterminal_map)
         grammar.sdcp_parser = parser
 
 
@@ -555,16 +598,24 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         """
         :type grammar: LCFRS
         """
-        cdef Enumerator enum = Enumerator()
-        cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum, lcfrs_conversion=True)
+        cdef Enumerator rule_map = Enumerator()
+        cdef Enumerator nonterminal_map = Enumerator()
+        cdef Enumerator terminal_map = Enumerator()
+        nonterminal_encoder = (lambda s: nonterminal_map.object_index(s)) if ENCODE_NONTERMINALS else lambda s: str(s)
+        terminal_encoder = (lambda s: terminal_map.object_index(s)) if ENCODE_TERMINALS else lambda s: str(s)
+
+        cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, rule_map, nonterminal_encoder, terminal_encoder, lcfrs_conversion=True)
+
         parser = PySDCPParser(lcfrs_parsing=True, debug=False)
         parser.set_sdcp(sdcp)
-        parser.set_rule_map(enum)
+        parser.set_rule_map(rule_map)
+        parser.set_terminal_map(terminal_map)
+        parser.set_nonterminal_map(nonterminal_map)
         grammar.sdcp_parser = parser
 
 
 cdef class PyTrace:
-    cdef TraceManager[string,string,int]* trace_manager
+    cdef TraceManager[NONTERMINAL,TERMINAL,int]* trace_manager
     cdef PySDCPParser parser
     cdef bint debug
 
@@ -578,12 +629,21 @@ cdef class PyTrace:
         :type debug:
         """
         output_helper("initializing PyTrace")
-        cdef Enumerator enum = Enumerator(first_index=0)
-        cdef SDCP[string,string] sdcp = grammar_to_SDCP(grammar, enum, lcfrs_conversion=lcfrs_parsing)
+
+        cdef Enumerator rule_map = Enumerator(first_index=0)
+        cdef Enumerator nonterminal_map = Enumerator()
+        cdef Enumerator terminal_map = Enumerator()
+        nonterminal_encoder = (lambda s: nonterminal_map.object_index(s)) if ENCODE_NONTERMINALS else lambda s: str(s)
+        terminal_encoder = (lambda s: terminal_map.object_index(s)) if ENCODE_TERMINALS else lambda s: str(s)
+
+        cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, rule_map, nonterminal_encoder, terminal_encoder, lcfrs_conversion=lcfrs_parsing)
+
         self.parser = PySDCPParser(lcfrs_parsing, debug)
-        self.trace_manager = new TraceManager[string,string,int](debug)
+        self.trace_manager = new TraceManager[NONTERMINAL,TERMINAL,int](debug)
         self.parser.set_sdcp(sdcp)
-        self.parser.set_rule_map(enum)
+        self.parser.set_rule_map(rule_map)
+        self.parser.set_terminal_map(terminal_map)
+        self.parser.set_nonterminal_map(nonterminal_map)
 
     def compute_reducts(self, corpus):
         for i, tree in enumerate(corpus):
@@ -600,15 +660,15 @@ cdef class PyTrace:
         assert isinstance(grammar, gl.LCFRS)
         normalization_groups = []
         rule_to_group = {}
-        for i, nont in enumerate(grammar.nonts()):
+        for nont in grammar.nonts():
             normalization_group = []
             for rule in grammar.lhs_nont_to_rules(nont):
                 rule_idx = self.parser.rule_map.object_index(rule)
                 normalization_group.append(rule_idx)
-                rule_to_group[rule_idx] = i
+                rule_to_group[rule_idx] = self.parser.nonterminal_map.object_index(nont)
             normalization_groups.append(normalization_group)
         initial_weights = [0.0] * self.parser.rule_map.first_index
-        for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+        for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             if init == "rfe":
                 prob = self.parser.rule_map.index_object(i).weight()
             elif init == "equal" or True:
@@ -635,9 +695,10 @@ cdef class PyTrace:
         normalization_groups = []
         rule_to_nonterminals = []
         rule_to_group = {}
-        nont_map = {}
-        for i, nont in enumerate(grammar.nonts()):
-            nont_map[nont] = i
+        nont_map = self.parser.nonterminal_map
+        cdef long i
+        for nont in grammar.nonts():
+            i = nont_map.object_index(nont)
             normalization_group = []
             for rule in grammar.lhs_nont_to_rules(nont):
                 rule_idx = self.parser.rule_map.object_index(rule)
@@ -647,7 +708,7 @@ cdef class PyTrace:
 
         for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             rule = self.parser.rule_map.index_object(i)
-            nonts = [nont_map[rule.lhs().nont()]] + [nont_map[nont] for nont in rule.rhs()]
+            nonts = [nont_map.object_index(rule.lhs().nont())] + [nont_map.object_index(nont) for nont in rule.rhs()]
             rule_to_nonterminals.append(nonts)
 
         initial_weights = [0.0] * self.parser.rule_map.first_index
@@ -673,7 +734,13 @@ cdef class PyTrace:
 
         cdef vector[unsigned_int] nont_dimensions
         cdef vector[vector[double]] weights
-        nont_dimensions, weights = self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map, cycles, merge_threshold)
+
+        cdef unsigned_int n_nonts
+        if ENCODE_NONTERMINALS:
+            n_nonts = len(grammar.nonts())
+            nont_dimensions, weights = self.trace_manager[0].split_merge_id(pre_weights, rule_to_nonterminals, em_epochs, n_nonts, cycles, merge_threshold)
+        else:
+            nont_dimensions, weights = self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map.obj_to_ind, cycles, merge_threshold)
 
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
         for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
