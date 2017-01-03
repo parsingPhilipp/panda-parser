@@ -101,7 +101,7 @@ cdef extern from "Trace.h":
                   vector[double]
                 , vector[vector[unsigned_int]]
                 , unsigned_int
-                , map[string,unsigned_int]
+                , map[Nonterminal,unsigned_int]
                 , unsigned_int
                 , double
         )
@@ -171,7 +171,7 @@ cdef class Enumerator:
         self.obj_to_ind = {}
         self.ind_to_obj = {}
 
-    def index_object(self, i):
+    def index_object(self, int i):
         """
         :type i: int
         :return:
@@ -651,7 +651,7 @@ cdef class PyTrace:
             rule_to_nonterminals.append(nonts)
 
         initial_weights = [0.0] * self.parser.rule_map.first_index
-        for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+        for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             if init == "rfe":
                 prob = self.parser.rule_map.index_object(i).weight()
             elif init == "equal" or True:
@@ -676,7 +676,7 @@ cdef class PyTrace:
         nont_dimensions, weights = self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map, cycles, merge_threshold)
 
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
-        for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
+        for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             rule = self.parser.rule_map.index_object(i)
 
             rule_dimensions = [nont_dimensions[nont] for nont in rule_to_nonterminals[i]]
