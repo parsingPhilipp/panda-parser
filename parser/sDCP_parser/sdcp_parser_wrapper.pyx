@@ -5,6 +5,7 @@ import parser.parser_interface as pi
 import parser.derivation_interface as di
 import random
 import itertools
+import time
 from collections import defaultdict
 
 from libcpp.string cimport string
@@ -646,6 +647,7 @@ cdef class PyTrace:
         self.parser.set_nonterminal_map(nonterminal_map)
 
     def compute_reducts(self, corpus):
+        start_time = time.time()
         for i, tree in enumerate(corpus):
             self.parser.clear()
             self.parser.set_input(tree)
@@ -653,7 +655,7 @@ cdef class PyTrace:
             if self.parser.recognized():
                 self.trace_manager[0].add_trace_from_parser(self.parser.parser[0], i)
             if i % 100 == 0:
-                output_helper(str(i))
+                output_helper(str(i) + ' ' + str(time.time() - start_time))
 
     def em_training(self, grammar, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
         random.seed(seed)
