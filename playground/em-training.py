@@ -5,7 +5,7 @@ from hybridtree.monadic_tokens import construct_conll_token
 import dependency.induction as d_i
 import dependency.labeling as d_l
 import time
-import parser.parser_factory
+from parser.parser_factory import GFParser, GFParser_k_best, CFGParser
 import parser.gf_parser.gf_interface
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 import copy
@@ -13,19 +13,31 @@ from playground_rparse.process_rparse_grammar import fall_back_left_branching
 import subprocess
 from parser.sDCP_parser.sdcp_parser_wrapper import em_training, split_merge_training, compute_reducts, load_reducts
 from math import exp
+import pickle, os
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'
 result = 'cascade-parse-results.conll'
 start = 'START'
+dir = 'exp1/'
+baseline_path = dir + 'baseline_grammar.pkl'
+reduct_path = dir + 'reduct.pkl'
+def em_trained_path(n_epochs, init, tie_breaking):
+    return dir + 'em_trained_grammar_' + str(n_epochs) + '_' + init + ('_tie_breaking_' if tie_breaking else '')  + '.pkl'
+def sm_path(cycles):
+    return dir + 'sm_' + str(cycles) + '_grammar.pkl'
+
+
 term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
 recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('strict', 'deprel')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')
+child_top_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('childtop', 'deprel')
+empty_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('empty', 'pos');
 #parser_type = parser.parser_factory.CFGParser
-# parser_type = parser.parser_factory.GFParser
-parser_type = parser.gf_parser.gf_interface.GFParser_k_best
+parser_type = GFParser
+# parser_type = GFParser_k_best
 tree_yield = term_labelling.prepare_parser_input
 
 
@@ -57,12 +69,12 @@ def do_parsing(grammar_prim, limit, ignore_punctuation):
 
             h_tree = HybridTree(tree.sent_label())
 
-            if parser_type == parser.gf_parser.gf_interface.GFParser_k_best and parser.recognized():
+            if parser_type == GFParser_k_best and parser.recognized():
                 der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(),
                                                         copy.deepcopy(tree.full_token_yield()), False,
                                                         construct_conll_token)
                 h_tree = parser.best_trees(der_to_tree)[0][0]
-            elif parser_type == parser.parser_factory.CFGParser:
+            elif parser_type == CFGParser or parser_type == GFParser:
                 h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
                                                               construct_conll_token)
             else:
@@ -89,38 +101,64 @@ def do_parsing(grammar_prim, limit, ignore_punctuation):
         ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
     p.communicate()
 
-def main(limit=500, ignore_punctuation=False):
+
+def main(limit=100, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=False, retrain=False):
     trees = parse_conll_corpus(train, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
-    (n_trees, grammar_prim) = d_i.induce_grammar(trees, ternary_labelling, term_labelling.token_label, recursive_partitioning, start)
+
+    if recompileGrammar or not os.path.isfile(baseline_path):
+        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, empty_labelling, term_labelling.token_label, recursive_partitioning, start)
+        pickle.dump(baseline_grammar, open(baseline_path, 'wb'))
+    else:
+        baseline_grammar = pickle.load(open(baseline_path))
+
     test_limit = 10000
-    print "Rules: ", len(grammar_prim.rules())
+    print "Rules: ", len(baseline_grammar.rules())
 
-    parser_type.preprocess_grammar(grammar_prim)
-    do_parsing(grammar_prim, test_limit, ignore_punctuation)
+    parser_type.preprocess_grammar(baseline_grammar)
+    # do_parsing(baseline_grammar, test_limit, ignore_punctuation)
 
-    trees = parse_conll_corpus(train, False, limit)
-    trace = compute_reducts(grammar_prim, trees)
-    trace.em_training(grammar_prim, n_epochs=50, init="rfe", tie_breaking=True)
+    if recompileGrammar or not os.path.isfile(reduct_path):
+        trees = parse_conll_corpus(train, False, limit)
+        trace = compute_reducts(baseline_grammar, trees)
+
+        reducts = trace.serialize_trace()
+        pickle.dump(reducts, open(reduct_path, 'wb'))
+    else:
+        reducts = pickle.load(open(reduct_path, "rb"))
+        trace = load_reducts(baseline_grammar, reducts)
+
+    em_trained = pickle.load(open(baseline_path))
+    n_epochs = 50
+    init = "rfe"
+    tie_breaking = True
+    em_trained_path_ = em_trained_path(n_epochs, init, tie_breaking)
+
+    if recompileGrammar or retrain or not os.path.isfile(em_trained_path_):
+        trace.em_training(em_trained, n_epochs=n_epochs, init=init, tie_breaking=tie_breaking)
+        pickle.dump(em_trained, open(em_trained_path_, 'wb'))
+    else:
+        em_trained = pickle.load(open(em_trained_path_))
 
     # em_training(grammar_prim, trees, 50, tie_breaking=True)
-    parser_type.preprocess_grammar(grammar_prim)
+    parser_type.preprocess_grammar(em_trained)
 
-    do_parsing(grammar_prim, test_limit, ignore_punctuation)
+    do_parsing(em_trained, test_limit, ignore_punctuation)
 
     grammar_sm = {}
 
     for cycles in range(1, 4):
-        grammar_sm[cycles] = trace.split_merge_training(grammar_prim, cycles, em_epochs=10, init="rfe", tie_breaking=True, merge_threshold=0.1, rule_pruning=exp(-200))
+        sm_path_ = sm_path(cycles)
+        if recompileGrammar or retrain or not os.path.isfile(sm_path_):
+            grammar_sm[cycles] = trace.split_merge_training(baseline_grammar, cycles, em_epochs=10, init="rfe", tie_breaking=True, merge_threshold=0.1, rule_pruning=exp(-200))
+            pickle.dump(grammar_sm[cycles], open(sm_path_, 'wb'))
+        else:
+            grammar_sm[cycles] = pickle.load(open(sm_path_, 'rb'))
         print "Rules: ", len(grammar_sm[cycles].rules())
 
         parser_type.preprocess_grammar(grammar_sm[cycles])
         do_parsing(grammar_sm[cycles], test_limit, ignore_punctuation)
-
-
-
-
 
 
 
