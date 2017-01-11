@@ -148,10 +148,13 @@ def main(limit=100, ignore_punctuation=False, baseline_path=baseline_path, recom
 
     grammar_sm = {}
 
-    for cycles in range(1, 4):
+    max_cycles = 6
+    for cycles_, grammar in enumerate(trace.split_merge_training(baseline_grammar, max_cycles, em_epochs=20, init="rfe", tie_breaking=True, merge_threshold=0.1, rule_pruning=exp(-50))):
+        cycles = cycles_ + 1
+
         sm_path_ = sm_path(cycles)
         if recompileGrammar or retrain or not os.path.isfile(sm_path_):
-            grammar_sm[cycles] = trace.split_merge_training(baseline_grammar, cycles, em_epochs=10, init="rfe", tie_breaking=True, merge_threshold=0.1, rule_pruning=exp(-200))
+            grammar_sm[cycles] = grammar
             pickle.dump(grammar_sm[cycles], open(sm_path_, 'wb'))
         else:
             grammar_sm[cycles] = pickle.load(open(sm_path_, 'rb'))

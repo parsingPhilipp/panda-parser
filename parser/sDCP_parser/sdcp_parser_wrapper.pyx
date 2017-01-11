@@ -15,9 +15,15 @@ from libcpp.map cimport map
 from math import exp
 
 # this typedef seems necessary,
-# since the compiler does not accept "vector[unsigned int]"
+# since the compiler does not accept "vector[unsigned int]" or "vector[unsigned]"
 # but accepts "vector[unsigned_int]"
 ctypedef unsigned int unsigned_int
+
+# this needs to be consistent
+DEF ENCODE_NONTERMINALS = True
+ctypedef unsigned_int NONTERMINAL
+DEF ENCODE_TERMINALS = True
+ctypedef unsigned_int TERMINAL
 
 cdef extern from "SplitMergeUtil.h":
     unsigned_int indexation(vector[unsigned_int], vector[unsigned_int])
@@ -94,11 +100,15 @@ cdef extern from "SDCP_Parser.h":
         vector[pair[Position,Position]] spans_syn
 
 cdef extern from "Trace.h":
+    cdef cppclass Double
+    cdef cppclass LogDouble
+    cdef cppclass GrammarInfo[Nonterminal]:
+        GrammarInfo()
     cdef cppclass TraceManager[Nonterminal,Terminal,Position]:
         TraceManager(bint)
         void add_trace_from_parser(SDCPParser[Nonterminal, Terminal, Position], unsigned)
-        vector[double] do_em_training(vector[double], vector[vector[unsigned_int]], unsigned)
-        pair[vector[unsigned_int], vector[vector[double]]] split_merge_id(
+        vector[double] do_em_training[Val](vector[double], vector[vector[unsigned_int]], unsigned)
+        pair[vector[unsigned_int], vector[vector[double]]] split_merge_id[Val](
                   vector[double]
                 , vector[vector[unsigned_int]]
                 , unsigned_int
@@ -106,7 +116,7 @@ cdef extern from "Trace.h":
                 , unsigned_int
                 , double
         )
-        pair[vector[unsigned_int], vector[vector[double]]] split_merge(
+        pair[vector[unsigned_int], vector[vector[double]]] split_merge[Val](
                   vector[double]
                 , vector[vector[unsigned_int]]
                 , unsigned_int
@@ -135,11 +145,23 @@ cdef extern from "Trace.h":
         )
         unsigned traces_size()
 
-# this needs to be consistent
-DEF ENCODE_NONTERMINALS = True
-ctypedef unsigned_int NONTERMINAL
-DEF ENCODE_TERMINALS = True
-ctypedef unsigned_int TERMINAL
+        pair[vector[unsigned_int], vector[vector[double]]] run_split_merge_cycle[Val](
+                  GrammarInfo[Nonterminal]
+                , vector[unsigned_int]
+                , vector[vector[double]]
+                , unsigned_int
+                , unsigned_int
+                , double
+                , unsigned_int
+        )
+        vector[vector[double]] lift_doubles(vector[double])
+        GrammarInfo[NONTERMINAL] grammar_info_id(vector[vector[unsigned_int]])
+
+
+
+# choose representation: prob / log-prob
+ctypedef LogDouble SemiRing
+# ctypedef LogDouble SemiRing
 
 cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, terminal_encoding=str) except * :
     # output_helper("convert hybrid tree: " + str(p_tree))
@@ -307,9 +329,6 @@ cdef class PySTermBuilder:
         self.builder.clear()
     cdef void add_to_rule(self, Rule[NONTERMINAL, TERMINAL]* rule):
         self.builder.add_to_rule(rule)
-
-
-
 
 
 class STermConverter(gd.DCP_evaluator):
@@ -548,8 +567,6 @@ class SDCPDerivation(di.AbstractDerivation):
         return new_deriv, range(first, child_idx + 1)
 
 
-
-
 class PysDCPParser(pi.AbstractParser):
     def __init__(self, grammar, input):
         self.parser = grammar.sdcp_parser
@@ -619,6 +636,8 @@ cdef class PyTrace:
     cdef TraceManager[NONTERMINAL,TERMINAL,int]* trace_manager
     cdef PySDCPParser parser
     cdef bint debug
+    cdef vector[vector[unsigned_int]] cycle_nont_dimensions
+    cdef vector[vector[vector[double]]] cycle_i_weights
 
     def __init__(self, grammar, lcfrs_parsing=True, debug=False):
         """
@@ -645,6 +664,8 @@ cdef class PyTrace:
         self.parser.set_rule_map(rule_map)
         self.parser.set_terminal_map(terminal_map)
         self.parser.set_nonterminal_map(nonterminal_map)
+        self.cycle_i_weights = []
+        self.cycle_nont_dimensions = []
 
     def compute_reducts(self, corpus):
         start_time = time.time()
@@ -686,7 +707,7 @@ cdef class PyTrace:
 
             initial_weights.append(prob)
 
-        final_weights = self.trace_manager[0].do_em_training(initial_weights, normalization_groups, n_epochs)
+        final_weights = self.trace_manager[0].do_em_training[SemiRing](initial_weights, normalization_groups, n_epochs)
 
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             self.parser.rule_map.index_object(i).set_weight(final_weights[i])
@@ -730,7 +751,7 @@ cdef class PyTrace:
 
             initial_weights.append(prob)
 
-        pre_weights = self.trace_manager[0].do_em_training(initial_weights, normalization_groups, em_epochs)
+        pre_weights = self.trace_manager[0].do_em_training[SemiRing](initial_weights, normalization_groups, em_epochs)
 
         output_helper("computing split weights")
 
@@ -738,18 +759,57 @@ cdef class PyTrace:
         cdef vector[vector[double]] weights
 
         cdef unsigned_int n_nonts
+
+        cdef GrammarInfo[NONTERMINAL] grammar_info
+
         if ENCODE_NONTERMINALS:
             n_nonts = len(grammar.nonts())
-            nont_dimensions, weights = self.trace_manager[0].split_merge_id(pre_weights, rule_to_nonterminals, em_epochs, n_nonts, cycles, merge_threshold)
-        else:
-            nont_dimensions, weights = self.trace_manager[0].split_merge(pre_weights, rule_to_nonterminals, em_epochs, nont_map.obj_to_ind, cycles, merge_threshold)
+            grammar_info = self.trace_manager[0].grammar_info_id(rule_to_nonterminals)
+            output_helper("Computed grammar info")
+            self.cycle_nont_dimensions.push_back([1] * n_nonts)
+            self.cycle_i_weights.push_back(self.trace_manager[0].lift_doubles(pre_weights))
+            output_helper("Initialized split info")
+            for cycle in range(cycles):
+                if len(self.cycle_nont_dimensions) > cycle + 1:
+                    continue
 
+                self.cycle_nont_dimensions.push_back([])
+                self.cycle_i_weights.push_back([])
+
+                assert len(self.cycle_i_weights) == len(self.cycle_nont_dimensions)
+
+                output_helper("Starting " + str(cycle + 1) + ". S/M cycle")
+                # output_helper("Length nont dimensions: " + str(len(self.cycle_nont_dimensions)))
+                # output_helper("Length " + str(cycle) + "entry: " + str(len(self.cycle_nont_dimensions[cycle])))
+                output_helper(str(self.cycle_nont_dimensions[cycle]))
+                the_time = time.time()
+
+                self.cycle_nont_dimensions[cycle+1], self.cycle_i_weights[cycle+1] \
+                    = self.trace_manager[0].run_split_merge_cycle[SemiRing]( grammar_info
+                                            , self.cycle_nont_dimensions[cycle]
+                                            , self.cycle_i_weights[cycle]
+                                            , em_epochs
+                                            , n_nonts
+                                            , merge_threshold
+                                            , cycle)
+                output_helper("Finished "+ str(cycle + 1) + ". S/M cycle in " + str(time.time() - the_time) + " seconds.")
+                output_helper(str(self.cycle_nont_dimensions[cycle]))
+                new_grammar = self.build_sm_grammar(grammar, self.cycle_nont_dimensions[cycle + 1], rule_to_nonterminals, self.cycle_i_weights[cycle+1])
+                yield new_grammar
+
+            # nont_dimensions, weights = self.trace_manager[0].split_merge_id[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, n_nonts, cycles, merge_threshold)
+        else:
+            nont_dimensions, weights = self.trace_manager[0].split_merge[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, nont_map.obj_to_ind, cycles, merge_threshold)
+
+            yield self.build_sm_grammar(grammar, nont_dimensions, rule_to_nonterminals, weights)
+
+    def build_sm_grammar(self, grammar, nont_dimensions, rule_to_nonterminals, weights):
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
         for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             rule = self.parser.rule_map.index_object(i)
 
             rule_dimensions = [nont_dimensions[nont] for nont in rule_to_nonterminals[i]]
-            rule_dimensions_exp =  itertools.product(*[xrange(dim) for dim in rule_dimensions])
+            rule_dimensions_exp = itertools.product(*[xrange(dim) for dim in rule_dimensions])
 
             for la in rule_dimensions_exp:
                 index = indexation(list(la), rule_dimensions)
