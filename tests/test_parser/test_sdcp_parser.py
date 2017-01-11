@@ -280,12 +280,15 @@ class MyTestCase(unittest.TestCase):
 
         print >>stderr, "call S/M Training"
 
-        new_grammar = split_merge_training(grammar, [tree, tree2], 3, 5, merge_threshold=0.5)
+        new_grammars = split_merge_training(grammar, [tree, tree2], 3, 5, merge_threshold=0.5, debug=False)
+
+        for new_grammar in new_grammars:
+            for i, rule in enumerate(new_grammar.rules()):
+                print >>stderr, i, rule
+            print >> stderr
 
         print >>stderr, "finished S/M Training"
 
-        for i, rule in enumerate(new_grammar.rules()):
-            print >>stderr, i, rule
 
     def test_corpus_split_merge_training(self):
         train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
@@ -307,12 +310,14 @@ class MyTestCase(unittest.TestCase):
         trees = parse_conll_corpus(train, False, limit_train)
         print >> stderr, "call S/M Training"
 
-        new_grammar = split_merge_training(grammar_prim, trees, 4, 10, tie_breaking=True, init="equal", sigma=0.05, seed=50, merge_threshold=0.1)
+        new_grammars = split_merge_training(grammar_prim, trees, 4, 10, tie_breaking=True, init="equal", sigma=0.05, seed=50, merge_threshold=0.1)
 
         print >> stderr, "finished S/M Training"
 
-        for i, rule in enumerate(new_grammar.rules()):
-            print >>stderr, i, rule
+        for new_grammar in new_grammars:
+            for i, rule in enumerate(new_grammar.rules()):
+                print >>stderr, i, rule
+            print >>stderr
 
 if __name__ == '__main__':
     unittest.main()

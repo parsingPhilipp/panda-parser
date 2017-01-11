@@ -793,7 +793,7 @@ cdef class PyTrace:
                                             , merge_threshold
                                             , cycle)
                 output_helper("Finished "+ str(cycle + 1) + ". S/M cycle in " + str(time.time() - the_time) + " seconds.")
-                output_helper(str(self.cycle_nont_dimensions[cycle]))
+                output_helper(str(self.cycle_nont_dimensions[cycle+1]))
                 new_grammar = self.build_sm_grammar(grammar, self.cycle_nont_dimensions[cycle + 1], rule_to_nonterminals, self.cycle_i_weights[cycle+1])
                 yield new_grammar
 
