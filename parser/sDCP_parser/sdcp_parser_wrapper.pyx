@@ -11,7 +11,8 @@ from collections import defaultdict
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
-from libcpp.map cimport map
+# from libcpp.map cimport map
+from libcpp.unordered_map cimport unordered_map
 from math import exp
 
 # this typedef seems necessary,
@@ -120,7 +121,7 @@ cdef extern from "Trace.h":
                   vector[double]
                 , vector[vector[unsigned_int]]
                 , unsigned_int
-                , map[Nonterminal,unsigned_int]
+                , unordered_map[Nonterminal,unsigned_int]
                 , unsigned_int
                 , double
         )
