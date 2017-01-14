@@ -17,11 +17,12 @@ import pickle, os
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'
-result = 'cascade-parse-results.conll'
+result = 'experiment_parse_results.conll'
 start = 'START'
-dir = 'exp1/'
+dir = 'exp4/'
 baseline_path = dir + 'baseline_grammar.pkl'
 reduct_path = dir + 'reduct.pkl'
+sm_info_path = dir + 'sm_info.pkl'
 def em_trained_path(n_epochs, init, tie_breaking):
     return dir + 'em_trained_grammar_' + str(n_epochs) + '_' + init + ('_tie_breaking_' if tie_breaking else '')  + '.pkl'
 def sm_path(cycles):
@@ -102,7 +103,7 @@ def do_parsing(grammar_prim, limit, ignore_punctuation):
     p.communicate()
 
 
-def main(limit=100, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=False, retrain=False):
+def main(limit=500, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=False, retrain=False, parsing=True):
     trees = parse_conll_corpus(train, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
@@ -116,8 +117,9 @@ def main(limit=100, ignore_punctuation=False, baseline_path=baseline_path, recom
     test_limit = 10000
     print "Rules: ", len(baseline_grammar.rules())
 
-    parser_type.preprocess_grammar(baseline_grammar)
-    # do_parsing(baseline_grammar, test_limit, ignore_punctuation)
+    if parsing:
+        parser_type.preprocess_grammar(baseline_grammar)
+        do_parsing(baseline_grammar, test_limit, ignore_punctuation)
 
     if recompileGrammar or not os.path.isfile(reduct_path):
         trees = parse_conll_corpus(train, False, limit)
@@ -139,29 +141,37 @@ def main(limit=100, ignore_punctuation=False, baseline_path=baseline_path, recom
         trace.em_training(em_trained, n_epochs=n_epochs, init=init, tie_breaking=tie_breaking)
         pickle.dump(em_trained, open(em_trained_path_, 'wb'))
     else:
-        em_trained = pickle.load(open(em_trained_path_))
+        em_trained = pickle.load(open(em_trained_path_, 'rb'))
 
-    # em_training(grammar_prim, trees, 50, tie_breaking=True)
-    parser_type.preprocess_grammar(em_trained)
+    if parsing:
+        parser_type.preprocess_grammar(em_trained)
+        do_parsing(em_trained, test_limit, ignore_punctuation)
 
-    do_parsing(em_trained, test_limit, ignore_punctuation)
+    if not retrain and os.path.isfile(sm_info_path):
+        nont_split_list, rule_weight_list = pickle.load(open(sm_info_path, 'rb'))
+        trace.deserialize_la_state(nont_split_list, rule_weight_list)
+        print "Loading splits and weights of LA rules"
 
     grammar_sm = {}
-
-    max_cycles = 6
+    max_cycles = 4
     for cycles_, grammar in enumerate(trace.split_merge_training(baseline_grammar, max_cycles, em_epochs=20, init="rfe", tie_breaking=True, merge_threshold=0.1, rule_pruning=exp(-50))):
         cycles = cycles_ + 1
 
         sm_path_ = sm_path(cycles)
         if recompileGrammar or retrain or not os.path.isfile(sm_path_):
             grammar_sm[cycles] = grammar
+            # saving grammar
             pickle.dump(grammar_sm[cycles], open(sm_path_, 'wb'))
+            # saving S/M state
+            pickle.dump(trace.serialize_la_state(), open(sm_info_path, 'wb'))
         else:
             grammar_sm[cycles] = pickle.load(open(sm_path_, 'rb'))
         print "Rules: ", len(grammar_sm[cycles].rules())
 
-        parser_type.preprocess_grammar(grammar_sm[cycles])
-        do_parsing(grammar_sm[cycles], test_limit, ignore_punctuation)
+        if parsing:
+            parser_type.preprocess_grammar(grammar_sm[cycles])
+            do_parsing(grammar_sm[cycles], test_limit, ignore_punctuation)
+
 
 
 
