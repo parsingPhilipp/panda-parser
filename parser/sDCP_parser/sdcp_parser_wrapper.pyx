@@ -752,7 +752,8 @@ cdef class PyTrace:
 
             initial_weights.append(prob)
 
-        pre_weights = self.trace_manager[0].do_em_training[SemiRing](initial_weights, normalization_groups, em_epochs)
+        if not ENCODE_NONTERMINALS or len(self.cycle_nont_dimensions) == 0:
+            pre_weights = self.trace_manager[0].do_em_training[SemiRing](initial_weights, normalization_groups, em_epochs)
 
         output_helper("computing split weights")
 
@@ -767,34 +768,34 @@ cdef class PyTrace:
             n_nonts = len(grammar.nonts())
             grammar_info = self.trace_manager[0].grammar_info_id(rule_to_nonterminals)
             output_helper("Computed grammar info")
-            self.cycle_nont_dimensions.push_back([1] * n_nonts)
-            self.cycle_i_weights.push_back(self.trace_manager[0].lift_doubles(pre_weights))
+            if len(self.cycle_nont_dimensions) == 0:
+                self.cycle_nont_dimensions.push_back([1] * n_nonts)
+                self.cycle_i_weights.push_back(self.trace_manager[0].lift_doubles(pre_weights))
             output_helper("Initialized split info")
             for cycle in range(cycles):
-                if len(self.cycle_nont_dimensions) > cycle + 1:
-                    continue
+                if len(self.cycle_nont_dimensions) <= cycle + 1:
 
-                self.cycle_nont_dimensions.push_back([])
-                self.cycle_i_weights.push_back([])
+                    self.cycle_nont_dimensions.push_back([])
+                    self.cycle_i_weights.push_back([])
 
-                assert len(self.cycle_i_weights) == len(self.cycle_nont_dimensions)
+                    assert len(self.cycle_i_weights) == len(self.cycle_nont_dimensions)
 
-                output_helper("Starting " + str(cycle + 1) + ". S/M cycle")
-                # output_helper("Length nont dimensions: " + str(len(self.cycle_nont_dimensions)))
-                # output_helper("Length " + str(cycle) + "entry: " + str(len(self.cycle_nont_dimensions[cycle])))
-                output_helper(str(self.cycle_nont_dimensions[cycle]))
-                the_time = time.time()
+                    output_helper("Starting " + str(cycle + 1) + ". S/M cycle")
+                    # output_helper("Length nont dimensions: " + str(len(self.cycle_nont_dimensions)))
+                    # output_helper("Length " + str(cycle) + "entry: " + str(len(self.cycle_nont_dimensions[cycle])))
+                    output_helper(str(self.cycle_nont_dimensions[cycle]))
+                    the_time = time.time()
 
-                self.cycle_nont_dimensions[cycle+1], self.cycle_i_weights[cycle+1] \
-                    = self.trace_manager[0].run_split_merge_cycle[SemiRing]( grammar_info
-                                            , self.cycle_nont_dimensions[cycle]
-                                            , self.cycle_i_weights[cycle]
-                                            , em_epochs
-                                            , n_nonts
-                                            , merge_threshold
-                                            , cycle)
-                output_helper("Finished "+ str(cycle + 1) + ". S/M cycle in " + str(time.time() - the_time) + " seconds.")
-                output_helper(str(self.cycle_nont_dimensions[cycle+1]))
+                    self.cycle_nont_dimensions[cycle+1], self.cycle_i_weights[cycle+1] \
+                        = self.trace_manager[0].run_split_merge_cycle[SemiRing]( grammar_info
+                                                , self.cycle_nont_dimensions[cycle]
+                                                , self.cycle_i_weights[cycle]
+                                                , em_epochs
+                                                , n_nonts
+                                                , merge_threshold
+                                                , cycle)
+                    output_helper("Finished "+ str(cycle + 1) + ". S/M cycle in " + str(time.time() - the_time) + " seconds.")
+                    output_helper(str(self.cycle_nont_dimensions[cycle+1]))
                 new_grammar = self.build_sm_grammar(grammar, self.cycle_nont_dimensions[cycle + 1], rule_to_nonterminals, self.cycle_i_weights[cycle+1])
                 yield new_grammar
 
@@ -827,6 +828,13 @@ cdef class PyTrace:
 
     def __del__(self):
         del self.trace_manager
+
+    def serialize_la_state(self):
+        return self.cycle_nont_dimensions, self.cycle_i_weights
+
+    def deserialize_la_state(self, nont_dim_list, weights_list):
+        self.cycle_nont_dimensions = nont_dim_list
+        self.cycle_i_weights = weights_list
 
     def serialize_trace(self):
         the_trace_list = []
