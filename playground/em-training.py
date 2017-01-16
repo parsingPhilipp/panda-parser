@@ -121,17 +121,17 @@ def main(limit=500, ignore_punctuation=False, baseline_path=baseline_path, recom
         parser_type.preprocess_grammar(baseline_grammar)
         do_parsing(baseline_grammar, test_limit, ignore_punctuation)
 
+    em_trained = pickle.load(open(baseline_path))
     if recompileGrammar or not os.path.isfile(reduct_path):
         trees = parse_conll_corpus(train, False, limit)
-        trace = compute_reducts(baseline_grammar, trees)
+        trace = compute_reducts(em_trained, trees)
 
         reducts = trace.serialize_trace()
         pickle.dump(reducts, open(reduct_path, 'wb'))
     else:
         reducts = pickle.load(open(reduct_path, "rb"))
-        trace = load_reducts(baseline_grammar, reducts)
+        trace = load_reducts(em_trained, reducts)
 
-    em_trained = pickle.load(open(baseline_path))
     n_epochs = 50
     init = "rfe"
     tie_breaking = True
@@ -147,6 +147,7 @@ def main(limit=500, ignore_punctuation=False, baseline_path=baseline_path, recom
         parser_type.preprocess_grammar(em_trained)
         do_parsing(em_trained, test_limit, ignore_punctuation)
 
+    trace = load_reducts(baseline_grammar, reducts)
     if not retrain and os.path.isfile(sm_info_path):
         nont_split_list, rule_weight_list = pickle.load(open(sm_info_path, 'rb'))
         trace.deserialize_la_state(nont_split_list, rule_weight_list)
