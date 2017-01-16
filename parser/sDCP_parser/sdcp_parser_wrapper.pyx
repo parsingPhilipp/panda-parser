@@ -796,6 +796,9 @@ cdef class PyTrace:
                                                 , cycle)
                     output_helper("Finished "+ str(cycle + 1) + ". S/M cycle in " + str(time.time() - the_time) + " seconds.")
                     output_helper(str(self.cycle_nont_dimensions[cycle+1]))
+                    output_helper("Cycle " + str(cycle + 1) + " Rule weights: #" + str(len(self.cycle_i_weights[cycle + 1])))
+                else:
+                    output_helper("Cycle " + str(cycle + 1) + " Rule weights: #" + str(len(self.cycle_i_weights[cycle + 1])))
                 new_grammar = self.build_sm_grammar(grammar, self.cycle_nont_dimensions[cycle + 1], rule_to_nonterminals, self.cycle_i_weights[cycle+1])
                 yield new_grammar
 
