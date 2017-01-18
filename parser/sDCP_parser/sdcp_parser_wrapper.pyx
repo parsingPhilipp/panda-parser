@@ -116,6 +116,7 @@ cdef extern from "Trace.h":
                 , unsigned_int
                 , unsigned_int
                 , double
+                , double
         )
         pair[vector[unsigned_int], vector[vector[double]]] split_merge[Val](
                   vector[double]
@@ -123,6 +124,7 @@ cdef extern from "Trace.h":
                 , unsigned_int
                 , unordered_map[Nonterminal,unsigned_int]
                 , unsigned_int
+                , double
                 , double
         )
         pair [vector [pair [ Nonterminal
@@ -152,6 +154,7 @@ cdef extern from "Trace.h":
                 , vector[vector[double]]
                 , unsigned_int
                 , unsigned_int
+                , double
                 , double
                 , unsigned_int
         )
@@ -713,7 +716,7 @@ cdef class PyTrace:
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             self.parser.rule_map.index_object(i).set_weight(final_weights[i])
 
-    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0, merge_threshold=0.5, rule_pruning=exp(-100)):
+    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0, merge_threshold=0.5, merge_percentage=-1.0, rule_pruning=exp(-100), rule_smoothing=0.0):
         random.seed(seed)
         assert isinstance(grammar, gl.LCFRS)
         normalization_groups = []
@@ -793,22 +796,24 @@ cdef class PyTrace:
                                                 , em_epochs
                                                 , n_nonts
                                                 , merge_threshold
+                                                , merge_percentage
                                                 , cycle)
                     output_helper("Finished "+ str(cycle + 1) + ". S/M cycle in " + str(time.time() - the_time) + " seconds.")
                     output_helper(str(self.cycle_nont_dimensions[cycle+1]))
-                    output_helper("Cycle " + str(cycle + 1) + " Rule weights: #" + str(len(self.cycle_i_weights[cycle + 1])))
+                    # output_helper("Cycle " + str(cycle + 1) + " Rule weights: #" + str(len(self.cycle_i_weights[cycle + 1])))
                 else:
-                    output_helper("Cycle " + str(cycle + 1) + " Rule weights: #" + str(len(self.cycle_i_weights[cycle + 1])))
-                new_grammar = self.build_sm_grammar(grammar, self.cycle_nont_dimensions[cycle + 1], rule_to_nonterminals, self.cycle_i_weights[cycle+1])
+                    pass
+                    # output_helper("Cycle " + str(cycle + 1) + " Rule weights: #" + str(len(self.cycle_i_weights[cycle + 1])))
+                new_grammar = self.build_sm_grammar(grammar, self.cycle_nont_dimensions[cycle + 1], rule_to_nonterminals, self.cycle_i_weights[cycle+1], rule_pruning, rule_smoothing)
                 yield new_grammar
 
-            # nont_dimensions, weights = self.trace_manager[0].split_merge_id[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, n_nonts, cycles, merge_threshold)
+            # nont_dimensions, weights = self.trace_manager[0].split_merge_id[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, n_nonts, cycles, merge_threshold, merge_percentage)
         else:
-            nont_dimensions, weights = self.trace_manager[0].split_merge[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, nont_map.obj_to_ind, cycles, merge_threshold)
+            nont_dimensions, weights = self.trace_manager[0].split_merge[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, nont_map.obj_to_ind, cycles, merge_threshold, merge_percentage)
 
             yield self.build_sm_grammar(grammar, nont_dimensions, rule_to_nonterminals, weights)
 
-    def build_sm_grammar(self, grammar, nont_dimensions, rule_to_nonterminals, weights):
+    def build_sm_grammar(self, grammar, nont_dimensions, rule_to_nonterminals, weights, rule_pruning, rule_smoothing=0.0):
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
         for i in xrange(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             rule = self.parser.rule_map.index_object(i)
@@ -816,11 +821,19 @@ cdef class PyTrace:
             rule_dimensions = [nont_dimensions[nont] for nont in rule_to_nonterminals[i]]
             rule_dimensions_exp = itertools.product(*[xrange(dim) for dim in rule_dimensions])
 
+            lhs_dims = nont_dimensions[rule_to_nonterminals[i][0]]
+
             for la in rule_dimensions_exp:
                 index = indexation(list(la), rule_dimensions)
-                # output_helper(str(i) + " " + str(rule_dimensions) + " " + str(list(la)) + " " + str(index))
-                weight = weights[i][index]
-                if weight > exp(-100):
+
+                if rule_smoothing > 0.0:
+                    weight_av = sum([weights[i][indexation([lhs] + list(la)[1:], rule_dimensions)] for lhs in range(lhs_dims)]) / lhs_dims
+
+                    # output_helper(str(i) + " " + str(rule_dimensions) + " " + str(list(la)) + " " + str(index))
+                    weight = (1 - rule_smoothing) * weights[i][index] + rule_smoothing * weight_av
+                else:
+                    weight = weights[i][index]
+                if weight > rule_pruning:
                     lhs_la = gl.LCFRS_lhs(rule.lhs().nont() + "[" + str(la[0]) + "]")
                     for arg in rule.lhs().args():
                         lhs_la.add_arg(arg)
