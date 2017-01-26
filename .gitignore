@@ -9,3 +9,5 @@
 playground_rparse/.negra*
 playground_rparse/.tiger*
 
+build/*
+res/*
