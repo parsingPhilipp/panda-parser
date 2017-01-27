@@ -8,67 +8,16 @@ from libcpp.pair cimport pair
 from libcpp.memory cimport shared_ptr
 from cython.operator cimport dereference as deref
 
-
-cdef extern from "LCFRS.h" namespace "LCFR":
-    ctypedef unsigned Nonterminal
-    ctypedef unsigned Terminal
-
-cdef extern from "boost/variant/variant.hpp" namespace "boost":
-    cdef cppclass variant[Terminal, Variable]:
-        pass
-
-
-cdef extern from "LCFRS.h" namespace "LCFR":
-    ctypedef pair[unsigned long, unsigned long] Range
-
-    cdef cppclass Variable:
-        Variable(unsigned long ind, unsigned long arg)
-        unsigned long get_index()
-        unsigned long get_arg()
-
-    # ctypedef variant[Terminal,Variable] TerminalOrVariable[Terminal]
-    # ctypedef  unsigned long TerminalOrVariable
-
-    cdef cppclass LHS[Nonterminal,Terminal]:
-        LHS(Nonterminal nonterminal)
-        Nonterminal get_nont()
-        # vector[vector[TerminalOrVariable[Terminal]]] get_args()
-        # void add_argument(vector[TerminalOrVariable[Terminal]] argument)
-
-    cdef cppclass Rule[Nonterminal, Terminal]:
-        Rule(LHS[Nonterminal, Terminal] lhs, vector[Nonterminal] rhs)
-        LHS[Nonterminal,Terminal] get_lhs()
-        vector[Nonterminal] get_rhs()
-
-    cdef cppclass LCFRS[Nonterminal, Terminal]:
-        LCFRS(Nonterminal init_nont, string name)
-        Nonterminal get_initial_nont()
-        map[Nonterminal, vector[shared_ptr[Rule[Nonterminal, Terminal]]]] get_rules()
-        void add_rule(Rule[Nonterminal,Terminal] rule)
+from hybridtree.monadic_tokens import CoNLLToken
 
 
 
-cdef extern from "LCFRS_Parser.h" namespace "LCFR":
-    cdef cppclass PassiveItem[Nonterminal]:
-        PassiveItem(Nonterminal nont, vector[Range] rs)
-        Nonterminal get_nont()
-        vector[Range] get_ranges()
-
-    cdef cppclass TraceItem[Nonterminal, Terminal]:
-        shared_ptr[PassiveItem[Nonterminal]] uniquePtr
-        vector[pair[shared_ptr[Rule[Nonterminal,Terminal]]
-               , vector[shared_ptr[PassiveItem[Nonterminal]]]
-               ]
-            ] parses
-
-    cdef cppclass LCFRS_Parser:
-        LCFRS_Parser(LCFRS grammar, vector[Terminal] word)
-        void do_parse()
-        map[PassiveItem,TraceItem] get_trace()
-
+ctypedef unsigned long unsigned_long
 
 cdef extern from "LCFRS_util.h" namespace "LCFR":
-    cdef cppclass RuleFactory[Nonterminal, Terminal]:
+    cdef cppclass LCFRSFactory[Nonterminal, Terminal]:
+        LCFRSFactory(const Nonterminal initial)
+
         void new_rule(const Nonterminal nont)
 
         void add_terminal(const Terminal term)
@@ -77,32 +26,93 @@ cdef extern from "LCFRS_util.h" namespace "LCFR":
 
         void complete_argument()
 
-        Rule[Nonterminal,Terminal] get_rule(vector[Nonterminal] rhs)
+        void add_rule_to_grammar(vector[Nonterminal] rhs)
 
-cdef class PyRuleFactory:
-    cdef RuleFactory *_thisptr
-    def __cinit__(self):
-        self._thisptr = new RuleFactory()
+        void do_parse(vector[Terminal] word)
+
+        map[unsigned_long, pair[Nonterminal, vector[pair[unsigned_long, unsigned_long]]]] get_passive_items_map()
+
+        map[unsigned_long, vector[pair[unsigned_long, vector[unsigned_long]]]] convert_trace()
+
+
+
+# Python classes:
+ctypedef string Nonterminal
+ctypedef string Terminal
+
+
+
+
+cdef class PyLCFRSFactory:
+    cdef LCFRSFactory[Nonterminal,Terminal] *_thisptr
+    # cdef LCFRS *_grammar
+    # cdef LCFRSParser *_parser
+    # cdef map[PassiveItem[Nonterminal, Terminal], TraceItem[Nonterminal, Terminal]] trace
+
+    def __cinit__(self, Nonterminal initial_nont):
+        self._thisptr = new LCFRSFactory[Nonterminal,Terminal](initial_nont)
+        # self._grammar = new LCFRS(initial_nont)
 
     def __dealloc__(self):
         if self._thisptr != NULL:
             del self._thisptr
+        # if self._grammar != NULL:
+        #     del self._grammar
+        # if self._parser != NULL:
+        #     del self._parser
 
     cpdef void new_rule(self, Nonterminal lhsNont):
-        return self._thisptr.new_rule(lhsNont)
+        self._thisptr.new_rule(lhsNont)
 
     cpdef void add_terminal(self, Terminal term):
-        return self._thisptr.add_terminal(term)
+        self._thisptr.add_terminal(term)
 
-    cpdef add_variable(self, unsigned long index, unsigned long arg):
-        return self._thisptr.add_variable(index,arg)
+    cpdef void add_variable(self, unsigned long index, unsigned long arg):
+        self._thisptr.add_variable(index,arg)
 
     cpdef void complete_argument(self):
-        return self._thisptr.complete_argument()
+        self._thisptr.complete_argument()
 
-    cpdef Rule[Nonterminal, Terminal] get_rule(self, vector[Nonterminal] rhs):
-        return self._thisptr.get_rule(rhs)
+    cpdef void add_rule_to_grammar(self, vector[Nonterminal] rhs):
+        self._thisptr.add_rule_to_grammar(rhs)
+
+    cpdef void do_parse(self, vector[Terminal] word):
+        self._thisptr.do_parse(word);
+
+    cpdef map[unsigned_long, pair[Nonterminal, vector[pair[unsigned_long, unsigned_long]]]] get_passive_items_map(self):
+        return self._thisptr.get_passive_items_map()
+
+    cpdef map[unsigned_long, vector[pair[unsigned_long, vector[unsigned_long]]]] convert_trace(self):
+        return self._thisptr.convert_trace()
 
 
-def test():
-    print "test"
+
+
+
+
+# cdef class TraceManager:
+#     cdef map[PassiveItem[Nonterminal,Terminal],TraceItem[Nonterminal,Terminal]] *_trace
+#     cdef __cinit__(self, trace):
+#         self._trace = trace
+#     cdef __dealloc__(self):
+#         if _trace != NULL:
+#             del _trace
+
+
+
+
+
+# cdef class PyLCFRSParser:
+#     cdef LCFRSParser *_thisptr
+#     cdef __cinit__(self, grammar, word):
+#         self._thisptr = new LCFRS(grammar, word)
+#
+#     cdef __dealloc__(self):
+#         if self._thisptr != NULL:
+#              del self._thisptr
+#
+#     cpdef do_parse(self):
+#         return self._thisptr.do_parse()
+#
+#     cdef get_trace(self):
+#         return TraceManager(self._thisptr.get_trace())

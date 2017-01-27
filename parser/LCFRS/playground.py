@@ -1,9 +1,11 @@
-from parser.LCFRS.LCFRS_Parser_Wrapper import test
 from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg
 from grammar.lcfrs import LCFRS
 from hybridtree.general_hybrid_tree import HybridTree
 from dependency.labeling import the_labeling_factory
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
+from parser.LCFRS.LCFRS_conversion import parse_LCFRS
+from LCFRS_conversion import parse_LCFRS
+from sys import stderr
 
 
 def play_with_parser():
@@ -14,6 +16,12 @@ def play_with_parser():
     (_, grammar) = induce_grammar([tree, tree2],
                                   the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
                                   terminal_labeling.token_label, [cfg], 'START')
+
+    print map((lambda x: x.pos()), tree.full_token_yield())
+
+    print parse_LCFRS(grammar, map((lambda x: x.pos()), tree.full_token_yield()))
+    return
+
 
 
 
