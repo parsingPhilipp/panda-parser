@@ -1,14 +1,21 @@
+import Queue
+from collections import deque
+
 from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg
 from grammar.lcfrs import LCFRS
 from hybridtree.general_hybrid_tree import HybridTree
 from dependency.labeling import the_labeling_factory
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
-from parser.LCFRS.LCFRS_conversion import parse_LCFRS
-from LCFRS_conversion import parse_LCFRS
 from sys import stderr
+from parser.LCFRS.LCFRS_Parser_Wrapper import PyLCFRSFactory
+from corpora.conll_parse import parse_conll_corpus
 
 
 def play_with_parser():
+    """
+    :t grammar LCFRS
+    :return:
+    """
     tree = hybrid_tree_1()
     tree2 = hybrid_tree_2()
     terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
@@ -19,8 +26,85 @@ def play_with_parser():
 
     print map((lambda x: x.pos()), tree.full_token_yield())
 
-    print parse_LCFRS(grammar, map((lambda x: x.pos()), tree.full_token_yield()))
-    return
+    # print '\n\n'
+    # print grammar
+
+    factory = PyLCFRSFactory(grammar.start())
+
+    factory.import_grammar(grammar)
+    word = map((lambda x: x.pos()), tree.full_token_yield())
+
+    factory.do_parse(word)
+
+    print 'Passive Items:'
+    passiveItems = factory.get_passive_items_map()
+    for (i, pItem) in passiveItems.iteritems():
+        print str(i) + ': ' + str(pItem[0]) + str(pItem[1])
+
+    print '\n\n Trace:'
+    trace = factory.convert_trace()
+    for (i, pItem) in trace.iteritems():
+        print str(i) + ': ' + str(pItem)
+
+    print "No of parses: " + str(count_parses(passiveItems, trace, grammar.start(), len(word)))
+
+
+
+
+def play_with_corpus():
+    train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+    limit_train = 100
+    test = train
+    limit_test = 10
+    # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+    trees = parse_conll_corpus(train, False, limit_train)
+
+    test_trees = parse_conll_corpus(test, False, limit_train)
+
+    primary_labelling = the_labeling_factory().create_simple_labeling_strategy("child", "deprel")
+    term_labelling = the_terminal_labeling_factory().get_strategy('pos')
+    start = 'START'
+    recursive_partitioning = [cfg]
+
+    (n_trees, grammar_prim) = induce_grammar(trees, primary_labelling, term_labelling.token_label,
+                                             recursive_partitioning, start)
+
+    factory = PyLCFRSFactory(grammar_prim.start())
+    factory.import_grammar(grammar_prim)
+
+    for i in range(0, limit_test):
+        tree = test_trees.next()
+        word = map((lambda x: x.pos()), tree.full_token_yield())
+        factory.do_parse(word)
+        print str(word) + "    " + str(len(word))
+        passiveItems = factory.get_passive_items_map()
+        trace = factory.convert_trace()
+        print "No of parses: " , count_parses(passiveItems, trace, grammar_prim.start(), len(word))
+
+
+
+
+def count_parses(passiveItems, trace, initial_nont, wordlen):
+
+    initial = passiveItems.keys()[passiveItems.values().index((initial_nont, [(0L, wordlen)]))]
+    (result, _) = parses_per_pitem(trace, initial, {})
+    return result
+
+
+def parses_per_pitem(trace, pItemNo, resultMap):
+    if pItemNo in resultMap:
+        return resultMap[pItemNo], resultMap
+    result = 0
+    for pItemList in trace[pItemNo]:
+        noPerTrace = 1
+        for pItem in pItemList[1]:
+            (count, resultMap) = parses_per_pitem(trace, pItem, resultMap)
+            noPerTrace *= count
+        result += noPerTrace
+    resultMap[pItemNo] = result
+    return result, resultMap
+
+
 
 
 
@@ -57,4 +141,5 @@ def hybrid_tree_2():
 
 
 
-play_with_parser()
+# play_with_parser()
+play_with_corpus()

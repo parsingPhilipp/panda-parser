@@ -9,10 +9,17 @@ from libcpp.memory cimport shared_ptr
 from cython.operator cimport dereference as deref
 
 from hybridtree.monadic_tokens import CoNLLToken
+from grammar.lcfrs import LCFRS as PyLCFRS, LCFRS_var as PyLCFRS_var
 
 
 
 ctypedef unsigned long unsigned_long
+
+cdef extern from "LCFRS.h" namespace "LCFR":
+    pass
+
+cdef extern from "LCFRS_Parser.h" namespace "LCFR":
+    pass
 
 cdef extern from "LCFRS_util.h" namespace "LCFR":
     cdef cppclass LCFRSFactory[Nonterminal, Terminal]:
@@ -26,7 +33,7 @@ cdef extern from "LCFRS_util.h" namespace "LCFR":
 
         void complete_argument()
 
-        void add_rule_to_grammar(vector[Nonterminal] rhs)
+        void add_rule_to_grammar(vector[Nonterminal] rhs, const unsigned long id)
 
         void do_parse(vector[Terminal] word)
 
@@ -41,16 +48,42 @@ ctypedef string Nonterminal
 ctypedef string Terminal
 
 
+cdef class Enumerator:
+    cdef unsigned counter
+    cdef dict obj_to_ind
+    cdef dict ind_to_obj
+    cdef unsigned first_index
+
+    def __init__(self, first_index=0):
+        self.first_index = first_index
+        self.counter = first_index
+        self.obj_to_ind = {}
+        self.ind_to_obj = {}
+
+    def index_object(self, int i):
+        """
+        :type i: int
+        :return:
+        """
+        return self.ind_to_obj[i]
+
+    cdef int object_index(self, obj):
+        if obj in self.obj_to_ind:
+            return self.obj_to_ind[obj]
+        else:
+            self.obj_to_ind[obj] = self.counter
+            self.ind_to_obj[self.counter] = obj
+            self.counter += 1
+            return self.counter - 1
 
 
 cdef class PyLCFRSFactory:
     cdef LCFRSFactory[Nonterminal,Terminal] *_thisptr
-    # cdef LCFRS *_grammar
-    # cdef LCFRSParser *_parser
-    # cdef map[PassiveItem[Nonterminal, Terminal], TraceItem[Nonterminal, Terminal]] trace
+    cdef Enumerator ruleMap
 
     def __cinit__(self, Nonterminal initial_nont):
         self._thisptr = new LCFRSFactory[Nonterminal,Terminal](initial_nont)
+        self.ruleMap = Enumerator()
         # self._grammar = new LCFRS(initial_nont)
 
     def __dealloc__(self):
@@ -73,8 +106,8 @@ cdef class PyLCFRSFactory:
     cpdef void complete_argument(self):
         self._thisptr.complete_argument()
 
-    cpdef void add_rule_to_grammar(self, vector[Nonterminal] rhs):
-        self._thisptr.add_rule_to_grammar(rhs)
+    cpdef void add_rule_to_grammar(self, vector[Nonterminal] rhs, const unsigned long ruleId):
+        self._thisptr.add_rule_to_grammar(rhs, ruleId)
 
     cpdef void do_parse(self, vector[Terminal] word):
         self._thisptr.do_parse(word);
@@ -84,6 +117,21 @@ cdef class PyLCFRSFactory:
 
     cpdef map[unsigned_long, vector[pair[unsigned_long, vector[unsigned_long]]]] convert_trace(self):
         return self._thisptr.convert_trace()
+
+    def import_grammar(self, grammar):
+        # :type grammar PyLCFRS
+        # :return:
+
+        for rule in grammar.rules():
+            self.new_rule(rule.lhs().nont())
+            for argument in rule.lhs().args():
+                for symbol in argument:
+                    if type(symbol) is PyLCFRS_var:
+                        self.add_variable(symbol.mem, symbol.arg)
+                    else:
+                        self.add_terminal(symbol)
+                self.complete_argument()
+            self.add_rule_to_grammar(rule.rhs(), self.ruleMap.object_index(rule))
 
 
 
