@@ -1,4 +1,5 @@
 import Queue
+import timeit
 from collections import deque
 
 from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg
@@ -39,23 +40,23 @@ def play_with_parser():
     print 'Passive Items:'
     passiveItems = factory.get_passive_items_map()
     for (i, pItem) in passiveItems.iteritems():
-        print str(i) + ': ' + str(pItem[0]) + str(pItem[1])
+        print i, ': ', pItem[0], pItem[1]
 
     print '\n\n Trace:'
     trace = factory.convert_trace()
     for (i, pItem) in trace.iteritems():
-        print str(i) + ': ' + str(pItem)
+        print i, ': ', pItem
 
-    print "No of parses: " + str(count_parses(passiveItems, trace, grammar.start(), len(word)))
+    print "No of parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
 
 
 
 
 def play_with_corpus():
     train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
-    limit_train = 100
+    limit_train = 1000
     test = train
-    limit_test = 10
+    limit_test = 50
     # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
     trees = parse_conll_corpus(train, False, limit_train)
 
@@ -76,17 +77,83 @@ def play_with_corpus():
         tree = test_trees.next()
         word = map((lambda x: x.pos()), tree.full_token_yield())
         factory.do_parse(word)
-        print str(word) + "    " + str(len(word))
+        # print word, "    ", len(word)
         passiveItems = factory.get_passive_items_map()
         trace = factory.convert_trace()
-        print "No of parses: " , count_parses(passiveItems, trace, grammar_prim.start(), len(word))
+        print ("Word length: ", len(word)
+               , " - #passive Items: ", len(passiveItems)
+               # , " - #parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
+               )
+
+
+
+def play_with_manual_grammar():
+    factory = PyLCFRSFactory("S")
+    factory.new_rule("S")
+    factory.add_variable(0,0)
+    factory.add_variable(1,0)
+    factory.complete_argument()
+    factory.add_rule_to_grammar("AB", 0)
+
+    factory.new_rule("S")
+    factory.add_variable(0, 0)
+    factory.add_variable(1, 0)
+    factory.complete_argument()
+    factory.add_rule_to_grammar("AC", 1)
+
+    factory.new_rule("A")
+    factory.add_terminal("a")
+    factory.complete_argument()
+    factory.add_rule_to_grammar("", 2)
+
+    factory.new_rule("A")
+    factory.add_terminal("a")
+    factory.complete_argument()
+    factory.add_rule_to_grammar("", 3)
+
+    factory.new_rule("B")
+    factory.add_terminal("b")
+    factory.complete_argument()
+    factory.add_rule_to_grammar("", 4)
+
+    factory.new_rule("C")
+    factory.add_terminal("b")
+    factory.complete_argument()
+    factory.add_rule_to_grammar("", 5)
+
+    factory.new_rule("C")
+    factory.add_terminal("b")
+    factory.complete_argument()
+    factory.add_rule_to_grammar("", 6)
+
+    factory.new_rule("C")
+    factory.add_terminal("b")
+    factory.complete_argument()
+    factory.add_rule_to_grammar("", 7)
+
+
+    word = "ab"
+
+    factory.do_parse(word)
+
+    print 'Passive Items:'
+    passiveItems = factory.get_passive_items_map()
+    for (i, pItem) in passiveItems.iteritems():
+        print i, ': ', pItem[0], pItem[1]
+
+    print '\n\n Trace:'
+    trace = factory.convert_trace()
+    for (i, pItem) in trace.iteritems():
+        print i, ': ', pItem
+
+    print "No of parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
 
 
 
 
-def count_parses(passiveItems, trace, initial_nont, wordlen):
+def count_parses(passiveItems, trace, initial_passive_item):
 
-    initial = passiveItems.keys()[passiveItems.values().index((initial_nont, [(0L, wordlen)]))]
+    initial = passiveItems.keys()[passiveItems.values().index(initial_passive_item)]
     (result, _) = parses_per_pitem(trace, initial, {})
     return result
 
@@ -140,6 +207,9 @@ def hybrid_tree_2():
     return tree2
 
 
-
+seconds = 0
 # play_with_parser()
-play_with_corpus()
+# play_with_manual_grammar()
+seconds = timeit.timeit(play_with_corpus, number=1)
+
+print 'Finished in ', seconds, ' seconds'

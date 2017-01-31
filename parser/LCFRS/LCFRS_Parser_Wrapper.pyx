@@ -13,7 +13,27 @@ from grammar.lcfrs import LCFRS as PyLCFRS, LCFRS_var as PyLCFRS_var
 
 
 
+# Options:
+DEF ENCODE_NONTERMINALS = True
+DEF ENCODE_TERMINALS = True
+
+
 ctypedef unsigned long unsigned_long
+
+IF ENCODE_NONTERMINALS:
+    ctypedef unsigned_long Nonterminal
+ELSE:
+    ctypedef string Nonterminal
+
+IF ENCODE_TERMINALS:
+    ctypedef unsigned_long Terminal
+ELSE:
+    ctypedef string Terminal
+
+
+
+
+
 
 cdef extern from "LCFRS.h" namespace "LCFR":
     pass
@@ -41,18 +61,20 @@ cdef extern from "LCFRS_util.h" namespace "LCFR":
 
         map[unsigned_long, vector[pair[unsigned_long, vector[unsigned_long]]]] convert_trace()
 
+        Nonterminal get_initial_nont()
+
+        vector[Terminal] get_word()
+
+        pair[Nonterminal, vector[pair[unsigned_long, unsigned_long]]] get_initial_passive_item()
 
 
-# Python classes:
-ctypedef string Nonterminal
-ctypedef string Terminal
 
 
 cdef class Enumerator:
-    cdef unsigned counter
+    cdef unsigned_long counter
     cdef dict obj_to_ind
     cdef dict ind_to_obj
-    cdef unsigned first_index
+    cdef unsigned_long first_index
 
     def __init__(self, first_index=0):
         self.first_index = first_index
@@ -67,7 +89,7 @@ cdef class Enumerator:
         """
         return self.ind_to_obj[i]
 
-    cdef int object_index(self, obj):
+    cdef unsigned_long object_index(self, obj):
         if obj in self.obj_to_ind:
             return self.obj_to_ind[obj]
         else:
@@ -76,15 +98,32 @@ cdef class Enumerator:
             self.counter += 1
             return self.counter - 1
 
+    cdef objects_indices(self, objects):
+        result = vector[unsigned_long]();
+        for obj in objects:
+            result += [self.object_index(obj)]
+        return result
 
 cdef class PyLCFRSFactory:
     cdef LCFRSFactory[Nonterminal,Terminal] *_thisptr
     cdef Enumerator ruleMap
+    IF ENCODE_NONTERMINALS:
+        cdef Enumerator ntMap
+    IF ENCODE_TERMINALS:
+        cdef Enumerator tMap
 
-    def __cinit__(self, Nonterminal initial_nont):
-        self._thisptr = new LCFRSFactory[Nonterminal,Terminal](initial_nont)
+    def __cinit__(self, initial_nont):
+        IF ENCODE_NONTERMINALS:
+            self.ntMap = Enumerator()
+            self._thisptr = new LCFRSFactory[Nonterminal,Terminal](self.ntMap.object_index(initial_nont))
+        ELSE:
+            self._thisptr = new LCFRSFactory[Nonterminal,Terminal](initial_nont)
+
         self.ruleMap = Enumerator()
-        # self._grammar = new LCFRS(initial_nont)
+
+        IF ENCODE_TERMINALS:
+            self.tMap = Enumerator()
+
 
     def __dealloc__(self):
         if self._thisptr != NULL:
@@ -109,8 +148,11 @@ cdef class PyLCFRSFactory:
     cpdef void add_rule_to_grammar(self, vector[Nonterminal] rhs, const unsigned long ruleId):
         self._thisptr.add_rule_to_grammar(rhs, ruleId)
 
-    cpdef void do_parse(self, vector[Terminal] word):
-        self._thisptr.do_parse(word);
+    cpdef void do_parse(self, word):
+        IF ENCODE_TERMINALS:
+            self._thisptr.do_parse(self.tMap.objects_indices(word));
+        ELSE:
+            self._thisptr.do_parse(word);
 
     cpdef map[unsigned_long, pair[Nonterminal, vector[pair[unsigned_long, unsigned_long]]]] get_passive_items_map(self):
         return self._thisptr.get_passive_items_map()
@@ -123,17 +165,27 @@ cdef class PyLCFRSFactory:
         # :return:
 
         for rule in grammar.rules():
-            self.new_rule(rule.lhs().nont())
+            IF ENCODE_NONTERMINALS:
+                self.new_rule(self.ntMap.object_index(rule.lhs().nont()))
+            ELSE:
+                self.new_rule(rule.lhs().nont())
             for argument in rule.lhs().args():
                 for symbol in argument:
                     if type(symbol) is PyLCFRS_var:
                         self.add_variable(symbol.mem, symbol.arg)
                     else:
-                        self.add_terminal(symbol)
+                        IF ENCODE_NONTERMINALS:
+                            self.add_terminal(self.tMap.object_index(symbol))
+                        ELSE:
+                            self.add_terminal(symbol)
                 self.complete_argument()
-            self.add_rule_to_grammar(rule.rhs(), self.ruleMap.object_index(rule))
+            IF ENCODE_NONTERMINALS:
+                self.add_rule_to_grammar(self.ntMap.objects_indices(rule.rhs()), self.ruleMap.object_index(rule))
+            ELSE:
+                self.add_rule_to_grammar(rule.rhs(), self.ruleMap.object_index(rule))
 
-
+    def get_initial_passive_item(self):
+        return self._thisptr.get_initial_passive_item()
 
 
 
