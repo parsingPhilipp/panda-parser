@@ -2,7 +2,7 @@ import Queue
 import timeit
 from collections import deque
 
-from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg
+from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg, direct_extraction
 from grammar.lcfrs import LCFRS
 from hybridtree.general_hybrid_tree import HybridTree
 from dependency.labeling import the_labeling_factory
@@ -54,7 +54,7 @@ def play_with_parser():
 
 def play_with_corpus():
     train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
-    limit_train = 1000
+    limit_train = 100
     test = train
     limit_test = 50
     # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
@@ -65,7 +65,7 @@ def play_with_corpus():
     primary_labelling = the_labeling_factory().create_simple_labeling_strategy("child", "deprel")
     term_labelling = the_terminal_labeling_factory().get_strategy('pos')
     start = 'START'
-    recursive_partitioning = [cfg]
+    recursive_partitioning = [direct_extraction]
 
     (n_trees, grammar_prim) = induce_grammar(trees, primary_labelling, term_labelling.token_label,
                                              recursive_partitioning, start)
@@ -77,12 +77,11 @@ def play_with_corpus():
         tree = test_trees.next()
         word = map((lambda x: x.pos()), tree.full_token_yield())
         factory.do_parse(word)
-        # print word, "    ", len(word)
         passiveItems = factory.get_passive_items_map()
         trace = factory.convert_trace()
         print ("Word length: ", len(word)
                , " - #passive Items: ", len(passiveItems)
-               # , " - #parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
+               , " - #parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
                )
 
 

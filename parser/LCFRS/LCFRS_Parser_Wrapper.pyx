@@ -1,4 +1,3 @@
-
 cimport cython
 
 from libcpp.string cimport string
@@ -10,6 +9,8 @@ from cython.operator cimport dereference as deref
 
 from hybridtree.monadic_tokens import CoNLLToken
 from grammar.lcfrs import LCFRS as PyLCFRS, LCFRS_var as PyLCFRS_var
+
+
 
 
 
@@ -128,10 +129,6 @@ cdef class PyLCFRSFactory:
     def __dealloc__(self):
         if self._thisptr != NULL:
             del self._thisptr
-        # if self._grammar != NULL:
-        #     del self._grammar
-        # if self._parser != NULL:
-        #     del self._parser
 
     cpdef void new_rule(self, Nonterminal lhsNont):
         self._thisptr.new_rule(lhsNont)
@@ -186,33 +183,3 @@ cdef class PyLCFRSFactory:
 
     def get_initial_passive_item(self):
         return self._thisptr.get_initial_passive_item()
-
-
-
-
-# cdef class TraceManager:
-#     cdef map[PassiveItem[Nonterminal,Terminal],TraceItem[Nonterminal,Terminal]] *_trace
-#     cdef __cinit__(self, trace):
-#         self._trace = trace
-#     cdef __dealloc__(self):
-#         if _trace != NULL:
-#             del _trace
-
-
-
-
-
-# cdef class PyLCFRSParser:
-#     cdef LCFRSParser *_thisptr
-#     cdef __cinit__(self, grammar, word):
-#         self._thisptr = new LCFRS(grammar, word)
-#
-#     cdef __dealloc__(self):
-#         if self._thisptr != NULL:
-#              del self._thisptr
-#
-#     cpdef do_parse(self):
-#         return self._thisptr.do_parse()
-#
-#     cdef get_trace(self):
-#         return TraceManager(self._thisptr.get_trace())
