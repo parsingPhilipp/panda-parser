@@ -29,6 +29,9 @@ ctypedef unsigned_int TERMINAL
 cdef extern from "SplitMergeUtil.h":
     unsigned_int indexation(vector[unsigned_int], vector[unsigned_int])
 
+cdef extern from "EigenUtil.h":
+    pass
+
 cdef extern from "SDCP.h":
     cdef cppclass Rule[Nonterminal, Terminal]:
          Rule(Nonterminal)
@@ -119,7 +122,9 @@ cdef extern from "Trace.h":
                 , double
         )
         pair[vector[unsigned_int], vector[vector[double]]] split_merge[Val](
-                  vector[double]
+                unsigned_int
+                , unsigned_int
+                , vector[double]
                 , vector[vector[unsigned_int]]
                 , unsigned_int
                 , unordered_map[Nonterminal,unsigned_int]
@@ -149,7 +154,9 @@ cdef extern from "Trace.h":
         unsigned traces_size()
 
         pair[vector[unsigned_int], vector[vector[double]]] run_split_merge_cycle[Val](
-                  GrammarInfo[Nonterminal]
+                unsigned_int
+                , unsigned_int
+                , GrammarInfo[Nonterminal]
                 , vector[unsigned_int]
                 , vector[vector[double]]
                 , unsigned_int
@@ -164,8 +171,8 @@ cdef extern from "Trace.h":
 
 
 # choose representation: prob / log-prob
-ctypedef LogDouble SemiRing
 # ctypedef LogDouble SemiRing
+ctypedef Double SemiRing
 
 cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, terminal_encoding=str) except * :
     # output_helper("convert hybrid tree: " + str(p_tree))
@@ -716,7 +723,8 @@ cdef class PyTrace:
         for i in range(self.parser.rule_map.first_index, self.parser.rule_map.counter):
             self.parser.rule_map.index_object(i).set_weight(final_weights[i])
 
-    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0, merge_threshold=0.5, merge_percentage=-1.0, rule_pruning=exp(-100), rule_smoothing=0.0):
+    def split_merge_training(self, grammar, cycles, em_epochs, init="rfe", tie_breaking=True, sigma=0.005, seed=0, merge_threshold=0.5, merge_percentage=-1.0, rule_pruning=exp(-100), rule_smoothing=0.0,
+                             N_THREADS=1, BATCH_SIZE=100):
         random.seed(seed)
         assert isinstance(grammar, gl.LCFRS)
         normalization_groups = []
@@ -790,7 +798,10 @@ cdef class PyTrace:
                     the_time = time.time()
 
                     self.cycle_nont_dimensions[cycle+1], self.cycle_i_weights[cycle+1] \
-                        = self.trace_manager[0].run_split_merge_cycle[SemiRing]( grammar_info
+                        = self.trace_manager[0].run_split_merge_cycle[SemiRing](
+                                                N_THREADS
+                                                , BATCH_SIZE
+                                                , grammar_info
                                                 , self.cycle_nont_dimensions[cycle]
                                                 , self.cycle_i_weights[cycle]
                                                 , em_epochs
@@ -809,7 +820,8 @@ cdef class PyTrace:
 
             # nont_dimensions, weights = self.trace_manager[0].split_merge_id[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, n_nonts, cycles, merge_threshold, merge_percentage)
         else:
-            nont_dimensions, weights = self.trace_manager[0].split_merge[SemiRing](pre_weights, rule_to_nonterminals, em_epochs, nont_map.obj_to_ind, cycles, merge_threshold, merge_percentage)
+            nont_dimensions, weights = self.trace_manager[0].split_merge[SemiRing](
+                N_THREADS, BATCH_SIZE, pre_weights, rule_to_nonterminals, em_epochs, nont_map.obj_to_ind, cycles, merge_threshold, merge_percentage)
 
             yield self.build_sm_grammar(grammar, nont_dimensions, rule_to_nonterminals, weights)
 

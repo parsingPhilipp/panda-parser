@@ -155,7 +155,7 @@ def main(limit=500, ignore_punctuation=False, baseline_path=baseline_path, recom
 
     grammar_sm = {}
     max_cycles = 4
-    for cycles_, grammar in enumerate(trace.split_merge_training(baseline_grammar, max_cycles, em_epochs=30, init="rfe", tie_breaking=True, merge_threshold=0.1, merge_percentage=50.0, rule_pruning=exp(-50), rule_smoothing=0.01)):
+    for cycles_, grammar in enumerate(trace.split_merge_training(baseline_grammar, max_cycles, em_epochs=20, init="rfe", tie_breaking=True, merge_threshold=0.1, merge_percentage=50.0, rule_pruning=exp(-50), rule_smoothing=0.01, N_THREADS=4, BATCH_SIZE=10)):
         cycles = cycles_ + 1
 
         sm_path_ = sm_path(cycles)
