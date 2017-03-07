@@ -36,13 +36,13 @@ ELSE:
 
 
 
-cdef extern from "LCFRS.h" namespace "LCFR":
+cdef extern from "LCFR/LCFRS.h" namespace "LCFR":
     pass
 
-cdef extern from "LCFRS_Parser.h" namespace "LCFR":
+cdef extern from "LCFR/LCFRS_Parser.h" namespace "LCFR":
     pass
 
-cdef extern from "LCFRS_util.h" namespace "LCFR":
+cdef extern from "LCFR/LCFRS_util.h" namespace "LCFR":
     cdef cppclass LCFRSFactory[Nonterminal, Terminal]:
         LCFRSFactory(const Nonterminal initial)
 
