@@ -1,5 +1,6 @@
 import unittest
-from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation, em_training, split_merge_training, compute_reducts, load_reducts
+from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
+from parser.sDCP_parser.trace_manager import compute_reducts, PyEMTrainer, PyTraceManager, split_merge_training
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
 from dependency.labeling import the_labeling_factory
@@ -57,9 +58,13 @@ class MyTestCase(unittest.TestCase):
         for rule in grammar.rules():
             print >>stderr, rule
 
-        print >>stderr, "call em Training"
+        print >>stderr, "compute reducts"
 
-        em_training(grammar, [tree, tree2], 20)
+        trace = compute_reducts(grammar, [tree, tree2])
+
+        print >>stderr, "call em Training"
+        emTrainer = PyEMTrainer(trace)
+        emTrainer.em_training(grammar, n_epochs=10)
 
         print >>stderr, "finished em Training"
 
@@ -84,9 +89,14 @@ class MyTestCase(unittest.TestCase):
         #    print >>stderr, rule
 
         trees = parse_conll_corpus(train, False, limit_train)
-        print >>stderr, "call em Training"
 
-        em_training(grammar_prim, trees, 20, tie_breaking=True, init="equal", sigma=0.05, seed=50)
+        print >>stderr, "compute reducts"
+
+        trace = compute_reducts(grammar_prim, trees)
+
+        print >>stderr, "call em Training"
+        emTrainer = PyEMTrainer(trace)
+        emTrainer.em_training(grammar_prim, 20, tie_breaking=True, init="equal", sigma=0.05, seed=50)
 
         print >>stderr, "finished em Training"
 
@@ -250,20 +260,14 @@ class MyTestCase(unittest.TestCase):
             print >>stderr, rule
 
         trace = compute_reducts(grammar, [tree, tree2])
-        reducts = trace.serialize_trace()
-
-        # pickle.dump(grammar, open("/tmp/grammar.p", "wb"))
-        pickle.dump(reducts, open("/tmp/reducts.p", "wb"))
+        trace.serialize("/tmp/reducts.p")
 
         grammar_load = grammar
-        # grammar_load = pickle.load(open("/tmp/grammar.p", "rb"))
-        reducts_load = pickle.load(open("/tmp/reducts.p", "rb"))
+        trace2 = PyTraceManager(grammar_load)
+        trace2.load_traces_from_file("/tmp/reducts.p")
+        trace2.serialize("/tmp/reducts2.p")
 
-        trace2 = load_reducts(grammar_load, reducts_load, debug=True)
-
-        for e1, e2 in zip(reducts, trace2.serialize_trace()):
-            print >>stderr, "1", e1
-            print >>stderr, "2", e2
+        for e1, e2 in zip(open("/tmp/reducts.p", "r"), open("/tmp/reducts2.p", "r")):
             self.assertEqual(e1, e2)
 
     def test_basic_split_merge(self):
