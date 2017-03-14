@@ -44,36 +44,36 @@ cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_t
     return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization, terminal_encoding)
 
 
-cdef class Enumerator:
-    # cdef unsigned counter
-    # cdef dict obj_to_ind
-    # cdef dict ind_to_obj
-    # cdef unsigned first_index
-
-    def __init__(self, size_t first_index=0):
-        self.first_index = first_index
-        self.counter = first_index
-        self.obj_to_ind = {}
-        self.ind_to_obj = {}
-
-    def index_object(self, size_t i):
-        """
-        :type i: int
-        :return:
-        """
-        return self.ind_to_obj[i]
-
-    cdef size_t object_index(self, obj):
-        if obj in self.obj_to_ind:
-            return self.obj_to_ind[obj]
-        else:
-            self.obj_to_ind[obj] = self.counter
-            self.ind_to_obj[self.counter] = obj
-            self.counter += 1
-            return self.counter - 1
-
-    # cdef vector[size_t] orderd_objects(self):
-    #     return [self.ind_to_obj[idx] for idx in range(0, self.counter)]
+# cdef class Enumerator:
+#     # cdef unsigned counter
+#     # cdef dict obj_to_ind
+#     # cdef dict ind_to_obj
+#     # cdef unsigned first_index
+#
+#     def __init__(self, size_t first_index=0):
+#         self.first_index = first_index
+#         self.counter = first_index
+#         self.obj_to_ind = {}
+#         self.ind_to_obj = {}
+#
+#     def index_object(self, size_t i):
+#         """
+#         :type i: int
+#         :return:
+#         """
+#         return self.ind_to_obj[i]
+#
+#     cdef size_t object_index(self, obj):
+#         if obj in self.obj_to_ind:
+#             return self.obj_to_ind[obj]
+#         else:
+#             self.obj_to_ind[obj] = self.counter
+#             self.ind_to_obj[self.counter] = obj
+#             self.counter += 1
+#             return self.counter - 1
+#
+#     # cdef vector[size_t] orderd_objects(self):
+#     #     return [self.ind_to_obj[idx] for idx in range(0, self.counter)]
 
 
 
@@ -301,7 +301,7 @@ cdef class PySDCPParser(object):
     cdef void set_nonterminal_map(self, Enumerator nonterminal_map):
         self.nonterminal_map = nonterminal_map
 
-    def do_parse(self):
+    cpdef void do_parse(self):
         self.parser[0].do_parse()
         if self.debug:
             output_helper("parsing completed\n")
@@ -313,7 +313,7 @@ cdef class PySDCPParser(object):
             self.parser[0].print_trace()
             output_helper("trace printed\n")
 
-    def recognized(self):
+    cpdef bint recognized(self):
         return self.parser.recognized()
 
     def set_input(self, tree):
@@ -367,7 +367,7 @@ cdef class PySDCPParser(object):
                 for horizontal_extension in self.derivations_rec(items[1:], positions[1:], vertical_extension):
                     yield horizontal_extension
 
-    def clear(self):
+    cpdef void clear(self):
         self.parser[0].clear()
 
     def __del__(self):

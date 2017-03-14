@@ -1,6 +1,7 @@
 from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
+from util.enumerator cimport Enumerator
 
 # this typedef seems necessary,
 # since the compiler does not accept "vector[unsigned int]" or "vector[unsigned]"
@@ -84,12 +85,12 @@ cdef extern from "DCP/SDCP_Parser.h" namespace "DCP":
         vector[pair[Position,Position]] spans_inh
         vector[pair[Position,Position]] spans_syn
 
-cdef class Enumerator:
-    cdef size_t counter
-    cdef dict obj_to_ind
-    cdef dict ind_to_obj
-    cdef size_t first_index
-    cdef size_t object_index(self, obj)
+# cdef class Enumerator:
+#     cdef size_t counter
+#     cdef dict obj_to_ind
+#     cdef dict ind_to_obj
+#     cdef size_t first_index
+#     cdef size_t object_index(self, obj)
 
 
 cdef class PySDCPParser(object):
@@ -100,5 +101,8 @@ cdef class PySDCPParser(object):
     cdef void set_sdcp(self, SDCP[NONTERMINAL,TERMINAL] sdcp)
     cdef void set_terminal_map(self, Enumerator terminal_map)
     cdef void set_nonterminal_map(self, Enumerator nonterminal_map)
+    cpdef void do_parse(self)
+    cpdef bint recognized(self)
+    cpdef void clear(self)
 
 cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=?) except *
