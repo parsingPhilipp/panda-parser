@@ -13,7 +13,8 @@ import copy
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
 import subprocess
 # from parser.sDCP_parser.sdcp_parser_wrapper import em_training, split_merge_training, compute_reducts, load_reducts
-from parser.sDCP_parser.trace_manager import compute_reducts, PyEMTrainer, PyLatentAnnotation, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, PySplitMergeTrainer, build_PyLatentAnnotation_initial, build_PyLatentAnnotation, PyTraceManager
+from parser.sDCP_parser.sm_trainer import compute_reducts, PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation, PySDCPTraceManager
+from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTraceManager
 from math import exp
 import pickle, os
 
@@ -24,6 +25,7 @@ start = 'START'
 dir = 'exp12/'
 baseline_path = dir + 'baseline_grammar.pkl'
 reduct_path = dir + 'reduct.pkl'
+reduct_path_discr = dir + 'reduct_discr.pkl'
 sm_info_path = dir + 'sm_info.pkl'
 def em_trained_path(n_epochs, init, tie_breaking):
     return dir + 'em_trained_grammar_' + str(n_epochs) + '_' + init + ('_tie_breaking_' if tie_breaking else '')  + '.pkl'
@@ -105,13 +107,13 @@ def do_parsing(grammar_prim, limit, ignore_punctuation):
     p.communicate()
 
 
-def main(limit=500, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=False, retrain=True, parsing=False):
+def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=False):
     trees = parse_conll_corpus(train, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
 
     if recompileGrammar or not os.path.isfile(baseline_path):
-        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, empty_labelling, term_labelling.token_label, recursive_partitioning, start)
+        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, ternary_labelling, term_labelling.token_label, recursive_partitioning, start)
         pickle.dump(baseline_grammar, open(baseline_path, 'wb'))
     else:
         baseline_grammar = pickle.load(open(baseline_path))
@@ -128,11 +130,21 @@ def main(limit=500, ignore_punctuation=False, baseline_path=baseline_path, recom
         trees = parse_conll_corpus(train, False, limit)
         trace = compute_reducts(em_trained, trees)
         trace.serialize(reduct_path)
-
     else:
         print("loading trace")
-        trace = PyTraceManager(em_trained)
+        trace = PySDCPTraceManager(em_trained)
         trace.load_traces_from_file(reduct_path)
+
+    discr = True
+    if discr:
+        if recompileGrammar or not os.path.isfile(reduct_path_discr):
+            trees = parse_conll_corpus(train, False, limit)
+            trace_discr = compute_LCFRS_reducts(em_trained, trees, trace.get_nonterminal_map())
+            trace_discr.serialize(reduct_path_discr)
+        else:
+            print("loading trace discriminative")
+            trace_discr = PyLCFRSTraceManager(em_trained)
+            trace_discr.load_traces_from_file(reduct_path_discr)
 
     n_epochs = 50
     init = "rfe"
@@ -150,11 +162,15 @@ def main(limit=500, ignore_punctuation=False, baseline_path=baseline_path, recom
         parser_type.preprocess_grammar(em_trained)
         do_parsing(em_trained, test_limit, ignore_punctuation)
 
-    grammarInfo = PyGrammarInfo(trace, baseline_grammar)
+    grammarInfo = PyGrammarInfo(trace, baseline_grammar, trace.get_nonterminal_map())
     storageManager = PyStorageManager()
 
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
-    splitMergeTrainer = builder.set_simple_expector(threads=4).set_percent_merger(60).build()
+    if discr:
+        builder.set_discriminative_expector(trace_discr, threads=1)
+    else:
+        builder.set_simple_expector(threads=1)
+    splitMergeTrainer = builder.set_percent_merger(60).build()
 
 
     if (not recompileGrammar) and (not retrain) and os.path.isfile(sm_info_path):
