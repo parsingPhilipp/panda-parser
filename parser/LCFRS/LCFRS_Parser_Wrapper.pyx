@@ -2,7 +2,6 @@ cimport cython
 
 from libcpp.string cimport string
 from cython.operator cimport dereference as deref
-
 from hybridtree.monadic_tokens import CoNLLToken
 from grammar.lcfrs import LCFRS as PyLCFRS, LCFRS_var as PyLCFRS_var
 
@@ -10,42 +9,7 @@ from grammar.lcfrs import LCFRS as PyLCFRS, LCFRS_var as PyLCFRS_var
 DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 
-cdef class Enumerator:
-    def __init__(self, first_index=0):
-        self.first_index = first_index
-        self.counter = first_index
-        self.obj_to_ind = {}
-        self.ind_to_obj = {}
-
-    def index_object(self, int i):
-        """
-        :type i: int
-        :return:
-        """
-        return self.ind_to_obj[i]
-
-    cdef unsigned_long object_index(self, obj):
-        if obj in self.obj_to_ind:
-            return self.obj_to_ind[obj]
-        else:
-            self.obj_to_ind[obj] = self.counter
-            self.ind_to_obj[self.counter] = obj
-            self.counter += 1
-            return self.counter - 1
-
-    cdef objects_indices(self, objects):
-        result = vector[unsigned_long]();
-        for obj in objects:
-            result += [self.object_index(obj)]
-        return result
-
 cdef class PyLCFRSFactory:
-    cdef unique_ptr[LCFRSFactory[NONTERMINAL,TERMINAL]] _thisptr
-    IF ENCODE_NONTERMINALS:
-        cdef Enumerator ntMap
-    # IF ENCODE_TERMINALS:
-    cdef Enumerator tMap
-
     def __cinit__(self, initial_nont):
         IF ENCODE_NONTERMINALS:
             self.ntMap = Enumerator()
@@ -118,6 +82,9 @@ cdef class PyLCFRSParser:
             self.parser = make_unique[LCFRS_Parser[NONTERMINAL, TERMINAL]](deref(self.grammar), word)
         deref(self.parser).do_parse()
 
+    cpdef void prune_trace(self):
+        deref(self.parser).prune_trace()
+
     cpdef map[unsigned_long, pair[NONTERMINAL, vector[pair[unsigned_long, unsigned_long]]]] get_passive_items_map(self):
         return deref(self.parser).get_passive_items_map()
 
@@ -126,3 +93,9 @@ cdef class PyLCFRSParser:
 
     def get_initial_passive_item(self):
         return deref(self.parser).get_initial_passive_item()
+
+    # cpdef HypergraphPtr[Nonterminal] convert_trace_to_hypergraph(
+    #         self
+    #         , shared_ptr[vector[Nonterminal]] nLabels
+    #         , shared_ptr[vector[size_t]] eLabels):
+    #     return deref(self.parser).convert_trace_to_hypergraph(nLabels, eLabels)
