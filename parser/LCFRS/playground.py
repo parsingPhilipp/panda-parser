@@ -35,19 +35,21 @@ def play_with_parser():
     factory.import_grammar(grammar)
     word = map((lambda x: x.pos()), tree.full_token_yield())
 
-    factory.do_parse(word)
+    parser = factory.build_parser()
+
+    parser.do_parse(word)
 
     print 'Passive Items:'
-    passiveItems = factory.get_passive_items_map()
+    passiveItems = parser.get_passive_items_map()
     for (i, pItem) in passiveItems.iteritems():
         print i, ': ', pItem[0], pItem[1]
 
     print '\n\n Trace:'
-    trace = factory.convert_trace()
+    trace = parser.convert_trace()
     for (i, pItem) in trace.iteritems():
         print i, ': ', pItem
 
-    print "No of parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
+    print "No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item())
 
 
 
@@ -72,16 +74,17 @@ def play_with_corpus():
 
     factory = PyLCFRSFactory(grammar_prim.start())
     factory.import_grammar(grammar_prim)
+    parser = factory.build_parser()
 
     for i in range(0, limit_test):
         tree = test_trees.next()
         word = map((lambda x: x.pos()), tree.full_token_yield())
-        factory.do_parse(word)
-        passiveItems = factory.get_passive_items_map()
-        trace = factory.convert_trace()
+        parser.do_parse(word)
+        passiveItems = parser.get_passive_items_map()
+        trace = parser.convert_trace()
         print ("Word length: ", len(word)
                , " - #passive Items: ", len(passiveItems)
-               , " - #parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
+               , " - #parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item())
                )
 
 
@@ -133,19 +136,20 @@ def play_with_manual_grammar():
 
     word = "ab"
 
-    factory.do_parse(word)
+    parser = factory.build_parser()
+    parser.do_parse(word)
 
     print 'Passive Items:'
-    passiveItems = factory.get_passive_items_map()
+    passiveItems = parser.get_passive_items_map()
     for (i, pItem) in passiveItems.iteritems():
         print i, ': ', pItem[0], pItem[1]
 
     print '\n\n Trace:'
-    trace = factory.convert_trace()
+    trace = parser.convert_trace()
     for (i, pItem) in trace.iteritems():
         print i, ': ', pItem
 
-    print "No of parses: ", count_parses(passiveItems, trace, factory.get_initial_passive_item())
+    print "No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item())
 
 
 
