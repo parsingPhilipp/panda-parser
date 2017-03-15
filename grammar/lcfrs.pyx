@@ -334,6 +334,11 @@ class LCFRS:
     # dcp: list of DCP_rule
     # return: LCFRS_rule
     def add_rule(self, lhs, nonts, weight=None, dcp=None):
+        """
+        :type lhs: LCFRS_lhs
+        :type nonts: list
+        :type weight: double
+        """
         if weight is None:
             weight = self.__unit
         rule = LCFRS_rule(lhs, weight=weight, dcp=dcp, idx=len(self.__idx_to_rule))
@@ -350,6 +355,17 @@ class LCFRS:
             raise Exception('unexpected fanout in ' + str(rule))
         if lhs.fanout() == 0:
             raise Exception('0 fanout in ' + str(rule))
+        for i,nont in enumerate(nonts):
+            fanout_i = 0
+            for arg in lhs.args():
+                for elem in arg:
+                    if isinstance(elem, LCFRS_var) and elem.mem == i:
+                        fanout_i = max(fanout_i, elem.arg + 1)
+            if not nont in self.__nont_to_fanout or \
+                self.__nont_to_fanout[nont] == fanout_i:
+                self.__nont_to_fanout[nont] = fanout_i
+            else:
+                raise Exception('unexpected fanout in ' + str(rule))
         self.__rules += [rule]
         self.__key_to_rule[rule.key()] = rule
         self.__lhs_nont_to_rules[rule.lhs().nont()] += [rule]
