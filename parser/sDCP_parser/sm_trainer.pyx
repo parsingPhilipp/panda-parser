@@ -39,6 +39,9 @@ cdef extern from "Trainer/SplitMergeTrainer.h" namespace "Trainer":
     cdef cppclass SplitMergeTrainer[Nonterminal, TraceID]:
         LatentAnnotation split_merge_cycle(LatentAnnotation)
 
+cdef extern from "Trainer/EMTrainerLA.h":
+    pass
+
 cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
     cdef cppclass EMTrainerBuilder:
          EMTrainer[Nonterminal, TraceID] build_em_trainer[Nonterminal, TraceID](TraceManagerPtr[Nonterminal, TraceID])
