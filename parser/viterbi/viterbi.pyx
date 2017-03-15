@@ -358,7 +358,7 @@ class ViterbiParser(AbstractParser):
     def key(self, x):
         return x.agenda_key()
 
-    def __init__(self, grammar, input):
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None):
         """
         :type grammar: LCFRS
         :type input: list[str]
@@ -373,8 +373,25 @@ class ViterbiParser(AbstractParser):
         self.goal = None
 
         # self.invalid_counter = 0
-        self._parse()
+        if input is not None:
+            self._parse()
+        else:
+            self.preprocess_grammar(grammar)
         # print "Invalid: ", self.invalid_counter
+
+    def parse(self):
+        self._parse()
+
+    def set_input(self, input):
+        self.input = input
+
+    def clear(self):
+        self.input = None
+        self.active_chart = defaultdict(list)
+        self.passive_chart = defaultdict(list)
+        self.actives = defaultdict()
+        self.passives = defaultdict()
+        self.goal = None
 
     def _parse(self):
          self._parse_bottom_up()

@@ -193,27 +193,46 @@ class Parser(AbstractParser):
                 return True
         return False
 
-    def __init__(self, grammar, word, debug=False):
+    def __init__(self, grammar, input=None, debug=False):
         """
 
             :param grammar:
             :type grammar: LCFRS
-            :param word:
+            :param input:
             :return:
             """
-        super(Parser, self).__init__(grammar, word)
+        super(Parser, self).__init__(grammar, input)
         self.__debug = debug
         self.__grammar = grammar
-        self.__word = word
+        self.__word = input
         self.__scan_items = set()
         self.__combine_items = set()
         self.__passive_items = {}
         self.__process_counter = 0
         self.__scan_agenda = deque()
         self.__combine_agenda = []
-        self.__init_agenda()
-        self.parse()
+        if input is not None:
+            self.__init_agenda()
+            self.__parse()
+        else:
+            self.preprocess_grammar(grammar)
         # print len(self.__passive_items.items())
+
+    def set_input(self, input):
+        self.__word = input
+
+    def clear(self):
+        self.__word = None
+        self.__scan_items = set()
+        self.__combine_items = set()
+        self.__passive_items = {}
+        self.__process_counter = 0
+        self.__scan_agenda = deque()
+        self.__combine_agenda = []
+
+    def parse(self):
+        self.__init_agenda()
+        self.__parse()
 
     def __init_agenda(self):
         self.predict(self.__grammar.start(), 0, 0, len(self.__word), [])
@@ -284,7 +303,7 @@ class Parser(AbstractParser):
         key = tuple([nont] + range_constraints)
         return self.__passive_items.get(key, [])
 
-    def parse(self):
+    def __parse(self):
         while self.__combine_agenda or self.__scan_agenda:
             while self.__scan_agenda:
                 item = self.__scan_agenda.popleft()

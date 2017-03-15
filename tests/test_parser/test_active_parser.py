@@ -173,7 +173,7 @@ class ActiveParserTest(unittest.TestCase):
         :return:
         """
         print "Parse", word
-        parser = Parser(kallmayar_grammar(), word)
+        parser = Parser(kallmayer_grammar(), word)
         counter = 0
         print "Found items:"
         for passive_item in parser.successful_root_items():

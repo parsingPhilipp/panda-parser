@@ -1,6 +1,6 @@
 import unittest
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
-from parser.sDCP_parser.trace_manager import compute_reducts, PyEMTrainer, PyTraceManager, split_merge_training
+from parser.sDCP_parser.sm_trainer import compute_reducts, PyEMTrainer, PySDCPTraceManager, split_merge_training
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
 from dependency.labeling import the_labeling_factory
@@ -263,7 +263,7 @@ class MyTestCase(unittest.TestCase):
         trace.serialize("/tmp/reducts.p")
 
         grammar_load = grammar
-        trace2 = PyTraceManager(grammar_load)
+        trace2 = PySDCPTraceManager(grammar_load)
         trace2.load_traces_from_file("/tmp/reducts.p")
         trace2.serialize("/tmp/reducts2.p")
 

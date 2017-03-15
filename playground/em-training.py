@@ -46,12 +46,18 @@ parser_type = GFParser
 tree_yield = term_labelling.prepare_parser_input
 
 
-def do_parsing(grammar_prim, limit, ignore_punctuation):
+def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preprocess_path=None):
     trees = parse_conll_corpus(test, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
 
     total_time = 0.0
+
+    load_preprocess = preprocess_path
+    if recompile or (not os.path.isfile(parser_type.resolve_path(preprocess_path))):
+        load_preprocess=None
+
+    parser = parser_type(grammar_prim, save_preprocess=preprocess_path, load_preprocess=load_preprocess)
 
     with open(result, 'w') as result_file:
         failures = 0
@@ -60,7 +66,8 @@ def do_parsing(grammar_prim, limit, ignore_punctuation):
                 continue
             time_stamp = time.clock()
 
-            parser = parser_type(grammar_prim, tree_yield(tree.token_yield()))
+            parser.set_input(tree_yield(tree.token_yield()))
+            parser.parse()
             # if not parser.recognized():
             #     parser = parser_type(grammar_second, tree_yield(tree.token_yield()))
             # if not parser.recognized():
@@ -95,6 +102,8 @@ def do_parsing(grammar_prim, limit, ignore_punctuation):
                 result_file.write(tree_to_conll_str(fall_back_left_branching(forms, poss)))
                 result_file.write('\n\n')
 
+            parser.clear()
+
     print("parse failures", failures)
     print("parse time", total_time)
 
@@ -122,8 +131,7 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
     print("Rules: ", len(baseline_grammar.rules()))
 
     if parsing:
-        parser_type.preprocess_grammar(baseline_grammar)
-        do_parsing(baseline_grammar, test_limit, ignore_punctuation)
+        do_parsing(baseline_grammar, test_limit, ignore_punctuation, recompileGrammar, [dir, "baseline_gf_grammar"])
 
     em_trained = pickle.load(open(baseline_path))
     if recompileGrammar or not os.path.isfile(reduct_path):
@@ -143,7 +151,7 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
             trace_discr.serialize(reduct_path_discr)
         else:
             print("loading trace discriminative")
-            trace_discr = PyLCFRSTraceManager(em_trained)
+            trace_discr = PyLCFRSTraceManager(em_trained, trace.get_nonterminal_map())
             trace_discr.load_traces_from_file(reduct_path_discr)
 
     n_epochs = 50
@@ -159,8 +167,7 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
         em_trained = pickle.load(open(em_trained_path_, 'rb'))
 
     if parsing:
-        parser_type.preprocess_grammar(em_trained)
-        do_parsing(em_trained, test_limit, ignore_punctuation)
+        do_parsing(em_trained, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "em_trained_gf_grammar"])
 
     grammarInfo = PyGrammarInfo(trace, baseline_grammar, trace.get_nonterminal_map())
     storageManager = PyStorageManager()
@@ -192,8 +199,7 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
                                                                  , rule_pruning=0.0001
                                                                  , rule_smoothing=0.01)
                 print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
-                parser_type.preprocess_grammar(smGrammar)
-                do_parsing(smGrammar, test_limit, ignore_punctuation)
+                do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
         else:
             latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
             pickle.dump(map(lambda la: la.serialize(), latentAnnotation), open(sm_info_path, 'wb'))
@@ -203,8 +209,7 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
                                                              , rule_smoothing=0.01)
             print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
             if parsing:
-                parser_type.preprocess_grammar(smGrammar)
-                do_parsing(smGrammar, test_limit, ignore_punctuation)
+                do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
 
 if __name__ == '__main__':
     main()

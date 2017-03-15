@@ -398,18 +398,35 @@ class LCFRS_parser(AbstractParser):
     # Constructor.
     # grammar: LCFRS
     # inp: list of string
-    def __init__(self, grammar, input):
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None):
         super(LCFRS_parser, self).__init__(grammar, input)
         self.__g = grammar
-        self.__inp = input
         self.__nont_items = defaultdict(list)
         self.__rule_items = defaultdict(list)
         self.__agenda = []
         self.__agenda_set = set()
         self.__trace = defaultdict(list)
         self.__best = {}
+        self.__inp = input
+        if self.__inp is not None:
+            self.__parse()
+        else:
+            self.preprocess_grammar(grammar)
+
+    def parse(self):
         self.__parse()
-        # print len(self.__trace.items())
+
+    def set_input(self, input):
+        self.__inp = input
+
+    def clear(self):
+        self.__inp = None
+        self.__nont_items = defaultdict(list)
+        self.__rule_items = defaultdict(list)
+        self.__agenda = []
+        self.__agenda_set = set()
+        self.__trace = defaultdict(list)
+        self.__best = {}
 
     def __parse(self):
         inp = self.__inp

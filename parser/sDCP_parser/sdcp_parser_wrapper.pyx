@@ -419,12 +419,25 @@ class SDCPDerivation(di.AbstractDerivation):
 
 
 class PysDCPParser(pi.AbstractParser):
-    def __init__(self, grammar, input):
-        self.parser = grammar.sdcp_parser
-        self.parser.clear()
-        self.parser.set_input(input)
-        self.parser.do_parse()
+    def __init__(self, grammar, input=None):
         self.grammar = grammar
+        self.input = input
+        if input is not None:
+            self.parser = grammar.sdcp_parser
+            self.clear()
+            self.parse()
+        else:
+            self.parser = self.__preprocess(grammar)
+
+    def parse(self):
+        self.parser.set_input(self.input)
+        self.parser.do_parse()
+
+    def clear(self):
+        self.parser.clear()
+
+    def set_input(self, input):
+        self.input = input
 
     def recognized(self):
         return self.parser.recognized()
@@ -442,7 +455,7 @@ class PysDCPParser(pi.AbstractParser):
             return []
 
     @staticmethod
-    def preprocess_grammar(grammar):
+    def __preprocess(grammar):
         """
         :type grammar: LCFRS
         """
@@ -458,12 +471,20 @@ class PysDCPParser(pi.AbstractParser):
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
         parser.set_nonterminal_map(nonterminal_map)
-        grammar.sdcp_parser = parser
+        return parser
+
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        grammar.sdcp_parser = PysDCPParser.__preprocess(grammar)
 
 
 class LCFRS_sDCP_Parser(PysDCPParser):
     @staticmethod
-    def preprocess_grammar(grammar):
+    def __preprocess(grammar):
         """
         :type grammar: LCFRS
         """
@@ -479,4 +500,11 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
         parser.set_nonterminal_map(nonterminal_map)
-        grammar.sdcp_parser = parser
+        return parser
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        """
+        :type grammar: LCFRS
+        """
+        grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar)

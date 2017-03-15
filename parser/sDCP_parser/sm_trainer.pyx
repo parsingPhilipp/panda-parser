@@ -354,7 +354,7 @@ def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_bre
     emTrainer = PyEMTrainer(trace)
     emTrainer.em_training(grammar, em_epochs, init, tie_breaking, sigma, seed)
     output_helper("starting actual split/merge training")
-    grammarInfo = PyGrammarInfo(trace, grammar)
+    grammarInfo = PyGrammarInfo(trace, grammar, trace.get_nonterminal_map())
     storageManager = PyStorageManager()
     las = [build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)]
 

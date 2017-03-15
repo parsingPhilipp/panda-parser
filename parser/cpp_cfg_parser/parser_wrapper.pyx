@@ -175,13 +175,14 @@ class CFGParser(AbstractParser):
     def all_derivation_trees(self):
         pass
 
-    def __init__(self, grammar, input):
-        self.parser = grammar.tmp
-        self.parser.parse_sentence(input)
-        if self.recognized():
-            self.goal = self.parser.goal()
+    def __init__(self, grammar, input=None):
+        self.input = input
+        self.goal = None
+        if input is not None:
+            self.parser = grammar.tmp
+            self.parse()
         else:
-            self.goal = None
+            self.parser = CFGParser.__preprocess(grammar)
 
     def best_derivation_tree(self):
         if self.recognized():
@@ -192,13 +193,29 @@ class CFGParser(AbstractParser):
     def best(self):
         return self.parser.goal_weight()
 
+    def clear(self):
+        self.input = None
+        self.goal = None
+
+    def parse(self):
+        self.parser.parse_sentence(self.input)
+        if self.recognized():
+            self.goal = self.parser.goal()
+
+    def set_input(self, input):
+        self.input = input
+
     @staticmethod
-    def preprocess_grammar(grammar):
+    def __preprocess(grammar):
         # todo: why do we need 1 for terminal and nonterminal map ?!
         # todo: otherwise incomplete
         terminal_map, nonterminal_map, rule_map = Enumerator(1), Enumerator(1), Enumerator(0)
         pycfg = grammar_to_cfg(grammar, terminal_map, nonterminal_map, rule_map)
-        grammar.tmp = PyCFGParser(pycfg)
+        return PyCFGParser(pycfg)
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        grammar.tmp = CFGParser.__preprocess(grammar)
 
 
 cdef class PyCYKItem:

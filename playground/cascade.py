@@ -24,6 +24,7 @@ parser_type = parser.parser_factory.GFParser
 tree_yield = term_labelling.prepare_parser_input
 
 def main(limit=100000, ignore_punctuation=False):
+    test_limit = 10000
     trees = parse_conll_corpus(train, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
@@ -43,7 +44,7 @@ def main(limit=100000, ignore_punctuation=False):
                                                  recursive_partitioning, start)
     parser_type.preprocess_grammar(grammar_tern)
 
-    trees = parse_conll_corpus(test, False, limit)
+    trees = parse_conll_corpus(test, False, test_limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
 
@@ -52,8 +53,6 @@ def main(limit=100000, ignore_punctuation=False):
     with open(result, 'w') as result_file:
         failures = 0
         for tree in trees:
-            if len(tree.id_yield()) > limit:
-                continue
             time_stamp = time.clock()
 
             parser = parser_type(grammar_prim, tree_yield(tree.token_yield()))

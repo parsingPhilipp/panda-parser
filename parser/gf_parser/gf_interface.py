@@ -7,19 +7,19 @@ from collections import defaultdict
 from math import exp
 
 
-prefix = '/tmp/'
-name = 'gfgrammar'
+default_prefix = '/tmp/'
+default_name = 'gfgrammar'
 
 
 class GFDerivation(AbstractDerivation):
-    def __init__(self, rules, expr):
+    def __init__(self, grammar, expr):
         """
-        :param rules:
-        :type rules: Enumerator
+        :param grammar:
+        :type grammar: LCFRS
         :param expr:
         :type expr: pgf.Expr
         """
-        self.rules = rules
+        self.grammar = grammar
         self.nodes = {}
 
         def populate(expr, gorn):
@@ -40,7 +40,7 @@ class GFDerivation(AbstractDerivation):
     def getRule(self, id):
         exp = self.nodes[id]
         rule_id = int(exp.unpack()[0][4:])
-        return self.rules.index_object(rule_id)
+        return self.grammar.rule_index(rule_id)
 
     def root_id(self):
         return tuple([])
@@ -59,16 +59,48 @@ class GFParser(AbstractParser):
     def all_derivation_trees(self):
         pass
 
-    def __init__(self, grammar, input):
-        gf_grammar, self.rules = grammar.tmp_gf
-        # assert isinstance(gf_grammar, pgf.Concr)
-        assert isinstance(self.rules, Enumerator)
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None):
+        self.grammar = grammar
+        if input is not None:
+            if grammar.tmp_gf is not None:
+                self.gf_grammar = grammar.tmp_gf
+            else:
+                self.preprocess_grammar(grammar)
+                self.gf_grammar = grammar.tmp_gf
+            self.input = input
+            self.parse()
+        else:
+            if load_preprocess is not None:
+                self.gf_grammar = pgf.readPGF(self.resolve_path(load_preprocess)).languages[load_preprocess[1] + LANGUAGE]
+            else:
+                if save_preprocess is not None:
+                    prefix = save_preprocess[0]
+                    name = save_preprocess[1]
+                else:
+                    prefix = default_prefix
+                    name = default_name
+                self.gf_grammar = self.__preprocess(grammar, prefix=prefix, name=name, override=True)
+
+    @staticmethod
+    def resolve_path(path):
+        return path[0] + path[1] + COMPILED_SUFFIX
+
+    def set_input(self, input):
+        self.input = input
+
+    def parse(self):
+        # assert isinstance(self.rules, Enumerator)
         try:
-            i = gf_grammar.parse(' '.join(input), n=1)
+            i = self.gf_grammar.parse(' '.join(self.input), n=1)
             self._best, self._goal = i.next()
         except pgf.ParseError:
             self._best = None
             self._goal = None
+
+    def clear(self):
+        self.input = None
+        self._best = None
+        self._goal = None
 
     def recognized(self):
         return self._goal is not None
@@ -78,30 +110,61 @@ class GFParser(AbstractParser):
 
     def best_derivation_tree(self):
         if self._goal is not None:
-            return GFDerivation(self.rules, self._goal)
+            return GFDerivation(self.grammar, self._goal)
         else:
             return None
 
     @staticmethod
-    def preprocess_grammar(grammar):
-        rules, name_ = export(grammar, prefix, name)
+    def __preprocess(grammar, prefix=default_prefix, name=default_name, override=False):
+        name_ = export(grammar, prefix, name, override)
         compile_gf_grammar(prefix, name_)
         gf_grammar = pgf.readPGF(prefix + name_ + COMPILED_SUFFIX).languages[name_ + LANGUAGE]
+        return gf_grammar
+
+    @staticmethod
+    def preprocess_grammar(grammar):
         # print gf_grammar
-        grammar.tmp_gf = gf_grammar, rules
+        grammar.tmp_gf = GFParser.__preprocess(grammar)
 
 
 class GFParser_k_best(GFParser):
     def recognized(self):
         return self._viterbi is not None
 
-    def __init__(self, grammar, input, k=1):
-        gf_grammar, self.rules = grammar.tmp_gf
-        # assert isinstance(gf_grammar, pgf.Concr)
-        assert isinstance(self.rules, Enumerator)
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, k=1):
+        self.grammar = grammar
         self._derivations = []
+        self.k = k
+        if input is not None:
+            if grammar.tmp_gf is not None:
+                self.gf_grammar = grammar.tmp_gf
+            else:
+                self.preprocess_grammar(grammar)
+                self.gf_grammar = grammar.tmp_gf
+            self.input = input
+            self.parse()
+        else:
+            if load_preprocess is not None:
+                self.gf_grammar = pgf.readPGF(load_preprocess[0] + load_preprocess[1] + COMPILED_SUFFIX).languages[load_preprocess[1] + LANGUAGE]
+            else:
+                if save_preprocess is not None:
+                    prefix = save_preprocess[0]
+                    name = save_preprocess[1]
+                else:
+                    prefix = default_prefix
+                    name = default_name
+                self.gf_grammar = self.__preprocess(grammar, prefix=prefix, name=name, override=True)
+
+    def set_input(self, input):
+        self.input = input
+
+    def clear(self):
+        self._derivations = []
+        self.input = None
+
+    def parse(self):
         try:
-            i = gf_grammar.parse(' '.join(input), n=k)
+            i = self.gf_grammar.parse(' '.join(self.input), n=self.k)
             for obj in i:
                 self._derivations.append(obj)
             self._viterbi_weigth, self._viterbi = self._derivations[0]
@@ -112,11 +175,11 @@ class GFParser_k_best(GFParser):
 
     def k_best_derivation_trees(self):
         for weight, gf_deriv in self._derivations:
-            yield weight, GFDerivation(self.rules, gf_deriv)
+            yield weight, GFDerivation(self.grammar, gf_deriv)
 
     def viterbi_derivation(self):
         if self._viterbi is not None:
-            return GFDerivation(self.rules, self._viterbi)
+            return GFDerivation(self.grammar, self._viterbi)
         else:
             return None
 

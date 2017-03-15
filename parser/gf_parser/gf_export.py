@@ -9,7 +9,7 @@ COMPILED_SUFFIX = ".pgf"
 PROBS_SUFFIX = ".probs"
 
 
-def export(grammar, prefix, name):
+def export(grammar, prefix, name, override=False):
     """
     :param grammar:
     :type grammar: LCFRS
@@ -21,15 +21,16 @@ def export(grammar, prefix, name):
     :rtype:
     """
     nonterminals = Enumerator()
-    rules = Enumerator()
+    # rules = Enumerator()
 
-    # do not overwrite grammar files
     name_ = name
-    i = 1
-    while os.path.isfile(prefix + name_ + SUFFIX):
-        i += 1
-        name_ = name + '_' + str(i)
-    name = name_
+    # do not overwrite existing grammar files
+    if not override:
+        i = 1
+        while os.path.isfile(prefix + name_ + SUFFIX):
+            i += 1
+            name_ = name + '_' + str(i)
+        name = name_
 
     with open(prefix + name + SUFFIX, 'w') as abstract, open(prefix + name + LANGUAGE + SUFFIX, 'w') as concrete, open(
                             prefix + name + PROBS_SUFFIX, 'w') as probs:
@@ -60,7 +61,7 @@ def export(grammar, prefix, name):
 
         # iterate over rules
         for rule in grammar.rules():
-            id = rules.object_index(rule)
+            id = rule.get_idx() # rules.object_index(rule)
 
             def transform_def(lhs, i):
                 def to_string(x):
@@ -114,7 +115,7 @@ def export(grammar, prefix, name):
         abstract.write("\n}\n")
         concrete.write("\n}\n")
 
-    return rules, name
+    return name # rules, name
 
 
 def compile_gf_grammar(prefix, name):

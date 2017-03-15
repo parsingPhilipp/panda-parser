@@ -33,7 +33,7 @@ class MyTestCase(unittest.TestCase):
         prefix = '/tmp/'
         name = 'tmpGrammar'
 
-        _, name_ = export(grammar, prefix, name)
+        name_ = export(grammar, prefix, name)
 
         self.assertEqual(0, compile_gf_grammar(prefix, name_))
 
