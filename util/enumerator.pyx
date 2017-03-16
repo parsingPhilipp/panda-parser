@@ -12,7 +12,7 @@ cdef class Enumerator:
         """
         return self.ind_to_obj[i]
 
-    cdef unsigned_long object_index(self, obj):
+    cpdef unsigned_long object_index(self, obj):
         if obj in self.obj_to_ind:
             return self.obj_to_ind[obj]
         else:
@@ -21,7 +21,7 @@ cdef class Enumerator:
             self.counter += 1
             return self.counter - 1
 
-    cdef objects_indices(self, objects):
+    cpdef objects_indices(self, objects):
         result = vector[unsigned_long]();
         for obj in objects:
             result += [self.object_index(obj)]
