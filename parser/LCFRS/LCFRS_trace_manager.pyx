@@ -12,6 +12,7 @@ cdef extern from "LCFR/manager_util.h":
 
 cdef class PyLCFRSTraceManager(PyTraceManager):
     cdef PyLCFRSParser parser
+    cdef Enumerator nonterminal_map
 
     def __init__(self, grammar, Enumerator nonterminal_map):
         """
@@ -30,6 +31,8 @@ cdef class PyLCFRSTraceManager(PyTraceManager):
             , make_shared[vector[size_t]](edge_labels)
             , False)
 
+        self.nonterminal_map = nonterminal_map
+
     cpdef void compute_reducts(self, corpus):
         start_time = time.time()
         for i, tree in enumerate(corpus):
@@ -41,6 +44,9 @@ cdef class PyLCFRSTraceManager(PyTraceManager):
 
             if i % 5 == 0:
                 print(i, time.time() - start_time) #output_helper(str(i) + ' ' + str(time.time() - start_time))
+
+    cpdef Enumerator get_nonterminal_map(self):
+        return self.nonterminal_map
 
 def compute_LCFRS_reducts(grammar, corpus, nonterminal_map=Enumerator()):
     #output_helper("creating trace")

@@ -134,9 +134,9 @@ def compute_reducts(grammar, corpus, debug=False):
 ctypedef Double SemiRing
 
 cdef class PyEMTrainer:
-    cdef PySDCPTraceManager traceManager
+    cdef PyTraceManager traceManager
 
-    def __init__(self, PySDCPTraceManager traceManager):
+    def __init__(self, PyTraceManager traceManager):
         self.traceManager = traceManager
 
     def em_training(self, grammar, n_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0):
@@ -149,7 +149,7 @@ cdef class PyEMTrainer:
             for rule in grammar.lhs_nont_to_rules(nont):
                 rule_idx = rule.get_idx()
                 normalization_group.append(rule_idx)
-                rule_to_group[rule_idx] = self.traceManager.parser.nonterminal_map.object_index(nont)
+                rule_to_group[rule_idx] = self.traceManager.get_nonterminal_map().object_index(nont)
             normalization_groups.append(normalization_group)
         initial_weights = [0.0] * 0
         for i in range(0, len(grammar.rule_index())):
@@ -180,7 +180,7 @@ cdef class PyEMTrainer:
 cdef class PyGrammarInfo:
     cdef shared_ptr[GrammarInfo2] grammarInfo
 
-    def __init__(self, PyTraceManager traceManager, grammar, Enumerator nont_map):
+    def __init__(self, grammar, Enumerator nont_map):
         """
         :type grammar: gl.LCFRS
         """
@@ -357,7 +357,7 @@ def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_bre
     emTrainer = PyEMTrainer(trace)
     emTrainer.em_training(grammar, em_epochs, init, tie_breaking, sigma, seed)
     output_helper("starting actual split/merge training")
-    grammarInfo = PyGrammarInfo(trace, grammar, trace.get_nonterminal_map())
+    grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
     storageManager = PyStorageManager()
     las = [build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)]
 

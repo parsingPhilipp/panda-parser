@@ -169,7 +169,7 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
     if parsing:
         do_parsing(em_trained, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "em_trained_gf_grammar"])
 
-    grammarInfo = PyGrammarInfo(trace, baseline_grammar, trace.get_nonterminal_map())
+    grammarInfo = PyGrammarInfo(baseline_grammar, trace.get_nonterminal_map())
     storageManager = PyStorageManager()
 
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)

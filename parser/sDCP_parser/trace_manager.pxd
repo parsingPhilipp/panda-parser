@@ -1,6 +1,7 @@
 from libcpp.vector cimport vector
 from libcpp.memory cimport shared_ptr, make_shared
 from libcpp.string cimport string
+from util.enumerator cimport Enumerator
 
 cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
     cdef cppclass TraceManagerPtr[Nonterminal, TraceID]:
@@ -18,3 +19,4 @@ cdef class PyTraceManager:
     cdef TraceManagerPtr[NONTERMINAL, size_t] trace_manager
     cpdef serialize(self, string path)
     cpdef void load_traces_from_file(self, string path)
+    cpdef Enumerator get_nonterminal_map(self)
