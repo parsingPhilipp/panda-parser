@@ -14,6 +14,9 @@ DEF ENCODE_TERMINALS = True
 from parser.sDCP_parser.sdcp_parser_wrapper cimport SDCPParser, PySDCPParser, unsigned_int, NONTERMINAL,\
     TERMINAL, string, output_helper, Enumerator, SDCP, grammar_to_SDCP
 
+cdef extern from "Trainer/TrainingCommon.h":
+    pass
+
 cdef extern from "Trainer/GrammarInfo.h" namespace "Trainer":
     cdef cppclass GrammarInfo2:
         vector[vector[size_t]] rule_to_nonterminals
@@ -40,6 +43,9 @@ cdef extern from "Trainer/SplitMergeTrainer.h" namespace "Trainer":
         LatentAnnotation split_merge_cycle(LatentAnnotation)
 
 cdef extern from "Trainer/EMTrainerLA.h":
+    pass
+
+cdef extern from "Trainer/MergePreparator.h":
     pass
 
 cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
