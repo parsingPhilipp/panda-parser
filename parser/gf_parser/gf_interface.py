@@ -76,10 +76,12 @@ class GFParser(AbstractParser):
                 if save_preprocess is not None:
                     prefix = save_preprocess[0]
                     name = save_preprocess[1]
+                    override = True
                 else:
                     prefix = default_prefix
                     name = default_name
-                self.gf_grammar = self.__preprocess(grammar, prefix=prefix, name=name, override=True)
+                    override = False
+                self.gf_grammar = self._preprocess(grammar, prefix=prefix, name=name, override=override)
 
     @staticmethod
     def resolve_path(path):
@@ -115,7 +117,7 @@ class GFParser(AbstractParser):
             return None
 
     @staticmethod
-    def __preprocess(grammar, prefix=default_prefix, name=default_name, override=False):
+    def _preprocess(grammar, prefix=default_prefix, name=default_name, override=False):
         name_ = export(grammar, prefix, name, override)
         compile_gf_grammar(prefix, name_)
         gf_grammar = pgf.readPGF(prefix + name_ + COMPILED_SUFFIX).languages[name_ + LANGUAGE]
@@ -124,7 +126,7 @@ class GFParser(AbstractParser):
     @staticmethod
     def preprocess_grammar(grammar):
         # print gf_grammar
-        grammar.tmp_gf = GFParser.__preprocess(grammar)
+        grammar.tmp_gf = GFParser._preprocess(grammar)
 
 
 class GFParser_k_best(GFParser):
@@ -132,34 +134,18 @@ class GFParser_k_best(GFParser):
         return self._viterbi is not None
 
     def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, k=1):
-        self.grammar = grammar
         self._derivations = []
         self.k = k
-        if input is not None:
-            if grammar.tmp_gf is not None:
-                self.gf_grammar = grammar.tmp_gf
-            else:
-                self.preprocess_grammar(grammar)
-                self.gf_grammar = grammar.tmp_gf
-            self.input = input
-            self.parse()
-        else:
-            if load_preprocess is not None:
-                self.gf_grammar = pgf.readPGF(load_preprocess[0] + load_preprocess[1] + COMPILED_SUFFIX).languages[load_preprocess[1] + LANGUAGE]
-            else:
-                if save_preprocess is not None:
-                    prefix = save_preprocess[0]
-                    name = save_preprocess[1]
-                else:
-                    prefix = default_prefix
-                    name = default_name
-                self.gf_grammar = self.__preprocess(grammar, prefix=prefix, name=name, override=True)
+        GFParser.__init__(self, grammar, input, save_preprocess, load_preprocess)
 
     def set_input(self, input):
         self.input = input
 
     def clear(self):
         self._derivations = []
+        self._viterbi = None
+        self._viterbi_weigth = None
+        self._goal = None
         self.input = None
 
     def parse(self):
@@ -168,10 +154,12 @@ class GFParser_k_best(GFParser):
             for obj in i:
                 self._derivations.append(obj)
             self._viterbi_weigth, self._viterbi = self._derivations[0]
+            self._goal = self._viterbi
 
         except pgf.ParseError:
             self._viterbi_weigth = None
             self._viterbi = None
+            self._goal = None
 
     def k_best_derivation_trees(self):
         for weight, gf_deriv in self._derivations:
