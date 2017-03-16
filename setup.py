@@ -13,6 +13,7 @@ ext_modules=[
     Extension("parser.LCFRS.LCFRS_Parser_Wrapper", sources=["parser/LCFRS/LCFRS_Parser_Wrapper.pyx"], language='c++',
               extra_compile_args=["-std=c++14"], extra_link_args=["-std=c++14"]),
     Extension("parser.sDCP_parser.trace_manager", sources=["parser/sDCP_parser/trace_manager.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3"], include_dirs=["/usr/include/eigen3"]),
+    Extension("parser.supervised_trainer.trainer", sources=["parser/supervised_trainer/trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=["/usr/include/eigen3"]),
     Extension("parser.LCFRS.LCFRS_trace_manager", sources=["parser/LCFRS/LCFRS_trace_manager.pyx"], language='c++',
               extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=["/usr/include/eigen3"]),
     Extension("parser.sDCP_parser.sm_trainer", sources=["parser/sDCP_parser/sm_trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ffast-math", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
