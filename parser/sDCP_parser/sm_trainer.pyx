@@ -57,9 +57,11 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_simple_expector()
         SplitMergeTrainerBuilder& set_simple_expector(unsigned_int)
         SplitMergeTrainerBuilder& set_discriminative_expector(
-                TraceManagerPtr[Nonterminal, TraceID] discriminativeTraceManager)
+                TraceManagerPtr[Nonterminal, TraceID] discriminativeTraceManager
+                , double maxScale)
         SplitMergeTrainerBuilder& set_discriminative_expector(
                 TraceManagerPtr[Nonterminal, TraceID] discriminativeTraceManager
+                , double maxScale
                 , unsigned_int threads)
         SplitMergeTrainerBuilder& set_simple_maximizer()
         SplitMergeTrainerBuilder& set_simple_maximizer(unsigned_int)
@@ -224,13 +226,14 @@ cdef class PySplitMergeTrainerBuilder:
     cpdef PySplitMergeTrainerBuilder set_discriminative_expector(
             self
             , PyTraceManager discriminativeTraces
+            , double maxScale = float("inf")
             , unsigned_int threads=0
     ):
         if threads > 0:
             deref(self.splitMergeTrainerBuilder)\
-                .set_discriminative_expector(discriminativeTraces.trace_manager, threads)
+                .set_discriminative_expector(discriminativeTraces.trace_manager, maxScale, threads)
         else:
-            deref(self.splitMergeTrainerBuilder).set_discriminative_expector(discriminativeTraces.trace_manager)
+            deref(self.splitMergeTrainerBuilder).set_discriminative_expector(discriminativeTraces.trace_manager, maxScale)
         return self
 
     cpdef PySplitMergeTrainerBuilder set_simple_maximizer(self, unsigned_int threads=0):
