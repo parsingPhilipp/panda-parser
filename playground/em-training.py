@@ -115,14 +115,17 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preproce
         ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
     p.communicate()
 
+def length_limit(trees, max_length=50):
+    for tree in trees:
+        if len(tree.full_token_yield()) <= max_length:
+            yield tree
 
-def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=False):
-    trees = parse_conll_corpus(train, False, limit)
-    if ignore_punctuation:
-        trees = disconnect_punctuation(trees)
+def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True):
+    max_length = 20
+    trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
 
     if recompileGrammar or not os.path.isfile(baseline_path):
-        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, ternary_labelling, term_labelling.token_label, recursive_partitioning, start)
+        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, child_top_labelling, term_labelling.token_label, recursive_partitioning, start)
         pickle.dump(baseline_grammar, open(baseline_path, 'wb'))
     else:
         baseline_grammar = pickle.load(open(baseline_path))
@@ -135,7 +138,7 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
 
     em_trained = pickle.load(open(baseline_path))
     if recompileGrammar or not os.path.isfile(reduct_path):
-        trees = parse_conll_corpus(train, False, limit)
+        trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
         trace = compute_reducts(em_trained, trees)
         trace.serialize(reduct_path)
     else:
@@ -143,10 +146,10 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
         trace = PySDCPTraceManager(em_trained)
         trace.load_traces_from_file(reduct_path)
 
-    discr = True
+    discr = False
     if discr:
         if recompileGrammar or not os.path.isfile(reduct_path_discr):
-            trees = parse_conll_corpus(train, False, limit)
+            trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
             trace_discr = compute_LCFRS_reducts(em_trained, trees, trace.get_nonterminal_map())
             trace_discr.serialize(reduct_path_discr)
         else:
@@ -173,11 +176,12 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
     storageManager = PyStorageManager()
 
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
+    builder.set_em_epochs(20)
     if discr:
-        builder.set_discriminative_expector(trace_discr, threads=1)
+        builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
     else:
         builder.set_simple_expector(threads=1)
-    splitMergeTrainer = builder.set_percent_merger(60).build()
+    splitMergeTrainer = builder.set_percent_merger(95.0).build()
 
 
     if (not recompileGrammar) and (not retrain) and os.path.isfile(sm_info_path):
@@ -188,9 +192,9 @@ def main(limit=20, ignore_punctuation=False, baseline_path=baseline_path, recomp
         latentAnnotation = []
         latentAnnotation += [build_PyLatentAnnotation_initial(baseline_grammar, grammarInfo, storageManager)]
 
-    max_cycles = 3
+    max_cycles = 4
     reparse = False
-    parsing = False
+    # parsing = False
     for i in range(max_cycles + 1):
         if i < len(latentAnnotation):
             if reparse:
