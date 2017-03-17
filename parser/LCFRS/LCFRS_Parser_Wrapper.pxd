@@ -19,6 +19,7 @@ cdef extern from "LCFR/LCFRS_Parser.h" namespace "LCFR":
         LCFRS_Parser(LCFRS grammar, vector[Terminal] word)
         void do_parse()
         void prune_trace()
+        void print_trace()
         # HypergraphPtr[Nonterminal] convert_trace_to_hypergraph(
         #         shared_ptr[vector[Nonterminal]] nLabels
         #         , shared_ptr[vector[size_t]] eLabels)

@@ -19,7 +19,7 @@ cdef class PyLCFRSTraceManager(PyTraceManager):
         :param grammar:
         :type grammar: PyLCFRS
         """
-        factory = PyLCFRSFactory(grammar.start())
+        factory = PyLCFRSFactory(grammar.start(), nonterminal_map)
         factory.import_grammar(grammar)
         self.parser = factory.build_parser()
 
@@ -42,7 +42,9 @@ cdef class PyLCFRSTraceManager(PyTraceManager):
             add_trace_to_manager[NONTERMINAL, TERMINAL, size_t](deref(self.parser.parser)
                                  , self.trace_manager)
 
-            if i % 5 == 0:
+            # deref(self.parser.parser).print_trace()
+
+            if i % 100 == 0:
                 print(i, time.time() - start_time) #output_helper(str(i) + ' ' + str(time.time() - start_time))
 
     cpdef Enumerator get_nonterminal_map(self):

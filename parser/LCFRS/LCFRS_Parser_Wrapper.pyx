@@ -10,9 +10,9 @@ DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 
 cdef class PyLCFRSFactory:
-    def __cinit__(self, initial_nont):
+    def __cinit__(self, initial_nont, Enumerator ntMap=Enumerator()):
         IF ENCODE_NONTERMINALS:
-            self.ntMap = Enumerator()
+            self.ntMap = ntMap
             self._thisptr = make_unique[LCFRSFactory[NONTERMINAL,TERMINAL]](self.ntMap.object_index(initial_nont))
         ELSE:
             self._thisptr = make_unique[LCFRSFactory[NONTERMINAL,TERMINAL]](initial_nont)
