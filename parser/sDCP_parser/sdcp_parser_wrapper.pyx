@@ -370,6 +370,9 @@ cdef class PySDCPParser(object):
     cpdef void clear(self):
         self.parser[0].clear()
 
+    cpdef void print_trace(self):
+        self.parser.print_trace()
+
     def __del__(self):
         del self.parser
 

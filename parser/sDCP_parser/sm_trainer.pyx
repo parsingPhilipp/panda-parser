@@ -123,6 +123,7 @@ cdef class PySDCPTraceManager(PyTraceManager):
             self.parser.do_parse()
             if self.parser.recognized():
                 add_trace_to_manager[NONTERMINAL,TERMINAL,int,size_t](self.parser.parser[0],self.trace_manager)
+                # self.parser.print_trace()
 
             if i % 100 == 0:
                 output_helper(str(i) + ' ' + str(time.time() - start_time))
@@ -184,6 +185,7 @@ cdef class PyEMTrainer:
 
         for i in range(0, len(grammar.rule_index())):
             grammar.rule_index(i).set_weight(final_weights[i])
+
 
 cdef class PyGrammarInfo:
     cdef shared_ptr[GrammarInfo2] grammarInfo
@@ -310,8 +312,6 @@ cdef class PyLatentAnnotation:
         cdef vector[double] rootWeights = deref(self.latentAnnotation).get_root_weights()
         cdef vector[vector[double]] ruleWeights = deref(self.latentAnnotation).get_rule_weights()
         return splits, rootWeights, ruleWeights
-
-
 
 cpdef PyLatentAnnotation build_PyLatentAnnotation(vector[size_t] nonterminalSplits
                                                   , vector[double] rootWeights

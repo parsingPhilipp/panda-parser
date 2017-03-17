@@ -104,5 +104,6 @@ cdef class PySDCPParser(object):
     cpdef void do_parse(self)
     cpdef bint recognized(self)
     cpdef void clear(self)
+    cpdef void print_trace(self)
 
 cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=?) except *
