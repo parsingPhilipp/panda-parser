@@ -15,8 +15,8 @@ with open(path.join(here, 'README.rst')) as f:
 sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
-the_branch = 'origin/MT_Hypergraph'
-the_commit = '5552f52f399705f460fd929797f1f92d62214ac0'
+the_branch = 'MT_Hypergraph'
+the_commit = '542fc4483f8638f077a7826f2cc8f2c854437418'
 sterm_include = [cython_dependency_src_path]
 eigen_include = ["/usr/include/eigen3"]
 
