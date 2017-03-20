@@ -12,3 +12,4 @@ texttable>=0.8.1
 trees>=0.0.3
 treetools>=0.2.0
 virtualenv>=15.1.0
+GitPython>=2.1.3
