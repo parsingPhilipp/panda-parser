@@ -1,0 +1,14 @@
+backports-abc>=0.4
+Cython>=0.25.2
+graphviz>=0.5.1
+openfst>=1.5.1.post6
+pgf>=1.0
+pickleshare>=0.7.4
+plac>=0.9.6
+pyfst>=0.2.3
+pynini>=1.2
+subprocess32>=3.2.7
+texttable>=0.8.1
+trees>=0.0.3
+treetools>=0.2.0
+virtualenv>=15.1.0
