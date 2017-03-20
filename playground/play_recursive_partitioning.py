@@ -10,6 +10,8 @@ import copy
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
 import subprocess
+import grammar.linearization as g_l
+import decomposition as dec
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'
@@ -29,6 +31,10 @@ tree_yield = term_labelling.prepare_parser_input
 train_limit = 2000
 test_limit = 2000
 
+#define a few recursive partitionings for testing
+test_par1 = (set([1,2,3,4]), [(set([1,3,4]), [(set([1,4]), [(set([1]), []) , (set([4]), [])]) , (set([3]), [])]) , (set([2]), [])])
+test_par2 = (set([1,2,3,4,5]), [(set([1,2,4]), [(set([1,2]), [(set([1]), []), (set([2]), [])]), (set([4]), [])]), (set([3]), []), (set([5]), [])])
+test_par3 = (set([1,2,3,4,5]), [(set([2]), []), (set([4]), []), (set([1,3,5]), [(set([1]), []), (set([3,5]), [(set([3]), []), (set([5]), [])])])])
 
 def main(ignore_punctuation=False):
     trees = parse_conll_corpus(train, False, train_limit)
@@ -95,19 +101,24 @@ def main(ignore_punctuation=False):
 
 
     # The following code is to count the number of derivations for a hypergraph (tree parser required)
-    parser_type.preprocess_grammar(grammar)
+    #parser_type.preprocess_grammar(grammar)
 
-    trees = parse_conll_corpus(train , False, train_limit)
-    if ignore_punctuation:
-        trees = disconnect_punctuation(trees)
+    #trees = parse_conll_corpus(train , False, train_limit)
+    #if ignore_punctuation:
+    #    trees = disconnect_punctuation(trees)
 
-    derCount = 0
-    for tree in trees:
-        parser = parser_type(grammar, tree)  # if tree parser is used
-        derCount += parser.count_derivation_trees()
+    #derCount = 0
+    #for tree in trees:
+    #    parser = parser_type(grammar, tree)  # if tree parser is used
+    #    derCount += parser.count_derivation_trees()
 
-    print 1.0*derCount/train_limit
-
+    #print "average number of derivations: ", 1.0*derCount/train_limit
+    file = open("grammar.txt", 'w')
+    g_l.linearize(grammar, primary_labellig, term_labelling, file)
+    file.close()
 
 if __name__ == '__main__':
     main()
+
+
+

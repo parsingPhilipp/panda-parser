@@ -1,3 +1,5 @@
+import random
+
 # Auxiliary routines for dealing with spans in an input string.
 
 # ################################################################
@@ -96,6 +98,107 @@ def fanout_limited_partitioning(part, fanout):
                 next_agenda += subchildren[::-1]  # reversed
         agenda = next_agenda
     return part
+
+
+# Transform existing partitioning to limit number of
+# spans.
+# Breadth-first search among descendants for subpartitioning
+# that stays within fanout.
+# left-to-right breadth first-search instead of right-to-left
+# part: recursive partitioning
+# fanout: int
+# return: recursive partitioning
+def fanout_limited_partitioning_left_to_right(part, fanout):
+    (root, children) = part
+    agenda = children  
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                child2 = restrict_part([(rest, children)], rest)[0]
+                child1_restrict = fanout_limited_partitioning_left_to_right(child1, fanout)
+                child2_restrict = fanout_limited_partitioning_left_to_right(child2, fanout)
+                return root, sort_part(child1_restrict, child2_restrict)
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    return part
+
+
+# Transform existing partitioning to limit number of
+# spans.
+# Choose position p such that p = argmax |part(p)|
+# part: recursive partitioning
+# fanout: int
+# return: recursive partitioning
+def fanout_limited_partitioning_argmax(part, fanout):
+    (root, children) = part
+    if children == []:
+        return part
+    agenda = children
+    argmax = None
+    argroot = {}
+    argchildren = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                    if argmax == None or len(subroot) > len(argroot):
+                        argmax = child1
+                        (argroot, argchildren) = argmax
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    rest = remove_spans_from_spans(root, argroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_argmax(argmax, fanout)
+    child2_restrict = fanout_limited_partitioning_argmax(child2, fanout)
+    return root, sort_part(child1_restrict, child2_restrict)
+
+
+
+# Transform existing partitioning to limit number of
+# spans.
+# Choose subpartitioning that stays within fanout randomly.
+# part: recursive partitioning
+# fanout: int
+# return: recursive partitioning
+def fanout_limited_partitioning_random_choice(part, fanout):
+    (root, children) = part
+    agenda = children
+    possibleChoices = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                possibleChoices += [child1]
+            next_agenda += subchildren
+        agenda = next_agenda
+    if possibleChoices == []:
+        return part
+    #print possibleChoices
+    chosen = random.choice(possibleChoices)
+    #print chosen
+    chosen = tuple(chosen)
+    (subroot, subchildren) = chosen
+    rest = remove_spans_from_spans(root, subroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_random_choice(chosen, fanout)
+    child2_restrict = fanout_limited_partitioning_random_choice(child2, fanout)
+    return root, sort_part(child1_restrict, child2_restrict)
+
 
 
 # With spans2 together covering a subset of what spans1 covers,
