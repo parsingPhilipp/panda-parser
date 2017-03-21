@@ -120,15 +120,22 @@ class LCFRS_lhs:
 
 # LCFRS rule, optionally with DCP rules.
 class LCFRS_rule:
+    # cdef double __weight
+    # cdef size_t __idx
+
+    def get_idx(self):
+        return self.__idx
+
     # Constructor.
     # lhs: LCFRS_lhs
     # weight: real
     # dcp: list of DCP_rule
-    def __init__(self, lhs, weight=1, dcp=None):
+    def __init__(self, lhs, weight=1, dcp=None, idx=0):
         self.__weight = weight
         self.__lhs = lhs
         self.__rhs = []
         self.__dcp = dcp
+        self.__idx = idx
 
     # Add single RHS nonterminal.
     # nont: string
@@ -274,6 +281,7 @@ class LCFRS_rule:
 ###########################################################################
 # The grammar.
 
+
 # LCFRS. 
 # The start symbol can be explicitly set, or is determined by first rule
 # that is added. Its fanout must be 1.
@@ -299,6 +307,8 @@ class LCFRS:
         # Mapping from string representation of rule (without weight) to rule
         # if it already exists.
         self.__key_to_rule = {}
+        # Mapping from rule idx to rule
+        self.__idx_to_rule = {}
         # Epsilon rules.
         self.__epsilon_rules = []
         # Mapping from terminal to lexical rules where terminal occurs as
@@ -324,9 +334,14 @@ class LCFRS:
     # dcp: list of DCP_rule
     # return: LCFRS_rule
     def add_rule(self, lhs, nonts, weight=None, dcp=None):
+        """
+        :type lhs: LCFRS_lhs
+        :type nonts: list
+        :type weight: double
+        """
         if weight is None:
             weight = self.__unit
-        rule = LCFRS_rule(lhs, weight=weight, dcp=dcp)
+        rule = LCFRS_rule(lhs, weight=weight, dcp=dcp, idx=len(self.__idx_to_rule))
         for nont in nonts:
             rule.add_rhs_nont(nont)
         if rule.key() in self.__key_to_rule:
@@ -340,6 +355,17 @@ class LCFRS:
             raise Exception('unexpected fanout in ' + str(rule))
         if lhs.fanout() == 0:
             raise Exception('0 fanout in ' + str(rule))
+        for i,nont in enumerate(nonts):
+            fanout_i = 0
+            for arg in lhs.args():
+                for elem in arg:
+                    if isinstance(elem, LCFRS_var) and elem.mem == i:
+                        fanout_i = max(fanout_i, elem.arg + 1)
+            if not nont in self.__nont_to_fanout or \
+                self.__nont_to_fanout[nont] == fanout_i:
+                self.__nont_to_fanout[nont] = fanout_i
+            else:
+                raise Exception('unexpected fanout in ' + str(rule))
         self.__rules += [rule]
         self.__key_to_rule[rule.key()] = rule
         self.__lhs_nont_to_rules[rule.lhs().nont()] += [rule]
@@ -355,6 +381,7 @@ class LCFRS:
             self.__start = lhs.nont()
             if lhs.fanout() != 1:
                 raise Exception('start symbol should have fanout 1')
+        self.__idx_to_rule[rule.get_idx()] = rule
         return rule
 
     # Get unit element.
@@ -373,6 +400,12 @@ class LCFRS:
         :return: Get all rules in grammar.
         """
         return self.__rules
+
+    def rule_index(self, i=None):
+        if i is None:
+            return self.__idx_to_rule
+        else:
+            return self.__idx_to_rule[i]
 
     # Get all nonterminals in grammar (LHS of rules).
     # return: list of LCFRS_rule
@@ -675,6 +708,6 @@ def read_rhs(s):
 
 def test_lcfrs():
     g = read_LCFRS('examples/testgram.gra')
-    print g
+    print(g)
 
 # test_lcfrs()

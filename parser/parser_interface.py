@@ -10,7 +10,7 @@ class AbstractParser:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def __init__(self, grammar, input):
+    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None):
         """
         :type grammar: LCFRS
         :type input: list[str]
@@ -81,6 +81,18 @@ class AbstractParser:
         """
         :type grammar: LCFRS
         """
+        pass
+
+    @abstractmethod
+    def set_input(self, input):
+        pass
+
+    @abstractmethod
+    def parse(self):
+        pass
+
+    @abstractmethod
+    def clear(self):
         pass
 
 

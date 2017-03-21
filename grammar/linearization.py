@@ -109,9 +109,8 @@ class Enumerator:
         return self.ind_to_obj[i]
 
     def object_index(self, obj):
-        i = self.obj_to_ind.get(obj, None)
-        if i:
-            return i
+        if obj in self.obj_to_ind:
+            return self.obj_to_ind[obj]
         else:
             self.counter += 1
             self.obj_to_ind[obj] = self.counter

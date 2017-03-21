@@ -47,15 +47,14 @@ class AbstractDerivation:
         """
         pass
 
-    @abstractmethod
     def terminal_positions(self, id):
-        """
-        :param id:
-        :type id: object
-        :return:
-        :rtype: list[object]
-        """
-        pass
+        if not self.spans:
+            self._compute_spans()
+        def spanned_positions(id_):
+            return [x + 1 for (l,r) in self.spans[id_] for x in range(l, r)]
+        own = spanned_positions(id)
+        children = [x for cid in self.child_ids(id) for x in spanned_positions(cid)]
+        return [x for x in own if not x in children]
 
     @abstractmethod
     def ids(self):
@@ -64,9 +63,16 @@ class AbstractDerivation:
         """
         pass
 
-    @abstractmethod
     def __str__(self):
-        pass
+        if not self.spans:
+            self._compute_spans()
+        return self.der_to_str_rec(self.root_id(), 0)
+
+    def der_to_str_rec(self, item, indentation):
+        s = ' ' * indentation * 2 + str(self.getRule(item)) + '\t(' + str(self.spans[item]) + ')\n'
+        for child in self.child_ids(item):
+            s += self.der_to_str_rec(child, indentation + 1)
+        return s
 
     def check_integrity_recursive(self, id, nonterminal=None):
         rule = self.getRule(id)
@@ -101,6 +107,34 @@ class AbstractDerivation:
         self.spans[id][k][1] = pos
         return pos
 
+    def compute_yield(self):
+        return self._compute_yield_recursive(self.root_id(), 0)
+
+    def _compute_yield_recursive(self, id, k):
+        the_yield = []
+        arg = self.getRule(id).lhs().arg(k)
+        for elem in arg:
+            if isinstance(elem, LCFRS_var):
+                child_id = self.child_id(id, elem.mem)
+                the_yield += self._compute_yield_recursive(child_id, elem.arg)
+            else:
+                the_yield.append(elem)
+        return the_yield
+
+    def __eq__(self, other):
+        if not isinstance(other, AbstractDerivation):
+            return False
+        return self.__compare_recursive(self.root_id(), other, other.root_id())
+
+    def __compare_recursive(self, id_self, other, id_other):
+        if self.getRule(id_self) != other.getRule(id_other):
+            return False
+        if len(self.child_ids(id_self)) != len(other.child_ids(id_other)):
+            return False
+        for child_self, child_other in zip(self.child_ids(id_self), other.child_ids(id_other)):
+            if not self.__compare_recursive(child_self, other, child_other):
+                return False
+        return True
 
 def derivation_to_hybrid_tree(der, poss, ordered_labels, construct_token, disconnected=None):
     """

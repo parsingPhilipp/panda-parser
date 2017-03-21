@@ -1,14 +1,13 @@
 Readme to Version 2015-08-20
+============================
 
-#####################################################################################################
-
-(C) Mark-Jan Nederhof and Kilian Gebhardt. All rights reserved.
+`(C)` Mark-Jan Nederhof and Kilian Gebhardt. All rights reserved.
 
 The use of this software is granted for the assessment of Kilian Gebhardt's Diplomarbeit only.
 Any further usage and redistribution of this software is prohibited, unless such a
 usage or redistribution was permitted by both authors.
 
-THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND ANY EXPRESS OR IMPLIED
+THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS *AS IS* AND ANY EXPRESS OR IMPLIED
 WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
 FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
 FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
@@ -19,78 +18,95 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #####################################################################################################
 
+
 Installation/ Preparation:
+--------------------------
 
 See the wiki at
 https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars/wikis/install-prerequesites
 
 Compile C Python modules by running
+
 `python2.7 setup.py build_ext --inplace`
 
 #####################################################################################################
 
+
 Resources / Corpora
+-------------------
+
 We assume that various corpora are available in the `res` directory. You may want to download
 or symlink them there:
 
 `res/dependency_conll` -> various corpora of CONLL-X shared task
-`res/tiger/tiger_release_aug07.corrected.16012013.xml -> the tiger corpus
+
+`res/tiger/tiger_release_aug07.corrected.16012013.xml` -> the tiger corpus
+
 `res/negra-corpus/downloadv2/negra-corpus.{cfg,export}` -> the negra-corpus
+
 `res/wsj_dependency/{02-22,23,24}.conll` -> various section of PTB/WSJ in conll format
+
 
 #####################################################################################################
 
 Running unit tests (requires CONLL-X and wsj corpora to be installed)
+
 `cd tests`
+
 `PYTHONPATH=.. python2.7 -m unittest discover`
 
 #####################################################################################################
 
 Documentation for dependency parsing
+------------------------------------
 
 Acquire a corpus in CoNLL-X shared task format, cf. http://ilk.uvt.nl/conll/post_task_data.html
 
 To run an experiment you have to create a configuration file of the following form.
 With each line (that is not a comment) a parameter is set. If one parameter is set multiple times,
 then the last value is used. Each parameter where no default value is indicated needs to be set.
+::
 
-#####################################################################################################
+    #                            This is a comment
+    Database:                    path/to/experiment-db
+    Training Corpus:             path/to/training/corpus
+    Test Corpus:                 path/to/test/corpus
+    Nonterminal Labeling:        child-cpos+deprel
+    Terminal Labeling:           pos
+    Recursive Partitioning:      left-branching
+    Training Limit:              1000                   # default: unlimited
+    Test Limit:                  200                    # default: unlimited
+    Test Length Limit:           25                     # default: unlimited
+    # Pre/Post-processing options
+    Default Root DEPREL:         ROOT                   # default: do not overwrite
+    Ignore Punctuation:          NO    # YES or NO      # default: NO
+    Default Disconnected DEPREL: PUNC                   # default: _ (underscore)
 
-#                            This is a comment
-Database:                    path/to/experiment-db
-Training Corpus:             path/to/training/corpus
-Test Corpus:                 path/to/test/corpus
-Nonterminal Labeling:        child-cpos+deprel
-Terminal Labeling:           pos
-Recursive Partitioning:      left-branching
-Training Limit:              1000                   # default: unlimited
-Test Limit:                  200                    # default: unlimited
-Test Length Limit:           25                     # default: unlimited
-# Pre/Post-processing options
-Default Root DEPREL:         ROOT                   # default: do not overwrite
-Ignore Punctuation:          NO    # YES or NO      # default: NO
-Default Disconnected DEPREL: PUNC                   # default: _ (underscore)
 
 #####################################################################################################
 
 Implemented nonterminal labeling strategies:
-[strict|child|stricttop|childtop|empty]-[pos|cpos|deprel|cpos+deprel|pos+deprel]
+
+`[strict|child|stricttop|childtop|empty]-[pos|cpos|deprel|cpos+deprel|pos+deprel]`
 
 Implemented terminal labeling strategies:
-[pos|cpos|form]
+
+`[pos|cpos|form]`
 
 Implemented recursive partitioning strategies:
-[left-branching|right-branching|direct-extraction|cfg|fanout-$K]
-where $K > 0
+
+`[left-branching|right-branching|direct-extraction|cfg|fanout-$K]`
+
+where `$K > 0`
 
 Warning: Ignoring Punctuation is experimental and may raise errors if a punctuation symbol
  governs some non-punctuation word. Also, correct CoNLL export is not guaranteed in this case.
 
 #####################################################################################################
 
-Then (assuming python = python2.7.10) run
+Then (assuming `python` = `python2.7.10`) run
 
-python dependency_experiments_db.py run-experiment path/to/configuration/file
+`python dependency_experiments_db.py run-experiment path/to/configuration/file`
 
 This command will start the experiment, the program outputs statistics to stdout.
 Also, it writes the results in the experiment database.
@@ -99,53 +115,55 @@ Also, it writes the results in the experiment database.
 
 In order to list the contents of the experiment database run
 
-python evaluate.py path/to/database list
+`python evaluate.py path/to/database list`
 
 In order to generate a LaTeX file containing a table with various statistics run
 
-python evaluate.py path/to/database plot --experiments=$SELECTION --outfile=path/to/table.tex [--max-length=$N]
+`python evaluate.py path/to/database plot --experiments=$SELECTION --outfile=path/to/table.tex [--max-length=$N]`
 
 where $SELECTION is a list of natural numbers separated by ',' or '-',
 where each natural number references a row in the table
 and 'n-m' expands to 'n,n+1, ..., m-1,m' where 'n' needs to be smaller than 'm'.
 The order in the this list specifies the order in the generated table.
-With '--max-length' a limit on the sentence length can be specified, i.e., 
+With '--max-length' a limit on the sentence length can be specified, i.e.,
 scores and parsing times will only reflect sentences up to this length.
 
 #####################################################################################################
 
 Readme for Constituent Parsing
+------------------------------
 
-Implementation that produced the data in:
+Implementation that produced the data in (thats obviously not true anymore):
+::
 
-@InProceedings{nederhof-vogler:2014:Coling,
-  author    = {Nederhof, Mark-Jan  and  Vogler, Heiko},
-  title     = {Hybrid Grammars for Discontinuous Parsing},
-  booktitle = {Proceedings of COLING 2014, the 25th International Conference
-	on Computational Linguistics: Technical Papers},
-  month     = {August},
-  year      = {2014},
-  address   = {Dublin, Ireland},
-  publisher = {Dublin City University and Association for Computational
-	Linguistics},
-  pages     = {1370--1381},
-  url       = {http://www.aclweb.org/anthology/C14-1130}
-}
+    @InProceedings{nederhof-vogler:2014:Coling,
+      author    = {Nederhof, Mark-Jan  and  Vogler, Heiko},
+      title     = {Hybrid Grammars for Discontinuous Parsing},
+      booktitle = {Proceedings of COLING 2014, the 25th International Conference
+                   on Computational Linguistics: Technical Papers},
+      month     = {August},
+      year      = {2014},
+      address   = {Dublin, Ireland},
+      publisher = {Dublin City University and Association for Computational Linguistics},
+      pages     = {1370--1381},
+      url       = {http://www.aclweb.org/anthology/C14-1130}
+    }
 
-==================================================================
+#####################################################################################################
 
 Instructions for use:
+---------------------
 
 Acquire the Tiger and/or the Negra corpus.
 
-In corpus/tiger_parse.py:
+In `corpus/tiger_parse.py`:
 Change the definitions of tiger_dir and tiger.
 
-In corpus/negra_parse.py:
-Change the definition of negra_dir.
+In `corpus/negra_parse.py`:
+Change the definition of `negra_dir`.
 
-Uncomment the relevant lines of experiment.py to select 
+Uncomment the relevant lines of `experiment.py` to select
 the desired experiments.
 
 Run (assuming Python 2.7.3):
-python experiment.py
+`python experiment.py`

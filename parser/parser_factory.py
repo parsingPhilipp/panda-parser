@@ -3,7 +3,7 @@ from parser.viterbi.viterbi import ViterbiParser, LeftCornerParser, RightBranchi
 from parser.viterbi.left_branching import LeftBranchingParser
 from parser.fst.fst_export import RightBranchingFSTParser, LeftBranchingFSTParser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
-from parser.gf_parser.gf_interface import GFParser
+from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 import re
 from collections import defaultdict
 
@@ -39,4 +39,5 @@ def the_parser_factory():
     factory.registerParser('fst-left-branching', LeftBranchingFSTParser)
     factory.registerParser('cfg-parser', CFGParser)
     factory.registerParser('gf-parser', GFParser)
+    factory.registerParser('gf-parser-k-best', GFParser_k_best)
     return factory

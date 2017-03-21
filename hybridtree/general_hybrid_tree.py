@@ -1,4 +1,4 @@
-#-*- coding: iso-8859-15 -*-
+#-*- coding: utf-8 -*-
 __author__ = 'kilian'
 
 from collections import defaultdict
@@ -444,8 +444,8 @@ class HybridTree:
 
     def __hybrid_tree_str(self, root, level):
         my_string = self.node_token(root)
-        my_string = my_string.__str__()
-        s = level * ' ' + my_string.encode('utf-8') + '\n'
+        my_string = str(my_string)
+        s = level * ' ' + my_string + '\n'
         for child in self.children(root):
             s += self.__hybrid_tree_str(child, level + 1)
         return s
@@ -458,6 +458,12 @@ class HybridTree:
             return False
         return all([self.compare_recursive(other, self_node, other_node) for self_node, other_node in
                     zip(self.root, other.root)])
+
+    def __hash__(self):
+        return hash((tuple(self.token_yield()), tuple([self.__hash_recursive(id) for id in self.root])))
+
+    def __hash_recursive(self, id):
+        return hash((self.node_token(id), tuple([self.__hash_recursive(child) for child in self.children(id)])))
 
     def compare_recursive(self, other, self_node, other_node):
         """

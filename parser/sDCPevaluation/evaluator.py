@@ -77,7 +77,7 @@ class The_DCP_evaluator(DCP_evaluator):
 # dcp: list of DCP_term/DCP_position
 # poss: list of string
 # words: list of string
-def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token):
+def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token, reorder=True):
     # if len(dcp) != 1:
     # raise Exception('DCP has multiple roots')
     j = 0
@@ -93,7 +93,8 @@ def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token):
     for root_term in dcp:
         (id, _) = dcp_to_hybridtree_recur(root_term, tree, len(tokens), construct_token)
         tree.add_to_root(id)
-    tree.reorder()
+    if reorder:
+        tree.reorder()
     return tree
 
 

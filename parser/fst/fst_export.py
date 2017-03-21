@@ -318,15 +318,27 @@ class RightBranchingFSTParser(AbstractParser):
         else:
             return None
 
-    def __init__(self, grammar, input):
-        fst, self._rules = grammar.tmp_fst
-        fsa = fsa_from_list_of_symbols(input, fst.mutable_input_symbols())
+    def __init__(self, grammar, input=None):
+        self.input = input
+        if input is not None:
+            fst, self._rules = grammar.tmp_fst
+            self.parse()
+        else:
+            fst, self._rules = compile_wfst_from_right_branching_grammar(grammar)
 
-        intersection = fsa * fst
+    def parse(self):
+        fsa = fsa_from_list_of_symbols(self.input, self.fst.mutable_input_symbols())
 
-        self._best = best = shortestpath(intersection)
-        best.topsort()
+        intersection = fsa * self.fst
+
+        self._best = shortestpath(intersection)
+        self._best.topsort()
         self._polish_rules = retrieve_rules(self._best)
+
+    def clear(self):
+        self._best = None
+        self.input = None
+        self._polish_rules = None
 
     def best(self):
         return pow(e, -float(shortestdistance(self._best)[-1]))
@@ -361,18 +373,33 @@ class LeftBranchingFSTParser(AbstractParser):
         else:
             return None
 
-    def __init__(self, grammar, input):
-        fst, self._rules = grammar.tmp_fst
-        fsa = fsa_from_list_of_symbols(input, fst.mutable_input_symbols())
+    def __init__(self, grammar, input=None):
+        self.input = input
+        if input is not None:
+            self.fst, self._rules = grammar.tmp_fst
+            self.parse()
+        else:
+            self.fst, self._rules = compile_wfst_from_left_branching_grammar(grammar)
 
-        intersection = compose(fsa, fst)
+    def set_input(self, input):
+        self.input = input
 
-        self._best = best = shortestpath(intersection)
-        best.topsort()
+    def parse(self):
+        fsa = fsa_from_list_of_symbols(self.input, self.fst.mutable_input_symbols())
+
+        intersection = compose(fsa, self.fst)
+
+        self._best = shortestpath(intersection)
+        self._best.topsort()
         self._reverse_polish_rules = retrieve_rules(self._best)
 
     def best(self):
         return pow(e, -float(shortestdistance(self._best)[-1]))
+
+    def clear(self):
+        self.input = None
+        self._best = None
+        self._reverse_polish_rules = None
 
     def all_derivation_trees(self):
         pass

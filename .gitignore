@@ -6,6 +6,10 @@
 *.tex
 *.tmp/*
 *.so
+*.cpp
+*.c
 playground_rparse/.negra*
 playground_rparse/.tiger*
 
+build/*
+res/*

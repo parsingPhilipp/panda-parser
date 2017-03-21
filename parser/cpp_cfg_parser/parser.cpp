@@ -132,7 +132,7 @@ void CYKParser::do_parse() {
         }
 
         // add new items to agenda if not present in chart
-        for (std::shared_ptr<CYKItem> new_item_ : transport) {
+        for (std::shared_ptr<CYKItem> & new_item_ : transport) {
             CYKItem & new_item = *new_item_;
             if (new_item.nonterminal >= chart.size())
                 chart.resize(new_item.nonterminal + 1);
