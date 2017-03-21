@@ -2,18 +2,11 @@ from libcpp.string cimport string
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from util.enumerator cimport Enumerator
+from parser.commons.commons cimport *
 
-# this typedef seems necessary,
-# since the compiler does not accept "vector[unsigned int]" or "vector[unsigned]"
-# but accepts "vector[unsigned_int]"
-ctypedef unsigned int unsigned_int
-
-# this needs to be consistent
+# this needs to be consistent with parser.commons.commons
 DEF ENCODE_NONTERMINALS = True
-ctypedef size_t NONTERMINAL
 DEF ENCODE_TERMINALS = True
-ctypedef size_t TERMINAL
-
 
 cdef extern from "DCP/SDCP.h" namespace "DCP":
     cdef cppclass Rule[Nonterminal, Terminal]:
@@ -44,7 +37,6 @@ cdef extern from "DCP/SDCP.h" namespace "DCP":
         bint set_initial(Nonterminal)
         void output()
 
-
 cdef extern from "DCP/SDCP.h" namespace "boost":
     cdef cppclass variant
 
@@ -60,8 +52,6 @@ cdef extern from "DCP/HybridTree.h" namespace "DCP":
         Position get_next(Position)
         void output()
         void set_linearization(vector[Position])
-
-    cdef void output_helper(string)
 
 cdef extern from "DCP/SDCP_Parser.h" namespace "DCP":
     cdef cppclass SDCPParser[Nonterminal,Terminal,Position]:
@@ -84,14 +74,6 @@ cdef extern from "DCP/SDCP_Parser.h" namespace "DCP":
         Nonterminal nonterminal
         vector[pair[Position,Position]] spans_inh
         vector[pair[Position,Position]] spans_syn
-
-# cdef class Enumerator:
-#     cdef size_t counter
-#     cdef dict obj_to_ind
-#     cdef dict ind_to_obj
-#     cdef size_t first_index
-#     cdef size_t object_index(self, obj)
-
 
 cdef class PySDCPParser(object):
     cdef SDCP[NONTERMINAL,TERMINAL] sdcp

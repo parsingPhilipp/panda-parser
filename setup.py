@@ -15,8 +15,8 @@ with open(path.join(here, 'README.rst')) as f:
 sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
-the_branch = 'MT_Hypergraph'
-the_commit = '542fc4483f8638f077a7826f2cc8f2c854437418'
+the_branch = 'origin/MT_Hypergraph'
+the_commit = 'acc478f9d3b79658cfea166faaefde1078f2037d'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
@@ -33,11 +33,12 @@ class CustomBuildExtCommand(build_ext):
             repo = Repo(cython_dependency_src_path)
 
         repo.remote('origin').fetch()
-        goal_branch = repo.create_head(the_branch, the_commit)
+        goal_branch = repo.commit(the_commit)
         repo.head.reference = goal_branch
-        assert not repo.head.is_detached
+
+        assert repo.head.is_detached
         # reset the index and working tree to match the pointed-to commit
-        repo.head.reset(index=True, working_tree=True)
+        # repo.head.reset(index=True, working_tree=True)
 
         build_ext.run(self)
 
@@ -46,17 +47,18 @@ ext_modules=[
     Extension("decomposition",       ["decomposition.pyx"]),
     Extension("parser.viterbi.viterbi",      ["parser/viterbi/viterbi.pyx"]),
     Extension("util.enumerator", sources=["util/enumerator.pyx"], language='c++'),
-   # Extension("parser.cfg_parser.cfg", ["parser/cfg_parser/cfg.pyx"], language='c++'),
     Extension("grammar.lcfrs",  ["grammar/lcfrs.pyx"]),
     Extension("parser.cpp_cfg_parser.parser_wrapper", sources=["parser/cpp_cfg_parser/parser_wrapper.pyx", "parser/cpp_cfg_parser/cfg.cpp", "parser/cpp_cfg_parser/parser.cpp"], language='c++', extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]),
     Extension("parser.sDCP_parser.sdcp_parser_wrapper", sources=["parser/sDCP_parser/sdcp_parser_wrapper.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3"], extra_link_args=["-std=c++14",  "-O3", "-gdwarf-3"], include_dirs=sterm_include),
     Extension("parser.LCFRS.LCFRS_Parser_Wrapper", sources=["parser/LCFRS/LCFRS_Parser_Wrapper.pyx"], language='c++',
               extra_compile_args=["-std=c++14"], extra_link_args=["-std=c++14"], include_dirs=sterm_include),
-    Extension("parser.sDCP_parser.trace_manager", sources=["parser/sDCP_parser/trace_manager.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3"], include_dirs=eigen_include+sterm_include),
+    Extension("parser.trace_manager.trace_manager", sources=["parser/trace_manager/trace_manager.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3"], include_dirs=eigen_include+sterm_include),
     Extension("parser.supervised_trainer.trainer", sources=["parser/supervised_trainer/trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=eigen_include+sterm_include),
     Extension("parser.LCFRS.LCFRS_trace_manager", sources=["parser/LCFRS/LCFRS_trace_manager.pyx"], language='c++',
               extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=eigen_include+sterm_include),
-    Extension("parser.sDCP_parser.sm_trainer", sources=["parser/sDCP_parser/sm_trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ffast-math", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
+    Extension("parser.sDCP_parser.sdcp_trace_manager", sources=["parser/sDCP_parser/sdcp_trace_manager.pyx"], language='c++',
+              extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=eigen_include+sterm_include),
+    Extension("parser.trace_manager.sm_trainer", sources=["parser/trace_manager/sm_trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ffast-math", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
         , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include),
 ]
 

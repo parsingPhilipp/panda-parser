@@ -1,15 +1,18 @@
 import unittest
-from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
-from parser.sDCP_parser.sm_trainer import compute_reducts, PyEMTrainer, PySDCPTraceManager, split_merge_training
-from tests.test_induction import hybrid_tree_1, hybrid_tree_2
+from sys import stderr
+
+from corpora.conll_parse import parse_conll_corpus
 from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
 from dependency.labeling import the_labeling_factory
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
-from corpora.conll_parse import parse_conll_corpus
-from sys import stderr
-import cPickle as pickle
+from parser.sDCP_parser.sdcp_parser_wrapper import PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
+from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
+from parser.sDCP_parser.playground import split_merge_training
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.trace_manager.sm_trainer import PyEMTrainer
+from tests.test_induction import hybrid_tree_1, hybrid_tree_2
+
 
 class MyTestCase(unittest.TestCase):
     def test_basic_sdcp_parsing(self):

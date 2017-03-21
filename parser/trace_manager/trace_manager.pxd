@@ -1,5 +1,5 @@
 from libcpp.vector cimport vector
-from libcpp.memory cimport shared_ptr, make_shared
+from libcpp.memory cimport shared_ptr
 from libcpp.string cimport string
 from util.enumerator cimport Enumerator
 

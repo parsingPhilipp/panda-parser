@@ -12,6 +12,9 @@ DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 # ctypedef unsigned_int TERMINAL
 
+cdef extern from "util.h":
+    cdef void output_helper(string)
+
 cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, terminal_encoding=str) except * :
     # output_helper("convert hybrid tree: " + str(p_tree))
     cdef HybridTree[TERMINAL, int]* c_tree = new HybridTree[TERMINAL, int]()
@@ -42,39 +45,6 @@ cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_t
         c_tree[0].add_child(c_id, c_id + 1)
         (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization, terminal_encoding)
     return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization, terminal_encoding)
-
-
-# cdef class Enumerator:
-#     # cdef unsigned counter
-#     # cdef dict obj_to_ind
-#     # cdef dict ind_to_obj
-#     # cdef unsigned first_index
-#
-#     def __init__(self, size_t first_index=0):
-#         self.first_index = first_index
-#         self.counter = first_index
-#         self.obj_to_ind = {}
-#         self.ind_to_obj = {}
-#
-#     def index_object(self, size_t i):
-#         """
-#         :type i: int
-#         :return:
-#         """
-#         return self.ind_to_obj[i]
-#
-#     cdef size_t object_index(self, obj):
-#         if obj in self.obj_to_ind:
-#             return self.obj_to_ind[obj]
-#         else:
-#             self.obj_to_ind[obj] = self.counter
-#             self.ind_to_obj[self.counter] = obj
-#             self.counter += 1
-#             return self.counter - 1
-#
-#     # cdef vector[size_t] orderd_objects(self):
-#     #     return [self.ind_to_obj[idx] for idx in range(0, self.counter)]
-
 
 
 cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=False) except *:

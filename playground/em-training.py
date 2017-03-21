@@ -1,22 +1,23 @@
 from __future__ import print_function
+
+import copy
+import os
+import pickle
+import subprocess
+import time
+
+import dependency.induction as d_i
+import dependency.labeling as d_l
 from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
 from hybridtree.dependency_tree import disconnect_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
-import dependency.induction as d_i
-import dependency.labeling as d_l
-import time
-from parser.parser_factory import GFParser, GFParser_k_best, CFGParser
-import parser.gf_parser.gf_interface
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
-import copy
-from playground_rparse.process_rparse_grammar import fall_back_left_branching
-import subprocess
-# from parser.sDCP_parser.sdcp_parser_wrapper import em_training, split_merge_training, compute_reducts, load_reducts
-from parser.sDCP_parser.sm_trainer import compute_reducts, PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation, PySDCPTraceManager
 from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTraceManager
-from math import exp
-import pickle, os
+from parser.parser_factory import GFParser, GFParser_k_best, CFGParser
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation
+from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
+from playground_rparse.process_rparse_grammar import fall_back_left_branching
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'

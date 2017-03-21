@@ -21,8 +21,8 @@ cdef class Enumerator:
             self.counter += 1
             return self.counter - 1
 
-    cpdef objects_indices(self, objects):
-        result = vector[unsigned_long]();
+    cpdef vector[unsigned_long] objects_indices(self, objects):
+        result = vector[unsigned_long]()
         for obj in objects:
             result += [self.object_index(obj)]
         return result

@@ -1,5 +1,4 @@
 from libcpp.vector cimport vector
-
 ctypedef unsigned long unsigned_long
 
 cdef class Enumerator:
@@ -9,4 +8,4 @@ cdef class Enumerator:
     cpdef unsigned_long first_index
 
     cpdef unsigned_long object_index(self, obj)
-    cpdef objects_indices(self, objects)
+    cpdef vector[unsigned_long] objects_indices(self, objects)

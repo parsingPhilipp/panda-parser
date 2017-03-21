@@ -3,8 +3,9 @@ from libcpp.map cimport map
 from libcpp.vector cimport vector
 from libcpp.pair cimport pair
 from util.enumerator cimport Enumerator, unsigned_long
+from parser.commons.commons cimport *
 
-# Options:
+# Options (consistent with parser.commons.commons):
 DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 
@@ -43,17 +44,6 @@ cdef extern from "LCFR/LCFRS_util.h" namespace "LCFR":
         void add_rule_to_grammar(vector[Nonterminal] rhs, const unsigned long id)
 
         shared_ptr[LCFRS[Nonterminal, Terminal]] get_grammar()
-
-IF ENCODE_NONTERMINALS:
-    ctypedef unsigned_long NONTERMINAL
-ELSE:
-    ctypedef string NONTERMINAL
-
-IF ENCODE_TERMINALS:
-    ctypedef unsigned_long TERMINAL
-ELSE:
-    ctypedef string TERMINAL
-
 
 cdef class PyLCFRSParser:
     cdef unique_ptr[LCFRS_Parser[NONTERMINAL,TERMINAL]] parser

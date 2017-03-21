@@ -1,8 +1,4 @@
-cimport cython
-
-from libcpp.string cimport string
 from cython.operator cimport dereference as deref
-from hybridtree.monadic_tokens import CoNLLToken
 from grammar.lcfrs import LCFRS as PyLCFRS, LCFRS_var as PyLCFRS_var
 
 # Options:
@@ -62,7 +58,7 @@ cdef class PyLCFRSFactory:
                             self.add_terminal(symbol)
                 self.complete_argument()
             IF ENCODE_NONTERMINALS:
-                self.add_rule_to_grammar(self.ntMap.objects_indices(rule.rhs()), rule.get_idx())
+                self.add_rule_to_grammar(<vector[NONTERMINAL]> self.ntMap.objects_indices(rule.rhs()), rule.get_idx())
             ELSE:
                 self.add_rule_to_grammar(rule.rhs(), rule.get_idx())
 
@@ -76,7 +72,7 @@ cdef class PyLCFRSParser:
 
     cpdef void do_parse(self, word):
         IF ENCODE_TERMINALS:
-            cdef vector[TERMINAL] words_encoded = self.tMap.objects_indices(word)
+            cdef vector[TERMINAL] words_encoded = <vector[TERMINAL]> self.tMap.objects_indices(word)
             self.parser = make_unique[LCFRS_Parser[NONTERMINAL, TERMINAL]](deref(self.grammar), words_encoded)
         ELSE:
             self.parser = make_unique[LCFRS_Parser[NONTERMINAL, TERMINAL]](deref(self.grammar), word)
@@ -93,9 +89,3 @@ cdef class PyLCFRSParser:
 
     def get_initial_passive_item(self):
         return deref(self.parser).get_initial_passive_item()
-
-    # cpdef HypergraphPtr[Nonterminal] convert_trace_to_hypergraph(
-    #         self
-    #         , shared_ptr[vector[Nonterminal]] nLabels
-    #         , shared_ptr[vector[size_t]] eLabels):
-    #     return deref(self.parser).convert_trace_to_hypergraph(nLabels, eLabels)

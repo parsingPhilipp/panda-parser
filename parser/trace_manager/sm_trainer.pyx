@@ -1,18 +1,18 @@
 from libcpp.vector cimport vector
 from libcpp.memory cimport shared_ptr, make_shared
 from cython.operator cimport dereference as deref
-from parser.sDCP_parser.trace_manager cimport PyTraceManager, TraceManagerPtr, build_trace_manager_ptr
+from parser.commons.commons cimport *
+from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
+from util.enumerator cimport Enumerator
 import time
 import random
 import grammar.lcfrs as gl
 import itertools
 from math import exp
+from sys import stderr
 
 DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
-
-from parser.sDCP_parser.sdcp_parser_wrapper cimport SDCPParser, PySDCPParser, unsigned_int, NONTERMINAL,\
-    TERMINAL, string, output_helper, Enumerator, SDCP, grammar_to_SDCP
 
 cdef extern from "Trainer/TrainingCommon.h":
     pass
@@ -74,69 +74,10 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_threads(unsigned_int)
         SplitMergeTrainer[Nonterminal, TraceID] build()
 
-cdef extern from "DCP/util.h" namespace "DCP":
-    cdef void add_trace_to_manager[Nonterminal, Terminal, Position, TraceID]\
-        (SDCPParser[Nonterminal, Terminal, Position]
-         , TraceManagerPtr[Nonterminal, TraceID])
-
 cdef extern from "util.h":
     cdef cppclass Double
     cdef cppclass LogDouble
-
-cdef class PySDCPTraceManager(PyTraceManager):
-    cdef PySDCPParser parser
-
-    def __init__(self, grammar, lcfrs_parsing=True, debug=False):
-        """
-        :param grammar:
-        :type grammar: gl.LCFRS
-        :param lcfrs_parsing:
-        :type lcfrs_parsing:
-        :param debug:
-        :type debug:
-        """
-        output_helper("initializing PyTraceManager")
-
-        cdef Enumerator nonterminal_map = Enumerator()
-        cdef Enumerator terminal_map = Enumerator()
-        nonterminal_encoder = (lambda s: nonterminal_map.object_index(s)) if ENCODE_NONTERMINALS else lambda s: str(s)
-        terminal_encoder = (lambda s: terminal_map.object_index(s)) if ENCODE_TERMINALS else lambda s: str(s)
-
-        self.parser = PySDCPParser(grammar, lcfrs_parsing, debug)
-        self.parser.set_sdcp(grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_parsing))
-        self.parser.set_terminal_map(terminal_map)
-        self.parser.set_nonterminal_map(nonterminal_map)
-
-        cdef vector[NONTERMINAL] node_labels = range(0, self.parser.nonterminal_map.counter)
-        cdef vector[size_t] edge_labels = range(0, len(grammar.rule_index()))
-
-        self.trace_manager = build_trace_manager_ptr[NONTERMINAL, size_t](
-            make_shared[vector[NONTERMINAL]](node_labels)
-            , make_shared[vector[size_t]](edge_labels)
-            , False)
-
-    def compute_reducts(self, corpus):
-        start_time = time.time()
-        for i, tree in enumerate(corpus):
-            self.parser.clear()
-            self.parser.set_input(tree)
-            self.parser.do_parse()
-            if self.parser.recognized():
-                add_trace_to_manager[NONTERMINAL,TERMINAL,int,size_t](self.parser.parser[0],self.trace_manager)
-                # self.parser.print_trace()
-
-            if i % 100 == 0:
-                output_helper(str(i) + ' ' + str(time.time() - start_time))
-
-    cpdef Enumerator get_nonterminal_map(self):
-        return self.parser.nonterminal_map
-
-def compute_reducts(grammar, corpus, debug=False):
-    output_helper("creating trace")
-    trace = PySDCPTraceManager(grammar, debug=debug)
-    output_helper("computing reducts")
-    trace.compute_reducts(corpus)
-    return trace
+    cdef void output_helper(string)
 
 # choose representation: prob / log-prob
 # ctypedef LogDouble SemiRing
@@ -355,24 +296,3 @@ cdef class PySplitMergeTrainer:
         pyLaTrained.latentAnnotation = la_trained
         output_helper("Completed split/merge cycles in " + str(time.time() - timeStart) + " seconds")
         return pyLaTrained
-
-
-def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5, debug=False, rule_pruning=exp(-100)):
-    output_helper("creating trace")
-    trace = PySDCPTraceManager(grammar, debug=debug)
-    output_helper("computing reducts")
-    trace.compute_reducts(corpus)
-    output_helper("pre em-training")
-    emTrainer = PyEMTrainer(trace)
-    emTrainer.em_training(grammar, em_epochs, init, tie_breaking, sigma, seed)
-    output_helper("starting actual split/merge training")
-    grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
-    storageManager = PyStorageManager()
-    las = [build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)]
-
-    trainer = PySplitMergeTrainerBuilder(trace, grammarInfo).set_em_epochs(em_epochs).set_threshold_merger(merge_threshold).build()
-
-    for i in range(cycles):
-        las.append(trainer.split_merge_cycle(las[i]))
-        smGrammar = las[-1].build_sm_grammar(grammar, grammarInfo, rule_pruning)
-        yield smGrammar

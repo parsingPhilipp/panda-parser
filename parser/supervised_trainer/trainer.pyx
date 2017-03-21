@@ -1,9 +1,7 @@
 from libcpp.vector cimport vector
 from libcpp.memory cimport make_shared, shared_ptr
-from libcpp.string cimport string
-from libcpp.unordered_map cimport unordered_map
 from cython.operator cimport dereference as deref
-from parser.sDCP_parser.trace_manager cimport PyTraceManager, TraceManagerPtr, build_trace_manager_ptr
+from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr, build_trace_manager_ptr
 from util.enumerator cimport Enumerator
 from parser.derivation_interface import AbstractDerivation
 
@@ -67,7 +65,6 @@ cdef class PyDerivationManager(PyTraceManager):
 
     cpdef void convert_hypergraphs(self, corpus):
         cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
-        # cdef unordered_map[, Element[Node[NONTERMINAL]]] nodeMap
         cdef vector[Element[Node[NONTERMINAL]]] sources
         cdef PyElement pyElement
 

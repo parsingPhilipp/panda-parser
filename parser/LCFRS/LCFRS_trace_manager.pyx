@@ -1,9 +1,10 @@
-from LCFRS_Parser_Wrapper cimport LCFRS_Parser, NONTERMINAL, TERMINAL, PyLCFRSFactory, PyLCFRSParser, Enumerator
+from parser.commons.commons cimport *
+from LCFRS_Parser_Wrapper cimport LCFRS_Parser, PyLCFRSFactory, PyLCFRSParser, Enumerator
 from libcpp.memory cimport make_shared
 from libcpp.vector cimport vector
 from cython.operator cimport dereference as deref
 import time
-from parser.sDCP_parser.trace_manager cimport PyTraceManager, build_trace_manager_ptr, TraceManagerPtr
+from parser.trace_manager.trace_manager cimport PyTraceManager, build_trace_manager_ptr, TraceManagerPtr
 
 cdef extern from "LCFR/manager_util.h":
     cdef void add_trace_to_manager[Nonterminal, Terminal, TraceID](
