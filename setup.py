@@ -33,10 +33,10 @@ class CustomBuildExtCommand(build_ext):
             repo = Repo(cython_dependency_src_path)
 
         repo.remote('origin').fetch()
-        goal_branch = repo.commit(the_commit)
-        repo.head.reference = goal_branch
-
-        assert repo.head.is_detached
+        # goal_branch = repo.commit(the_commit)
+        repo.git.checkout(the_commit)
+        # repo.head.reference = goal_branch
+        # assert repo.head.is_detached
         # reset the index and working tree to match the pointed-to commit
         # repo.head.reset(index=True, working_tree=True)
 
