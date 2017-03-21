@@ -18,7 +18,10 @@ cython_dependency_src_path = path.join(here, "build", dep_name)
 the_branch = 'MT_Hypergraph'
 the_commit = '542fc4483f8638f077a7826f2cc8f2c854437418'
 sterm_include = [cython_dependency_src_path]
-eigen_include = ["/usr/include/eigen3"]
+# change if eigen is installed in the user-local directory
+# $COMPUTE_ROOT/usr/include/eigen3,
+compute_root = ""
+eigen_include = [compute_root + "/usr/include/eigen3", compute_root + "/usr/include"]
 
 class CustomBuildExtCommand(build_ext):
     """Customized setuptools install command - checks out repo with c++ parsing and training backend."""
