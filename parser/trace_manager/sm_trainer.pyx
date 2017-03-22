@@ -39,7 +39,10 @@ cdef extern from "Trainer/LatentAnnotation.h" namespace "Trainer":
         vector[double] get_root_weights()
 
 cdef extern from "Trainer/SplitMergeTrainer.h" namespace "Trainer":
+    cdef cppclass Splitter:
+        void reset_random_seed(unsigned_int seed)
     cdef cppclass SplitMergeTrainer[Nonterminal, TraceID]:
+        shared_ptr[Splitter] splitter
         LatentAnnotation split_merge_cycle(LatentAnnotation)
 
 cdef extern from "Trainer/EMTrainerLA.h":
@@ -67,10 +70,10 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_simple_maximizer(unsigned_int)
         SplitMergeTrainerBuilder& set_em_epochs(unsigned_int)
         SplitMergeTrainerBuilder& set_percent_merger(double)
-        SplitMergeTrainerBuilder& set_percent_merger(double, unsigned_int)
+        SplitMergeTrainerBuilder& set_percent_merger(double, unsigned)
         SplitMergeTrainerBuilder& set_threshold_merger(double)
-        SplitMergeTrainerBuilder& set_threshold_merger(double, unsigned_int)
-        SplitMergeTrainerBuilder& set_split_randomizer(double)
+        SplitMergeTrainerBuilder& set_threshold_merger(double, unsigned)
+        SplitMergeTrainerBuilder& set_split_randomization(double, unsigned)
         SplitMergeTrainerBuilder& set_threads(unsigned_int)
         SplitMergeTrainer[Nonterminal, TraceID] build()
 
@@ -204,6 +207,10 @@ cdef class PySplitMergeTrainerBuilder:
             deref(self.splitMergeTrainerBuilder).set_threshold_merger(threshold)
         return self
 
+    cpdef PySplitMergeTrainerBuilder set_split_randomization(self, double percent=1.0, unsigned seed=0):
+        deref(self.splitMergeTrainerBuilder).set_split_randomization(percent, seed)
+        return self
+
     cpdef PySplitMergeTrainer build(self):
         trainer = PySplitMergeTrainer()
         trainer.splitMergeTrainer = make_shared[SplitMergeTrainer[NONTERMINAL, size_t]](deref(self.splitMergeTrainerBuilder).build())
@@ -296,3 +303,6 @@ cdef class PySplitMergeTrainer:
         pyLaTrained.latentAnnotation = la_trained
         output_helper("Completed split/merge cycles in " + str(time.time() - timeStart) + " seconds")
         return pyLaTrained
+
+    cpdef reset_random_seed(self, unsigned seed):
+        deref(deref(self.splitMergeTrainer).splitter).reset_random_seed(seed)

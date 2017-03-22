@@ -121,7 +121,7 @@ def length_limit(trees, max_length=50):
         if len(tree.full_token_yield()) <= max_length:
             yield tree
 
-def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True):
+def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=0):
     max_length = 20
     trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
 
@@ -178,6 +178,7 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
 
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
     builder.set_em_epochs(20)
+    builder.set_split_randomization(1.0, seed)
     if discr:
         builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
     else:
@@ -206,6 +207,8 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
                 print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
                 do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
         else:
+            # setting the seed to achieve reproducibility in case of continued training
+            splitMergeTrainer.reset_random_seed(seed + i)
             latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
             pickle.dump(map(lambda la: la.serialize(), latentAnnotation), open(sm_info_path, 'wb'))
             smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
