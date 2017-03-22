@@ -173,7 +173,7 @@ class ActiveParserTest(unittest.TestCase):
         :return:
         """
         print "Parse", word
-        parser = Parser(kallmayer_grammar(), word)
+        parser = Parser(kallmeyer_grammar(), word)
         counter = 0
         print "Found items:"
         for passive_item in parser.successful_root_items():
@@ -419,7 +419,7 @@ def kaeshammer_grammar():
     return grammar
 
 
-def kallmayer_grammar():
+def kallmeyer_grammar():
     # p. 174/175, Problem 8.2 Grammar G_1
     # made epsilon free
     grammar = LCFRS('S')
