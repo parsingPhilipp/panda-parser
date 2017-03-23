@@ -158,14 +158,14 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
             trace_discr = PyLCFRSTraceManager(em_trained, trace.get_nonterminal_map())
             trace_discr.load_traces_from_file(reduct_path_discr)
 
-    n_epochs = 50
+    n_epochs = 20
     init = "rfe"
     tie_breaking = True
     em_trained_path_ = em_trained_path(n_epochs, init, tie_breaking)
 
     if recompileGrammar or retrain or not os.path.isfile(em_trained_path_):
         emTrainer = PyEMTrainer(trace)
-        emTrainer.em_training(em_trained, n_epochs=n_epochs, init=init, tie_breaking=tie_breaking)
+        emTrainer.em_training(em_trained, n_epochs=n_epochs, init=init, tie_breaking=tie_breaking, seed=seed)
         pickle.dump(em_trained, open(em_trained_path_, 'wb'))
     else:
         em_trained = pickle.load(open(em_trained_path_, 'rb'))
@@ -177,8 +177,8 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
     storageManager = PyStorageManager()
 
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
-    builder.set_em_epochs(20)
-    builder.set_split_randomization(1.0, seed)
+    builder.set_em_epochs(n_epochs)
+    builder.set_split_randomization(1.0, seed + 1)
     if discr:
         builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
     else:
@@ -191,8 +191,7 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
         latentAnnotation = map(lambda t: build_PyLatentAnnotation(t[0], t[1], t[2], grammarInfo, storageManager)
                                , pickle.load(open(sm_info_path, 'rb')))
     else:
-        latentAnnotation = []
-        latentAnnotation += [build_PyLatentAnnotation_initial(baseline_grammar, grammarInfo, storageManager)]
+        latentAnnotation = [build_PyLatentAnnotation_initial(em_trained, grammarInfo, storageManager)]
 
     max_cycles = 4
     reparse = False
@@ -208,7 +207,7 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
                 do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
         else:
             # setting the seed to achieve reproducibility in case of continued training
-            splitMergeTrainer.reset_random_seed(seed + i)
+            splitMergeTrainer.reset_random_seed(seed + i + 1)
             latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
             pickle.dump(map(lambda la: la.serialize(), latentAnnotation), open(sm_info_path, 'wb'))
             smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
