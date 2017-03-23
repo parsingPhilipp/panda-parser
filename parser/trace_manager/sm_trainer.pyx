@@ -74,6 +74,7 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_threshold_merger(double)
         SplitMergeTrainerBuilder& set_threshold_merger(double, unsigned)
         SplitMergeTrainerBuilder& set_split_randomization(double, unsigned)
+        SplitMergeTrainerBuilder& set_smoothing_factor(double smoothingFactor)
         SplitMergeTrainerBuilder& set_threads(unsigned_int)
         SplitMergeTrainer[Nonterminal, TraceID] build()
 
@@ -209,6 +210,10 @@ cdef class PySplitMergeTrainerBuilder:
 
     cpdef PySplitMergeTrainerBuilder set_split_randomization(self, double percent=1.0, unsigned seed=0):
         deref(self.splitMergeTrainerBuilder).set_split_randomization(percent, seed)
+        return self
+
+    cpdef PySplitMergeTrainerBuilder set_smoothing_factor(self, double smoothingFactor=0.01):
+        deref(self.splitMergeTrainerBuilder).set_smoothing_factor(smoothingFactor)
         return self
 
     cpdef PySplitMergeTrainer build(self):
