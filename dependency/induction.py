@@ -4,13 +4,14 @@ import re
 from abc import ABCMeta, abstractmethod
 
 from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
-    right_branching_partitioning
+    right_branching_partitioning, fanout_limited_partitioning_left_to_right, fanout_limited_partitioning_argmax, fanout_limited_partitioning_random_choice, fanout_limited_partitioning_no_new_nont
 from grammar.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
 
 from dependency.labeling import AbstractLabeling
 from grammar.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
+from dependency.top_bottom_max import top_max, bottom_max
 
 
 # ##################   Top level methods for grammar induction.   ###################
@@ -34,7 +35,11 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     for tree in trees:
         n_trees += 1
         for rec_par in recursive_partitioning:
-            rec_par_int = rec_par(tree)
+            match = re.search(r'no_new_nont', rec_par.__name__)
+            if match:
+                rec_par_int = rec_par(tree, grammar.nonts(), nont_labelling)
+            else:
+                rec_par_int = rec_par(tree)
 
             rec_par_nodes = tree.node_id_rec_par(rec_par_int)
 
@@ -151,6 +156,10 @@ def cfg(tree):
 
 
 fanout_k = lambda tree, k: fanout_limited_partitioning(tree.recursive_partitioning(), k)
+fanout_k_left_to_right = lambda tree, k: fanout_limited_partitioning_left_to_right(tree.recursive_partitioning(), k)
+fanout_k_argmax = lambda tree, k: fanout_limited_partitioning_argmax(tree.recursive_partitioning(), k)
+fanout_k_random = lambda tree, k: fanout_limited_partitioning_random_choice(tree.recursive_partitioning(), k)
+fanout_k_no_new_nont = lambda tree, nonts, nont_labelling,k: fanout_limited_partitioning_no_new_nont(tree.recursive_partitioning(), k, tree, nonts, nont_labelling)
 
 
 class RecursivePartitioningFactory:
@@ -164,13 +173,31 @@ class RecursivePartitioningFactory:
         partitioning_names = name.split(',')
         partitionings = []
         for name in partitioning_names:
-            match = re.search(r'fanout-(\d+)', name)
+            match = re.search(r'fanout-(\d+)([-\w]*)', name)
             if match:
                 k = int(match.group(1))
-                rec_par = lambda tree: fanout_k(tree, k)
-                rec_par.__name__ = 'fanout_' + str(k)
-                partitionings.append(rec_par)
-
+                trans = match.group(2)
+                print trans
+                if trans == '': #right-to-left bfs
+                    rec_par = lambda tree: fanout_k(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k)
+                    partitionings.append(rec_par)
+                if trans == '-left-to-right':
+                    rec_par = lambda tree: fanout_k_left_to_right(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_left_to_right'
+                    partitionings.append(rec_par)
+                if trans == '-argmax':
+                    rec_par = lambda tree: fanout_k_argmax(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_argmax'
+                    partitionings.append(rec_par)
+                if trans == '-random':
+                    rec_par = lambda tree: fanout_k_random(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_random'
+                    partitionings.append(rec_par)
+                if trans == '-no-new-nont':
+                    rec_par = lambda tree, nonts, nont_labelling: fanout_k_no_new_nont(tree, nonts, nont_labelling, k)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_no_new_nont'
+                    partitionings.append(rec_par)
             else:
                 rec_par = self.__partitionings[name]
                 if rec_par:
@@ -404,83 +431,4 @@ def create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_lab
     return lhs
 
 
-######################   Auxiliary: top_max and bottom_max    #################################################
 
-
-def top_max(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the top
-    and group maximal subsets of neighbouring nodes together.
-    :rtype: [[str]]
-    :param tree: HybridTree
-    :param id_set: list of string
-    :return: list of list of string
-    """
-    return maximize(tree, top(tree, id_set))
-
-
-def bottom_max(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the bottom.
-    and group maximal subsets of neighbouring nodes together.
-    :rtype: [[str]]
-    :param tree: HybridTree
-    :param id_set: list of string
-    :return: list of list of string
-    """
-    return maximize(tree, bottom(tree, id_set))
-
-
-def top(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the top.
-    :rtype: [[str]]
-    :param tree: HybridTree
-    :param id_set: list of string  (node ids)
-    :return: list of string  (node ids)
-    """
-    top_nodes = [id for id in id_set if tree.parent(id) not in id_set]
-    return top_nodes
-
-
-def bottom(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the bottom.
-    :rtype: [[str]]
-    :param tree: list of node ids that delimit id_set from the bottom.
-    :param id_set: list of string  (node ids)
-    :return: list of string  (node ids)
-    """
-    bottom_nodes = [id for id in tree.id_yield()
-                    if tree.parent(id) in id_set and id not in id_set]
-    return bottom_nodes
-
-
-def maximize(tree, id_set):
-    """
-    Group maximal subsets of neighbouring nodes together.
-    :param tree: HybridTree
-    :param id_set: list of string
-    :return: list of list of string
-    """
-    nodes = id_set[:]
-    max_list = []
-    while len(nodes) > 0:
-        id = nodes[0]
-
-        # Assume that the following two lists contain tree nodes, that are
-        # siblings, ordered from left to right.
-        all_siblings = tree.siblings(id)
-        present_siblings = [id for id in all_siblings if id in nodes]
-
-        nodes = [id for id in nodes if id not in present_siblings]
-
-        while len(present_siblings) > 0:
-            i = all_siblings.index(present_siblings[0])
-            j = 1
-            while j < len(present_siblings) and all_siblings[i + j] == present_siblings[j]:
-                j += 1
-            max_list += [present_siblings[:j]]
-            present_siblings = present_siblings[j:]
-
-    return max_list

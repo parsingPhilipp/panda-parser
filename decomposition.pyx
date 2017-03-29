@@ -1,4 +1,5 @@
 import random
+from dependency.top_bottom_max import top_max, bottom_max
 
 # Auxiliary routines for dealing with spans in an input string.
 
@@ -167,6 +168,61 @@ def fanout_limited_partitioning_argmax(part, fanout):
 
 # Transform existing partitioning to limit number of
 # spans.
+# Choose position p such that no new nonterminal is added to grammar if possible.
+# Use right-to-left bfs as fallback.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling):
+    (root, children) = part
+    agenda = children
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                subindex = []
+                for pos in subroot:
+                    subindex += [tree.index_node(pos+1)]
+                positions = map(int, subroot)
+                b_max = bottom_max(tree, subindex)
+                t_max = top_max(tree, subindex)
+                spans = join_spans(positions)
+                nont = nont_labelling.label_nonterminal(tree, subindex, t_max, b_max, len(spans))
+                if nont in nonts:
+                    child2 = restrict_part([(rest, children)], rest)[0]
+                    child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling)
+                    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling)
+                    return root, sort_part(child1_restrict, child2_restrict)
+            next_agenda += subchildren
+        agenda = next_agenda
+    agenda = children[::-1]  # reversed to favour left branching
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                child2 = restrict_part([(rest, children)], rest)[0]
+                child1_restrict = fanout_limited_partitioning(child1, fanout)
+                child2_restrict = fanout_limited_partitioning(child2, fanout)
+                return root, sort_part(child1_restrict, child2_restrict)
+            else:
+                next_agenda += subchildren[::-1]  # reversed
+        agenda = next_agenda
+    return part
+
+
+# Transform existing partitioning to limit number of
+# spans.
 # Choose subpartitioning that stays within fanout randomly.
 # part: recursive partitioning
 # fanout: int
@@ -188,9 +244,7 @@ def fanout_limited_partitioning_random_choice(part, fanout):
         agenda = next_agenda
     if possibleChoices == []:
         return part
-    #print possibleChoices
     chosen = random.choice(possibleChoices)
-    #print chosen
     chosen = tuple(chosen)
     (subroot, subchildren) = chosen
     rest = remove_spans_from_spans(root, subroot)
