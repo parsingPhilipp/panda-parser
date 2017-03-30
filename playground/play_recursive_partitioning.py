@@ -12,6 +12,7 @@ from playground_rparse.process_rparse_grammar import fall_back_left_branching
 import subprocess
 import grammar.linearization as g_l
 import decomposition as dec
+import re
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'
@@ -38,23 +39,30 @@ test_par3 = (set([1,2,3,4,5]), [(set([2]), []), (set([4]), []), (set([1,3,5]), [
 
 def main(ignore_punctuation=False):
 
-    
-    
+    file = open('results.txt', 'w')
+    file.close()
+
+    parser1 = parser.parser_factory.CFGParser
+    parser23 = parser.parser_factory.GFParser
+
+    i = 0 #counter to show progress
+
     #for-loops for trying out the various combinations of parameters
     #for strategy of choosing p
-    #for strategy in ['', '-left-to-right', '-random', '-argmax', '-no-new-nont']:
+    for strategy in ['', '-no-new-nont']: #, '-left-to-right', '-random', '-argmax'
         #strict vs. child labeling
-    #    for labelling1 in ['strict', 'child']:
+        for labelling1 in ['strict', 'child']:
             #POS/DEPREL
-    #        for labelling2 in ['pos', 'deprel', 'pos+deprel']:
+            for labelling2 in ['pos']:#, 'deprel', 'pos+deprel']:
                 #fanout
-    #            for fanout in [1,2,3]:
+                for fanout in [1]:#,2,3]:
                     #parser_type
-    #                if fanout == 1:
-    #                    parser_type = parser.parser_factory.CFGParser #parser only for fanout 1
-    #                    trainAndEval(strategy, labelling1, labelling2, fanout, parser_type)
-    parser_type = parser.parser_factory.GFParser
-    trainAndEval('', 'child', 'pos+deprel', 1, parser_type, ignore_punctuation)
+                    if fanout == 1:
+                        trainAndEval(strategy, labelling1, labelling2, fanout, parser1, ignore_punctuation)
+                    else:
+                        trainAndEval(strategy, labelling1, labelling2, fanout, parser23, ignore_punctuation)
+                    i += 1
+                    print i
 
 
 
@@ -154,7 +162,7 @@ def main(ignore_punctuation=False):
 
 
 def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_punctuation=False):
-    file = open('results.txt', 'w')
+    file = open('results.txt', 'a')
     
     term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
     recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + strategy)
@@ -164,6 +172,39 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_p
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
     (n_trees, grammar) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label, recursive_partitioning, start)
+
+    
+    file.write('\n\n\n')
+    if strategy == '':
+        file.write('-right-to-left' + ' ' + labelling1 + ' ' + labelling2 + ' ' + str(fanout))
+    else:
+        file.write(strategy + ' ' + labelling1 + ' ' + labelling2 + ' ' + str(fanout))
+    file.write('\n')
+    
+    
+    res = ''
+
+    res += '#nonts:' + str(len(grammar.nonts()))
+    res += ' #rules:' + str(len(grammar.rules()))
+
+    # The following code is to count the number of derivations for a hypergraph (tree parser required)
+    tree_parser.preprocess_grammar(grammar)
+
+    trees = parse_conll_corpus(train , False, train_limit)
+    if ignore_punctuation:
+        trees = disconnect_punctuation(trees)
+
+    derCount = 0
+    derMax = 0
+    for tree in trees:
+        parser = tree_parser(grammar, tree)  # if tree parser is used
+        der = parser.count_derivation_trees()
+        if der > derMax:
+            derMax = der
+        derCount += der
+
+    res += "  average: " + str(1.0*derCount/train_limit)
+    res += " maximal: " + str(derMax)
 
 
     total_time = 0.0
@@ -204,40 +245,28 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_p
                 result_file.write(tree_to_conll_str(fall_back_left_branching(forms, poss)))
                 result_file.write('\n\n')
 
-    print "parse failures", failures
-    print "parse time", total_time
     
-    print "eval.pl", "no punctuation"
+    res += "  no punctuation: "
     #p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
     #p.communicate()
     out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
+    match = re.search(r'[^=]*= (\d\d\.\d\d)[^=]*= (\d\d.\d\d).*', out)
+    res += match.group(1) #labeled attachment score
+    #res += ' u:' + match.group(2) #unlabeled attachment score
 
-    print "eval.pl", "punctation"
-    p = subprocess.Popen(
-        ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
-    (out, err) = p.communicate()
-    print out
+    res += "  punctation: "
+    #p = subprocess.Popen(
+    #    ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
+    #(out, err) = p.communicate()
+    out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
+    match = re.search(r'[^=]*= (\d\d\.\d\d)[^=]*= (\d\d.\d\d).*', out)
+    res += match.group(1)
+    #res += 'unlabeled:' + match.group(2)
 
-    print "total time: ", total_time
-    # The following code is to count the number of derivations for a hypergraph (tree parser required)
-    tree_parser.preprocess_grammar(grammar)
-
-    trees = parse_conll_corpus(train , False, train_limit)
-    if ignore_punctuation:
-        trees = disconnect_punctuation(trees)
-
-    derCount = 0
-    derMax = 0
-    for tree in trees:
-        parser = tree_parser(grammar, tree)  # if tree parser is used
-        der = parser.count_derivation_trees()
-        if der > derMax:
-            derMax = der
-        derCount += der
-
-    print "average number of derivations: ", 1.0*derCount/train_limit
-    print "maximal number of derivations: ", derMax
-
+    
+    res += " time: " + str(total_time)
+    
+    file.write(res)
 
     file.close()
 

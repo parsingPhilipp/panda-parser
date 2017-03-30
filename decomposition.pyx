@@ -212,8 +212,8 @@ def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labe
             rest = remove_spans_from_spans(root, subroot)
             if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
                 child2 = restrict_part([(rest, children)], rest)[0]
-                child1_restrict = fanout_limited_partitioning(child1, fanout)
-                child2_restrict = fanout_limited_partitioning(child2, fanout)
+                child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling)
+                child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling)
                 return root, sort_part(child1_restrict, child2_restrict)
             else:
                 next_agenda += subchildren[::-1]  # reversed
