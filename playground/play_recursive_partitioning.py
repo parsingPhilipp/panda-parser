@@ -33,7 +33,7 @@ test_limit = 2000
 
 #add command line arguments
 argParser = argparse.ArgumentParser(description='Train a hybrid grammar using different strategies for recursive partitioning transformation.')
-argParser.add_argument('-s', nargs='*', choices=['rtl', 'ltr', 'nnont', 'random', 'argmax']') #choose strategies
+argParser.add_argument('-s', nargs='*', choices=['rtl', 'ltr', 'nnont', 'random', 'argmax']) #choose strategies
 argParser.add_argument('-l', nargs='*', choices=['strict', 'child']) #choose strict and/or child labelling
 argParser.add_argument('-t', nargs='*', choices=['pos', 'deprel', 'pos+deprel']) #choose pos, deprel, pos+deprel labelling
 argParser.add_argument('-f', nargs='*') #choose maximal fanout(s)
