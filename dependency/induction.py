@@ -1,6 +1,7 @@
 __author__ = 'kilian'
 
 import re
+from random import seed
 from abc import ABCMeta, abstractmethod
 
 from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
@@ -159,7 +160,7 @@ fanout_k = lambda tree, k: fanout_limited_partitioning(tree.recursive_partitioni
 fanout_k_left_to_right = lambda tree, k: fanout_limited_partitioning_left_to_right(tree.recursive_partitioning(), k)
 fanout_k_argmax = lambda tree, k: fanout_limited_partitioning_argmax(tree.recursive_partitioning(), k)
 fanout_k_random = lambda tree, k: fanout_limited_partitioning_random_choice(tree.recursive_partitioning(), k)
-fanout_k_no_new_nont = lambda tree, nonts, nont_labelling,k: fanout_limited_partitioning_no_new_nont(tree.recursive_partitioning(), k, tree, nonts, nont_labelling)
+fanout_k_no_new_nont = lambda tree, nonts, nont_labelling, fallback, k: fanout_limited_partitioning_no_new_nont(tree.recursive_partitioning(), k, tree, nonts, nont_labelling, fallback)
 
 
 class RecursivePartitioningFactory:
@@ -177,7 +178,6 @@ class RecursivePartitioningFactory:
             if match:
                 k = int(match.group(1))
                 trans = match.group(2)
-                print trans
                 if trans == '': #right-to-left bfs
                     rec_par = lambda tree: fanout_k(tree, k)
                     rec_par.__name__ = 'fanout_' + str(k)
@@ -190,12 +190,24 @@ class RecursivePartitioningFactory:
                     rec_par = lambda tree: fanout_k_argmax(tree, k)
                     rec_par.__name__ = 'fanout_' + str(k) + '_argmax'
                     partitionings.append(rec_par)
-                if trans == '-random':
+                #set seed, if random strategy is chosen
+                randMatch = re.search(r'-random-(\d*)', trans)
+                if randMatch:
+                    s = int(randMatch.group(1))
+                    seed(s)
                     rec_par = lambda tree: fanout_k_random(tree, k)
                     rec_par.__name__ = 'fanout_' + str(k) + '_random'
                     partitionings.append(rec_par)
-                if trans == '-no-new-nont':
-                    rec_par = lambda tree, nonts, nont_labelling: fanout_k_no_new_nont(tree, nonts, nont_labelling, k)
+                #set fallback strategy if no position corresponds to an existing nonterminal
+                noNewMatch = re.search(r'-no-new-nont([-\w]*)', trans)
+                if noNewMatch:
+                    fallback = noNewMatch.group(1)
+                    randMatch = re.search(r'-random-(\d*)', fallback)
+                    if randMatch:
+                        s = int(randMatch.group(1))
+                        seed(s)
+                        fallback = '-random'
+                    rec_par = lambda tree, nonts, nont_labelling: fanout_k_no_new_nont(tree, nonts, nont_labelling, k, fallback)
                     rec_par.__name__ = 'fanout_' + str(k) + '_no_new_nont'
                     partitionings.append(rec_par)
             else:

@@ -13,17 +13,15 @@ import subprocess
 import grammar.linearization as g_l
 import decomposition as dec
 import re
+import argparse
+
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'
 result = 'recursive-partitoning-results.conll'
 start = 'START'
 term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
-#recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
-#primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 
-# parser_type = parser.parser_factory.GFParser  # slower, can be used for arbitrary fanout
-#parser_type = parser.parser_factory.CFGParser  # potentially faster, only for fanout 1
 tree_parser = LCFRS_sDCP_Parser  # tree parser to count derivations per hybrid tree
 
 
@@ -32,132 +30,96 @@ tree_yield = term_labelling.prepare_parser_input
 train_limit = 2000
 test_limit = 2000
 
-#define a few recursive partitionings for testing
-test_par1 = (set([1,2,3,4]), [(set([1,3,4]), [(set([1,4]), [(set([1]), []) , (set([4]), [])]) , (set([3]), [])]) , (set([2]), [])])
-test_par2 = (set([1,2,3,4,5]), [(set([1,2,4]), [(set([1,2]), [(set([1]), []), (set([2]), [])]), (set([4]), [])]), (set([3]), []), (set([5]), [])])
-test_par3 = (set([1,2,3,4,5]), [(set([2]), []), (set([4]), []), (set([1,3,5]), [(set([1]), []), (set([3,5]), [(set([3]), []), (set([5]), [])])])])
+
+#add command line arguments
+argParser = argparse.ArgumentParser(description='Train a hybrid grammar using different strategies for recursive partitioning transformation.')
+argParser.add_argument('-s', nargs='*', choices=['rtl', 'ltr', 'nnont', 'random', 'argmax']') #choose strategies
+argParser.add_argument('-l', nargs='*', choices=['strict', 'child']) #choose strict and/or child labelling
+argParser.add_argument('-t', nargs='*', choices=['pos', 'deprel', 'pos+deprel']) #choose pos, deprel, pos+deprel labelling
+argParser.add_argument('-f', nargs='*') #choose maximal fanout(s)
+argParser.add_argument('-n', nargs='*', choices=['rtl', 'ltr', 'random', 'argmax']) #choose fallback strategy if no-new-nont is used
+argParser.add_argument('-r', nargs='*') #set random seed(s) for random strategy
+
+
 
 def main(ignore_punctuation=False):
 
     file = open('results.txt', 'w')
     file.close()
+    
 
     parser1 = parser.parser_factory.CFGParser
     parser23 = parser.parser_factory.GFParser
 
-    i = 0 #counter to show progress
 
-    #for-loops for trying out the various combinations of parameters
-    #for strategy of choosing p
-    for strategy in ['', '-no-new-nont']: #, '-left-to-right', '-random', '-argmax'
-        #strict vs. child labeling
-        for labelling1 in ['strict', 'child']:
-            #POS/DEPREL
-            for labelling2 in ['pos']:#, 'deprel', 'pos+deprel']:
-                #fanout
-                for fanout in [1]:#,2,3]:
-                    #parser_type
-                    if fanout == 1:
+    args = vars(argParser.parse_args())
+
+    #parse command line arguments for transformation strategies,
+    #random seed and fallback strategy for no-new-nont
+    strategies = []
+    if args['s'] is None:
+        strategies = ['']
+    else:
+        for strategy in args['s']:
+            if strategy == 'rtl':
+                strategies += ['']
+            elif strategy == 'ltr':
+                strategies += ['-left-to-right']
+            elif strategy == 'nnont':
+                if args['n'] is None:
+                    strategies += ['-no-new-nont-rtl']
+                else:
+                    for fallback in args['n']:
+                        if fallback == 'random':
+                            if args['r'] is None:
+                                strategies += ['-no-new-nont-random-1']
+                            else:
+                                for seed in args['r']:
+                                    strategies += ['-no-new-nont-random-' + seed]
+                        else:
+                            strategies += ['-no-new-nont-' + fallback]
+            elif strategy == 'random':
+                if args['r'] is None:
+                    strategies += ['-random-1']
+                else:
+                    for seed in args['r']:
+                        strategies += ['-random-' + seed]
+            else: #argmax strategy
+                strategies += ['-' + strategy]
+    
+    #parse command line argument for child vs. strict labelling
+    labellings1 = []
+    if args['l'] is None:
+        labellings1 = ['strict']
+    else:
+        labellings1 = args['l']
+
+    #for pos vs. deprel
+    labellings2 = []
+    if args['t'] is None:
+        labellings2 = ['pos']
+    else:
+        labellings2 = args['t']
+
+    
+    #parse command line argument for fanout
+    fanouts = []
+    if args['f'] is None:
+        fanouts = ['1']
+    else:
+        fanouts = args['f']
+
+
+    for strategy in  strategies:
+        for labelling1 in labellings1:
+            for labelling2 in labellings2:
+                for fanout in fanouts:
+                    if fanout == '1':
                         trainAndEval(strategy, labelling1, labelling2, fanout, parser1, ignore_punctuation)
                     else:
                         trainAndEval(strategy, labelling1, labelling2, fanout, parser23, ignore_punctuation)
-                    i += 1
-                    print i
 
 
-
-
-
-    #trees = parse_conll_corpus(train, False, train_limit)
-    #if ignore_punctuation:
-    #    trees = disconnect_punctuation(trees)
-    #(n_trees, grammar) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label, recursive_partitioning, start)
-
-    #
-    #
-    # grammar is the induced hybrid grammar
-    #
-    #
-    #print "#nonts: ", len(grammar.nonts())
-    #print "#rules: ", len(grammar.rules())
-
-    #total_time = 0.0
-
-    # The following code works for string parsers for evaluating
-    
-    #parser_type.preprocess_grammar(grammar)
-    
-    #trees = parse_conll_corpus(test, False, test_limit)
-    #if ignore_punctuation:
-    #    trees = disconnect_punctuation(trees)
-    
-    #with open(result, 'w') as result_file:
-    #    failures = 0
-    #    for tree in trees:
-    #        time_stamp = time.clock()
-    
-    #        parser = parser_type(grammar, tree_yield(tree.token_yield()))
-    
-    #        time_stamp = time.clock() - time_stamp
-    #        total_time += time_stamp
-    
-    
-    #        cleaned_tokens = copy.deepcopy(tree.full_token_yield())
-    #        for token in cleaned_tokens:
-    #            token.set_deprel('_')
-    #        h_tree = HybridTree(tree.sent_label())
-    #        h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
-    #                                                        construct_conll_token)
-   
-    #        if h_tree:
-    #            result_file.write(tree_to_conll_str(h_tree))
-    #            result_file.write('\n\n')
-    #        else:
-    #            failures += 1
-    #            forms = [token.form() for token in tree.full_token_yield()]
-    #            poss = [token.pos() for token in tree.full_token_yield()]
-    #            result_file.write(tree_to_conll_str(fall_back_left_branching(forms, poss)))
-    #            result_file.write('\n\n')
-    
-    #print "parse failures", failures
-    #print "parse time", total_time
-    
-    #print "eval.pl", "no punctuation"
-    #p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
-    #p.communicate()
-    
-    #print "eval.pl", "punctation"
-    #p = subprocess.Popen(
-    #    ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
-    #p.communicate()
-
-    #print "total time: ", total_time
-    # The following code is to count the number of derivations for a hypergraph (tree parser required)
-    #tree_parser.preprocess_grammar(grammar)
-
-    #trees = parse_conll_corpus(train , False, train_limit)
-    #if ignore_punctuation:
-    #    trees = disconnect_punctuation(trees)
-
-    #derCount = 0
-    #derMax = 0
-    #for tree in trees:
-    #    parser = tree_parser(grammar, tree)  # if tree parser is used
-    #    der = parser.count_derivation_trees()
-    #    if der > derMax:
-    #        derMax = der
-    #    derCount += der
-
-    #print "average number of derivations: ", 1.0*derCount/train_limit
-    #print "maximal number of derivations: ", derMax
-    #file = open("grammar.txt", 'w')
-    #g_l.linearize(grammar, primary_labelling, term_labelling, file)
-    #file.close()
-    #tree = trees.next()
-    #print tree.id_yield()
-    #print tree.recursive_partitioning()
-    #siblings = tree.siblings('0')
-    #print siblings
 
 
 
@@ -176,9 +138,9 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_p
     
     file.write('\n\n\n')
     if strategy == '':
-        file.write('-right-to-left' + ' ' + labelling1 + ' ' + labelling2 + ' ' + str(fanout))
+        file.write('-right-to-left' + ' ' + labelling1 + ' ' + labelling2 + ' ' + fanout)
     else:
-        file.write(strategy + ' ' + labelling1 + ' ' + labelling2 + ' ' + str(fanout))
+        file.write(strategy + ' ' + labelling1 + ' ' + labelling2 + ' ' + fanout)
     file.write('\n')
     
     
@@ -247,22 +209,16 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_p
 
     
     res += "  no punctuation: "
-    #p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
-    #p.communicate()
     out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
-    match = re.search(r'[^=]*= (\d\d\.\d\d)[^=]*= (\d\d.\d\d).*', out)
-    res += match.group(1) #labeled attachment score
-    #res += ' u:' + match.group(2) #unlabeled attachment score
-
+    match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
+    res += ' l:' + match.group(1) #labeled attachment score
+    res += ' u:' + match.group(2) #unlabeled attachment score
     res += "  punctation: "
-    #p = subprocess.Popen(
-    #    ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
-    #(out, err) = p.communicate()
     out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
-    match = re.search(r'[^=]*= (\d\d\.\d\d)[^=]*= (\d\d.\d\d).*', out)
-    res += match.group(1)
-    #res += 'unlabeled:' + match.group(2)
-
+    match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
+    res += ' l:' + match.group(1)
+    res += ' u:' + match.group(2)
+    
     
     res += " time: " + str(total_time)
     

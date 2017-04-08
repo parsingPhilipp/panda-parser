@@ -169,14 +169,17 @@ def fanout_limited_partitioning_argmax(part, fanout):
 # Transform existing partitioning to limit number of
 # spans.
 # Choose position p such that no new nonterminal is added to grammar if possible.
-# Use right-to-left bfs as fallback.
 # part: recursive partitioning
 # fanout: int
 # tree: HybridTree
 # nont_labelling: AbstractLabeling
 # nonts: list of nonterminals
 # return: recursive partitioning
-def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling):
+#def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling):
+#    random.seed(100)
+#    return fanout_limited_partitioning_no_new_nont_rec(part, fanout, tree, nonts, nont_labelling)
+
+def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling, fallback):
     (root, children) = part
     agenda = children
     while len(agenda) > 0:
@@ -197,11 +200,129 @@ def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labe
                 nont = nont_labelling.label_nonterminal(tree, subindex, t_max, b_max, len(spans))
                 if nont in nonts:
                     child2 = restrict_part([(rest, children)], rest)[0]
-                    child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling)
-                    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling)
+                    child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+                    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
                     return root, sort_part(child1_restrict, child2_restrict)
             next_agenda += subchildren
         agenda = next_agenda
+    
+    if fallback == '-rtl':
+        return fallback_rtl(part, fanout, tree, nonts, nont_labelling, fallback)
+    elif fallback == '-ltr':
+        return fallback_ltr(part, fanout, tree, nonts, nont_labelling, fallback)
+    elif fallback == '-argmax':
+        return fallback_argmax(part, fanout, tree, nonts, nont_labelling, fallback)
+    else:
+        return fallback_random(part, fanout, tree, nonts, nont_labelling, fallback)
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_random(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    agenda = children
+    possibleChoices = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                possibleChoices += [child1]
+            next_agenda += subchildren
+        agenda = next_agenda
+    if possibleChoices == []:
+        return part
+    chosen = random.choice(possibleChoices)
+    chosen = tuple(chosen)
+    (subroot, subchildren) = chosen
+    rest = remove_spans_from_spans(root, subroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_no_new_nont(chosen, fanout, tree, nonts, nont_labelling, fallback)
+    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+    return root, sort_part(child1_restrict, child2_restrict)
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_argmax(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    if children == []:
+        return part
+    agenda = children
+    argmax = None
+    argroot = {}
+    argchildren = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                    if argmax == None or len(subroot) > len(argroot):
+                        argmax = child1
+                        (argroot, argchildren) = argmax
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    rest = remove_spans_from_spans(root, argroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_no_new_nont(argmax, fanout, tree, nonts, nont_labelling, fallback)
+    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+    return root, sort_part(child1_restrict, child2_restrict)
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_ltr(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    agenda = children  
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                child2 = restrict_part([(rest, children)], rest)[0]
+                child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+                child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+                return root, sort_part(child1_restrict, child2_restrict)
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    return part
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_rtl(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
     agenda = children[::-1]  # reversed to favour left branching
     while len(agenda) > 0:
         next_agenda = []
@@ -212,13 +333,14 @@ def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labe
             rest = remove_spans_from_spans(root, subroot)
             if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
                 child2 = restrict_part([(rest, children)], rest)[0]
-                child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling)
-                child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling)
+                child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+                child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
                 return root, sort_part(child1_restrict, child2_restrict)
             else:
                 next_agenda += subchildren[::-1]  # reversed
         agenda = next_agenda
     return part
+
 
 
 # Transform existing partitioning to limit number of
