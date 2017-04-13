@@ -71,7 +71,7 @@ def export(grammar, prefix, name, override=False):
                         else:
                             return 'rhs' + str(x.mem)
                     else:
-                        return '"' + x + '"'
+                        return '"' + x.replace('"', r'\"') + '"'
 
                 return ' ++ '.join(
                     [to_string(x) for x in lhs.arg(i)]
