@@ -175,7 +175,7 @@ class CFGParser(AbstractParser):
     def all_derivation_trees(self):
         pass
 
-    def __init__(self, grammar, input=None):
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None):
         self.input = input
         self.goal = None
         if input is not None:
