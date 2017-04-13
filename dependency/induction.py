@@ -11,6 +11,7 @@ from dependency.labeling import AbstractLabeling
 from grammar.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
+from collections import defaultdict
 
 
 # ##################   Top level methods for grammar induction.   ###################
@@ -101,6 +102,25 @@ class CPOS_KON_APPR(TerminalLabeling):
     def __str__(self):
         return 'cpos-KON-APPR'
 
+class FormPosTerminalsUnk(TerminalLabeling):
+    def __init__(self, trees, threshold, UNK="UNKNOWN", filter=[]):
+        self.__terminal_counts = defaultdict(lambda: 0)
+        self.__UNK = UNK
+        self.__threshold = threshold
+        for tree in trees:
+            for token in tree.token_yield():
+                if token.pos() not in filter:
+                    self.__terminal_counts[(token.form().lower(), token.pos())] += 1
+
+    def __str__(self):
+        return 'form-pos-unk-' + str(self.__threshold)
+
+    def token_label(self, token):
+        pos = token.pos()
+        form = token.form().lower()
+        if self.__terminal_counts.get((form, pos)) < self.__threshold:
+            form = self.__UNK
+        return form + '-:-' + pos
 
 class TerminalLabelingFactory:
     def __init__(self):
