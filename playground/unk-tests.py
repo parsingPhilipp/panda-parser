@@ -34,7 +34,7 @@ def sm_path(cycles):
     return dir + 'sm_' + str(cycles) + '_grammar.pkl'
 
 
-term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
+# term_labelling =  #d_i.the_terminal_labeling_factory().get_strategy('pos')
 recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('strict', 'deprel')
@@ -42,13 +42,14 @@ ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('
 child_top_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('childtop', 'deprel')
 empty_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('empty', 'pos');
 #parser_type = parser.parser_factory.CFGParser
-parser_type = CFGParser
 # parser_type = GFParser
+parser_type = CFGParser
 # parser_type = GFParser_k_best
-tree_yield = term_labelling.prepare_parser_input
 
 
-def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preprocess_path=None):
+
+def do_parsing(grammar_prim, limit, ignore_punctuation, term_labelling, recompile=True, preprocess_path=None):
+    tree_yield = term_labelling.prepare_parser_input
     trees = parse_conll_corpus(test, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
@@ -122,12 +123,15 @@ def length_limit(trees, max_length=50):
         if len(tree.full_token_yield()) <= max_length:
             yield tree
 
-def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
+def main(limit=5000, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
     max_length = 20
+    trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
+    term_labelling = d_i.FormPosTerminalsUnk(trees, 5, filter=["NE", "CARD"])
+
     trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
 
     if recompileGrammar or not os.path.isfile(baseline_path):
-        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, empty_labelling, term_labelling.token_label, recursive_partitioning, start)
+        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, child_top_labelling, term_labelling.token_label, recursive_partitioning, start)
         pickle.dump(baseline_grammar, open(baseline_path, 'wb'))
     else:
         baseline_grammar = pickle.load(open(baseline_path))
@@ -136,88 +140,89 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
     print("Rules: ", len(baseline_grammar.rules()))
 
     if parsing:
-        do_parsing(baseline_grammar, test_limit, ignore_punctuation, recompileGrammar, [dir, "baseline_gf_grammar"])
+        do_parsing(baseline_grammar, test_limit, ignore_punctuation, term_labelling, recompileGrammar, [dir, "baseline_gf_grammar"])
 
-    em_trained = pickle.load(open(baseline_path))
-    if recompileGrammar or not os.path.isfile(reduct_path):
-        trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
-        trace = compute_reducts(em_trained, trees, term_labelling)
-        trace.serialize(reduct_path)
-    else:
-        print("loading trace")
-        trace = PySDCPTraceManager(em_trained, term_labelling)
-        trace.load_traces_from_file(reduct_path)
-
-    discr = False
-    if discr:
-        if recompileGrammar or not os.path.isfile(reduct_path_discr):
+    if True:
+        em_trained = pickle.load(open(baseline_path))
+        if recompileGrammar or not os.path.isfile(reduct_path):
             trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
-            trace_discr = compute_LCFRS_reducts(em_trained, trees, term_labelling, nonterminal_map=trace.get_nonterminal_map())
-            trace_discr.serialize(reduct_path_discr)
+            trace = compute_reducts(em_trained, trees, term_labelling)
+            trace.serialize(reduct_path)
         else:
-            print("loading trace discriminative")
-            trace_discr = PyLCFRSTraceManager(em_trained, trace.get_nonterminal_map())
-            trace_discr.load_traces_from_file(reduct_path_discr)
+            print("loading trace")
+            trace = PySDCPTraceManager(em_trained, term_labelling)
+            trace.load_traces_from_file(reduct_path)
 
-    n_epochs = 20
-    init = "rfe"
-    tie_breaking = True
-    em_trained_path_ = em_trained_path(n_epochs, init, tie_breaking)
+        discr = False
+        if discr:
+            if recompileGrammar or not os.path.isfile(reduct_path_discr):
+                trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
+                trace_discr = compute_LCFRS_reducts(em_trained, trees, terminal_labelling=term_labelling, nonterminal_map=trace.get_nonterminal_map())
+                trace_discr.serialize(reduct_path_discr)
+            else:
+                print("loading trace discriminative")
+                trace_discr = PyLCFRSTraceManager(em_trained, trace.get_nonterminal_map())
+                trace_discr.load_traces_from_file(reduct_path_discr)
 
-    if recompileGrammar or retrain or not os.path.isfile(em_trained_path_):
-        emTrainer = PyEMTrainer(trace)
-        emTrainer.em_training(em_trained, n_epochs=n_epochs, init=init, tie_breaking=tie_breaking, seed=seed)
-        pickle.dump(em_trained, open(em_trained_path_, 'wb'))
-    else:
-        em_trained = pickle.load(open(em_trained_path_, 'rb'))
+        n_epochs = 20
+        init = "rfe"
+        tie_breaking = True
+        em_trained_path_ = em_trained_path(n_epochs, init, tie_breaking)
 
-    if parsing:
-        do_parsing(em_trained, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "em_trained_gf_grammar"])
+        if recompileGrammar or retrain or not os.path.isfile(em_trained_path_):
+            emTrainer = PyEMTrainer(trace)
+            emTrainer.em_training(em_trained, n_epochs=n_epochs, init=init, tie_breaking=tie_breaking, seed=seed)
+            pickle.dump(em_trained, open(em_trained_path_, 'wb'))
+        else:
+            em_trained = pickle.load(open(em_trained_path_, 'rb'))
 
-    grammarInfo = PyGrammarInfo(baseline_grammar, trace.get_nonterminal_map())
-    storageManager = PyStorageManager()
+        if parsing:
+            do_parsing(em_trained, test_limit, ignore_punctuation, term_labelling, recompileGrammar or retrain, [dir, "em_trained_gf_grammar"])
 
-    builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
-    builder.set_em_epochs(n_epochs)
-    builder.set_split_randomization(1.0, seed + 1)
-    if discr:
-        builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
-    else:
-        builder.set_simple_expector(threads=1)
-    splitMergeTrainer = builder.set_percent_merger(65.0).build()
+        grammarInfo = PyGrammarInfo(baseline_grammar, trace.get_nonterminal_map())
+        storageManager = PyStorageManager()
+
+        builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
+        builder.set_em_epochs(n_epochs)
+        builder.set_split_randomization(1.0, seed + 1)
+        if discr:
+            builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
+        else:
+            builder.set_simple_expector(threads=1)
+        splitMergeTrainer = builder.set_percent_merger(65.0).build()
 
 
-    if (not recompileGrammar) and (not retrain) and os.path.isfile(sm_info_path):
-        print("Loading splits and weights of LA rules")
-        latentAnnotation = map(lambda t: build_PyLatentAnnotation(t[0], t[1], t[2], grammarInfo, storageManager)
-                               , pickle.load(open(sm_info_path, 'rb')))
-    else:
-        latentAnnotation = [build_PyLatentAnnotation_initial(em_trained, grammarInfo, storageManager)]
+        if (not recompileGrammar) and (not retrain) and os.path.isfile(sm_info_path):
+            print("Loading splits and weights of LA rules")
+            latentAnnotation = map(lambda t: build_PyLatentAnnotation(t[0], t[1], t[2], grammarInfo, storageManager)
+                                   , pickle.load(open(sm_info_path, 'rb')))
+        else:
+            latentAnnotation = [build_PyLatentAnnotation_initial(em_trained, grammarInfo, storageManager)]
 
-    max_cycles = 4
-    reparse = False
-    # parsing = False
-    for i in range(max_cycles + 1):
-        if i < len(latentAnnotation):
-            if reparse:
+        max_cycles = 4
+        reparse = False
+        # parsing = False
+        for i in range(max_cycles + 1):
+            if i < len(latentAnnotation):
+                if reparse:
+                    smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
+                                                                     , grammarInfo
+                                                                     , rule_pruning=0.0001
+                                                                     , rule_smoothing=0.01)
+                    print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
+                    do_parsing(smGrammar, test_limit, ignore_punctuation, term_labelling, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
+            else:
+                # setting the seed to achieve reproducibility in case of continued training
+                splitMergeTrainer.reset_random_seed(seed + i + 1)
+                latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
+                pickle.dump(map(lambda la: la.serialize(), latentAnnotation), open(sm_info_path, 'wb'))
                 smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
                                                                  , grammarInfo
                                                                  , rule_pruning=0.0001
-                                                                 , rule_smoothing=0.01)
+                                                                 , rule_smoothing=0.1)
                 print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
-                do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
-        else:
-            # setting the seed to achieve reproducibility in case of continued training
-            splitMergeTrainer.reset_random_seed(seed + i + 1)
-            latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
-            pickle.dump(map(lambda la: la.serialize(), latentAnnotation), open(sm_info_path, 'wb'))
-            smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
-                                                             , grammarInfo
-                                                             , rule_pruning=0.0001
-                                                             , rule_smoothing=0.1)
-            print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
-            if parsing:
-                do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
+                if parsing:
+                    do_parsing(smGrammar, test_limit, ignore_punctuation, term_labelling, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
 
 if __name__ == '__main__':
     main()

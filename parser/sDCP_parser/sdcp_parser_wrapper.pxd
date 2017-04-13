@@ -79,6 +79,7 @@ cdef class PySDCPParser(object):
     cdef SDCP[NONTERMINAL,TERMINAL] sdcp
     cdef SDCPParser[NONTERMINAL,TERMINAL,int]* parser
     cdef Enumerator terminal_map, nonterminal_map
+    cdef object term_labelling
     cdef bint debug
     cdef void set_sdcp(self, SDCP[NONTERMINAL,TERMINAL] sdcp)
     cdef void set_terminal_map(self, Enumerator terminal_map)

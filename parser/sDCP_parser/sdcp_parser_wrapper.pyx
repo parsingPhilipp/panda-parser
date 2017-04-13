@@ -4,6 +4,7 @@ import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
 import parser.parser_interface as pi
 import parser.derivation_interface as di
+from dependency.induction import TerminalLabeling
 from collections import defaultdict
 
 # this needs to be consistent
@@ -15,36 +16,36 @@ DEF ENCODE_TERMINALS = True
 cdef extern from "util.h":
     cdef void output_helper(string)
 
-cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, terminal_encoding=str) except * :
+cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, term_labelling, terminal_encoding=str) except * :
     # output_helper("convert hybrid tree: " + str(p_tree))
     cdef HybridTree[TERMINAL, int]* c_tree = new HybridTree[TERMINAL, int]()
     assert isinstance(p_tree, gh.HybridTree)
     cdef vector[int] linearization = [-1] * len(p_tree.id_yield())
     c_tree[0].set_entry(0)
     # output_helper(str(p_tree.root))
-    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization, terminal_encoding)
+    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization, term_labelling, terminal_encoding)
     c_tree[0].set_exit(last)
     # output_helper(str(linearization))
     c_tree[0].set_linearization(linearization)
     return c_tree
 
 
-cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization, terminal_encoding) except *:
+cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization, term_labelling, terminal_encoding) except *:
     # output_helper(str(p_ids))
     if p_ids == []:
         return pred_id, max_id
     p_id = p_ids[0]
     cdef c_id = max_id + 1
     max_id += 1
-    c_tree[0].add_node(pred_id, terminal_encoding(str(p_tree.node_token(p_id).pos()) + " : " + str(p_tree.node_token(p_id).deprel())), terminal_encoding(str(p_tree.node_token(p_id).pos())), c_id)
+    c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id))) + " : " + str(p_tree.node_token(p_id).deprel())), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
     if p_tree.in_ordering(p_id):
         linearization[p_tree.node_index(p_id)] = c_id
     if attach_parent:
         c_tree[0].add_child(parent_id, c_id)
     if p_tree.children(p_id):
         c_tree[0].add_child(c_id, c_id + 1)
-        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization, terminal_encoding)
-    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization, terminal_encoding)
+        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization, term_labelling, terminal_encoding)
+    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization, term_labelling, terminal_encoding)
 
 
 cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=False) except *:
@@ -113,7 +114,7 @@ def print_grammar(grammar):
     cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder)
     sdcp.output()
 
-def print_grammar_and_parse_tree(grammar, tree):
+def print_grammar_and_parse_tree(grammar, tree, term_labelling):
     # cdef Enumerator rule_map = Enumerator()
     cdef Enumerator nonterminal_map = Enumerator()
     cdef Enumerator terminal_map = Enumerator()
@@ -123,7 +124,7 @@ def print_grammar_and_parse_tree(grammar, tree):
     cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder)
     sdcp.output()
 
-    cdef HybridTree[TERMINAL,int]* c_tree = convert_hybrid_tree(tree, str)
+    cdef HybridTree[TERMINAL,int]* c_tree = convert_hybrid_tree(tree, term_labelling, str)
     c_tree[0].output()
 
     cdef SDCPParser[NONTERMINAL,TERMINAL,int] parser
@@ -256,9 +257,10 @@ cdef class PySDCPParser(object):
     # cdef Enumerator rule_map, terminal_map, nonterminal_map
     # cdef bint debug
 
-    def __init__(self, grammar, lcfrs_parsing=False, debug=False):
+    def __init__(self, grammar, term_labelling, lcfrs_parsing=False, debug=False):
         self.debug = debug
         self.parser = new SDCPParser[NONTERMINAL,TERMINAL,int](lcfrs_parsing, debug, True, True)
+        self.term_labelling = term_labelling
         # self.__grammar = grammar
 
     cdef void set_sdcp(self, SDCP[NONTERMINAL,TERMINAL] sdcp):
@@ -276,7 +278,8 @@ cdef class PySDCPParser(object):
         if self.debug:
             output_helper("parsing completed\n")
 
-        self.parser[0].reachability_simplification()
+        if self.recognized():
+            self.parser[0].reachability_simplification()
 
         if self.debug:
             output_helper("reachability simplification completed\n")
@@ -289,9 +292,9 @@ cdef class PySDCPParser(object):
     def set_input(self, tree):
         cdef HybridTree[TERMINAL,int]* c_tree
         if ENCODE_TERMINALS:
-            c_tree = convert_hybrid_tree(tree, lambda s: self.terminal_map.object_index(s))
+            c_tree = convert_hybrid_tree(tree, self.term_labelling, lambda s: self.terminal_map.object_index(s))
         else:
-            c_tree = convert_hybrid_tree(tree)
+            c_tree = convert_hybrid_tree(tree, self.term_labelling)
         self.parser[0].set_input(c_tree[0])
         self.parser[0].set_goal()
         if self.debug:

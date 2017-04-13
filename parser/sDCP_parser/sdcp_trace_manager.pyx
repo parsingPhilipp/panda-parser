@@ -23,7 +23,7 @@ cdef extern from "util.h":
 cdef class PySDCPTraceManager(PyTraceManager):
     cdef PySDCPParser parser
 
-    def __init__(self, grammar, lcfrs_parsing=True, debug=False):
+    def __init__(self, grammar, term_labelling, lcfrs_parsing=True, debug=False):
         """
         :param grammar:
         :type grammar: gl.LCFRS
@@ -39,7 +39,7 @@ cdef class PySDCPTraceManager(PyTraceManager):
         nonterminal_encoder = (lambda s: nonterminal_map.object_index(s)) if ENCODE_NONTERMINALS else lambda s: str(s)
         terminal_encoder = (lambda s: terminal_map.object_index(s)) if ENCODE_TERMINALS else lambda s: str(s)
 
-        self.parser = PySDCPParser(grammar, lcfrs_parsing, debug)
+        self.parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing, debug)
         self.parser.set_sdcp(grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_parsing))
         self.parser.set_terminal_map(terminal_map)
         self.parser.set_nonterminal_map(nonterminal_map)
@@ -68,9 +68,9 @@ cdef class PySDCPTraceManager(PyTraceManager):
     cpdef Enumerator get_nonterminal_map(self):
         return self.parser.nonterminal_map
 
-def compute_reducts(grammar, corpus, debug=False):
+def compute_reducts(grammar, corpus, term_labelling, debug=False):
     output_helper("creating trace")
-    trace = PySDCPTraceManager(grammar, debug=debug)
+    trace = PySDCPTraceManager(grammar, term_labelling, debug=debug)
     output_helper("computing reducts")
     trace.compute_reducts(corpus)
     return trace
