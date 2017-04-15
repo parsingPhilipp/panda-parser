@@ -16,8 +16,6 @@ import re
 import argparse
 
 
-test = '../res/negra-dep/negra-lower-punct-test.conll'
-train ='../res/negra-dep/negra-lower-punct-train.conll'
 result = 'recursive-partitoning-results.conll'
 start = 'START'
 term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
@@ -39,6 +37,7 @@ argParser.add_argument('-t', nargs='*', choices=['pos', 'deprel', 'pos+deprel'])
 argParser.add_argument('-f', nargs='*') #choose maximal fanout(s)
 argParser.add_argument('-n', nargs='*', choices=['rtl', 'ltr', 'random', 'argmax']) #choose fallback strategy if no-new-nont is used
 argParser.add_argument('-r', nargs='*') #set random seed(s) for random strategy
+argParser.add_argument('-c', choices=['hungarian','polish']) #choose corpus
 
 
 
@@ -55,7 +54,15 @@ def main(ignore_punctuation=False):
     args = vars(argParser.parse_args())
 
     #parse command line arguments for transformation strategies,
-    #random seed and fallback strategy for no-new-nont
+    #random seed, fallback strategy for no-new-nont and corpora
+    if args['c'] is None or args['c'] == 'hungarian':
+        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/HUNGARIAN_SPMRL/pred/conll/test/test.Hungarian.pred.conll'
+        train ='../res/SPMRL_SHARED_2014_NO_ARABIC/HUNGARIAN_SPMRL/pred/conll/train/train.Hungarian.pred.conll'
+    else:
+        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/test/test.Polish.pred.conll'
+        train ='../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/train/train.Polish.pred.conll'
+
+
     strategies = []
     if args['s'] is None:
         strategies = ['']
@@ -115,26 +122,25 @@ def main(ignore_punctuation=False):
             for labelling2 in labellings2:
                 for fanout in fanouts:
                     if fanout == '1':
-                        trainAndEval(strategy, labelling1, labelling2, fanout, parser1, ignore_punctuation)
+                        trainAndEval(strategy, labelling1, labelling2, fanout, parser1, train, test, ignore_punctuation)
                     else:
-                        trainAndEval(strategy, labelling1, labelling2, fanout, parser23, ignore_punctuation)
+                        trainAndEval(strategy, labelling1, labelling2, fanout, parser23, train, test, ignore_punctuation)
 
 
 
 
-
-def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_punctuation=False):
+def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, test, ignore_punctuation=False):
     file = open('results.txt', 'a')
-    
     term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
     recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + strategy)
     primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy(labelling1, labelling2)
     
+
     trees = parse_conll_corpus(train, False, train_limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
     (n_trees, grammar) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label, recursive_partitioning, start)
-
+    
     
     file.write('\n\n\n')
     if strategy == '':
@@ -148,27 +154,31 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_p
 
     res += '#nonts:' + str(len(grammar.nonts()))
     res += ' #rules:' + str(len(grammar.rules()))
-
+    
     # The following code is to count the number of derivations for a hypergraph (tree parser required)
     tree_parser.preprocess_grammar(grammar)
 
     trees = parse_conll_corpus(train , False, train_limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
+    
 
     derCount = 0
     derMax = 0
+    i = 0
     for tree in trees:
         parser = tree_parser(grammar, tree)  # if tree parser is used
         der = parser.count_derivation_trees()
         if der > derMax:
             derMax = der
         derCount += der
+        i += 1
+        print i
 
     res += "  average: " + str(1.0*derCount/train_limit)
     res += " maximal: " + str(derMax)
-
-
+    
+    
     total_time = 0.0
 
     # The following code works for string parsers for evaluating
@@ -208,6 +218,7 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_p
                 result_file.write('\n\n')
 
     
+    
     res += "  no punctuation: "
     out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
     match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
@@ -219,11 +230,13 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, ignore_p
     res += ' l:' + match.group(1)
     res += ' u:' + match.group(2)
     
+
     
     res += " time: " + str(total_time)
     
-    file.write(res)
 
+
+    file.write(res)
     file.close()
 
 
