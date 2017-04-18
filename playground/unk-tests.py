@@ -13,7 +13,7 @@ from hybridtree.dependency_tree import disconnect_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTraceManager
-from parser.parser_factory import GFParser, GFParser_k_best, CFGParser
+from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
@@ -35,7 +35,8 @@ def sm_path(cycles):
 
 
 # term_labelling =  #d_i.the_terminal_labeling_factory().get_strategy('pos')
-recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
+# recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
+recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('left-branching')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('strict', 'deprel')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')
@@ -43,7 +44,8 @@ child_top_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy
 empty_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('empty', 'pos');
 #parser_type = parser.parser_factory.CFGParser
 # parser_type = GFParser
-parser_type = CFGParser
+# parser_type = CFGParser
+parser_type = LeftBranchingFSTParser
 # parser_type = GFParser_k_best
 
 
@@ -89,7 +91,10 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, term_labelling, recompil
                                                         copy.deepcopy(tree.full_token_yield()), False,
                                                         construct_conll_token)
                 h_tree = parser.best_trees(der_to_tree)[0][0]
-            elif parser_type == CFGParser or parser_type == GFParser:
+            elif parser_type == CFGParser \
+                    or parser_type == GFParser \
+                    or parser_type == LeftBranchingFSTParser \
+                    or parser_type == RightBranchingFSTParser:
                 h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
                                                               construct_conll_token)
             else:

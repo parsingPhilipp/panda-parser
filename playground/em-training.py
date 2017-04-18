@@ -13,7 +13,7 @@ from hybridtree.dependency_tree import disconnect_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTraceManager
-from parser.parser_factory import GFParser, GFParser_k_best, CFGParser
+from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
@@ -88,9 +88,12 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preproce
                                                         copy.deepcopy(tree.full_token_yield()), False,
                                                         construct_conll_token)
                 h_tree = parser.best_trees(der_to_tree)[0][0]
-            elif parser_type == CFGParser or parser_type == GFParser:
+            elif parser_type == CFGParser \
+                     or parser_type == GFParser \
+                     or parser_type == LeftBranchingFSTParser \
+                     or parser_type == RightBranchingFSTParser:
                 h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
-                                                              construct_conll_token)
+                                                                construct_conll_token)
             else:
                 h_tree = None
 
