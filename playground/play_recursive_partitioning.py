@@ -8,7 +8,7 @@ import time
 import parser.parser_factory
 import copy
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar, PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
-from playground_rparse.process_rparse_grammar import fall_back_left_branching
+from playground_rparse.process_rparse_grammar import fall_back_left_branching_token
 import subprocess
 import grammar.linearization as g_l
 import decomposition as dec
@@ -26,7 +26,7 @@ tree_parser = LCFRS_sDCP_Parser  # tree parser to count derivations per hybrid t
 tree_yield = term_labelling.prepare_parser_input
 
 train_limit = 2000
-test_limit = 2000
+test_limit = 5100
 
 
 #add command line arguments
@@ -214,7 +214,7 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
                 failures += 1
                 forms = [token.form() for token in tree.full_token_yield()]
                 poss = [token.pos() for token in tree.full_token_yield()]
-                result_file.write(tree_to_conll_str(fall_back_left_branching(forms, poss)))
+                result_file.write(tree_to_conll_str(fall_back_left_branching_token(cleaned_tokens)))
                 result_file.write('\n\n')
 
     
