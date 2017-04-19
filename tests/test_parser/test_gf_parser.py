@@ -13,6 +13,7 @@ from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
 from sys import stderr
 from math import exp
 import copy
+from dependency.minimum_risk import compute_minimum_risk_tree
 
 
 class MyTestCase(unittest.TestCase):
@@ -131,6 +132,72 @@ class MyTestCase(unittest.TestCase):
                             print >> stderr, " ",
                     print >> stderr, weights[i]
                 print >> stderr
+
+    def test_minimum_risk_parsing(self):
+        limit_train = 20
+        limit_test = 10
+        train = 'res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+        test = train
+        parser_type = GFParser_k_best
+        # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+        trees = parse_conll_corpus(train, False, limit_train)
+        primary_labelling = the_labeling_factory().create_simple_labeling_strategy("childtop", "deprel")
+        term_labelling = the_terminal_labeling_factory().get_strategy('pos')
+        start = 'START'
+        recursive_partitioning = [cfg]
+
+        (n_trees, grammar_prim) = induce_grammar(trees, primary_labelling, term_labelling.token_label,
+                                                 recursive_partitioning, start)
+
+        parser_type.preprocess_grammar(grammar_prim)
+        tree_yield = term_labelling.prepare_parser_input
+
+        trees = parse_conll_corpus(test, False, limit_test)
+
+        for i, tree in enumerate(trees):
+            print >> stderr, "Parsing sentence ", i
+
+            # print >>stderr, tree
+
+            parser = parser_type(grammar_prim, tree_yield(tree.token_yield()), k=50)
+
+            self.assertTrue(parser.recognized())
+
+            derivations = [der for der in parser.k_best_derivation_trees()]
+            print >> stderr, "# derivations: ", len(derivations)
+            h_trees = []
+            current_weight = 0
+            weights = []
+            derivation_list = []
+            for weight, der in derivations:
+                # print >>stderr, exp(-weight)
+                # print >>stderr, der
+
+                self.assertTrue(not der in derivation_list)
+
+                derivation_list.append(der)
+
+                # TODO this should hold, but it looks like a GF bug!
+                # self.assertGreaterEqual(weight, current_weight)
+                current_weight = weight
+
+                dcp = The_DCP_evaluator(der).getEvaluation()
+                h_tree = HybridTree()
+                cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+                dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
+
+                h_trees.append(h_tree)
+                weights.append(exp(-weight))
+
+                # print >>stderr, h_tree
+
+            if True:
+                min_risk_tree = compute_minimum_risk_tree(h_trees, weights)
+                if not min_risk_tree.__eq__(h_trees[0]):
+                    print h_trees[0]
+                    print min_risk_tree
+
+
 
     def test_best_trees(self):
         limit_train = 5000
