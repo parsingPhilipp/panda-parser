@@ -18,6 +18,9 @@ from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
+from dependency.minimum_risk import compute_minimum_risk_tree
+from dependency.oracle import compute_oracle_tree
+from math import exp
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'
@@ -35,8 +38,8 @@ def sm_path(cycles):
 
 
 # term_labelling =  #d_i.the_terminal_labeling_factory().get_strategy('pos')
-# recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
-recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('left-branching')
+recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
+# recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('left-branching')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('strict', 'deprel')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')
@@ -45,9 +48,11 @@ empty_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('em
 #parser_type = parser.parser_factory.CFGParser
 # parser_type = GFParser
 # parser_type = CFGParser
-parser_type = LeftBranchingFSTParser
-# parser_type = GFParser_k_best
-
+# parser_type = LeftBranchingFSTParser
+parser_type = GFParser_k_best
+k_best = 50
+minimum_risk = False
+oracle_parse = True
 
 
 def do_parsing(grammar_prim, limit, ignore_punctuation, term_labelling, recompile=True, preprocess_path=None):
@@ -62,7 +67,10 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, term_labelling, recompil
     if recompile or (not os.path.isfile(parser_type.resolve_path(preprocess_path))):
         load_preprocess=None
 
-    parser = parser_type(grammar_prim, save_preprocess=preprocess_path, load_preprocess=load_preprocess)
+    if parser_type == GFParser_k_best:
+        parser = parser_type(grammar_prim, save_preprocess=preprocess_path, load_preprocess=load_preprocess, k=k_best)
+    else:
+        parser = parser_type(grammar_prim, save_preprocess=preprocess_path, load_preprocess=load_preprocess)
 
     with open(result, 'w') as result_file:
         failures = 0
@@ -87,10 +95,29 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, term_labelling, recompil
             h_tree = HybridTree(tree.sent_label())
 
             if parser_type == GFParser_k_best and parser.recognized():
-                der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(),
-                                                        copy.deepcopy(tree.full_token_yield()), False,
-                                                        construct_conll_token)
-                h_tree = parser.best_trees(der_to_tree)[0][0]
+                if minimum_risk or oracle_parse:
+                    h_trees = []
+                    weights = []
+
+                    for weight, der in parser.k_best_derivation_trees():
+
+                        dcp = The_DCP_evaluator(der).getEvaluation()
+                        h_tree = HybridTree()
+                        cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+                        dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
+
+                        h_trees.append(h_tree)
+                        weights.append(exp(-weight))
+
+                    if minimum_risk:
+                        h_tree = compute_minimum_risk_tree(h_trees, weights)
+                    elif oracle_parse:
+                        h_tree = compute_oracle_tree(h_trees, tree)
+                else:
+                    der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(),
+                                                            copy.deepcopy(tree.full_token_yield()), False,
+                                                            construct_conll_token)
+                    h_tree = parser.best_trees(der_to_tree)[0][0]
             elif parser_type == CFGParser \
                     or parser_type == GFParser \
                     or parser_type == LeftBranchingFSTParser \
@@ -128,10 +155,11 @@ def length_limit(trees, max_length=50):
         if len(tree.full_token_yield()) <= max_length:
             yield tree
 
-def main(limit=5000, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
-    max_length = 20
+def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
+    max_length = 26
     trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
-    term_labelling = d_i.FormPosTerminalsUnk(trees, 5, filter=["NE", "CARD"])
+    # term_labelling = d_i.PosTerminals()
+    term_labelling = d_i.FormPosTerminalsUnk(trees, 30, filter=["NE", "CARD"])
 
     trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
 
@@ -194,7 +222,7 @@ def main(limit=5000, ignore_punctuation=False, baseline_path=baseline_path, reco
             builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
         else:
             builder.set_simple_expector(threads=1)
-        splitMergeTrainer = builder.set_percent_merger(65.0).build()
+        splitMergeTrainer = builder.set_percent_merger(85.0).build()
 
 
         if (not recompileGrammar) and (not retrain) and os.path.isfile(sm_info_path):
