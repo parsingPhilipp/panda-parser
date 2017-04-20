@@ -56,12 +56,12 @@ def main(ignore_punctuation=False):
     #parse command line arguments for transformation strategies,
     #random seed, fallback strategy for no-new-nont and corpora
     if args['c'] is None or args['c'] == 'hungarian':
-        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/HUNGARIAN_SPMRL/pred/conll/test/test.Hungarian.pred.conll'
+        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/HUNGARIAN_SPMRL/pred/conll/dev/dev.Hungarian.pred.conll'
         train ='../res/SPMRL_SHARED_2014_NO_ARABIC/HUNGARIAN_SPMRL/pred/conll/train/train.Hungarian.pred.conll'
     else:
-        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/test/test.Polish.pred.conll'
+        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/dev/dev.Polish.pred.conll'
         train ='../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/train/train.Polish.pred.conll'
-
+    
 
     strategies = []
     if args['s'] is None:
@@ -141,12 +141,27 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
         trees = disconnect_punctuation(trees)
     (n_trees, grammar) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label, recursive_partitioning, start)
     
-    
-    file.write('\n\n\n')
+    #write current transformation strategy and hyperparameters to results.txt
+    #file.write('\n\n\n')
     if strategy == '':
-        file.write('-right-to-left' + ' ' + labelling1 + ' ' + labelling2 + ' ' + fanout)
+            file.write('rtl ' + labelling1 + ' ' + labelling2 + '    maximal fanout:' + fanout)
     else:
-        file.write(strategy + ' ' + labelling1 + ' ' + labelling2 + ' ' + fanout)
+        splitList = strategy.split('-')
+        if splitList[1] == 'left':
+            file.write('ltr ' + labelling1 + ' ' + labelling2 + '    maximal fanout:' + fanout)
+        elif splitList[1] == 'random':
+            file.write('random seed:' + splitList[2] + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
+        elif splitList[1] == 'no':
+            if splitList[4] == 'random':
+                file.write('nnont fallback:random seed:' + splitList[5] + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
+            elif splitList[4] == 'left':
+                file.write('nnont fallback:ltr' + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
+            elif splitList[4] == 'rtl':
+                file.write('nnont fallback:rtl' + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
+            else:
+                 file.write('nnont fallback:argmax' + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)    
+        else:#argmax
+            file.write('argmax ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
     file.write('\n')
     
     
@@ -165,17 +180,14 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
 
     derCount = 0
     derMax = 0
-    i = 0
     for tree in trees:
         parser = tree_parser(grammar, tree)  # if tree parser is used
         der = parser.count_derivation_trees()
         if der > derMax:
             derMax = der
         derCount += der
-        i += 1
-        print i
 
-    res += "  average: " + str(1.0*derCount/train_limit)
+    res += "\n#derivation trees:  average: " + str(1.0*derCount/train_limit)
     res += " maximal: " + str(derMax)
     
     
@@ -219,24 +231,25 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
 
     
     
-    res += "  no punctuation: "
+    res += "\nattachment scores:\nno punctuation: "
     out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
     match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
-    res += ' l:' + match.group(1) #labeled attachment score
-    res += ' u:' + match.group(2) #unlabeled attachment score
-    res += "  punctation: "
+    res += ' labelled:' + match.group(1) #labeled attachment score
+    res += ' unlabelled:' + match.group(2) #unlabeled attachment score
+    res += "\npunctation: "
     out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
     match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
-    res += ' l:' + match.group(1)
-    res += ' u:' + match.group(2)
+    res += ' labelled:' + match.group(1)
+    res += ' unlabelled:' + match.group(2)
     
 
     
-    res += " time: " + str(total_time)
+    res += "\nparse time: " + str(total_time)
     
 
 
     file.write(res)
+    file.write('\n\n\n')
     file.close()
 
 
