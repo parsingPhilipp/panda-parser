@@ -25,7 +25,7 @@ def is_punctuation(form):
     # we allow the dollar sign $ and the quotation marks `` and ''
 
 
-def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
+def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint, start=0):
     """
     :param path: path to corpus
     :type: str
@@ -123,7 +123,8 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint):
                     '{4}: connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
                         str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
                         str(len(tree.id_yield()))), tree.sent_label())
-            yield tree
+            if tree_count > start:
+                yield tree
 
 
 def tree_to_conll_str(tree):
