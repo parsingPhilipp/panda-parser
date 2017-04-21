@@ -47,12 +47,14 @@ child_top_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy
 empty_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('empty', 'pos');
 #parser_type = parser.parser_factory.CFGParser
 # parser_type = GFParser
-# parser_type = CFGParser
+parser_type = CFGParser
 # parser_type = LeftBranchingFSTParser
-parser_type = GFParser_k_best
+# parser_type = GFParser_k_best
 k_best = 50
 minimum_risk = False
 oracle_parse = True
+
+validation = True
 
 
 def do_parsing(grammar_prim, limit, ignore_punctuation, term_labelling, recompile=True, preprocess_path=None):
@@ -155,7 +157,9 @@ def length_limit(trees, max_length=50):
         if len(tree.full_token_yield()) <= max_length:
             yield tree
 
-def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
+def main(limit=3000, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
+    if validation:
+        train_limit = limit * 4 / 5
     max_length = 26
     trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
     # term_labelling = d_i.PosTerminals()
@@ -178,7 +182,7 @@ def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, reco
     if True:
         em_trained = pickle.load(open(baseline_path))
         if recompileGrammar or not os.path.isfile(reduct_path):
-            trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
+            trees = length_limit(parse_conll_corpus(train, False, train_limit), max_length)
             trace = compute_reducts(em_trained, trees, term_labelling)
             trace.serialize(reduct_path)
         else:
@@ -189,7 +193,7 @@ def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, reco
         discr = False
         if discr:
             if recompileGrammar or not os.path.isfile(reduct_path_discr):
-                trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
+                trees = length_limit(parse_conll_corpus(train, False, train_limit), max_length)
                 trace_discr = compute_LCFRS_reducts(em_trained, trees, terminal_labelling=term_labelling, nonterminal_map=trace.get_nonterminal_map())
                 trace_discr.serialize(reduct_path_discr)
             else:
@@ -222,6 +226,11 @@ def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, reco
             builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
         else:
             builder.set_simple_expector(threads=1)
+        if validation:
+            # todo: serialization
+            trees = length_limit(parse_conll_corpus(train, False, start=train_limit, limit=limit), max_length)
+            validation_trace = compute_reducts(em_trained, trees, term_labelling)
+            builder.set_simple_validator(validation_trace, maxDrops=5, threads=1)
         splitMergeTrainer = builder.set_percent_merger(85.0).build()
 
 
@@ -230,7 +239,8 @@ def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, reco
             latentAnnotation = map(lambda t: build_PyLatentAnnotation(t[0], t[1], t[2], grammarInfo, storageManager)
                                    , pickle.load(open(sm_info_path, 'rb')))
         else:
-            latentAnnotation = [build_PyLatentAnnotation_initial(em_trained, grammarInfo, storageManager)]
+            # latentAnnotation = [build_PyLatentAnnotation_initial(em_trained, grammarInfo, storageManager)]
+            latentAnnotation = [build_PyLatentAnnotation_initial(baseline_grammar, grammarInfo, storageManager)]
 
         max_cycles = 4
         reparse = False
@@ -240,8 +250,8 @@ def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, reco
                 if reparse:
                     smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
                                                                      , grammarInfo
-                                                                     , rule_pruning=0.0001
-                                                                     , rule_smoothing=0.01)
+                                                                     , rule_pruning=0.00
+                                                                     , rule_smoothing=0.00)
                     print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
                     do_parsing(smGrammar, test_limit, ignore_punctuation, term_labelling, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
             else:
@@ -252,7 +262,7 @@ def main(limit=2500, ignore_punctuation=False, baseline_path=baseline_path, reco
                 smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
                                                                  , grammarInfo
                                                                  , rule_pruning=0.0001
-                                                                 , rule_smoothing=0.1)
+                                                                 , rule_smoothing=0.00)
                 print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
                 if parsing:
                     do_parsing(smGrammar, test_limit, ignore_punctuation, term_labelling, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])

@@ -69,6 +69,13 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_simple_maximizer()
         SplitMergeTrainerBuilder& set_simple_maximizer(unsigned_int)
         SplitMergeTrainerBuilder& set_em_epochs(unsigned_int)
+        SplitMergeTrainerBuilder& set_simple_validator(
+                TraceManagerPtr[Nonterminal, TraceID] discriminativeTraceManager
+                , unsigned_int maxDrops)
+        SplitMergeTrainerBuilder& set_simple_validator(
+                TraceManagerPtr[Nonterminal, TraceID] discriminativeTraceManager
+                , unsigned_int maxDrops
+                , unsigned_int threads)
         SplitMergeTrainerBuilder& set_percent_merger(double)
         SplitMergeTrainerBuilder& set_percent_merger(double, unsigned)
         SplitMergeTrainerBuilder& set_threshold_merger(double)
@@ -192,6 +199,19 @@ cdef class PySplitMergeTrainerBuilder:
 
     cpdef PySplitMergeTrainerBuilder set_em_epochs(self, size_t epochs):
         deref(self.splitMergeTrainerBuilder).set_em_epochs(epochs)
+        return self
+
+    cpdef PySplitMergeTrainerBuilder set_simple_validator(
+            self
+            , PyTraceManager discriminativeTraces
+            , unsigned_int maxDrops=6
+            , unsigned_int threads=0
+    ):
+        if threads > 0:
+            deref(self.splitMergeTrainerBuilder)\
+                .set_simple_validator(discriminativeTraces.trace_manager, maxDrops, threads)
+        else:
+            deref(self.splitMergeTrainerBuilder).set_simple_validator(discriminativeTraces.trace_manager, maxDrops)
         return self
 
     cpdef PySplitMergeTrainerBuilder set_percent_merger(self, double percent=50.0, unsigned_int threads=0):
