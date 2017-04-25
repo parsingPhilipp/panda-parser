@@ -4,6 +4,7 @@ from parser.viterbi.left_branching import LeftBranchingParser
 from parser.fst.fst_export import RightBranchingFSTParser, LeftBranchingFSTParser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
+from parser.parser_interface import AbstractParser
 import re
 from collections import defaultdict
 

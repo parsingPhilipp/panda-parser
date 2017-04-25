@@ -5,7 +5,7 @@ from parser.gf_parser.gf_export import compile_gf_grammar, export, LANGUAGE, COM
 from grammar.linearization import Enumerator
 from collections import defaultdict
 from math import exp
-
+import os.path
 
 default_prefix = '/tmp/'
 default_name = 'gfgrammar'
@@ -85,7 +85,7 @@ class GFParser(AbstractParser):
 
     @staticmethod
     def resolve_path(path):
-        return path[0] + path[1] + COMPILED_SUFFIX
+        return os.path.join(path[0], path[1] + COMPILED_SUFFIX)
 
     def set_input(self, input):
         self.input = input
@@ -120,7 +120,7 @@ class GFParser(AbstractParser):
     def _preprocess(grammar, prefix=default_prefix, name=default_name, override=False):
         name_ = export(grammar, prefix, name, override)
         compile_gf_grammar(prefix, name_)
-        gf_grammar = pgf.readPGF(prefix + name_ + COMPILED_SUFFIX).languages[name_ + LANGUAGE]
+        gf_grammar = pgf.readPGF(os.path.join(prefix, name_ + COMPILED_SUFFIX)).languages[name_ + LANGUAGE]
         return gf_grammar
 
     @staticmethod
