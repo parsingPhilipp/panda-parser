@@ -1,7 +1,6 @@
 # Parsing of the Negra corpus and capture of hybrid trees.
 
 from os.path import expanduser
-
 from hybridtree.constituent_tree import ConstituentTree
 from grammar.lcfrs import *
 
@@ -74,3 +73,84 @@ def sentence_names_to_hybridtrees(names, file_name):
                     tree.add_child(parent, leaf_id)
     negra.close()
     return trees
+
+
+def generate_ids_for_inner_nodes(tree, node_id, idNum):
+    """
+    generates a dictionary which assigns each tree id an numeric id like specified in export format
+    :param tree: parse tree
+    :type: ConstituentTree
+    :param node_id: id of current node
+    :type: str
+    :param idNum: current dictionary 
+    :type: dict
+    :return: nothing
+    """
+    count = 500+len(tree.ids())
+
+    if len(idNum) is not 0:
+        count = min(idNum.values())
+
+    if node_id not in tree.id_yield():
+        idNum[node_id] = count-1
+
+    for child in tree.children(node_id):
+        generate_ids_for_inner_nodes(tree, child, idNum)
+
+    return
+
+
+def hybridtree_to_sentence_name(tree, idNum):
+    """
+    generates lines for given tree in export format
+    :param tree: parse tree
+    :type: ConstituentTree
+    :param idNum: dictionary mapping node id to a numeric id
+    :type: dict
+    :return: list of lines
+    :rtype: list of str
+    """
+    lines = []
+
+    for leaf in tree.full_yield():
+        token = tree.node_token(leaf)
+        line = str(token.form()) + ' ' + str(token.pos()) + ' -- -- '
+        if leaf in tree.id_yield():
+            lines.append(line + str(idNum[tree.parent(leaf)]) + '\n')
+        else:
+            lines.append(line + '0\n')
+
+    for id in tree.ids():
+        token = tree.node_token(id)
+        line = '#' + str(idNum[id]) + ' ' + str(token.category()) + ' -- -- '
+
+        if tree.parent(id) == tree.root[0] and tree.node_token(tree.parent(id)).category() == 'VROOT':
+            lines.append(line + '0\n')
+        elif token.category() != 'VROOT' and id == tree.root[0]:
+            lines.append(line + '0\n')
+        elif id != tree.root[0]:
+            lines.append(line + str(idNum[tree.parent(id)]) + '\n')
+
+    return lines
+
+
+def hybridtrees_to_sentence_names(trees):
+    """
+    converts a sequence of parse tree to the export format
+    :param trees: list of parse trees
+    :type: list of ConstituentTrees
+    :return: list of export format lines
+    :rtype: list of str
+    """
+    sentence_names = []
+    counter = 1
+
+    for tree in trees:
+        idNum = dict()
+        generate_ids_for_inner_nodes(tree, tree.root[0], idNum)
+        sentence_names.append('#BOS ' + str(counter) + '\n')
+        sentence_names.extend(hybridtree_to_sentence_name(tree, idNum))
+        sentence_names.append('#EOS ' + str(counter) + '\n')
+        counter += 1
+
+    return sentence_names
