@@ -115,18 +115,18 @@ def hybridtree_to_sentence_name(tree, idNum):
     for leaf in tree.full_yield():
         token = tree.node_token(leaf)
         line = str(token.form()) + ' ' + str(token.pos()) + ' -- -- '
-        if leaf in tree.id_yield():
+
+        if leaf in tree.id_yield() and tree.root[0] != leaf:
             lines.append(line + str(idNum[tree.parent(leaf)]) + '\n')
         else:
             lines.append(line + '0\n')
 
     for id in tree.ids():
+
         token = tree.node_token(id)
         line = '#' + str(idNum[id]) + ' ' + str(token.category()) + ' -- -- '
 
-        if tree.parent(id) == tree.root[0] and tree.node_token(tree.parent(id)).category() == 'VROOT':
-            lines.append(line + '0\n')
-        elif token.category() != 'VROOT' and id == tree.root[0]:
+        if id == tree.root[0]:
             lines.append(line + '0\n')
         elif id != tree.root[0]:
             lines.append(line + str(idNum[tree.parent(id)]) + '\n')
