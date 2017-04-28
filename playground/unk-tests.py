@@ -224,15 +224,17 @@ def main(limit=3000
         else:
             assert False and "expect left/right branching recursive partitioning for FST parsing"
 
-
     if validation:
-        train_limit = int(limit * (100.0 - validationSplit) / 100.0)
+        if validationCorpus is not None:
+            corpus_validation = Corpus(validationCorpus)
+        else:
+            train_limit = int(limit * (100.0 - validationSplit) / 100.0)
+            corpus_validation = Corpus(train, start=train_limit, end=limit)
     else:
         train_limit = limit
 
     corpus_induce = Corpus(train, end=limit)
     corpus_train = Corpus(train, end=train_limit)
-    corpus_validation = Corpus(train, start=train_limit, end=limit)
     corpus_test = Corpus(test, end=test_limit)
 
     match = re.match(r'^form-unk-(\d+).*$', terminal_labeling)
