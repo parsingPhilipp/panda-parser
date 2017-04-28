@@ -322,6 +322,9 @@ def main(limit=3000
                 validation_trace.load_traces_from_file(reduct_path_validation)
             builder.set_simple_validator(validation_trace, maxDrops=validationDropIterations, threads=1)
         splitMergeTrainer = builder.set_percent_merger(mergePercentage).build()
+        if validation:
+            splitMergeTrainer.setMaxDrops(1, mode="smoothing")
+            splitMergeTrainer.setEMepochs(1, mode="smoothing")
 
         sm_info_path = compute_sm_info_path(dir, baseline_id, emEpochs, rule_smoothing, splitRandomization, seed, discr, validation, corpus_validation, emInit)
 

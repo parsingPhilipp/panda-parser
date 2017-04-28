@@ -1,5 +1,4 @@
-from libcpp.vector cimport vector
-from libcpp.memory cimport shared_ptr, make_shared
+from libcpp.map cimport map
 from cython.operator cimport dereference as deref
 from parser.commons.commons cimport *
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
@@ -14,29 +13,9 @@ from sys import stderr
 DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 
-cdef extern from "Trainer/TrainingCommon.h":
-    pass
-
-cdef extern from "Trainer/GrammarInfo.h" namespace "Trainer":
-    cdef cppclass GrammarInfo2:
-        vector[vector[size_t]] rule_to_nonterminals
-
-cdef extern from "Trainer/StorageManager.h" namespace "Trainer":
-    cdef cppclass StorageManager:
-         StorageManager(bint)
-
 cdef extern from "Trainer/EMTrainer.h" namespace "Trainer":
     cdef cppclass EMTrainer[Nonterminal, TraceID]:
         vector[double] do_em_training[SemiRing](vector[double], vector[vector[unsigned_int]], unsigned)
-
-cdef extern from "Trainer/LatentAnnotation.h" namespace "Trainer":
-    cdef cppclass LatentAnnotation:
-        LatentAnnotation(vector[size_t], vector[double], vector[vector[double]], GrammarInfo2, StorageManager)
-        LatentAnnotation(vector[double], GrammarInfo2, StorageManager)
-        vector[size_t] nonterminalSplits
-        double get_weight(size_t, vector[size_t])
-        vector[vector[double]] get_rule_weights()
-        vector[double] get_root_weights()
 
 cdef extern from "Trainer/SplitMergeTrainer.h" namespace "Trainer":
     cdef cppclass Splitter:
@@ -45,8 +24,17 @@ cdef extern from "Trainer/SplitMergeTrainer.h" namespace "Trainer":
         shared_ptr[Splitter] splitter
         LatentAnnotation split_merge_cycle(LatentAnnotation)
 
-cdef extern from "Trainer/EMTrainerLA.h":
-    pass
+cdef extern from "Trainer/EMTrainerLA.h" namespace "Trainer":
+    ctypedef enum TrainingMode:
+        Default,
+        Splitting,
+        Merging,
+        Smoothing
+
+    cdef cppclass EMTrainerLA:
+        void setEMepochs(unsigned epochs, TrainingMode mode)
+    cdef cppclass EMTrainerLAValidation(EMTrainerLA):
+        void setMaxDrops(unsigned maxDrops, TrainingMode mode)
 
 cdef extern from "Trainer/MergePreparator.h":
     pass
@@ -84,6 +72,7 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_smoothing_factor(double smoothingFactor)
         SplitMergeTrainerBuilder& set_threads(unsigned_int)
         SplitMergeTrainer[Nonterminal, TraceID] build()
+        shared_ptr[EMTrainerLA] getEmTrainer()
 
 cdef extern from "util.h":
     cdef cppclass Double
@@ -140,8 +129,6 @@ cdef class PyEMTrainer:
 
 
 cdef class PyGrammarInfo:
-    cdef shared_ptr[GrammarInfo2] grammarInfo
-
     def __init__(self, grammar, Enumerator nont_map):
         """
         :type grammar: gl.LCFRS
@@ -157,7 +144,6 @@ cdef class PyGrammarInfo:
         self.grammarInfo = make_shared[GrammarInfo2](rule_to_nonterminals, nont_map.object_index(grammar.start()))
 
 cdef class PyStorageManager:
-    cdef shared_ptr[StorageManager] storageManager
     def __init__(self, bint selfMalloc=False):
         self.storageManager = make_shared[StorageManager](selfMalloc)
 
@@ -239,10 +225,10 @@ cdef class PySplitMergeTrainerBuilder:
     cpdef PySplitMergeTrainer build(self):
         trainer = PySplitMergeTrainer()
         trainer.splitMergeTrainer = make_shared[SplitMergeTrainer[NONTERMINAL, size_t]](deref(self.splitMergeTrainerBuilder).build())
+        trainer.emTrainer = (deref(self.splitMergeTrainerBuilder)).getEmTrainer()
         return trainer
 
 cdef class PyLatentAnnotation:
-    cdef shared_ptr[LatentAnnotation] latentAnnotation
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la):
         self.latentAnnotation = la
 
@@ -318,7 +304,16 @@ cpdef PyLatentAnnotation build_PyLatentAnnotation_initial(
     return latentAnnotation
 
 cdef class PySplitMergeTrainer:
+    cdef map[string,TrainingMode] modes
     cdef shared_ptr[SplitMergeTrainer[NONTERMINAL, size_t]] splitMergeTrainer
+    cdef shared_ptr[EMTrainerLA] emTrainer
+
+    def __init__(self):
+        modes_ = { "default": Default
+                , "splitting": Splitting
+                , "merging": Merging
+                , "smoothing": Smoothing}
+        self.modes = modes_
 
     cpdef PyLatentAnnotation split_merge_cycle (self, PyLatentAnnotation la):
         timeStart = time.time()
@@ -331,3 +326,9 @@ cdef class PySplitMergeTrainer:
 
     cpdef reset_random_seed(self, unsigned seed):
         deref(deref(self.splitMergeTrainer).splitter).reset_random_seed(seed)
+
+    cpdef setEMepochs(self, unsigned epochs, mode="default"):
+        deref(self.emTrainer).setEMepochs(epochs, self.modes.at(mode))
+
+    cpdef setMaxDrops(self, unsigned maxDrops, mode="default"):
+        (<EMTrainerLAValidation &> deref(self.emTrainer)).setMaxDrops(maxDrops, self.modes[mode])
