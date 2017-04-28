@@ -61,6 +61,8 @@ ext_modules=[
               extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=eigen_include+sterm_include),
     Extension("parser.trace_manager.sm_trainer", sources=["parser/trace_manager/sm_trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ffast-math", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
         , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include),
+    Extension("parser.coarse_to_fine_parser.ranker", sources=["parser/coarse_to_fine_parser/ranker.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ffast-math", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
+        , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include)
 ]
 
 setup(

@@ -3,28 +3,28 @@ from __future__ import print_function
 import copy
 import os
 import pickle
+import re
 import subprocess
 import time
-import plac
-import sys
-import re
 from string import maketrans
+
+import plac
 
 import dependency.induction as d_i
 import dependency.labeling as d_l
 from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
-from hybridtree.dependency_tree import disconnect_punctuation
+from dependency.minimum_risk import compute_minimum_risk_tree
+from dependency.oracle import compute_oracle_tree
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTraceManager
-from parser.parser_factory import AbstractParser, GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
-from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation
+from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
+from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.trace_manager.sm_trainer import PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, \
+    build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
-from dependency.minimum_risk import compute_minimum_risk_tree
-from dependency.oracle import compute_oracle_tree
-from math import exp
 
 start = 'START'
 dir = 'exp12/'
@@ -146,8 +146,8 @@ ignore_punctuation=False
     , validationDropIterations=("number of successive epochs of EM training, in which validation likelihood may drop", 'option', None, int)
     , parsing=('run parser on test corpus', 'option', None, bool, [True, False])
     , reparse=('rerun parser if result file already exists', 'flag')
-    , parser=('parser engine', 'option', None, str, ["CFG", "GF", "GF-k-best", "FST"])
-    , test_limit=('test sentence limit', 'option', None, None)
+    , parser=('parser engine', 'option', None, str, ["CFG", "GF", "GF-k-best", "FST", "CoarseToFine"])
+    , test_limit=('test sentence limit', 'option', None, int)
     , k_best=('set length of k best length (GF-k-best parser only)', 'option', None, int)
     , minimum_risk=('compute a minimum risk tree from k-best list (GF-k-best parser only)', 'flag', "mr")
     , oracle_parse=('select the oracle tree from k-best list (GF-k-best parser only)', 'flag', "op")
@@ -195,7 +195,7 @@ def main(limit=3000
 
     # set various parameters
     recompileGrammar = True if recompileGrammar == "True" else False
-    print(recompileGrammar)
+    # print(recompileGrammar)
 
     def result(gram, add=None):
         if add is not None:
@@ -214,6 +214,8 @@ def main(limit=3000
         parser = GFParser
     elif parser == "GF-k-best":
         parser = GFParser_k_best
+    elif parser == "CoarseToFine":
+        parser = Coarse_to_fine_parser
     elif parser == "FST":
         if recursive_partitioning == "left_branching":
             parser = LeftBranchingFSTParser
@@ -262,7 +264,8 @@ def main(limit=3000
     print("Rules: ", len(baseline_grammar.rules()))
 
     if parsing:
-        do_parsing(baseline_grammar, corpus_test, term_labelling, result, baseline_id, parser, k_best=k_best, minimum_risk=minimum_risk, oracle_parse=oracle_parse, recompile=recompileGrammar, dir=dir, reparse=reparse)
+        parser_ = GFParser_k_best if parser == Coarse_to_fine_parser else parser
+        do_parsing(baseline_grammar, corpus_test, term_labelling, result, baseline_id, parser_, k_best=k_best, minimum_risk=minimum_risk, oracle_parse=oracle_parse, recompile=recompileGrammar, dir=dir, reparse=reparse)
 
     if True:
         em_trained = pickle.load(open(baseline_path))
@@ -341,7 +344,8 @@ def main(limit=3000
                 smGrammar = latentAnnotation[cycle].build_sm_grammar(baseline_grammar
                                                                      , grammarInfo
                                                                      , rule_pruning=rule_pruning
-                                                                     , rule_smoothing=rule_smoothing)
+                                                                     # , rule_smoothing=rule_smoothing
+                                                                     )
             else:
                 # setting the seed to achieve reproducibility in case of continued training
                 splitMergeTrainer.reset_random_seed(seed + cycle + 1)
@@ -350,14 +354,23 @@ def main(limit=3000
                 smGrammar = latentAnnotation[cycle].build_sm_grammar(baseline_grammar
                                                                  , grammarInfo
                                                                  , rule_pruning=rule_pruning
-                                                                 , rule_smoothing=rule_smoothing)
+                                                                 # , rule_smoothing=rule_smoothing
+                                                                    )
             print("Cycle: ", cycle, "Rules: ", len(smGrammar.rules()))
             if parsing:
                 grammar_identifier = compute_sm_grammar_id(baseline_id, emEpochs, rule_smoothing, splitRandomization, seed, discr, validation, corpus_validation, emInit, cycle)
-                do_parsing(smGrammar, corpus_test, term_labelling, result, grammar_identifier, parser, k_best=k_best, minimum_risk=minimum_risk, oracle_parse=oracle_parse, recompile=recompileGrammar, dir=dir, reparse=reparse)
+                if parser == Coarse_to_fine_parser:
+                    opt = { 'latentAnnotation': latentAnnotation[:cycle+1]#[cycle]
+                           , 'grammarInfo': grammarInfo
+                            , 'nontMap': trace.get_nonterminal_map()}
+                    do_parsing(baseline_grammar, corpus_test, term_labelling, result, grammar_identifier, parser,
+                               k_best=k_best, minimum_risk=minimum_risk, oracle_parse=oracle_parse,
+                               recompile=recompileGrammar, dir=dir, reparse=reparse, opt=opt)
+                else:
+                    do_parsing(smGrammar, corpus_test, term_labelling, result, grammar_identifier, parser, k_best=k_best, minimum_risk=minimum_risk, oracle_parse=oracle_parse, recompile=recompileGrammar, dir=dir, reparse=reparse)
 
 
-def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier, parser_type, k_best, minimum_risk=False, oracle_parse=False, recompile=True, reparse=False, dir=None):
+def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier, parser_type, k_best, minimum_risk=False, oracle_parse=False, recompile=True, reparse=False, dir=None, opt=None):
     tree_yield = term_labelling.prepare_parser_input
 
     result_path = result(grammar_identifier)
@@ -367,18 +380,20 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
     total_time = 0.0
 
     preprocess_path = [os.path.join(dir, grammar_identifier), "gf_grammar"]
-    print(preprocess_path)
+    # print(preprocess_path)
     load_preprocess = preprocess_path
     if parser_type not in [GFParser, GFParser_k_best] \
             or recompile \
             or (not os.path.isfile(parser_type.resolve_path(preprocess_path))):
         load_preprocess=None
-    if parser_type in [GFParser, GFParser_k_best] \
-            and not os.path.isdir(os.path.join(dir,grammar_identifier)):
+    if parser_type in [GFParser, GFParser_k_best, Coarse_to_fine_parser] \
+            and not os.path.isdir(os.path.join(dir, grammar_identifier)):
         os.makedirs(os.path.join(dir, grammar_identifier))
 
     if parser_type == GFParser_k_best:
-        parser = parser_type(grammar, save_preprocess=preprocess_path, load_preprocess=load_preprocess, k=k_best)
+        parser = GFParser_k_best(grammar, save_preprocess=preprocess_path, load_preprocess=load_preprocess, k=k_best)
+    elif parser_type == Coarse_to_fine_parser:
+        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la=opt["latentAnnotation"], grammarInfo=opt["grammarInfo"], nontMap=opt["nontMap"], save_preprocess=preprocess_path, load_preprocess=load_preprocess, k=k_best)
     else:
         parser = parser_type(grammar, save_preprocess=preprocess_path, load_preprocess=load_preprocess)
 
@@ -408,7 +423,7 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
 
                 h_tree = HybridTree(tree.sent_label())
 
-                if parser_type == GFParser_k_best and parser.recognized():
+                if parser_type in [GFParser_k_best, Coarse_to_fine_parser] and parser.recognized():
                     if minimum_risk or oracle_parse:
                         h_trees = []
                         weights = []
@@ -431,7 +446,9 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
                     der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(),
                                                                 copy.deepcopy(tree.full_token_yield()), False,
                                                                 construct_conll_token)
-                    h_tree = parser.best_trees(der_to_tree)[0][0]
+                    # h_tree = parser.best_trees(der_to_tree)[0][0]
+                    h_tree = HybridTree(tree.sent_label())
+                    h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, copy.deepcopy(tree.full_token_yield()), ignore_punctuation, construct_conll_token)
                 elif parser_type == CFGParser \
                         or parser_type == GFParser \
                         or parser_type == LeftBranchingFSTParser \
@@ -444,10 +461,10 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
                 if h_tree:
                     result_file.write(tree_to_conll_str(h_tree))
                     result_file.write('\n\n')
-                    if minimum_risk and parser_type == GFParser_k_best:
+                    if minimum_risk and parser_type in [GFParser_k_best, Coarse_to_fine_parser]:
                         minimum_risk_file.write(tree_to_conll_str(h_tree_min_risk))
                         minimum_risk_file.write('\n\n')
-                    if oracle_parse and parser_type == GFParser_k_best:
+                    if oracle_parse and parser_type in [GFParser_k_best, Coarse_to_fine_parser]:
                         oracle_parse_file.write(tree_to_conll_str(h_tree_oracle))
                         oracle_parse_file.write('\n\n')
                 else:
