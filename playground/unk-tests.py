@@ -403,6 +403,12 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
             not os.path.isfile(result_path) \
             or (minimum_risk and not os.path.isfile(minimum_risk_path)) \
             or (oracle_parse and not os.path.isfile(oracle_parse_path)):
+
+        result_dirs = map(lambda path: os.path.split(path)[0], [result_path, minimum_risk_path, oracle_parse_path])
+        for result_dir in result_dirs:
+            if not os.path.isdir(result_dir):
+                os.makedirs(result_dir)
+
         with open(result_path, 'w') as result_file, \
                 open(minimum_risk_path, 'w') as minimum_risk_file, \
                 open(oracle_parse_path, 'w') as oracle_parse_file:
