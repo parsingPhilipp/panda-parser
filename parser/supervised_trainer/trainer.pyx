@@ -1,11 +1,5 @@
-from libcpp.vector cimport vector
-from libcpp.memory cimport make_shared, shared_ptr
 from cython.operator cimport dereference as deref
-from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr, build_trace_manager_ptr
-from util.enumerator cimport Enumerator
 from parser.derivation_interface import AbstractDerivation
-
-ctypedef size_t NONTERMINAL
 
 cdef extern from "Manage/Manager.h":
     cppclass Element[InfoT]:
@@ -40,10 +34,6 @@ cdef class PyElement:
          # self.element = make_shared[Element[Node[NONTERMINAL]]](element)
 
 cdef class PyDerivationManager(PyTraceManager):
-    cdef shared_ptr[vector[NONTERMINAL]] node_labels
-    cdef shared_ptr[vector[size_t]] edge_labels
-    cdef Enumerator nonterminal_map
-
     def __init__(self, grammar, Enumerator nonterminal_map=None):
         """
         :param grammar:
