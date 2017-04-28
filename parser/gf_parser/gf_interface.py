@@ -85,6 +85,8 @@ class GFParser(AbstractParser):
 
     @staticmethod
     def resolve_path(path):
+        # print path
+        # print os.path.join(path[0], path[1] + COMPILED_SUFFIX)
         return os.path.join(path[0], path[1] + COMPILED_SUFFIX)
 
     def set_input(self, input):
@@ -163,7 +165,7 @@ class GFParser_k_best(GFParser):
 
     def k_best_derivation_trees(self):
         for weight, gf_deriv in self._derivations:
-            yield weight, GFDerivation(self.grammar, gf_deriv)
+            yield exp(-weight), GFDerivation(self.grammar, gf_deriv)
 
     def viterbi_derivation(self):
         if self._viterbi is not None:
@@ -173,14 +175,3 @@ class GFParser_k_best(GFParser):
 
     def viterbi_weight(self):
         return exp(-self._viterbi_weigth)
-
-    def best_trees(self, derivation_to_tree):
-        weights = defaultdict(lambda: 0.0)
-        witnesses = defaultdict(list)
-        for i, (weight, der) in enumerate(self.k_best_derivation_trees()):
-            tree = derivation_to_tree(der)
-            weights[tree] += exp(-weight)
-            witnesses[tree] += [i+1]
-        the_derivations = weights.items()
-        the_derivations.sort(key=lambda x: x[1], reverse=True)
-        return [(tree, weight, witnesses[tree]) for tree,weight in the_derivations]

@@ -4,7 +4,8 @@ from abc import ABCMeta, abstractmethod
 from grammar.lcfrs import *
 from sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from hybridtree.monadic_tokens import MonadicToken
-
+from collections import defaultdict
+from math import exp
 
 class AbstractParser:
     __metaclass__ = ABCMeta
@@ -95,6 +96,19 @@ class AbstractParser:
     def clear(self):
         pass
 
+    def k_best_derivation_trees(self):
+        pass
+
+    def best_trees(self, derivation_to_tree):
+        weights = defaultdict(lambda: 0.0)
+        witnesses = defaultdict(list)
+        for i, (weight, der) in enumerate(self.k_best_derivation_trees()):
+            tree = derivation_to_tree(der)
+            weights[tree] += weight
+            witnesses[tree] += [i+1]
+        the_derivations = weights.items()
+        the_derivations.sort(key=lambda x: x[1], reverse=True)
+        return [(tree, weight, witnesses[tree]) for tree, weight in the_derivations]
 
 def best_hybrid_tree_for_best_derivation():
     pass

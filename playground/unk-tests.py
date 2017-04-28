@@ -421,7 +421,7 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
                             dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
 
                             h_trees.append(h_tree)
-                            weights.append(exp(-weight))
+                            weights.append(weight)
 
                         if minimum_risk:
                             h_tree_min_risk = compute_minimum_risk_tree(h_trees, weights)

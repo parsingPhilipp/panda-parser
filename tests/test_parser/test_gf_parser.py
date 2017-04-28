@@ -119,7 +119,7 @@ class MyTestCase(unittest.TestCase):
                 dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
 
                 h_trees.append(h_tree)
-                weights.append(exp(-weight))
+                weights.append(weight)
 
                 # print >>stderr, h_tree
 
@@ -183,8 +183,7 @@ class MyTestCase(unittest.TestCase):
                 dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
 
                 h_trees.append(h_tree)
-                weights.append(exp(-weight))
-
+                weights.append(weight)
 
             if True:
                 min_risk_tree = compute_minimum_risk_tree(h_trees, weights)
@@ -241,7 +240,7 @@ class MyTestCase(unittest.TestCase):
                 dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
 
                 h_trees.append(h_tree)
-                weights.append(exp(-weight))
+                weights.append(weight)
 
             if True:
                 oracle_tree = compute_oracle_tree(h_trees, tree)
