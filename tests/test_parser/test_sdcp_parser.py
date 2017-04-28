@@ -63,7 +63,7 @@ class MyTestCase(unittest.TestCase):
 
         print >>stderr, "compute reducts"
 
-        trace = compute_reducts(grammar, [tree, tree2])
+        trace = compute_reducts(grammar, [tree, tree2], terminal_labeling)
 
         print >>stderr, "call em Training"
         emTrainer = PyEMTrainer(trace)
@@ -75,7 +75,7 @@ class MyTestCase(unittest.TestCase):
             print >>stderr, rule
 
     def test_corpus_em_training(self):
-        train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+        train = 'res/dependency_conll/german/tiger/train/german_tiger_train.conll'
         limit_train = 200
         test = train
         # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
@@ -95,7 +95,7 @@ class MyTestCase(unittest.TestCase):
 
         print >>stderr, "compute reducts"
 
-        trace = compute_reducts(grammar_prim, trees)
+        trace = compute_reducts(grammar_prim, trees, term_labelling)
 
         print >>stderr, "call em Training"
         emTrainer = PyEMTrainer(trace)
@@ -124,9 +124,9 @@ class MyTestCase(unittest.TestCase):
                     yield tree
                 j += 1
         #params
-        train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+        train = 'res/dependency_conll/german/tiger/train/german_tiger_train.conll'
         test = train
-        # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+        # test = 'res/dependency_conll/german/tiger/test/german_tiger_test.conll'
         trees = parse_conll_corpus(train, False, limit_train)
         primary_labelling = the_labeling_factory().create_simple_labeling_strategy("childtop", "deprel")
         term_labelling = the_terminal_labeling_factory().get_strategy('pos')
@@ -262,11 +262,11 @@ class MyTestCase(unittest.TestCase):
         for rule in grammar.rules():
             print >>stderr, rule
 
-        trace = compute_reducts(grammar, [tree, tree2])
+        trace = compute_reducts(grammar, [tree, tree2], terminal_labeling)
         trace.serialize("/tmp/reducts.p")
 
         grammar_load = grammar
-        trace2 = PySDCPTraceManager(grammar_load)
+        trace2 = PySDCPTraceManager(grammar_load, terminal_labeling)
         trace2.load_traces_from_file("/tmp/reducts.p")
         trace2.serialize("/tmp/reducts2.p")
 
@@ -298,7 +298,7 @@ class MyTestCase(unittest.TestCase):
 
 
     def test_corpus_split_merge_training(self):
-        train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+        train = 'res/dependency_conll/german/tiger/train/german_tiger_train.conll'
         limit_train = 100
         test = train
         # test = '../../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
