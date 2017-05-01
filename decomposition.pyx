@@ -175,9 +175,6 @@ def fanout_limited_partitioning_argmax(part, fanout):
 # nont_labelling: AbstractLabeling
 # nonts: list of nonterminals
 # return: recursive partitioning
-#def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling):
-#    random.seed(100)
-#    return fanout_limited_partitioning_no_new_nont_rec(part, fanout, tree, nonts, nont_labelling)
 
 def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling, fallback):
     (root, children) = part

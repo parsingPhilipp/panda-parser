@@ -55,9 +55,10 @@ def main(ignore_punctuation=False):
 
     #parse command line arguments for transformation strategies,
     #random seed, fallback strategy for no-new-nont and corpora
-    if args['c'] is None or args['c'] == 'hungarian':
-        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/HUNGARIAN_SPMRL/pred/conll/dev/dev.Hungarian.pred.conll'
-        train ='../res/SPMRL_SHARED_2014_NO_ARABIC/HUNGARIAN_SPMRL/pred/conll/train/train.Hungarian.pred.conll'
+    if args['c'] is None or args['c'] == 'german':
+        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/pred/conll/dev/dev.German.pred.conll'
+        train ='../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/pred/conll/train/train.German.pred.conll'
+
     else:
         test = '../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/dev/dev.Polish.pred.conll'
         train ='../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/train/train.Polish.pred.conll'
@@ -93,7 +94,7 @@ def main(ignore_punctuation=False):
                         strategies += ['-random-' + seed]
             else: #argmax strategy
                 strategies += ['-' + strategy]
-    
+
     #parse command line argument for child vs. strict labelling
     labellings1 = []
     if args['l'] is None:
@@ -142,7 +143,6 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
     (n_trees, grammar) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label, recursive_partitioning, start)
     
     #write current transformation strategy and hyperparameters to results.txt
-    #file.write('\n\n\n')
     if strategy == '':
             file.write('rtl ' + labelling1 + ' ' + labelling2 + '    maximal fanout:' + fanout)
     else:
@@ -154,7 +154,7 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
         elif splitList[1] == 'no':
             if splitList[4] == 'random':
                 file.write('nnont fallback:random seed:' + splitList[5] + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
-            elif splitList[4] == 'left':
+            elif splitList[4] == 'ltr':
                 file.write('nnont fallback:ltr' + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
             elif splitList[4] == 'rtl':
                 file.write('nnont fallback:rtl' + ' ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
