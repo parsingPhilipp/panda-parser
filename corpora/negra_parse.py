@@ -134,7 +134,7 @@ def hybridtree_to_sentence_name(tree, idNum):
     return lines
 
 
-def hybridtrees_to_sentence_names(trees):
+def hybridtrees_to_sentence_names(trees, counter):
     """
     converts a sequence of parse tree to the export format
     :param trees: list of parse trees
@@ -143,7 +143,6 @@ def hybridtrees_to_sentence_names(trees):
     :rtype: list of str
     """
     sentence_names = []
-    counter = 1
 
     for tree in trees:
         idNum = dict()
