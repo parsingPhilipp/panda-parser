@@ -22,6 +22,7 @@ sterm_include = [cython_dependency_src_path]
 # $COMPUTE_ROOT/usr/include/eigen3,
 compute_root = ""
 eigen_include = [compute_root + "/usr/include/eigen3", compute_root + "/usr/include"]
+add_include = [compute_root + "/usr/local/include"]
 
 class CustomBuildExtCommand(build_ext):
     """Customized setuptools install command - checks out repo with c++ parsing and training backend."""
@@ -46,7 +47,7 @@ class CustomBuildExtCommand(build_ext):
 ext_modules=[
     Extension("decomposition",       ["decomposition.pyx"]),
     Extension("parser.viterbi.viterbi",      ["parser/viterbi/viterbi.pyx"]),
-    Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++', extra_compile_args=['-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl']),
+    Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++', extra_compile_args=['-std=c++14', '-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl'], include_dirs=add_include),
     Extension("util.enumerator", sources=["util/enumerator.pyx"], language='c++'),
     Extension("grammar.lcfrs",  ["grammar/lcfrs.pyx"]),
     Extension("parser.cpp_cfg_parser.parser_wrapper", sources=["parser/cpp_cfg_parser/parser_wrapper.pyx", "parser/cpp_cfg_parser/cfg.cpp", "parser/cpp_cfg_parser/parser.cpp"], language='c++', extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]),

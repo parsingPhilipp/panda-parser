@@ -227,6 +227,7 @@ def main(limit=3000
     if validation:
         if validationCorpus is not None:
             corpus_validation = Corpus(validationCorpus)
+            train_limit = limit
         else:
             train_limit = int(limit * (100.0 - validationSplit) / 100.0)
             corpus_validation = Corpus(train, start=train_limit, end=limit)
