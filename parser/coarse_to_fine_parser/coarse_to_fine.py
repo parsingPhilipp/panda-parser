@@ -75,6 +75,8 @@ class Coarse_to_fine_parser(AbstractParser):
             if not (math.isinf(weight) or math.isnan(weight)):
                 yield weight, self.k_best_list[idx]
 
+    def resolve_path(self, preprocess_path):
+        return self.base_parser.resolve_path(preprocess_path)
 
 
 

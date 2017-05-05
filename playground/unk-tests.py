@@ -397,9 +397,9 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
     preprocess_path = [os.path.join(dir, grammar_identifier), "gf_grammar"]
     # print(preprocess_path)
     load_preprocess = preprocess_path
-    if parser_type not in [GFParser, GFParser_k_best] \
+    if parser_type not in [GFParser, GFParser_k_best, Coarse_to_fine_parser] \
             or recompile \
-            or (not os.path.isfile(parser_type.resolve_path(preprocess_path))):
+            or (not os.path.isfile(GFParser.resolve_path(preprocess_path))):
         load_preprocess=None
     if parser_type in [GFParser, GFParser_k_best, Coarse_to_fine_parser] \
             and not os.path.isdir(os.path.join(dir, grammar_identifier)):
