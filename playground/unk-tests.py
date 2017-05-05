@@ -22,9 +22,11 @@ from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, \
     build_PyLatentAnnotation_initial, build_PyLatentAnnotation
+from parser.supervised_trainer.trainer import PyDerivationManager
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
 
 start = 'START'
@@ -142,6 +144,7 @@ ignore_punctuation=False
     , mergePercentage=('merge percentage of splits', 'option', None, float)
     , smCycles=('total number of split/merge cycles', 'option', None, int)
     , validation=('use validation corpus', 'option', None, bool)
+    , validationMethod=('score used for validation', 'option', None, str, ['likelihood', 'LAS', 'UAS'])
     , validationCorpus=('path/to/validation/corpus', 'option')
     , validationSplit=('use last percentage of sentences of training corpus for validation, if no validation corpus is specified', 'option', None, float)
     , validationDropIterations=("number of successive epochs of EM training, in which validation likelihood may drop", 'option', None, int)
@@ -280,7 +283,7 @@ def main(limit=3000
 
     if parsing:
         parser_ = GFParser_k_best if parser == Coarse_to_fine_parser else parser
-        do_parsing(baseline_grammar, corpus_test, term_labelling, result, baseline_id, parser_, k_best=k_best, minimum_risk=minimum_risk, oracle_parse=oracle_parse, recompile=recompileGrammar, dir=dir, reparse=reparse)
+        baseline_parser = do_parsing(baseline_grammar, corpus_test, term_labelling, result, baseline_id, parser_, k_best=k_best, minimum_risk=minimum_risk, oracle_parse=oracle_parse, recompile=recompileGrammar, dir=dir, reparse=reparse)
 
     if True:
         em_trained = pickle.load(open(baseline_path))
@@ -330,15 +333,19 @@ def main(limit=3000
         else:
             builder.set_simple_expector(threads=1)
         if validation:
-            reduct_path_validation = compute_reduct_name(dir, baseline_id, corpus_validation)
-            if recompileGrammar or not os.path.isfile(reduct_path_validation):
-                validation_trace = compute_reducts(em_trained, corpus_validation.get_trees(), term_labelling)
-                validation_trace.serialize(reduct_path_validation)
+            if validationMethod is "likelihood":
+                reduct_path_validation = compute_reduct_name(dir, baseline_id, corpus_validation)
+                if recompileGrammar or not os.path.isfile(reduct_path_validation):
+                    validation_trace = compute_reducts(em_trained, corpus_validation.get_trees(), term_labelling)
+                    validation_trace.serialize(reduct_path_validation)
+                else:
+                    print("loading trace validation")
+                    validation_trace = PySDCPTraceManager(em_trained, term_labelling)
+                    validation_trace.load_traces_from_file(reduct_path_validation)
+                builder.set_simple_validator(validation_trace, maxDrops=validationDropIterations, threads=1)
             else:
-                print("loading trace validation")
-                validation_trace = PySDCPTraceManager(em_trained, term_labelling)
-                validation_trace.load_traces_from_file(reduct_path_validation)
-            builder.set_simple_validator(validation_trace, maxDrops=validationDropIterations, threads=1)
+                validator = build_score_validator(baseline_grammar, grammarInfo, trace.get_nonterminal_map(), storageManager, term_labelling, baseline_parser, corpus_validation, validationMethod)
+                builder.set_score_validator(validator, validationDropIterations)
         splitMergeTrainer = builder.set_percent_merger(mergePercentage).build()
         if validation:
             splitMergeTrainer.setMaxDrops(1, mode="smoothing")
@@ -519,6 +526,8 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
         print("\nminimum risk results")
         eval_pl_call(test_corpus._path, minimum_risk_path)
 
+    return parser
+
 def eval_pl_call(test_path, result_path):
     print("eval.pl", "no punctuation")
     p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test_path, "-s", result_path, "-q"])
@@ -533,5 +542,75 @@ def length_limit(trees, max_length=50):
         if len(tree.full_token_yield()) <= max_length:
             yield tree
 
+def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManager, term_labelling, parser, corpus_validation, validationMethod):
+    validator = PyCandidateScoreValidator(grammarInfo, storageManager, validationMethod)
+
+    # parser = GFParser(baseline_grammar)
+    tree_count = 0
+    der_count = 0
+    for gold_tree in corpus_validation.get_trees():
+        tree_count += 1
+        parser.set_input(term_labelling.prepare_parser_input(gold_tree.token_yield()))
+        parser.parse()
+        derivations = map(lambda x: x[1], parser.k_best_derivation_trees())
+        manager = PyDerivationManager(baseline_grammar, nont_map)
+        manager.convert_hypergraphs(derivations)
+        scores = []
+
+        gold_labels = {}
+        gold_heads = {}
+
+        for position, id in enumerate(gold_tree.id_yield()):
+            parent_id = gold_tree.parent(id)
+            gold_labels[position] = gold_tree.node_token(id).deprel()
+            if parent_id is None:
+                assert id in gold_tree.root
+                gold_heads[position] = 0
+            else:
+                gold_heads[position] = gold_tree.id_yield().index(parent_id) + 1
+
+        derivations = parser.k_best_derivation_trees()
+        for _, der in derivations:
+            der_count += 1
+            h_tree = HybridTree()
+            cleaned_tokens = copy.deepcopy(gold_tree.full_token_yield())
+            dcp = The_DCP_evaluator(der).getEvaluation()
+            dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
+
+            las, uas, lac = 0, 0, 0
+            for position, id in enumerate(h_tree.id_yield()):
+                parent_id = h_tree.parent(id)
+                if parent_id is None:
+                    assert id in h_tree.root
+                    head = 0
+                else:
+                    head = h_tree.id_yield().index(parent_id) + 1
+                label = h_tree.node_token(id).deprel()
+
+                if gold_heads[position] == head:
+                    uas += 1
+                if gold_labels[position] == label:
+                    lac += 1
+                if gold_heads[position] == head and gold_labels[position] == label:
+                    las += 1
+
+            if validationMethod == "LAS":
+                scores.append(las)
+            elif validationMethod == "UAS":
+                scores.append(uas)
+            elif validationMethod == "LAC":
+                scores.append(lac)
+
+        max_score = len(gold_tree.id_yield())
+        validator.add_scored_candidates(manager, scores, max_score)
+        print(tree_count, max_score, scores)
+        parser.clear()
+
+    print("trees used for validation ", tree_count, "with", der_count * 1.0 / tree_count, "derivations on average")
+
+    return validator
+
+
 if __name__ == '__main__':
     plac.call(main)
+

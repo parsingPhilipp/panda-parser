@@ -4,6 +4,7 @@ from cython.operator cimport dereference as deref
 from parser.commons.commons cimport *
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2, PyStorageManager
+from parser.trace_manager.score_validator cimport PyCandidateScoreValidator, CandidateScoreValidator
 import time
 import random
 import grammar.lcfrs as gl
@@ -63,6 +64,7 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
                 TraceManagerPtr[Nonterminal, TraceID] discriminativeTraceManager
                 , unsigned_int maxDrops
                 , unsigned_int threads)
+        SplitMergeTrainerBuilder& set_score_validator(shared_ptr[CandidateScoreValidator[Nonterminal, TraceID]], unsigned)
         SplitMergeTrainerBuilder& set_percent_merger(double)
         SplitMergeTrainerBuilder& set_percent_merger(double, unsigned)
         SplitMergeTrainerBuilder& set_threshold_merger(double)
@@ -178,6 +180,14 @@ cdef class PySplitMergeTrainerBuilder:
                 .set_simple_validator(discriminativeTraces.trace_manager, maxDrops, threads)
         else:
             deref(self.splitMergeTrainerBuilder).set_simple_validator(discriminativeTraces.trace_manager, maxDrops)
+        return self
+
+    cpdef PySplitMergeTrainerBuilder set_score_validator(
+            self
+            , PyCandidateScoreValidator validator
+            , unsigned_int maxDrops=6
+    ):
+        deref(self.splitMergeTrainerBuilder).set_score_validator(validator.validator, maxDrops)
         return self
 
     cpdef PySplitMergeTrainerBuilder set_percent_merger(self, double percent=50.0, unsigned_int threads=0):
