@@ -139,7 +139,7 @@ ignore_punctuation=False
     , seed=('initial random seed', 'option', None, int)
     , emEpochs=('maximum number of epochs in EM training', 'option', None, int)
     , emInit=('initial weights for EM training (rfe ~ times induced)', 'option', None, str, ['rfe', 'equal'])
-    , emTieBraking=('perturbate initial weights before EM training', 'option')
+    , emTieBreaking=('perturbate initial weights before EM training', 'option')
     , splitRandomization=('percentage by which weights are pertubated after splitting', 'option', None, float)
     , mergePercentage=('merge percentage of splits', 'option', None, float)
     , smCycles=('total number of split/merge cycles', 'option', None, int)
@@ -173,7 +173,7 @@ def main(limit=3000
          , nonterminal_labeling='childtop-deprel'
          , terminal_labeling='form-unk-30/pos'
          , emEpochs=20
-         , emTieBraking=True
+         , emTieBreaking=True
          , emInit="rfe"
          , splitRandomization=1.0
          , mergePercentage=85.0
@@ -308,11 +308,11 @@ def main(limit=3000
 
         # todo refactor EM training, to use the LA version (but without any splits)
         """
-        em_trained_path_ = em_trained_path(dir, grammar_id, n_epochs=emEpochs, init=emInit, tie_breaking=emTieBraking, seed=seed)
+        em_trained_path_ = em_trained_path(dir, grammar_id, n_epochs=emEpochs, init=emInit, tie_breaking=emTieBreaking, seed=seed)
 
         if recompileGrammar or retrain or not os.path.isfile(em_trained_path_):
             emTrainer = PyEMTrainer(trace)
-            emTrainer.em_training(em_trained, n_epochs=emEpochs, init=emInit, tie_breaking=emTieBraking, seed=seed)
+            emTrainer.em_training(em_trained, n_epochs=emEpochs, init=emInit, tie_breaking=emTieBreaking, seed=seed)
             pickle.dump(em_trained, open(em_trained_path_, 'wb'))
         else:
             em_trained = pickle.load(open(em_trained_path_, 'rb'))
