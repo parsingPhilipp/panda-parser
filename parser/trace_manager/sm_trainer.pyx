@@ -1,14 +1,13 @@
 from libcpp.map cimport map
+from libcpp.memory cimport make_shared
 from cython.operator cimport dereference as deref
 from parser.commons.commons cimport *
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
-from util.enumerator cimport Enumerator
+from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2, PyStorageManager
 import time
 import random
 import grammar.lcfrs as gl
 import itertools
-from math import exp
-from sys import stderr
 
 DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
@@ -127,25 +126,6 @@ cdef class PyEMTrainer:
         for i in range(0, len(grammar.rule_index())):
             grammar.rule_index(i).set_weight(final_weights[i])
 
-
-cdef class PyGrammarInfo:
-    def __init__(self, grammar, Enumerator nont_map):
-        """
-        :type grammar: gl.LCFRS
-        """
-        cdef vector[vector[size_t]] rule_to_nonterminals = []
-        cdef size_t i
-        # for i in range(traceManager.parser.rule_map.first_index, traceManager.parser.rule_map.counter):
-        for i in range(0, len(grammar.rule_index())):
-            rule = grammar.rule_index(i)
-            nonts = [nont_map.object_index(rule.lhs().nont())] + [nont_map.object_index(nont) for nont in rule.rhs()]
-            rule_to_nonterminals.push_back(nonts)
-
-        self.grammarInfo = make_shared[GrammarInfo2](rule_to_nonterminals, nont_map.object_index(grammar.start()))
-
-cdef class PyStorageManager:
-    def __init__(self, bint selfMalloc=False):
-        self.storageManager = make_shared[StorageManager](selfMalloc)
 
 cdef class PySplitMergeTrainerBuilder:
     cdef shared_ptr[SplitMergeTrainerBuilder[NONTERMINAL, size_t]] splitMergeTrainerBuilder
@@ -298,9 +278,9 @@ cpdef PyLatentAnnotation build_PyLatentAnnotation_initial(
     # output_helper(str(ruleWeights) + "\n")
     cdef PyLatentAnnotation latentAnnotation = PyLatentAnnotation()
     latentAnnotation.latentAnnotation \
-        = make_shared[LatentAnnotation](LatentAnnotation(ruleWeights
-                                                         , deref(grammarInfo.grammarInfo)
-                                                         , deref(storageManager.storageManager)))
+        = make_shared[LatentAnnotation](ruleWeights
+                                        , deref(grammarInfo.grammarInfo)
+                                        , deref(storageManager.storageManager))
     return latentAnnotation
 
 cdef class PySplitMergeTrainer:

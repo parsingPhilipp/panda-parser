@@ -22,7 +22,8 @@ from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
-from parser.trace_manager.sm_trainer import PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, \
+from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
+from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, \
     build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
 

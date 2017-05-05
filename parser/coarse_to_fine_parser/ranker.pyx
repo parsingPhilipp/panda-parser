@@ -5,7 +5,8 @@ from cython.operator cimport dereference as deref
 from util.enumerator cimport Enumerator
 from parser.supervised_trainer.trainer cimport PyDerivationManager, NONTERMINAL
 from parser.trace_manager.trace_manager cimport TraceManagerPtr, PyTraceManager
-from parser.trace_manager.sm_trainer cimport PyStorageManager, StorageManager, PyGrammarInfo, GrammarInfo2, PyLatentAnnotation, LatentAnnotation
+from parser.trace_manager.sm_trainer_util cimport PyStorageManager, StorageManager, PyGrammarInfo, GrammarInfo2
+from parser.trace_manager.sm_trainer cimport PyLatentAnnotation, LatentAnnotation
 
 
 cdef extern from "Trainer/TrainingCommon.h" namespace "Trainer":
