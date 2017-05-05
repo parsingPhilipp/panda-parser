@@ -239,12 +239,23 @@ def main(limit=3000
     corpus_train = Corpus(train, end=train_limit)
     corpus_test = Corpus(test, end=test_limit)
 
-    match = re.match(r'^form-unk-(\d+).*$', terminal_labeling)
+    match = re.match(r'^form-unk-(\d+)-morph.*$', terminal_labeling)
     if match:
         unk_threshold = int(match.group(1))
-        term_labelling = d_i.FormPosTerminalsUnk(corpus_induce.get_trees(), unk_threshold, filter=["NE", "CARD"])
+        term_labelling = d_i.FormPosTerminalsUnkMorph(corpus_induce.get_trees(), unk_threshold, filter=["NE", "CARD"],
+              add_morph={'NN': ['case', 'number', 'gender']
+                        # , 'NE': ['case', 'number', 'gender']
+                        # , 'VMFIN': ['number', 'person']
+                        # , 'VVFIN': ['number', 'person']
+                        # , 'VAFIN': ['number', 'person']
+                        })
     else:
-        term_labelling = d_i.the_terminal_labeling_factory().get_strategy(terminal_labeling)
+        match = re.match(r'^form-unk-(\d+).*$', terminal_labeling)
+        if match:
+            unk_threshold = int(match.group(1))
+            term_labelling = d_i.FormPosTerminalsUnk(corpus_induce.get_trees(), unk_threshold, filter=["NE", "CARD"])
+        else:
+            term_labelling = d_i.the_terminal_labeling_factory().get_strategy(terminal_labeling)
 
     if not os.path.isdir(dir):
         os.makedirs(dir)

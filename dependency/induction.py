@@ -113,13 +113,39 @@ class FormPosTerminalsUnk(TerminalLabeling):
                     self.__terminal_counts[(token.form().lower(), token.pos())] += 1
 
     def __str__(self):
-        return 'form-pos-unk-' + str(self.__threshold)
+        return 'form-pos-unk-' + str(self.__threshold) + '-pos'
 
     def token_label(self, token):
         pos = token.pos()
         form = token.form().lower()
         if self.__terminal_counts.get((form, pos)) < self.__threshold:
             form = self.__UNK
+        return form + '-:-' + pos
+
+class FormPosTerminalsUnkMorph(TerminalLabeling):
+    def __init__(self, trees, threshold, UNK="UNKNOWN", filter=[], add_morph={}):
+        self.__terminal_counts = defaultdict(lambda: 0)
+        self.__UNK = UNK
+        self.__threshold = threshold
+        self.__add_morph = add_morph
+        for tree in trees:
+            for token in tree.token_yield():
+                if token.pos() not in filter:
+                    self.__terminal_counts[(token.form().lower(), token.pos())] += 1
+
+    def __str__(self):
+        return 'form-pos-unk-' + str(self.__threshold) + '-morph-pos'
+
+    def token_label(self, token):
+        pos = token.pos()
+        form = token.form().lower()
+        if self.__terminal_counts.get((form, pos)) < self.__threshold:
+            form = self.__UNK
+            if pos in self.__add_morph:
+                feats = map(lambda x: tuple(x.split('=')), token.feats().split('|'))
+                for feat in feats:
+                    if feat[0] in self.__add_morph[pos]:
+                        form += '#' + feat[0] + ':' + feat[1]
         return form + '-:-' + pos
 
 class TerminalLabelingFactory:
