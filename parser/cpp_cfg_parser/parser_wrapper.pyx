@@ -1,5 +1,5 @@
 from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs
-# form util.enumerator cimport Enumerator
+from util.enumerator cimport Enumerator
 from parser.derivation_interface import AbstractDerivation
 from parser.parser_interface import AbstractParser
 cimport cython
@@ -36,32 +36,32 @@ cdef extern from "parser.h" namespace "cyk":
         int rule_idx() const;
 
 
-cdef class Enumerator:
-    cdef unsigned counter
-    cdef dict obj_to_ind
-    cdef dict ind_to_obj
-
-    def __init__(self, first_index=1):
-        self.counter = first_index
-        self.obj_to_ind = {}
-        self.ind_to_obj = {}
-
-    def index_object(self, i):
-        """
-        :type i: int
-        :return:
-        """
-        return self.ind_to_obj[i]
-
-    def object_index(self, obj):
-        i = self.obj_to_ind.get(obj, None)
-        if i:
-            return i
-        else:
-            self.obj_to_ind[obj] = self.counter
-            self.ind_to_obj[self.counter] = obj
-            self.counter += 1
-            return self.counter - 1
+# cdef class Enumerator:
+#     cdef unsigned counter
+#     cdef dict obj_to_ind
+#     cdef dict ind_to_obj
+#
+#     def __init__(self, first_index=1):
+#         self.counter = first_index
+#         self.obj_to_ind = {}
+#         self.ind_to_obj = {}
+#
+#     def index_object(self, i):
+#         """
+#         :type i: int
+#         :return:
+#         """
+#         return self.ind_to_obj[i]
+#
+#     def object_index(self, obj):
+#         i = self.obj_to_ind.get(obj, None)
+#         if i:
+#             return i
+#         else:
+#             self.obj_to_ind[obj] = self.counter
+#             self.ind_to_obj[self.counter] = obj
+#             self.counter += 1
+#             return self.counter - 1
 
 cdef class PyCFG:
     cdef CFG cfg
