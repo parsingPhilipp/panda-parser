@@ -134,7 +134,7 @@ def hybridtree_to_sentence_name(tree, idNum):
     return lines
 
 
-def hybridtrees_to_sentence_names(trees, counter):
+def hybridtrees_to_sentence_names(trees, counter, length):
     """
     converts a sequence of parse tree to the export format
     :param trees: list of parse trees
@@ -145,11 +145,12 @@ def hybridtrees_to_sentence_names(trees, counter):
     sentence_names = []
 
     for tree in trees:
-        idNum = dict()
-        generate_ids_for_inner_nodes(tree, tree.root[0], idNum)
-        sentence_names.append('#BOS ' + str(counter) + '\n')
-        sentence_names.extend(hybridtree_to_sentence_name(tree, idNum))
-        sentence_names.append('#EOS ' + str(counter) + '\n')
-        counter += 1
+        if len(tree.full_yield()) <= length:
+            idNum = dict()
+            generate_ids_for_inner_nodes(tree, tree.root[0], idNum)
+            sentence_names.append('#BOS ' + str(counter) + '\n')
+            sentence_names.extend(hybridtree_to_sentence_name(tree, idNum))
+            sentence_names.append('#EOS ' + str(counter) + '\n')
+            counter += 1
 
     return sentence_names
