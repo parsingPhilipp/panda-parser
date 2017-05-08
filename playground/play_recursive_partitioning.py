@@ -37,7 +37,8 @@ argParser.add_argument('-t', nargs='*', choices=['pos', 'deprel', 'pos+deprel'])
 argParser.add_argument('-f', nargs='*') #choose maximal fanout(s)
 argParser.add_argument('-n', nargs='*', choices=['rtl', 'ltr', 'random', 'argmax']) #choose fallback strategy if no-new-nont is used
 argParser.add_argument('-r', nargs='*') #set random seed(s) for random strategy
-argParser.add_argument('-c', choices=['hungarian','polish']) #choose corpus
+argParser.add_argument('-c', choices=['german','polish']) #choose corpus
+argParser.add_argument('-d', choices=['yes', 'y', 'no', 'n']) #decide whether or not to count derivation trees
 
 
 
@@ -117,20 +118,30 @@ def main(ignore_punctuation=False):
     else:
         fanouts = args['f']
 
+    #for derivation tree
+    countDerTrees = []
+    if args['d'] is None:
+        countDerTrees = [True]
+    else:
+        if 'yes' in args['d'] or 'y' in args['d']:
+            countDerTrees += [True]
+        if 'no' in args['d'] or 'n' in args['d']:
+            countDerTrees += [False]
 
     for strategy in  strategies:
         for labelling1 in labellings1:
             for labelling2 in labellings2:
-                for fanout in fanouts:
-                    if fanout == '1':
-                        trainAndEval(strategy, labelling1, labelling2, fanout, parser1, train, test, ignore_punctuation)
-                    else:
-                        trainAndEval(strategy, labelling1, labelling2, fanout, parser23, train, test, ignore_punctuation)
+                for cDT in countDerTrees:
+                    for fanout in fanouts:
+                        if fanout == '1':
+                            trainAndEval(strategy, labelling1, labelling2, fanout, parser1, train, test, cDT, ignore_punctuation)
+                        else:
+                            trainAndEval(strategy, labelling1, labelling2, fanout, parser23, train, test, cDT, ignore_punctuation)
 
 
 
 
-def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, test, ignore_punctuation=False):
+def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, test, cDT, ignore_punctuation=False):
     file = open('results.txt', 'a')
     term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
     recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + strategy)
@@ -171,24 +182,25 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
     res += ' #rules:' + str(len(grammar.rules()))
     
     # The following code is to count the number of derivations for a hypergraph (tree parser required)
-    tree_parser.preprocess_grammar(grammar)
-
-    trees = parse_conll_corpus(train , False, train_limit)
-    if ignore_punctuation:
-        trees = disconnect_punctuation(trees)
+    if cDT == True:
+        tree_parser.preprocess_grammar(grammar)
+    
+        trees = parse_conll_corpus(train , False, train_limit)
+        if ignore_punctuation:
+            trees = disconnect_punctuation(trees)
     
 
-    derCount = 0
-    derMax = 0
-    for tree in trees:
-        parser = tree_parser(grammar, tree)  # if tree parser is used
-        der = parser.count_derivation_trees()
-        if der > derMax:
-            derMax = der
-        derCount += der
-
-    res += "\n#derivation trees:  average: " + str(1.0*derCount/train_limit)
-    res += " maximal: " + str(derMax)
+        derCount = 0
+        derMax = 0
+        for tree in trees:
+            parser = tree_parser(grammar, tree)  # if tree parser is used
+            der = parser.count_derivation_trees()
+            if der > derMax:
+                derMax = der
+            derCount += der
+    
+        res += "\n#derivation trees:  average: " + str(1.0*derCount/train_limit)
+        res += " maximal: " + str(derMax)
     
     
     total_time = 0.0
