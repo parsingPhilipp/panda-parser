@@ -25,6 +25,11 @@ tiger_test = tiger_dir + '/tiger_8000.xml'
 xml_file = None
 
 
+def clear():
+    global xml_file
+    xml_file = None
+
+
 # Determine XML file holding data, given file name.
 # file_name: string
 def initialize(file_name):
@@ -43,8 +48,9 @@ def num_to_name(num):
 # Return trees for names.
 # names: list of string
 # file_name: string
+# hold: boolean
 # return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name):
+def sentence_names_to_hybridtrees(names, file_name, hold):
     trees = []
     for name in names:
         tree = sentence_name_to_hybridtree(name, file_name)
@@ -52,6 +58,9 @@ def sentence_names_to_hybridtrees(names, file_name):
             trees += [tree]
         else:
             print 'missing', name
+
+    if not hold:
+        clear()
     return trees
 
 
