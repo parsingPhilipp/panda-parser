@@ -14,6 +14,7 @@ import grammar.linearization as g_l
 import decomposition as dec
 import re
 import argparse
+import sys
 
 
 result = 'recursive-partitoning-results.conll'
@@ -39,6 +40,8 @@ argParser.add_argument('-n', nargs='*', choices=['rtl', 'ltr', 'random', 'argmax
 argParser.add_argument('-r', nargs='*') #set random seed(s) for random strategy
 argParser.add_argument('-c', choices=['german','polish']) #choose corpus
 argParser.add_argument('-d', choices=['yes', 'y', 'no', 'n']) #decide whether or not to count derivation trees
+argParser.add_argument('-q', choices=['yes', 'no']) #use shortened version of german dev-corpus
+argParser.add_argument('-e', choices=['yes', 'no']) #decide whether or not to run string parser
 
 
 
@@ -57,7 +60,10 @@ def main(ignore_punctuation=False):
     #parse command line arguments for transformation strategies,
     #random seed, fallback strategy for no-new-nont and corpora
     if args['c'] is None or args['c'] == 'german':
-        test = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/pred/conll/dev/dev.German.pred.conll'
+        if args['q'] == 'no':
+            test = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/pred/conll/dev/dev.German.pred.conll'
+        else:
+            test = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/pred/conll/dev/dev.German_small.pred.conll'
         train ='../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/pred/conll/train/train.German.pred.conll'
 
     else:
@@ -128,20 +134,26 @@ def main(ignore_punctuation=False):
         if 'no' in args['d'] or 'n' in args['d']:
             countDerTrees += [False]
 
-    for strategy in  strategies:
-        for labelling1 in labellings1:
-            for labelling2 in labellings2:
-                for cDT in countDerTrees:
-                    for fanout in fanouts:
+    #for string parser
+    if args['e'] is None or args['e'] == 'yes':
+	parseStrings = True
+    else:
+	parseStrings = False
+
+    for fanout in fanouts:
+        for strategy in  strategies:
+            for labelling1 in labellings1:
+                for labelling2 in labellings2:
+                    for cDT in countDerTrees:
                         if fanout == '1':
-                            trainAndEval(strategy, labelling1, labelling2, fanout, parser1, train, test, cDT, ignore_punctuation)
+                            trainAndEval(strategy, labelling1, labelling2, fanout, parser1, train, test, cDT, parseStrings, ignore_punctuation)
                         else:
-                            trainAndEval(strategy, labelling1, labelling2, fanout, parser23, train, test, cDT, ignore_punctuation)
+                            trainAndEval(strategy, labelling1, labelling2, fanout, parser23, train, test, cDT, parseStrings, ignore_punctuation)
 
 
 
 
-def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, test, cDT, ignore_punctuation=False):
+def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, test, cDT, parseStrings, ignore_punctuation=False):
     file = open('results.txt', 'a')
     term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
     recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + strategy)
@@ -206,57 +218,62 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
     total_time = 0.0
 
     # The following code works for string parsers for evaluating
+    if parseStrings == True:
+        parser_type.preprocess_grammar(grammar)
     
-    parser_type.preprocess_grammar(grammar)
+        trees = parse_conll_corpus(test, False, test_limit)
+        if ignore_punctuation:
+            trees = disconnect_punctuation(trees)
     
-    trees = parse_conll_corpus(test, False, test_limit)
-    if ignore_punctuation:
-        trees = disconnect_punctuation(trees)
+        i = 0
+        with open(result, 'w') as result_file:
+            failures = 0
+            for tree in trees:
+                time_stamp = time.clock()
+                i += i
+                #if (i % 100 == 0):
+                    #print '.',
+                    #sys.stdout.flush()
     
-    with open(result, 'w') as result_file:
-        failures = 0
-        for tree in trees:
-            time_stamp = time.clock()
-    
-            parser = parser_type(grammar, tree_yield(tree.token_yield()))
-    
-            time_stamp = time.clock() - time_stamp
-            total_time += time_stamp
+                parser = parser_type(grammar, tree_yield(tree.token_yield()))
+        
+                time_stamp = time.clock() - time_stamp
+                total_time += time_stamp
     
     
-            cleaned_tokens = copy.deepcopy(tree.full_token_yield())
-            for token in cleaned_tokens:
-                token.set_deprel('_')
-            h_tree = HybridTree(tree.sent_label())
-            h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
+                cleaned_tokens = copy.deepcopy(tree.full_token_yield())
+                for token in cleaned_tokens:
+                    token.set_deprel('_')
+                h_tree = HybridTree(tree.sent_label())
+                h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
                                                             construct_conll_token)
    
-            if h_tree:
-                result_file.write(tree_to_conll_str(h_tree))
-                result_file.write('\n\n')
-            else:
-                failures += 1
-                forms = [token.form() for token in tree.full_token_yield()]
-                poss = [token.pos() for token in tree.full_token_yield()]
-                result_file.write(tree_to_conll_str(fall_back_left_branching_token(cleaned_tokens)))
-                result_file.write('\n\n')
+                if h_tree:
+                    result_file.write(tree_to_conll_str(h_tree))
+                    result_file.write('\n\n')
+                else:
+                    failures += 1
+                    forms = [token.form() for token in tree.full_token_yield()]
+                    poss = [token.pos() for token in tree.full_token_yield()]
+                    result_file.write(tree_to_conll_str(fall_back_left_branching_token(cleaned_tokens)))
+                    result_file.write('\n\n')
 
     
     
-    res += "\nattachment scores:\nno punctuation: "
-    out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
-    match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
-    res += ' labelled:' + match.group(1) #labeled attachment score
-    res += ' unlabelled:' + match.group(2) #unlabeled attachment score
-    res += "\npunctation: "
-    out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
-    match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
-    res += ' labelled:' + match.group(1)
-    res += ' unlabelled:' + match.group(2)
+        res += "\nattachment scores:\nno punctuation: "
+        out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
+        match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
+        res += ' labelled:' + match.group(1) #labeled attachment score
+        res += ' unlabelled:' + match.group(2) #unlabeled attachment score
+        res += "\npunctation: "
+        out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
+        match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
+        res += ' labelled:' + match.group(1)
+        res += ' unlabelled:' + match.group(2)
     
 
     
-    res += "\nparse time: " + str(total_time)
+        res += "\nparse time: " + str(total_time)
     
 
 
