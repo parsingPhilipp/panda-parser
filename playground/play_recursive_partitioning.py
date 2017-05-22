@@ -213,8 +213,9 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
     
         res += "\n#derivation trees:  average: " + str(1.0*derCount/train_limit)
         res += " maximal: " + str(derMax)
-    
-    
+	file.write(res)   
+   
+    res = ''
     total_time = 0.0
 
     # The following code works for string parsers for evaluating
