@@ -193,6 +193,9 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
     res += '#nonts:' + str(len(grammar.nonts()))
     res += ' #rules:' + str(len(grammar.rules()))
     
+    file.write(res);
+    res = ''
+
     # The following code is to count the number of derivations for a hypergraph (tree parser required)
     if cDT == True:
         tree_parser.preprocess_grammar(grammar)
