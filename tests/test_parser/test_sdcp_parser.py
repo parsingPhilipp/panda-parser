@@ -31,7 +31,7 @@ class MyTestCase(unittest.TestCase):
 
         print >>stderr, "preprocessing grammar"
 
-        parser_type.preprocess_grammar(grammar)
+        parser_type.preprocess_grammar(grammar, terminal_labeling)
 
         print >>stderr, "invoking parser"
 
