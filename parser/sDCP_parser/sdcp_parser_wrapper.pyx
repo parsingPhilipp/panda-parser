@@ -431,7 +431,7 @@ class PysDCPParser(pi.AbstractParser):
             return []
 
     @staticmethod
-    def __preprocess(grammar):
+    def __preprocess(grammar, term_labelling):
         """
         :type grammar: LCFRS
         """
@@ -442,7 +442,7 @@ class PysDCPParser(pi.AbstractParser):
 
         cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar,  nonterminal_encoder, terminal_encoder)
 
-        parser = PySDCPParser(grammar)
+        parser = PySDCPParser(grammar, term_labelling)
         parser.set_sdcp(sdcp)
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
@@ -451,16 +451,16 @@ class PysDCPParser(pi.AbstractParser):
 
 
     @staticmethod
-    def preprocess_grammar(grammar):
+    def preprocess_grammar(grammar, term_labelling):
         """
         :type grammar: LCFRS
         """
-        grammar.sdcp_parser = PysDCPParser.__preprocess(grammar)
+        grammar.sdcp_parser = PysDCPParser.__preprocess(grammar, term_labelling)
 
 
 class LCFRS_sDCP_Parser(PysDCPParser):
     @staticmethod
-    def __preprocess(grammar):
+    def __preprocess(grammar, term_labelling):
         """
         :type grammar: LCFRS
         """
@@ -471,7 +471,7 @@ class LCFRS_sDCP_Parser(PysDCPParser):
 
         cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=True)
 
-        parser = PySDCPParser(grammar, lcfrs_parsing=True, debug=False)
+        parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing=True, debug=False)
         parser.set_sdcp(sdcp)
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
@@ -479,8 +479,8 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         return parser
 
     @staticmethod
-    def preprocess_grammar(grammar):
+    def preprocess_grammar(grammar, term_labelling):
         """
         :type grammar: LCFRS
         """
-        grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar)
+        grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar, term_labelling)

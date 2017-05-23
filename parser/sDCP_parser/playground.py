@@ -1,6 +1,7 @@
 from sys import stderr
 from parser.sDCP_parser.sdcp_trace_manager import PySDCPTraceManager
-from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, build_PyLatentAnnotation_initial, PySplitMergeTrainerBuilder
+from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
+from parser.trace_manager.sm_trainer import PyEMTrainer, build_PyLatentAnnotation_initial, PySplitMergeTrainerBuilder
 from math import exp
 
 def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5, debug=False, rule_pruning=exp(-100)):
