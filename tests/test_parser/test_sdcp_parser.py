@@ -12,17 +12,21 @@ from parser.sDCP_parser.playground import split_merge_training
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
-
+from hybridtree.constituent_tree import ConstituentTree
 
 class MyTestCase(unittest.TestCase):
     def test_basic_sdcp_parsing(self):
-        tree = hybrid_tree_1()
-        tree2 = hybrid_tree_2()
+        tree1 = conTree1()
+        tree2 = conTree2()
+
+
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
 
-        (_, grammar) = induce_grammar([tree, tree2],
+        (_, grammar) = induce_grammar([tree1, tree2],
                                       the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
                                       terminal_labeling.token_label, [cfg], 'START')
+
+        print >>stderr, "grammar induced. Printing rules..."
 
         for rule in grammar.rules():
             print >>stderr, rule
@@ -328,3 +332,51 @@ class MyTestCase(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+def conTree1():
+    tree = ConstituentTree("s1")
+    tree.add_leaf("f1", "VP", "hat")
+    tree.add_leaf("f2", "ADV", "schnell")
+    tree.add_leaf("f3", "VP", "gearbeitet")
+    tree.add_punct("f4", "PUNC", ".")
+
+    tree.set_label("V", "V")
+    tree.add_child("V", "f1")
+    tree.add_child("V", "f3")
+
+    tree.set_label("ADV", "ADV")
+    tree.add_child("ADV", "f2")
+
+    tree.set_label("VP", "VP")
+    tree.add_child("VP", "V")
+    tree.add_child("VP", "ADV")
+
+    tree.add_to_root("VP")
+
+    return tree
+
+
+def conTree2():
+    tree = ConstituentTree("s2")
+    tree.add_leaf("l1", "N", "John")
+    tree.add_leaf("l2", "V", "hit")
+    tree.add_leaf("l3", "D", "the")
+    tree.add_leaf("l4", "N", "Ball")
+    tree.add_punct("l5", "PUNC", ".")
+
+    tree.set_label("NP", "NP")
+    tree.add_child("NP", "l3")
+    tree.add_child("NP", "l4")
+
+    tree.set_label("VP", "VP")
+    tree.add_child("VP", "l2")
+    tree.add_child("VP", "NP")
+
+    tree.set_label("S", "S")
+    tree.add_child("S", "l1")
+    tree.add_child("S", "VP")
+
+    tree.add_to_root("S")
+
+    return tree

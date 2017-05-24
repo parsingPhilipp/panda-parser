@@ -262,7 +262,10 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labell
         t_max = top_max(tree, node_ids)
         b_max = bottom_max(tree, node_ids)
 
-        dependency_label = tree.node_token(node_ids[0]).deprel()
+        if hasattr(tree.node_token(node_ids[0]), "deprel"):
+            dependency_label = tree.node_token(node_ids[0]).deprel()
+        else:
+            dependency_label = None
         dcp = [create_leaf_DCP_rule(b_max, dependency_label)]
         lhs = create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_labelling)
 
@@ -401,7 +404,7 @@ def create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
     return lhs
 
 
-def create_leaf_DCP_rule(bottom_max, dependency_label):
+def create_leaf_DCP_rule(bottom_max, dependency_label=None):
     """
     Creates a DCP rule for a leaf of the recursive partitioning.
     Note that the linked LCFRS-rule has an empty RHS.
