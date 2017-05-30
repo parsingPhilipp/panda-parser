@@ -1,11 +1,14 @@
 import unittest
 from sys import stderr
 
+from grammar.lcfrs import LCFRS
+from decomposition import fanout_limited_partitioning
 from corpora.conll_parse import parse_conll_corpus
-from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
+from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg, TerminalLabeling
+from constituent.induction import fringe_extract_lcfrs
 from dependency.labeling import the_labeling_factory
 from hybridtree.general_hybrid_tree import HybridTree
-from hybridtree.monadic_tokens import construct_conll_token
+from hybridtree.monadic_tokens import construct_conll_token, construct_constituent_token, ConstituentCategory, ConstituentTerminal
 from parser.sDCP_parser.sdcp_parser_wrapper import PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCP_parser.playground import split_merge_training
@@ -14,10 +17,19 @@ from parser.trace_manager.sm_trainer import PyEMTrainer
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from hybridtree.constituent_tree import ConstituentTree
 
+class ConstituentTerminalLabeling(TerminalLabeling):
+    def token_label(self, token):
+        if isinstance(token, ConstituentTerminal):
+            return token.pos()
+        elif isinstance(token, ConstituentCategory):
+            return token.category()
+        else:
+            assert False
+
 class MyTestCase(unittest.TestCase):
-    def test_basic_sdcp_parsing(self):
-        tree1 = conTree1()
-        tree2 = conTree2()
+    def test_basic_sdcp_parsing_dependency(self):
+        tree1 = hybrid_tree_1()
+        tree2 = hybrid_tree_2()
 
 
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
@@ -39,16 +51,59 @@ class MyTestCase(unittest.TestCase):
 
         print >>stderr, "invoking parser"
 
-        parser = parser_type(grammar, tree)
+        parser = parser_type(grammar, tree1)
 
         print >>stderr, "listing derivations"
 
         for der in parser.all_derivation_trees():
             print der
             output_tree = HybridTree()
-            tokens = tree.token_yield()
+            tokens = tree1.token_yield()
             dcp_to_hybridtree(output_tree, The_DCP_evaluator(der).getEvaluation(), tokens, False, construct_conll_token)
-            print tree
+            print tree1
+            print output_tree
+
+        print >>stderr, "completed test"
+
+    def test_basic_sdcp_parsing_constituency(self):
+        tree1 = conTree1()
+        tree2 = conTree2()
+
+
+        terminal_labeling = ConstituentTerminalLabeling()
+        fanout = 1
+
+        grammar = LCFRS('START')
+        for tree in [tree1, tree2]:
+            tree_part = tree.unlabelled_structure()
+            part = fanout_limited_partitioning(tree_part, fanout)
+            tree_grammar = fringe_extract_lcfrs(tree, part, naming='child')
+            grammar.add_gram(tree_grammar)
+        grammar.make_proper()
+
+        print >>stderr, "grammar induced. Printing rules..."
+
+        for rule in grammar.rules():
+            print >>stderr, rule
+
+        parser_type = LCFRS_sDCP_Parser
+
+        print >>stderr, "preprocessing grammar"
+
+        parser_type.preprocess_grammar(grammar, terminal_labeling, debug=True)
+
+        print >>stderr, "invoking parser"
+
+        parser = parser_type(grammar, tree1)
+
+        print >>stderr, "listing derivations"
+
+        for der in parser.all_derivation_trees():
+            print der
+            output_tree = ConstituentTree(tree1.sent_label())
+            tokens = tree1.token_yield()
+            dcp_to_hybridtree(output_tree, The_DCP_evaluator(der).getEvaluation(), tokens, False, construct_constituent_token)
+            print tree1
             print output_tree
 
         print >>stderr, "completed test"
@@ -140,7 +195,7 @@ class MyTestCase(unittest.TestCase):
         (n_trees, grammar_prim) = induce_grammar(trees, primary_labelling, term_labelling.token_label,
                                                      recursive_partitioning, start)
 
-        parser_type.preprocess_grammar(grammar_prim)
+        parser_type.preprocess_grammar(grammar_prim, term_labelling)
 
         trees = parse_conll_corpus(test, False, limit_test)
 
@@ -291,7 +346,7 @@ class MyTestCase(unittest.TestCase):
 
         print >>stderr, "call S/M Training"
 
-        new_grammars = split_merge_training(grammar, [tree, tree2], 3, 5, merge_threshold=0.5, debug=False)
+        new_grammars = split_merge_training(grammar, terminal_labeling, [tree, tree2], 3, 5, merge_threshold=0.5, debug=False)
 
         for new_grammar in new_grammars:
             for i, rule in enumerate(new_grammar.rules()):
@@ -321,7 +376,7 @@ class MyTestCase(unittest.TestCase):
         trees = parse_conll_corpus(train, False, limit_train)
         print >> stderr, "call S/M Training"
 
-        new_grammars = split_merge_training(grammar_prim, trees, 4, 10, tie_breaking=True, init="equal", sigma=0.05, seed=50, merge_threshold=0.1)
+        new_grammars = split_merge_training(grammar_prim, term_labelling, trees, 4, 10, tie_breaking=True, init="equal", sigma=0.05, seed=50, merge_threshold=0.1)
 
         print >> stderr, "finished S/M Training"
 
