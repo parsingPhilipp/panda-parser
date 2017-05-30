@@ -4,9 +4,9 @@ from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from parser.trace_manager.sm_trainer import PyEMTrainer, build_PyLatentAnnotation_initial, PySplitMergeTrainerBuilder
 from math import exp
 
-def split_merge_training(grammar, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5, debug=False, rule_pruning=exp(-100)):
+def split_merge_training(grammar, term_labelling, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5, debug=False, rule_pruning=exp(-100)):
     print >>stderr, "creating trace"
-    trace = PySDCPTraceManager(grammar, debug=debug)
+    trace = PySDCPTraceManager(grammar, term_labelling, debug=debug)
     print >>stderr, "computing reducts"
     trace.compute_reducts(corpus)
     print >>stderr, "pre em-training"
