@@ -431,7 +431,7 @@ class PysDCPParser(pi.AbstractParser):
             return []
 
     @staticmethod
-    def __preprocess(grammar, term_labelling):
+    def __preprocess(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
@@ -442,7 +442,7 @@ class PysDCPParser(pi.AbstractParser):
 
         cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar,  nonterminal_encoder, terminal_encoder)
 
-        parser = PySDCPParser(grammar, term_labelling)
+        parser = PySDCPParser(grammar, term_labelling, debug=debug)
         parser.set_sdcp(sdcp)
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
@@ -451,16 +451,16 @@ class PysDCPParser(pi.AbstractParser):
 
 
     @staticmethod
-    def preprocess_grammar(grammar, term_labelling):
+    def preprocess_grammar(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
-        grammar.sdcp_parser = PysDCPParser.__preprocess(grammar, term_labelling)
+        grammar.sdcp_parser = PysDCPParser.__preprocess(grammar, term_labelling, debug)
 
 
 class LCFRS_sDCP_Parser(PysDCPParser):
     @staticmethod
-    def __preprocess(grammar, term_labelling):
+    def __preprocess(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
@@ -471,7 +471,13 @@ class LCFRS_sDCP_Parser(PysDCPParser):
 
         cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=True)
 
-        parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing=True, debug=False)
+        if debug:
+            for enum in [terminal_map, nonterminal_map]:
+                for idx in range(enum.first_index, enum.counter):
+                    output_helper(str(idx) + " : " + str(enum.index_object(idx)))
+            sdcp.output()
+
+        parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing=True, debug=debug)
         parser.set_sdcp(sdcp)
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
@@ -479,8 +485,8 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         return parser
 
     @staticmethod
-    def preprocess_grammar(grammar, term_labelling):
+    def preprocess_grammar(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
-        grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar, term_labelling)
+        grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar, term_labelling, debug)
