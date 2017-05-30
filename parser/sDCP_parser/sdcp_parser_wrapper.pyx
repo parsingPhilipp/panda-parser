@@ -37,9 +37,15 @@ cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_t
     p_id = p_ids[0]
     cdef c_id = max_id + 1
     max_id += 1
-    c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id))) + " : " + str(p_tree.node_token(p_id).deprel())), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
+
+    if hasattr(p_tree.node_token(p_id), "deprel"):
+        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id))) + " : " + str(p_tree.node_token(p_id).deprel())), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
+    else:
+        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
+
     if p_tree.in_ordering(p_id):
         linearization[p_tree.node_index(p_id)] = c_id
+
     if attach_parent:
         c_tree[0].add_child(parent_id, c_id)
     if p_tree.children(p_id):
@@ -141,8 +147,10 @@ cdef class PySTermBuilder:
     cdef STermBuilder[NONTERMINAL, TERMINAL] builder
     cdef STermBuilder[NONTERMINAL, TERMINAL] get_builder(self):
         return self.builder
-    def add_terminal(self, TERMINAL term, int position):
+    def add_linked_terminal(self, TERMINAL term, int position):
         self.builder.add_terminal(term, position)
+    def add_terminal(self, TERMINAL term):
+        self.builder.add_terminal(term)
     def add_var(self, int mem, int arg):
         self.builder.add_var(mem, arg)
     def add_children(self):
@@ -174,7 +182,13 @@ class STermConverter(gd.DCP_evaluator):
                     j += 1
             if pos:
                break
-        self.builder.add_terminal(self.terminal_encoder(str(pos) + " : " + str(index.dep_label())), i)
+
+        # Dependency tree
+        if index.dep_label() is not None:
+            self.builder.add_linked_terminal(self.terminal_encoder(str(pos) + " : " + str(index.dep_label())), i)
+        # Constituent tree
+        else:
+            self.builder.add_linked_terminal(self.terminal_encoder(str(pos)), i)
 
     def evaluateString(self, s, id):
         # print s
