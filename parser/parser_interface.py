@@ -78,7 +78,7 @@ class AbstractParser:
             return []
 
     @staticmethod
-    def preprocess_grammar(grammar, term_labelling):
+    def preprocess_grammar(grammar):
         """
         :type grammar: LCFRS
         :param term_labelling: the terminal labelling
