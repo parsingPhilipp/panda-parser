@@ -1,6 +1,8 @@
 import unittest
 
-from dependency.induction import the_terminal_labeling_factory, induce_grammar, direct_extraction, cfg
+from dependency.induction import induce_grammar
+from grammar.induction.recursive_partitioning import direct_extraction, cfg
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token

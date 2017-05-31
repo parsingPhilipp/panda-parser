@@ -1,3 +1,6 @@
+import grammar.induction.recursive_partitioning
+import grammar.induction.terminal_labeling
+
 __author__ = 'kilian'
 
 conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
@@ -225,13 +228,13 @@ def test_conll_grammar_induction():
     root_default_deprel = 'ROOT'
     disconnected_default_deprel = 'PUNC'
 
-    terminal_labeling_strategy = d_i.the_terminal_labeling_factory().get_strategy('pos')
+    terminal_labeling_strategy = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy('pos')
 
     for ignore_punctuation in [True, False]:
         for top_level, node_to_string in itertools.product(['strict', 'child'], ['pos', 'deprel']):
             nont_labelling = label.the_labeling_factory().create_simple_labeling_strategy(top_level, node_to_string)
             for rec_par_s in ['direct_extraction', 'left_branching', 'right_branching', 'fanout-1', 'fanout_2']:
-                rec_par = d_i.the_recursive_partitioning_factory().getPartitioning(rec_par_s)
+                rec_par = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning(rec_par_s)
                 grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling,
                                                                terminal_labeling_strategy.token_label, rec_par,
                                                                sys.maxint, False, 'START', ignore_punctuation)
@@ -257,12 +260,12 @@ def run_experiment(db_file, training_corpus, test_corpus, do_parse, ignore_punct
         print("Error: Invalid labeling strategy: " + labeling)
         exit(1)
 
-    rec_par = d_i.the_recursive_partitioning_factory().getPartitioning(partitioning)
+    rec_par = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning(partitioning)
     if rec_par is None:
         print("Error: Invalid recursive partitioning strategy: " + partitioning)
         exit(1)
 
-    term_labeling_strategy = d_i.the_terminal_labeling_factory().get_strategy(terminal_labeling)
+    term_labeling_strategy = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy(terminal_labeling)
     if term_labeling_strategy is None:
         print("Error: Invalid recursive partitioning strategy: " + partitioning)
         exit(1)

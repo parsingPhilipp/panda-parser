@@ -1,10 +1,15 @@
 # -*- coding: iso-8859-15 -*-
+import grammar.induction.recursive_partitioning
+import grammar.induction.terminal_labeling
+
 __author__ = 'kilian'
 
 import unittest
 import copy
 import dependency.induction as d_i
 from dependency.labeling import the_labeling_factory
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory
+from grammar.induction.recursive_partitioning import direct_extraction
 from hybridtree.monadic_tokens import construct_conll_token
 from hybridtree.dependency_tree import disconnect_punctuation
 from parser.naive.parsing import LCFRS_parser
@@ -47,10 +52,10 @@ class CoNLLParserTest(unittest.TestCase):
         ignore_punctuation = True
         trees = parse_conll_corpus(test_file, False)
         trees = disconnect_punctuation(trees)
-        terminal_labeling = d_i.the_terminal_labeling_factory().get_strategy('pos')
+        terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
         nonterminal_labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
         (_, grammar) = d_i.induce_grammar(trees, nonterminal_labeling, terminal_labeling.token_label,
-                                          [d_i.direct_extraction], 'START')
+                                          [direct_extraction], 'START')
 
         trees2 = parse_conll_corpus(test_file_modified, False)
         trees2 = disconnect_punctuation(trees2)
@@ -187,7 +192,7 @@ class CoNLLParserTest(unittest.TestCase):
     def test_compare_rec_par(self):
         test_trees = disconnect_punctuation(parse_conll_corpus(conll_train, True))
         mylist = []
-        [leftb,cfg] = d_i.the_recursive_partitioning_factory().getPartitioning('left-branching,fanout-1')
+        [leftb,cfg] = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning('left-branching,fanout-1')
         i = 0
         for tree in test_trees:
             i = i + 1

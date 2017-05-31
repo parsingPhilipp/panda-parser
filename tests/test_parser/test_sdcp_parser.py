@@ -4,8 +4,10 @@ from sys import stderr
 from grammar.lcfrs import LCFRS
 from decomposition import fanout_limited_partitioning
 from corpora.conll_parse import parse_conll_corpus
-from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
-from constituent.induction import fringe_extract_lcfrs, ConstituentTerminalLabeling
+from dependency.induction import induce_grammar
+from grammar.induction.recursive_partitioning import cfg
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory, PosTerminals, FormTerminals, FormPosTerminalsUnk
+from constituent.induction import fringe_extract_lcfrs
 from dependency.labeling import the_labeling_factory
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token, construct_constituent_token
@@ -61,7 +63,7 @@ class MyTestCase(unittest.TestCase):
         tree2 = conTree2()
 
 
-        terminal_labeling = ConstituentTerminalLabeling()
+        terminal_labeling = FormPosTerminalsUnk([tree1, tree2], 1, filter=["VP"])
         fanout = 1
 
         grammar = LCFRS('START')

@@ -7,8 +7,10 @@ import unittest
 from collections import defaultdict
 from math import e
 
-from dependency.induction import induce_grammar, direct_extraction, left_branching, right_branching, the_terminal_labeling_factory, \
-    the_recursive_partitioning_factory, cfg
+from dependency.induction import induce_grammar
+from grammar.induction.recursive_partitioning import left_branching, right_branching, cfg, \
+    the_recursive_partitioning_factory, direct_extraction
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from grammar.linearization import linearize
 from grammar.dcp import DCP_string

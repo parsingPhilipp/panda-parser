@@ -4,7 +4,7 @@ from hybridtree.dependency_tree import disconnect_punctuation
 
 class MyTestCase(unittest.TestCase):
     def test_wsj(self):
-        corpus = "../res/wsj_dependency/24.conll"
+        corpus = "res/wsj_dependency/24.conll"
         trees = parse_conll_corpus(corpus, False, 5000)
         trees = disconnect_punctuation(trees)
 
@@ -15,7 +15,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(1346, x)
 
     def test_tiger(self):
-        corpus = "../res/dependency_conll/german/tiger/test/german_tiger_test.conll"
+        corpus = "res/dependency_conll/german/tiger/test/german_tiger_test.conll"
         trees = parse_conll_corpus(corpus, False, 5000)
         trees = disconnect_punctuation(trees)
 

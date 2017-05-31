@@ -1,20 +1,12 @@
 __author__ = 'kilian'
 
-import re
-from abc import ABCMeta, abstractmethod
-
-from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
-    right_branching_partitioning
-from grammar.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
-
+from decomposition import join_spans
 from dependency.labeling import AbstractLabeling
 from grammar.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
-from hybridtree.general_hybrid_tree import HybridTree
-from hybridtree.monadic_tokens import CoNLLToken
-from collections import defaultdict
+from grammar.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
 
 
-# ##################   Top level methods for grammar induction.   ###################
+###################   Top level methods for grammar induction.   ###################
 
 
 def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning, start_nont='START'):
@@ -53,194 +45,7 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     return n_trees, grammar
 
 
-class TerminalLabeling:
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def token_label(self, token):
-        """
-        :type token: CoNLLToken
-        """
-        pass
-
-    def token_tree_label(self, token):
-        return self.token_label(token) + " : " + token.deprel()
-
-    def prepare_parser_input(self, tokens):
-        return map(self.token_label, tokens)
-
-
-class FormTerminals(TerminalLabeling):
-    def token_label(self, token):
-        return token.form()
-
-    def __str__(self):
-        return 'form'
-
-
-class CPosTerminals(TerminalLabeling):
-    def token_label(self, token):
-        return token.cpos()
-
-    def __str__(self):
-        return 'cpos'
-
-
-class PosTerminals(TerminalLabeling):
-    def token_label(self, token):
-        return token.pos()
-
-    def __str__(self):
-        return 'pos'
-
-
-class CPOS_KON_APPR(TerminalLabeling):
-    def token_label(self, token):
-        cpos = token.pos()
-        if cpos in ['KON', 'APPR']:
-            return cpos + token.form().lower()
-        else:
-            return cpos
-
-    def __str__(self):
-        return 'cpos-KON-APPR'
-
-class FormPosTerminalsUnk(TerminalLabeling):
-    def __init__(self, trees, threshold, UNK="UNKNOWN", filter=[]):
-        self.__terminal_counts = defaultdict(lambda: 0)
-        self.__UNK = UNK
-        self.__threshold = threshold
-        for tree in trees:
-            for token in tree.token_yield():
-                if token.pos() not in filter:
-                    self.__terminal_counts[(token.form().lower(), token.pos())] += 1
-
-    def __str__(self):
-        return 'form-pos-unk-' + str(self.__threshold) + '-pos'
-
-    def token_label(self, token):
-        pos = token.pos()
-        form = token.form().lower()
-        if self.__terminal_counts.get((form, pos)) < self.__threshold:
-            form = self.__UNK
-        return form + '-:-' + pos
-
-class FormPosTerminalsUnkMorph(TerminalLabeling):
-    def __init__(self, trees, threshold, UNK="UNKNOWN", filter=[], add_morph={}):
-        self.__terminal_counts = defaultdict(lambda: 0)
-        self.__UNK = UNK
-        self.__threshold = threshold
-        self.__add_morph = add_morph
-        for tree in trees:
-            for token in tree.token_yield():
-                if token.pos() not in filter:
-                    self.__terminal_counts[(token.form().lower(), token.pos())] += 1
-
-    def __str__(self):
-        return 'form-pos-unk-' + str(self.__threshold) + '-morph-pos'
-
-    def token_label(self, token):
-        pos = token.pos()
-        form = token.form().lower()
-        if self.__terminal_counts.get((form, pos)) < self.__threshold:
-            form = self.__UNK
-            if pos in self.__add_morph:
-                feats = map(lambda x: tuple(x.split('=')), token.feats().split('|'))
-                for feat in feats:
-                    if feat[0] in self.__add_morph[pos]:
-                        form += '#' + feat[0] + ':' + feat[1]
-        return form + '-:-' + pos
-
-class TerminalLabelingFactory:
-    def __init__(self):
-        self.__strategies = {}
-
-    def register_strategy(self, name, strategy):
-        """
-        :type name: str
-        :type strategy: TerminalLabeling
-        """
-        self.__strategies[name] = strategy
-
-    def get_strategy(self, name):
-        """
-        :type name: str
-        :rtype: TerminalLabeling
-        """
-        return self.__strategies[name]
-
-
-def the_terminal_labeling_factory():
-    """
-    :rtype : TerminalLabelingFactory
-    """
-    factory = TerminalLabelingFactory()
-    factory.register_strategy('form', FormTerminals())
-    factory.register_strategy('pos', PosTerminals())
-    factory.register_strategy('cpos', CPosTerminals())
-    factory.register_strategy('cpos-KON-APPR', CPOS_KON_APPR())
-    return factory
-
-
-# Recursive partitioning strategies
-def left_branching(tree):
-    return left_branching_partitioning(len(tree.id_yield()))
-
-
-def right_branching(tree):
-    return right_branching_partitioning(len(tree.id_yield()))
-
-
-def direct_extraction(tree):
-    return tree.recursive_partitioning()
-
-
-def cfg(tree):
-    return fanout_k(tree, 1)
-
-
-fanout_k = lambda tree, k: fanout_limited_partitioning(tree.recursive_partitioning(), k)
-
-
-class RecursivePartitioningFactory:
-    def __init__(self):
-        self.__partitionings = {}
-
-    def registerPartitioning(self, name, partitioning):
-        self.__partitionings[name] = partitioning
-
-    def getPartitioning(self, name):
-        partitioning_names = name.split(',')
-        partitionings = []
-        for name in partitioning_names:
-            match = re.search(r'fanout-(\d+)', name)
-            if match:
-                k = int(match.group(1))
-                rec_par = lambda tree: fanout_k(tree, k)
-                rec_par.__name__ = 'fanout_' + str(k)
-                partitionings.append(rec_par)
-
-            else:
-                rec_par = self.__partitionings[name]
-                if rec_par:
-                    partitionings.append(rec_par)
-                else:
-                    return None
-        if partitionings:
-            return partitionings
-        else:
-            return None
-
-def the_recursive_partitioning_factory():
-    factory = RecursivePartitioningFactory()
-    factory.registerPartitioning('left-branching', left_branching)
-    factory.registerPartitioning('right-branching', right_branching)
-    factory.registerPartitioning('direct-extraction', direct_extraction)
-    factory.registerPartitioning('cfg', cfg)
-    return factory
-
-
-###################################### Recursive Rule extraction method ###################################
+################### Recursive Rule extraction method ###################################
 
 
 def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labelling):
@@ -459,35 +264,35 @@ def create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_lab
 
 def top_max(tree, id_set):
     """
-    Compute list of node ids that delimit id_set from the top
-    and group maximal subsets of neighbouring nodes together.
     :rtype: [[str]]
     :param tree: HybridTree
     :param id_set: list of string
     :return: list of list of string
+    Compute list of node ids that delimit id_set from the top
+    and group maximal subsets of neighbouring nodes together.
     """
     return maximize(tree, top(tree, id_set))
 
 
 def bottom_max(tree, id_set):
     """
-    Compute list of node ids that delimit id_set from the bottom.
-    and group maximal subsets of neighbouring nodes together.
     :rtype: [[str]]
     :param tree: HybridTree
     :param id_set: list of string
     :return: list of list of string
+    Compute list of node ids that delimit id_set from the bottom.
+    and group maximal subsets of neighbouring nodes together.
     """
     return maximize(tree, bottom(tree, id_set))
 
 
 def top(tree, id_set):
     """
-    Compute list of node ids that delimit id_set from the top.
     :rtype: [[str]]
     :param tree: HybridTree
     :param id_set: list of string  (node ids)
     :return: list of string  (node ids)
+    Compute list of node ids that delimit id_set from the top.
     """
     top_nodes = [id for id in id_set if tree.parent(id) not in id_set]
     return top_nodes
@@ -495,11 +300,11 @@ def top(tree, id_set):
 
 def bottom(tree, id_set):
     """
-    Compute list of node ids that delimit id_set from the bottom.
     :rtype: [[str]]
     :param tree: list of node ids that delimit id_set from the bottom.
     :param id_set: list of string  (node ids)
     :return: list of string  (node ids)
+    Compute list of node ids that delimit id_set from the bottom.
     """
     bottom_nodes = [id for id in tree.id_yield()
                     if tree.parent(id) in id_set and id not in id_set]
@@ -508,10 +313,10 @@ def bottom(tree, id_set):
 
 def maximize(tree, id_set):
     """
-    Group maximal subsets of neighbouring nodes together.
     :param tree: HybridTree
     :param id_set: list of string
     :return: list of list of string
+    Group maximal subsets of neighbouring nodes together.
     """
     nodes = id_set[:]
     max_list = []

@@ -1,3 +1,6 @@
+import grammar.induction.recursive_partitioning
+import grammar.induction.terminal_labeling
+
 __author__ = 'kilian'
 
 conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
@@ -138,12 +141,12 @@ def parse_sentences_from_file(grammar
 def test_conll_grammar_induction():
     nt_labeling = label.the_labeling_factory().create_simple_labeling_strategy('strict', 'pos+deprel')
     nt_labeling2 = label.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
-    t_labeling = d_i.the_terminal_labeling_factory().get_strategy('pos')
+    t_labeling = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy('pos')
     for nont_labelling, rec_par, ignore_punctuation in [
-        (nt_labeling, d_i.direct_extraction, True)
-        , (nt_labeling, d_i.left_branching, True)
-        , (nt_labeling2, d_i.direct_extraction, True)
-        , (nt_labeling2, d_i.left_branching, True)]:
+        (nt_labeling, grammar.induction.recursive_partitioning.direct_extraction, True)
+        , (nt_labeling, grammar.induction.recursive_partitioning.left_branching, True)
+        , (nt_labeling2, grammar.induction.recursive_partitioning.direct_extraction, True)
+        , (nt_labeling2, grammar.induction.recursive_partitioning.left_branching, True)]:
         grammar = induce_grammar_from_file(conll_train, nont_labelling, t_labeling.token_label, rec_par, 200
                                            , False, 'START', ignore_punctuation)
         print

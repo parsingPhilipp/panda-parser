@@ -4,27 +4,14 @@
 from decomposition import *
 from grammar.lcfrs import *
 from grammar.dcp import *
-from dependency.induction import TerminalLabeling
-from hybridtree.monadic_tokens import ConstituentCategory, ConstituentTerminal
+from grammar.induction.terminal_labeling import PosTerminals
 from hybridtree.constituent_tree import ConstituentTree
 
 # The root symbol.
 start = 'START'
 
-class ConstituentTerminalLabeling(TerminalLabeling):
-    def token_label(self, token):
-        if isinstance(token, ConstituentTerminal):
-            return token.pos()
-        elif isinstance(token, ConstituentCategory):
-            return token.category()
-        else:
-            assert False
 
-    def token_tree_label(self, token):
-        return self.token_label(token)
-
-
-def direct_extract_lcfrs(tree, term_labeling=ConstituentTerminalLabeling()):
+def direct_extract_lcfrs(tree, term_labeling=PosTerminals()):
     """
     :type tree: ConstituentTree
     :type term_labeling: ConstituentTerminalLabeling
@@ -105,7 +92,7 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
 # Induction via unlabelled structure (recursive partitioning).
 
 
-def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=ConstituentTerminalLabeling()):
+def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTerminals()):
     """
     :type tree: ConstituentTree
     :param fringes: recursive partitioning

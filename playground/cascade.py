@@ -1,3 +1,5 @@
+import grammar.induction.recursive_partitioning
+import grammar.induction.terminal_labeling
 from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
 from hybridtree.dependency_tree import disconnect_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
@@ -14,8 +16,8 @@ test = '../res/negra-dep/negra-lower-punct-test.conll'
 train ='../res/negra-dep/negra-lower-punct-train.conll'
 result = 'cascade-parse-results.conll'
 start = 'START'
-term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
-recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
+term_labelling = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy('pos')
+recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning('fanout-1')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')

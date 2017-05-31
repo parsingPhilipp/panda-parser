@@ -4,7 +4,7 @@ import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
 import parser.parser_interface as pi
 import parser.derivation_interface as di
-from dependency.induction import TerminalLabeling
+from grammar.induction.terminal_labeling import TerminalLabeling
 from collections import defaultdict
 
 # this needs to be consistent
@@ -38,10 +38,11 @@ cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_t
     cdef c_id = max_id + 1
     max_id += 1
 
-    c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_tree_label(p_tree.node_token(p_id)))), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
-
     if p_tree.in_ordering(p_id):
+        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_tree_label(p_tree.node_token(p_id)))), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
         linearization[p_tree.node_index(p_id)] = c_id
+    else:
+        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_tree_label(p_tree.node_token(p_id)))), c_id)
 
     if attach_parent:
         c_tree[0].add_child(parent_id, c_id)

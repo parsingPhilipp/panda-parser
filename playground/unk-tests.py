@@ -12,6 +12,8 @@ import plac
 
 import dependency.induction as d_i
 import dependency.labeling as d_l
+import grammar.induction.recursive_partitioning
+import grammar.induction.terminal_labeling
 from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
 from dependency.minimum_risk import compute_minimum_risk_tree
 from dependency.oracle import compute_oracle_tree
@@ -207,7 +209,7 @@ def main(limit=3000
         else:
             return os.path.join(dir, gram + '_experiment_parse_results.conll')
 
-    recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning(recursive_partitioning)
+    recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning(recursive_partitioning)
     top_level, low_level = tuple(nonterminal_labeling.split('-'))
     nonterminal_labeling = d_l.the_labeling_factory().create_simple_labeling_strategy(top_level, low_level)
 
@@ -245,8 +247,8 @@ def main(limit=3000
     match = re.match(r'^form-unk-(\d+)-morph.*$', terminal_labeling)
     if match:
         unk_threshold = int(match.group(1))
-        term_labelling = d_i.FormPosTerminalsUnkMorph(corpus_induce.get_trees(), unk_threshold, filter=["NE", "CARD"],
-              add_morph={'NN': ['case', 'number', 'gender']
+        term_labelling = grammar.induction.terminal_labeling.FormPosTerminalsUnkMorph(corpus_induce.get_trees(), unk_threshold, filter=["NE", "CARD"],
+                                                                                      add_morph={'NN': ['case', 'number', 'gender']
                         # , 'NE': ['case', 'number', 'gender']
                         # , 'VMFIN': ['number', 'person']
                         # , 'VVFIN': ['number', 'person']
@@ -256,9 +258,9 @@ def main(limit=3000
         match = re.match(r'^form-unk-(\d+).*$', terminal_labeling)
         if match:
             unk_threshold = int(match.group(1))
-            term_labelling = d_i.FormPosTerminalsUnk(corpus_induce.get_trees(), unk_threshold, filter=["NE", "CARD"])
+            term_labelling = grammar.induction.terminal_labeling.FormPosTerminalsUnk(corpus_induce.get_trees(), unk_threshold, filter=["NE", "CARD"])
         else:
-            term_labelling = d_i.the_terminal_labeling_factory().get_strategy(terminal_labeling)
+            term_labelling = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy(terminal_labeling)
 
     if not os.path.isdir(dir):
         os.makedirs(dir)

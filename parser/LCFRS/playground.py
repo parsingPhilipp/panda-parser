@@ -2,7 +2,9 @@ import Queue
 import timeit
 from collections import deque
 
-from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg, direct_extraction
+from dependency.induction import induce_grammar
+from grammar.induction.recursive_partitioning import direct_extraction, cfg
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from grammar.lcfrs import LCFRS
 from hybridtree.general_hybrid_tree import HybridTree
 from dependency.labeling import the_labeling_factory

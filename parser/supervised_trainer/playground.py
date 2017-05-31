@@ -3,7 +3,9 @@ from __future__ import print_function
 from sys import stderr
 
 from corpora.conll_parse import parse_conll_corpus
-from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg
+from dependency.induction import induce_grammar
+from grammar.induction.recursive_partitioning import cfg
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from hybridtree.monadic_tokens import construct_constituent_token
 from parser.derivation_interface import derivation_to_hybrid_tree
