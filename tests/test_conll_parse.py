@@ -12,12 +12,12 @@ from corpora.conll_parse import *
 import subprocess32 as subprocess
 import os
 
-test_file = '../res/tests/Dependency_Corpus.conll'
-test_file_modified = '../res/tests/Dependency_Corpus_modified.conll'
-slovene = '../res/tests/slovene_multi_root.conll'
+test_file = 'res/tests/Dependency_Corpus.conll'
+test_file_modified = 'res/tests/Dependency_Corpus_modified.conll'
+slovene = 'res/tests/slovene_multi_root.conll'
 
-conll_test = '../res/dependency_conll/german/tiger/test/german_tiger_test.conll'
-conll_train = '../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+conll_test = 'res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+conll_train = 'res/dependency_conll/german/tiger/train/german_tiger_train.conll'
 
 hypothesis_prefix = '.tmp/sys-output'
 eval_pl = 'util/eval.pl'
@@ -114,7 +114,7 @@ class CoNLLParserTest(unittest.TestCase):
             # print tree_to_conll_str(trees[0])
 
     def test_conll_generation(self):
-        test_trees = disconnect_punctuation(parse_conll_corpus(conll_train, True))
+        test_trees = disconnect_punctuation(parse_conll_corpus(conll_test, True))
         CoNLL_strings = []
         for tree in test_trees:
             CoNLL_strings.append(tree_to_conll_str(tree))
@@ -136,24 +136,26 @@ class CoNLLParserTest(unittest.TestCase):
         p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
 
-        print out
-        print err
+        # print out
+        # print err
+
+        self.assertEqual(p.returncode, 0)
 
         lines = out.split('\n')
         # print lines
         uas = 0.0
         las = 0.0
         la = 0.0
-        # for line in lines:
-        #     m = re.search(r'^\s*Labeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
-        #     if m:
-        #         las = float(m.group(1)) / 100
-        #     m = re.search(r'^\s*Unlabeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
-        #     if m:
-        #         uas = float(m.group(1)) / 100
-        #     m = re.search(r'^\s*Label\s*accuracy\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
-        #     if m:
-        #         la = float(m.group(1)) / 100
+        for line in lines:
+            m = re.search(r'^\s*Labeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
+            if m:
+                las = float(m.group(1)) / 100
+            m = re.search(r'^\s*Unlabeled\s*attachment\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
+            if m:
+                uas = float(m.group(1)) / 100
+            m = re.search(r'^\s*Label\s*accuracy\s*score:\s*\d+\s*/\s*\d+\s*\*\s*100\s*=\s*(\d+\.\d+)\s*%$', line)
+            if m:
+                la = float(m.group(1)) / 100
 
         print uas, las, la
 
@@ -186,7 +188,7 @@ class CoNLLParserTest(unittest.TestCase):
         test_trees = disconnect_punctuation(parse_conll_corpus(conll_train, True))
         mylist = []
         [leftb,cfg] = d_i.the_recursive_partitioning_factory().getPartitioning('left-branching,fanout-1')
-        i = 0;
+        i = 0
         for tree in test_trees:
             i = i + 1
             if leftb(tree) == cfg(tree):
