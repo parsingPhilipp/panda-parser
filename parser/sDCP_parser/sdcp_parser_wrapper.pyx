@@ -38,10 +38,7 @@ cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_t
     cdef c_id = max_id + 1
     max_id += 1
 
-    if hasattr(p_tree.node_token(p_id), "deprel"):
-        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id))) + " : " + str(p_tree.node_token(p_id).deprel())), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
-    else:
-        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
+    c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_tree_label(p_tree.node_token(p_id)))), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
 
     if p_tree.in_ordering(p_id):
         linearization[p_tree.node_index(p_id)] = c_id

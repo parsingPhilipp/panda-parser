@@ -63,6 +63,9 @@ class TerminalLabeling:
         """
         pass
 
+    def token_tree_label(self, token):
+        return self.token_label(token) + " : " + token.deprel()
+
     def prepare_parser_input(self, tokens):
         return map(self.token_label, tokens)
 

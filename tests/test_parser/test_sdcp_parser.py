@@ -4,11 +4,11 @@ from sys import stderr
 from grammar.lcfrs import LCFRS
 from decomposition import fanout_limited_partitioning
 from corpora.conll_parse import parse_conll_corpus
-from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg, TerminalLabeling
-from constituent.induction import fringe_extract_lcfrs
+from dependency.induction import the_terminal_labeling_factory, induce_grammar, cfg
+from constituent.induction import fringe_extract_lcfrs, ConstituentTerminalLabeling
 from dependency.labeling import the_labeling_factory
 from hybridtree.general_hybrid_tree import HybridTree
-from hybridtree.monadic_tokens import construct_conll_token, construct_constituent_token, ConstituentCategory, ConstituentTerminal
+from hybridtree.monadic_tokens import construct_conll_token, construct_constituent_token
 from parser.sDCP_parser.sdcp_parser_wrapper import PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCP_parser.playground import split_merge_training
@@ -16,15 +16,6 @@ from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from hybridtree.constituent_tree import ConstituentTree
-
-class ConstituentTerminalLabeling(TerminalLabeling):
-    def token_label(self, token):
-        if isinstance(token, ConstituentTerminal):
-            return token.pos()
-        elif isinstance(token, ConstituentCategory):
-            return token.category()
-        else:
-            assert False
 
 class MyTestCase(unittest.TestCase):
     def test_basic_sdcp_parsing_dependency(self):
@@ -77,7 +68,7 @@ class MyTestCase(unittest.TestCase):
         for tree in [tree1, tree2]:
             tree_part = tree.unlabelled_structure()
             part = fanout_limited_partitioning(tree_part, fanout)
-            tree_grammar = fringe_extract_lcfrs(tree, part, naming='child')
+            tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
             grammar.add_gram(tree_grammar)
         grammar.make_proper()
 
