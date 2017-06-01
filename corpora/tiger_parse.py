@@ -81,9 +81,9 @@ def sentence_name_to_hybridtree(name, file_name):
             word = term.get('word')
             pos = term.get('pos')
             if is_word(pos, word):
-                tree.add_leaf(id, pos, word)
+                tree.add_leaf(id, pos, word.encode('utf_8'))
             else:
-                tree.add_punct(id, pos, word)
+                tree.add_punct(id, pos, word.encode('utf_8'))
         for nont in graph.iterfind('nonterminals/nt'):
             id = nont.get('id')
             cat = nont.get('cat')
