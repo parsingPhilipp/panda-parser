@@ -50,7 +50,7 @@ def num_to_name(num):
 # file_name: string
 # hold: boolean
 # return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name, hold):
+def sentence_names_to_hybridtrees(names, file_name, hold=True):
     trees = []
     for name in names:
         tree = sentence_name_to_hybridtree(name, file_name)
