@@ -6,6 +6,7 @@ from grammar.lcfrs import LCFRS
 from constituent.induction import fringe_extract_lcfrs
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
+from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 import time
 import copy
 from hybridtree.constituent_tree import ConstituentTree
@@ -49,9 +50,11 @@ validationDropIterations = 3
 
 k_best = 50
 
-def do_parsing(grammar):
+# parsing_method = "single-best-annotation"
+parsing_method = "filter-ctf"
+
+def do_parsing(parser):
     accuracy = ParseAccuracyPenalizeFailures()
-    parser = GFParser(grammar)
 
     start_at = time.time()
 
@@ -78,6 +81,7 @@ def do_parsing(grammar):
             retrieved = dcp_tree.labelled_spans()
             relevant = tree.labelled_spans()
             accuracy.add_accuracy(retrieved, relevant)
+        parser.clear()
 
     end_at = time.time()
 
@@ -176,7 +180,7 @@ def main():
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
     builder.set_em_epochs(em_epochs)
     builder.set_split_randomization(1.0, seed + 1)
-    builder.set_simple_expector(threads=1)
+    builder.set_simple_expector(threads=4)
 
 
     validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
@@ -194,12 +198,19 @@ def main():
     for i in range(1, sm_cycles + 1):
         splitMergeTrainer.reset_random_seed(seed + i + 1)
         latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
-        smGrammar = latentAnnotation[i].build_sm_grammar(grammar
+        print("Cycle: ", i)
+        if parsing_method == "single-best-annotation":
+            smGrammar = latentAnnotation[i].build_sm_grammar(grammar
                                                          , grammarInfo
                                                          , rule_pruning=0.0001
                                                          , rule_smoothing=0.1)
-        print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
-        do_parsing(smGrammar)
+            print("Rules in smoothed grammar: ", len(smGrammar.rules()))
+            parser = GFParser(smGrammar)
+        elif parsing_method == "filter-ctf":
+            parser = Coarse_to_fine_parser(grammar, GFParser_k_best, latentAnnotation[-1], grammarInfo, trace.get_nonterminal_map(), k=k_best)
+        else:
+            raise()
+        do_parsing(parser)
 
 if __name__ == '__main__':
     main()
