@@ -214,7 +214,7 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
                 derMax = der
             derCount += der
     
-        res += "\n#derivation trees:  average: " + str(1.0*derCount/train_limit)
+        res += "\n#derivation trees:  average: " + str(1.0*derCount/n_trees)
         res += " maximal: " + str(derMax)
 	file.write(res)   
    
