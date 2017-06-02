@@ -179,6 +179,8 @@ def fanout_limited_partitioning_argmax(part, fanout):
 def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling, fallback):
     (root, children) = part
     agenda = children
+
+    oneIn = None
     while len(agenda) > 0:
         next_agenda = []
         while len(agenda) > 0:
@@ -187,6 +189,7 @@ def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labe
             (subroot, subchildren) = child1
             rest = remove_spans_from_spans(root, subroot)
             if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                # check if first nonterminal was already created
                 subindex = []
                 for pos in subroot:
                     subindex += [tree.index_node(pos+1)]
@@ -197,12 +200,34 @@ def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labe
                 nont = nont_labelling.label_nonterminal(tree, subindex, t_max, b_max, len(spans))
                 if nont in nonts:
                     child2 = restrict_part([(rest, children)], rest)[0]
-                    child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
-                    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
-                    return root, sort_part(child1_restrict, child2_restrict)
+                    (subroot2, subchildren2) = child2
+                    # check if second nonterminal was already created
+                    subindex2 = []
+                    for pos in subroot2:
+                        subindex2 += [tree.index_node(pos+1)]
+                    positions2 = map(int, subroot2)
+                    b_max2 = bottom_max(tree, subindex2)
+                    t_max2 = top_max(tree, subindex2)
+                    spans2 = join_spans(positions2)
+                    nont2 = nont_labelling.label_nonterminal(tree, subindex2, t_max2, b_max2, len(spans2))
+
+                    if nont2 in nonts:
+                        child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+                        child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+                        return root, sort_part(child1_restrict, child2_restrict)
+                    elif oneIn == None:
+                        oneIn = (child1, child2)
+
             next_agenda += subchildren
         agenda = next_agenda
-    
+
+    # check if at least one candidate was found:
+    if oneIn != None:
+        (child1, child2) = oneIn
+        child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+        child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+        return root, sort_part(child1_restrict, child2_restrict)
+
     if fallback == '-rtl':
         return fallback_rtl(part, fanout, tree, nonts, nont_labelling, fallback)
     elif fallback == '-ltr':
