@@ -1,5 +1,6 @@
 from __future__ import print_function
 from corpora.tiger_parse import sentence_names_to_hybridtrees
+from corpora.negra_parse import hybridtrees_to_sentence_names
 from grammar.induction.terminal_labeling import FormPosTerminalsUnk
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from grammar.lcfrs import LCFRS
@@ -9,8 +10,9 @@ from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 import time
 import copy
+import os
 from hybridtree.constituent_tree import ConstituentTree
-from hybridtree.monadic_tokens import construct_constituent_token
+from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.trace_manager.sm_trainer_util import PyStorageManager, PyGrammarInfo
@@ -28,7 +30,8 @@ train_limit = 2000
 train_exclude = []
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
-validation_corpus = build_corpus(train_path, train_limit + 1, train_limit + 200, [])
+validation_size = 200
+validation_corpus = build_corpus(train_path, train_limit + 1, train_limit + validation_size, [])
 
 test_start = 40475
 test_limit = test_start + 500
@@ -52,9 +55,54 @@ k_best = 50
 
 # parsing_method = "single-best-annotation"
 parsing_method = "filter-ctf"
+parse_results_prefix = "/tmp"
+parse_results = "results"
+parse_results_suffix = ".export"
+
+
+def dummy_constituent_tree(token_yield, full_yield, dummy_label, dummy_root):
+    """
+    generates a dummy tree for a given yield using 'S' as inner node symbol
+    :param token_yield: connected yield of a parse tree
+    :type: list of ConstituentTerminal
+    :param full_yield: full yield of the parse tree
+    :type: list of ConstituentTerminal
+    :return: parse tree
+    :rtype: ConstituentTree
+    """
+    tree = ConstituentTree()
+    root_id = 'n0'
+    i = 1
+    # generate root node
+    tree.add_node(root_id, ConstituentCategory(dummy_root))
+    tree.add_to_root(root_id)
+    # add punctuation
+    for punc in [token for token in full_yield if token not in token_yield]:
+        tree.add_punct(full_yield.index(punc), punc.pos(), punc.form())
+    # add connected yield tokens except last two
+    parent = root_id
+    for token in token_yield[:len(token_yield)-2]:
+        node = ConstituentCategory(str(dummy_label))
+        tree.add_node('n' + str(i), node)
+        tree.add_child(parent, 'n' + str(i))
+        tree.add_leaf(full_yield.index(token), token.pos(), token.form())
+        tree.add_child(parent, full_yield.index(token))
+        parent = 'n' + str(i)
+        i += 1
+    # add last two yield tokens
+    token = token_yield[len(token_yield)-2]
+    tree.add_leaf(full_yield.index(token), token.pos(), token.form())
+    tree.add_child(parent, full_yield.index(token))
+    token = token_yield[len(token_yield)-1]
+    tree.add_leaf(full_yield.index(token), token.pos(), token.form())
+    tree.add_child(parent, full_yield.index(token))
+
+    return tree
+
 
 def do_parsing(parser):
     accuracy = ParseAccuracyPenalizeFailures()
+    system_trees = []
 
     start_at = time.time()
 
@@ -64,7 +112,7 @@ def do_parsing(parser):
 
         if not tree.complete() \
                 or tree.empty_fringe() \
-                or not 2 <= len(tree.word_yield()) <= max_length:
+                or not 0 < len(tree.word_yield()) <= max_length:
             continue
 
         parser.set_input(terminal_labeling.prepare_parser_input(tree.token_yield()))
@@ -72,15 +120,26 @@ def do_parsing(parser):
         if not parser.recognized():
             relevant = tree.labelled_spans()
             accuracy.add_failure(relevant)
+
+            system_trees.append(dummy_constituent_tree(tree.token_yield(), tree.full_token_yield(), "NP", "S"))
             # print('failure', tree.sent_label()) # for testing
         else:
             n += 1
             dcp_tree = ConstituentTree()
-            dcp_tree = parser.dcp_hybrid_tree_best_derivation(dcp_tree, tree.token_yield(), False,
-                                                              construct_constituent_token)
+            punctuation_positions = [i + 1 for i, idx in enumerate(tree.full_yield()) if idx not in tree.id_yield()]
+            dcp_tree = parser.dcp_hybrid_tree_best_derivation(
+                dcp_tree
+                , tree.full_token_yield()
+                , False
+                , construct_constituent_token
+                , punctuation_positions=punctuation_positions)
+
             retrieved = dcp_tree.labelled_spans()
             relevant = tree.labelled_spans()
             accuracy.add_accuracy(retrieved, relevant)
+
+            system_trees.append(dcp_tree)
+
         parser.clear()
 
     end_at = time.time()
@@ -96,6 +155,19 @@ def do_parsing(parser):
     print('time:', end_at - start_at)
     print('')
 
+    name = parse_results
+    # do not overwrite existing result files
+    i = 1
+    while os.path.isfile(os.path.join(parse_results_prefix, name + parse_results_suffix)):
+        i += 1
+        name = parse_results + '_' + str(i)
+
+    path = os.path.join(parse_results_prefix, name + parse_results_suffix)
+
+    with open(path, 'w') as result_file:
+        print('Exporting parse trees of length <=', max_length, 'to', str(path))
+        map(lambda x: x.strip_vroot(), system_trees)
+        result_file.writelines(hybridtrees_to_sentence_names(system_trees, test_start, max_length))
 
 def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManager, term_labelling, parser, corpus_validation, validationMethod):
     validator = PyCandidateScoreValidator(grammarInfo, storageManager, validationMethod)
