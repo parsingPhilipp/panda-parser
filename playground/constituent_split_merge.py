@@ -71,31 +71,39 @@ def dummy_constituent_tree(token_yield, full_yield, dummy_label, dummy_root):
     :rtype: ConstituentTree
     """
     tree = ConstituentTree()
-    root_id = 'n0'
-    i = 1
+
+
+    # create all leaves and punctuation
+    for token in full_yield:
+        if token not in token_yield:
+            tree.add_punct(full_yield.index(token), token.pos(), token.form())
+        else:
+            tree.add_leaf(full_yield.index(token), token.pos(), token.form())
+
     # generate root node
+    root_id = 'n0'
     tree.add_node(root_id, ConstituentCategory(dummy_root))
     tree.add_to_root(root_id)
-    # add punctuation
-    for punc in [token for token in full_yield if token not in token_yield]:
-        tree.add_punct(full_yield.index(punc), punc.pos(), punc.form())
-    # add connected yield tokens except last two
+
     parent = root_id
-    for token in token_yield[:len(token_yield)-2]:
-        node = ConstituentCategory(str(dummy_label))
-        tree.add_node('n' + str(i), node)
-        tree.add_child(parent, 'n' + str(i))
-        tree.add_leaf(full_yield.index(token), token.pos(), token.form())
+
+    if len(token_yield) > 1:
+        i = 1
+        # generate inner nodes of branching tree
+        for token in token_yield[:-2]:
+            node = ConstituentCategory(str(dummy_label))
+            tree.add_node('n' + str(i), node)
+            tree.add_child(parent, 'n' + str(i))
+            tree.add_child(parent, full_yield.index(token))
+            parent = 'n' + str(i)
+            i+=1
+
+        token = token_yield[len(token_yield) - 2]
         tree.add_child(parent, full_yield.index(token))
-        parent = 'n' + str(i)
-        i += 1
-    # add last two yield tokens
-    token = token_yield[len(token_yield)-2]
-    tree.add_leaf(full_yield.index(token), token.pos(), token.form())
-    tree.add_child(parent, full_yield.index(token))
-    token = token_yield[len(token_yield)-1]
-    tree.add_leaf(full_yield.index(token), token.pos(), token.form())
-    tree.add_child(parent, full_yield.index(token))
+        token = token_yield[len(token_yield) - 1]
+        tree.add_child(parent, full_yield.index(token))
+    elif len(token_yield) == 1:
+        tree.add_child(parent, full_yield.index(token_yield[0]))
 
     return tree
 
