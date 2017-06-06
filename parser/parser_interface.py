@@ -49,7 +49,7 @@ class AbstractParser:
         """
         pass
 
-    def dcp_hybrid_tree_best_derivation(self, tree, tokens, ignore_punctuation, construct_token):
+    def dcp_hybrid_tree_best_derivation(self, tree, tokens, ignore_punctuation, construct_token, punctuation_positions=None):
         """
         :param tree:
         :type tree: GeneralHybridTree
@@ -61,7 +61,7 @@ class AbstractParser:
         """
         dcp_evaluation = self.dcp_best_derivation()
         if dcp_evaluation:
-            return dcp_to_hybridtree(tree, dcp_evaluation, tokens, ignore_punctuation, construct_token)
+            return dcp_to_hybridtree(tree, dcp_evaluation, tokens, ignore_punctuation, construct_token, punct_positions=punctuation_positions)
         else:
             return None
 

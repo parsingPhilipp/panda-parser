@@ -77,15 +77,16 @@ class The_DCP_evaluator(DCP_evaluator):
 # dcp: list of DCP_term/DCP_position
 # poss: list of string
 # words: list of string
-def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token, reorder=True):
+def dcp_to_hybridtree(tree, dcp, tokens, ignore_punctuation, construct_token, reorder=True, punct_positions=None):
     # if len(dcp) != 1:
     # raise Exception('DCP has multiple roots')
     j = 0
     for (i, token) in enumerate(tokens):
         # TODO: better punctuation detection
-        if ignore_punctuation and is_punctuation(token.form()):
+        if (ignore_punctuation and is_punctuation(token.form())) \
+                or (punct_positions is not None and (i + 1) in punct_positions):
             tree.add_node(str(i) + 'p', token, True, False)
-        elif ignore_punctuation:
+        elif ignore_punctuation or (punct_positions is not None):
             tree.add_node(str(j), token, True, True)
             j += 1
         else:
