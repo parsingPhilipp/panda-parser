@@ -116,19 +116,20 @@ def hybridtree_to_sentence_name(tree, idNum):
         token = tree.node_token(leaf)
         line = str(token.form()) + ' ' + str(token.pos()) + ' -- -- '
 
-        if leaf in tree.id_yield() and tree.root[0] != leaf:
+        if leaf in tree.id_yield() and leaf not in tree.root:
+            if tree.parent(leaf) is None or tree.parent(leaf) not in idNum:
+                print tree, leaf, tree.full_yield(), map(str,tree.full_token_yield()), tree.parent(leaf), tree.parent(leaf) in idNum
             lines.append(line + str(idNum[tree.parent(leaf)]) + '\n')
         else:
             lines.append(line + '0\n')
 
     for id in tree.ids():
-
         token = tree.node_token(id)
         line = '#' + str(idNum[id]) + ' ' + str(token.category()) + ' -- -- '
 
-        if id == tree.root[0]:
+        if id in tree.root:
             lines.append(line + '0\n')
-        elif id != tree.root[0]:
+        elif id not in tree.root:
             lines.append(line + str(idNum[tree.parent(id)]) + '\n')
 
     return lines
@@ -147,7 +148,8 @@ def hybridtrees_to_sentence_names(trees, counter, length):
     for tree in trees:
         if len(tree.full_yield()) <= length:
             idNum = dict()
-            generate_ids_for_inner_nodes(tree, tree.root[0], idNum)
+            for root in tree.root:
+                generate_ids_for_inner_nodes(tree, root, idNum)
             sentence_names.append('#BOS ' + str(counter) + '\n')
             sentence_names.extend(hybridtree_to_sentence_name(tree, idNum))
             sentence_names.append('#EOS ' + str(counter) + '\n')
