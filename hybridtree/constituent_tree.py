@@ -113,3 +113,15 @@ class ConstituentTree(HybridTree):
         return sorted(spans, \
                       cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
                                            [y[1]] + [-y[2]] + y[3:] + [y[0]]))
+
+    def strip_vroot(self):
+        if (len(self.root) == 1) and self.label(self.root[0]) == "VROOT":
+            old_root = self.root[0]
+            new_roots = self.children(old_root)
+            self._id_to_child_ids[self.virtual_root] = new_roots
+            for new_root in new_roots:
+                self._parent[new_root] = self.virtual_root
+            self._id_to_token.pop(old_root, None)
+        else:
+            # print self
+            pass

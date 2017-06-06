@@ -22,16 +22,16 @@ class HybridTree:
         # label of sentence (identifier in corpus)
         self.__sent_label = sent_label
         # maps node id to list of ids of children
-        self.__id_to_child_ids = {self.virtual_root: []}
+        self._id_to_child_ids = {self.virtual_root: []}
         # maps node id to token
-        self.__id_to_token = {}
+        self._id_to_token = {}
         # maps node id to part-of-speech tag
         # self.__id_to_pos = {}
         # list of node ids in ascending order
         self.__ordered_ids = []
         # list of node ids in ascending order, including disconnected nodes
         self.__full_yield = []
-        self.__parent = {}
+        self._parent = {}
         # maps node id to position in the ordering
         # self.__id_to_node_index = {}
         # maps node_index (position in ordering) to node id
@@ -78,7 +78,7 @@ class HybridTree:
         Set order = True and connected = False to include some token (e.g. punctuation)
         that appears in the yield but shall be ignored during tree operations.
         """
-        self.__id_to_token[id] = token
+        self._id_to_token[id] = token
         if order is True:
             if connected is True:
                 self.__ordered_ids += [id]
@@ -95,11 +95,11 @@ class HybridTree:
         :type child: str
         Add a pair of node ids in the tree's parent-child relation.
         """
-        if parent not in self.__id_to_child_ids:
-            self.__id_to_child_ids[parent] = [child]
+        if parent not in self._id_to_child_ids:
+            self._id_to_child_ids[parent] = [child]
         else:
-            self.__id_to_child_ids[parent] += [child]
-        self.__parent[child] = parent
+            self._id_to_child_ids[parent] += [child]
+        self._parent[child] = parent
 
     def parent(self, id):
         """
@@ -108,7 +108,7 @@ class HybridTree:
         :type id: str
         :return: id of parent node, or None.
         """
-        parent = self.__parent.get(id, None) #__parent_recur(id, self.virtual_root)
+        parent = self._parent.get(id, None) #__parent_recur(id, self.virtual_root)
         if parent == self.virtual_root:
             return None
         else:
@@ -136,7 +136,7 @@ class HybridTree:
         :return: Is there node that is child of two nodes?
         """
         parent = defaultdict(list)
-        for id in self.__id_to_child_ids:
+        for id in self._id_to_child_ids:
             for child in self.children(id):
                 parent[child] += [id]
         for id in parent:
@@ -152,8 +152,8 @@ class HybridTree:
         """
         if isinstance(id, list):
             pass
-        if id in self.__id_to_child_ids:
-            return self.__id_to_child_ids[id]
+        if id in self._id_to_child_ids:
+            return self._id_to_child_ids[id]
         else:
             return []
 
@@ -165,8 +165,8 @@ class HybridTree:
         :rtype: list[str]
         """
         des = []
-        if id in self.__id_to_child_ids:
-            for id2 in self.__id_to_child_ids[id]:
+        if id in self._id_to_child_ids:
+            for id2 in self._id_to_child_ids[id]:
                 des.append(id2)
                 des += self.descendants(id2)
         return des
@@ -235,7 +235,7 @@ class HybridTree:
         if self.children(id).__len__() > 0:
             for child in self.children(id):
                 min_indices[child] = self.__reorder(child)
-            self.__id_to_child_ids[id] = sorted(self.children(id), key=lambda i: min_indices[i])
+            self._id_to_child_ids[id] = sorted(self.children(id), key=lambda i: min_indices[i])
         if self.in_ordering(id):
             min_indices[id] = self.node_index(id)
         min_index = -1
@@ -376,7 +376,7 @@ class HybridTree:
         :return: ids of all nodes.
         :rtype: list[str]
         """
-        return self.__id_to_token.keys()
+        return self._id_to_token.keys()
 
     def node_token(self, id):
         """
@@ -386,7 +386,7 @@ class HybridTree:
         :rtype: MonadicToken
         Query the token of node id.
         """
-        return self.__id_to_token[id]
+        return self._id_to_token[id]
 
     def complete(self):
         """
