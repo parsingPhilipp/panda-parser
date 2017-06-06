@@ -22,19 +22,18 @@ class ParseAccuracy(object):
         retrieved = set([tuple(t) for t in found])
         relevant = set([tuple(t) for t in correct])
         inters = retrieved & relevant
-        if len(retrieved) == 0:
-            # happens in case of parse failure
-            # there are two options here: 
-            #   - parse failure -> no spans at all, thus precision = 1 
-            #   - parse failure -> a dummy tree with all spans wrong, thus precision = 0
-	    precision = 0
-        else: 
-            precision = 1.0 * len(inters) / len(retrieved)
-        recall = 1.0 * len(inters) / len(relevant)
-        if precision + recall == 0:
-            fmeasure = 0
-        else:
-            fmeasure = 2.0 * precision * recall / (precision + recall)
+
+        # happens in case of parse failure
+        # there are two options here:
+        #   - parse failure -> no spans at all, thus precision = 1
+        #   - parse failure -> a dummy tree with all spans wrong, thus precision = 0
+        precision = 1.0 * len(inters) / len(retrieved) \
+            if len(retrieved) > 0 else 0
+        recall = 1.0 * len(inters) / len(relevant) \
+            if len(relevant) > 0 else 0
+        fmeasure = 2.0 * precision * recall / (precision + recall) \
+            if precision + recall > 0 else 0
+
         self.__precisions += precision
         self.__recalls += recall
         self.__fmeasures += fmeasure
