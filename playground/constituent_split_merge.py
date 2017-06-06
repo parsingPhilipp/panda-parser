@@ -26,15 +26,20 @@ def build_corpus(path, start, stop, exclude):
         , path
         , hold=False)
 
-train_limit = 2000
+# train_limit = 5000
+# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+train_limit = 40474
+train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 train_exclude = []
-train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
-validation_size = 200
-validation_corpus = build_corpus(train_path, train_limit + 1, train_limit + validation_size, [])
+
+validation_start = 40475
+validation_size = validation_start + 4999
+validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+validation_corpus = build_corpus(validation_path, validation_start, validation_size, [])
 
 test_start = 40475
-test_limit = test_start + 500
+test_limit = test_start + 4999
 test_exclude = []
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
@@ -42,16 +47,17 @@ test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 terminal_labeling = FormPosTerminalsUnk(train_corpus, 20)
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1')[0]
 
-max_length = 20
-em_epochs = 20
+max_length = 2000
+em_epochs = 30
 seed = 0
-merge_percentage = 65.0
-sm_cycles = 4
+merge_percentage = 50.0
+sm_cycles = 6
+threads = 10
 
 validationMethod = "F1"
-validationDropIterations = 3
+validationDropIterations = 6
 
-k_best = 50
+k_best = 200
 
 # parsing_method = "single-best-annotation"
 parsing_method = "filter-ctf"
@@ -260,7 +266,7 @@ def main():
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
     builder.set_em_epochs(em_epochs)
     builder.set_split_randomization(1.0, seed + 1)
-    builder.set_simple_expector(threads=4)
+    builder.set_simple_expector(threads=threads)
 
 
     validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
@@ -291,6 +297,25 @@ def main():
         else:
             raise()
         do_parsing(parser)
+
+
+def main2():
+     name = parse_results
+     # do not overwrite existing result files
+     i = 1
+     while os.path.isfile(os.path.join(parse_results_prefix, name + parse_results_suffix)):
+         i += 1
+         name = parse_results + '_' + str(i)
+
+     path = os.path.join(parse_results_prefix, name + parse_results_suffix)
+
+     corpus = copy.deepcopy(test_corpus)
+     map(lambda x: x.strip_vroot(), corpus)
+
+     with open(path, 'w') as result_file:
+         print('Exporting parse trees of length <=', max_length, 'to', str(path))
+         result_file.writelines(hybridtrees_to_sentence_names(corpus, test_start, max_length))
+
 
 if __name__ == '__main__':
     main()
