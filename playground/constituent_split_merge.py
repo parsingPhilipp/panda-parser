@@ -51,6 +51,7 @@ max_length = 2000
 em_epochs = 30
 seed = 0
 merge_percentage = 50.0
+sm_cycles = 4
 sm_cycles = 6
 threads = 10
 
