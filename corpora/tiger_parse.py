@@ -92,6 +92,12 @@ def sentence_name_to_hybridtree(name, file_name):
                 child_id = child.get('idref')
                 if not is_punct(graph, child_id):
                     tree.add_child(id, child_id)
+        for nont in graph.iterfind('nonterminals/nt'):
+            for child in nont.iterfind('edge'):
+                child_id = child.get('idref')
+                edge_label = child.get('label')
+                if not is_punct(graph, child_id) and edge_label is not None:
+                    tree.node_token(child_id).set_edge_label(edge_label)
         return tree
     else:
         return None

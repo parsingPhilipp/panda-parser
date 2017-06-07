@@ -17,9 +17,9 @@ class TerminalLabeling:
         if token.type() == "CONLL-X":
             return self.token_label(token) + " : " + token.deprel()
         elif token.type() == "CONSTITUENT-CATEGORY":
-            return token.category()
+            return token.category() + " : " + token.edge()
         else:
-            return self.token_label(token)
+            return self.token_label(token) + " : " + token.edge()
 
     def prepare_parser_input(self, tokens):
         return map(self.token_label, tokens)

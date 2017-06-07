@@ -37,7 +37,7 @@ def compute_minimum_risk_tree(trees, probabilities):
             if heads[position][head] > best_prob:
                 best_head = head
                 best_prob = heads[position][head]
-        min_risk_tree.node_token(position).set_deprel(best_head[1])
+        min_risk_tree.node_token(position).set_edge_label(best_head[1])
         if best_head[0] == 0:
             min_risk_tree.add_to_root(position)
         else:

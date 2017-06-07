@@ -449,7 +449,7 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
 
                 cleaned_tokens = copy.deepcopy(tree.full_token_yield())
                 for token in cleaned_tokens:
-                    token.set_deprel('_')
+                    token.set_edge_label('_')
 
                 h_tree = HybridTree(tree.sent_label())
 

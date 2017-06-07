@@ -181,16 +181,19 @@ class STermConverter(gd.DCP_evaluator):
             if pos:
                break
 
-        # Dependency tree
-        if index.dep_label() is not None:
-            self.builder.add_linked_terminal(self.terminal_encoder(str(pos) + " : " + str(index.dep_label())), i)
-        # Constituent tree
+        # Dependency tree or constituent tree with labeled edges
+        if index.edge_label() is not None:
+            self.builder.add_linked_terminal(self.terminal_encoder(str(pos) + " : " + str(index.edge_label())), i)
+        # Constituent tree without labeled edges
         else:
             self.builder.add_linked_terminal(self.terminal_encoder(str(pos)), i)
 
     def evaluateString(self, s, id):
         # print s
-        self.builder.add_terminal(self.terminal_encoder(s))
+        if s.edge_label() is not None:
+            self.builder.add_terminal(self.terminal_encoder(s + " : " + str(s.edge_label())))
+        else:
+            self.builder.add_terminal(self.terminal_encoder(s))
 
     def evaluateVariable(self, var, id):
         # print var

@@ -275,12 +275,14 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos, term_labeling):
             if tree.is_leaf(elem):
                 k = tree.leaf_index(elem)
                 pos = term_to_pos[k]
-                terms.append(DCP_term(DCP_index(pos), []))
+                terms.append(DCP_term(DCP_index(pos, tree.node_token(elem).edge()), []))
             else:
-                lab = term_labeling.token_tree_label(tree.node_token(elem))
+                lab = tree.node_token(elem).category()
                 arg = make_fringe_terms(tree, tree.children(elem), \
                                         child_seqss, term_to_pos, term_labeling)
-                terms.append(DCP_term(DCP_string(lab), arg))
+                string = DCP_string(lab)
+                string.set_edge_label(tree.node_token(elem).edge())
+                terms.append(DCP_term(string, arg))
     return terms
 
 

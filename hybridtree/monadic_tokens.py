@@ -61,7 +61,7 @@ class CoNLLToken(MonadicToken):
     def deprel(self):
         return self.__deprel
 
-    def set_deprel(self, deprel):
+    def set_edge_label(self, deprel):
         self.__deprel = deprel
 
     def __str__(self):
@@ -97,10 +97,17 @@ class ConstituencyToken(MonadicToken):
     def __str__(self):
         pass
 
+    def edge(self):
+        return self._edge
+
+    def set_edge_label(self, edge):
+        self._edge = edge
+
 
 class ConstituentTerminal(ConstituencyToken):
-    def __init__(self, form, pos):
+    def __init__(self, form, pos, edge='--'):
         super(ConstituentTerminal, self).__init__()
+        self._edge = edge
         self.__form = form
         self.__pos = pos
 
@@ -114,7 +121,7 @@ class ConstituentTerminal(ConstituencyToken):
         return self.__pos
 
     def __str__(self):
-        return self.form() + ' : ' + self.pos()
+        return self.form() + ' : ' + self.pos() + '\t' + self.edge()
 
     def __hash__(self):
         return hash((self.__form, self.__pos))
@@ -124,9 +131,10 @@ class ConstituentTerminal(ConstituencyToken):
 
 
 class ConstituentCategory(ConstituencyToken):
-    def __init__(self, category):
+    def __init__(self, category, edge='--'):
         super(ConstituentCategory, self).__init__()
         self.__category = category
+        self._edge = edge
 
     def rank(self):
         return 1
@@ -135,7 +143,7 @@ class ConstituentCategory(ConstituencyToken):
         return self.__category
 
     def __str__(self):
-        return self.category()
+        return str(self.category()) + '\t' + self.edge()
 
     def __hash__(self):
         return hash(self.__category)

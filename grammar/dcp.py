@@ -112,24 +112,24 @@ class DCP_var(DCP_rhs_object):
 class DCP_index(DCP_rhs_object):
     # Constructor.
     # i: int
-    # dep_label: string
-    def __init__(self, i, dep_label=None):
+    # edge_label: string
+    def __init__(self, i, edge_label=None):
         self.__i = i
-        self.__dep_label = dep_label
+        self.__edge_label = edge_label
 
     # The index.
     # return: int
     def index(self):
         return self.__i
 
-    def dep_label(self):
-        return self.__dep_label
+    def edge_label(self):
+        return self.__edge_label
 
     # String representation.
     # return: string
     def __str__(self):
-        if self.__dep_label:
-            s = ':{' + self.__dep_label + '}'
+        if self.__edge_label:
+            s = ':{' + self.__edge_label + '}'
         else:
             s = ''
         return '[' + str(self.index()) + s + ']'
@@ -142,13 +142,13 @@ class DCP_index(DCP_rhs_object):
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
 class DCP_string(str, DCP_rhs_object):
-    __dep_label = None
+    __edge_label = None
 
-    def set_dep_label(self, dep_label):
-        self.__dep_label = dep_label
+    def set_edge_label(self, edge_label):
+        self.__edge_label = edge_label
 
-    def dep_label(self):
-        return self.__dep_label
+    def edge_label(self):
+        return self.__edge_label
 
     # Evaluator invocation
     def evaluateMe(self, evaluator, id=None):
@@ -160,18 +160,18 @@ class DCP_string(str, DCP_rhs_object):
 class DCP_position:
     # Constructor.
     # pos: int
-    # dep_label: string
-    def __init__(self, position, dep_label=None):
+    # edge_label: string
+    def __init__(self, position, edge_label=None):
         self.__position = position
-        self.__dep_label = dep_label
+        self.__edge_label = edge_label
 
     # The position.
     # return: int
     def position(self):
         return self.__position
 
-    def dep_label(self):
-        return self.__dep_label
+    def edge_label(self):
+        return self.__edge_label
 
     # String representation.
     # return: string

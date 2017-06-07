@@ -107,7 +107,7 @@ def parse_sentences_from_file(grammar
         h_tree = HybridTree()
         cleaned_tokens = copy.deepcopy(tree.full_token_yield())
         for token in cleaned_tokens:
-            token.set_deprel('_')
+            token.set_edge_label('_')
         h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens,
                                                         ignore_punctuation, construct_conll_token)
         if h_tree:

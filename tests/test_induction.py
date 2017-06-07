@@ -128,8 +128,8 @@ class InductionTest(unittest.TestCase):
 
         string = "foo"
         dcp_string = DCP_string(string)
-        dcp_string.set_dep_label("bar")
-        print dcp_string, dcp_string.dep_label()
+        dcp_string.set_edge_label("bar")
+        print dcp_string, dcp_string.edge_label()
 
         linearize(grammar, the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'), the_terminal_labeling_factory().get_strategy('pos'), sys.stdout)
 
@@ -149,7 +149,7 @@ class InductionTest(unittest.TestCase):
 
                 cleaned_tokens = copy.deepcopy(tree.full_token_yield())
                 for token in cleaned_tokens:
-                    token.set_deprel('_')
+                    token.set_edge_label('_')
                 hybrid_tree = HybridTree()
                 hybrid_tree = parser.dcp_hybrid_tree_best_derivation(hybrid_tree, cleaned_tokens, True,
                                                                      construct_conll_token)

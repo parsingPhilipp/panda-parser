@@ -140,7 +140,7 @@ def parse_with_pgf(gr, forms, poss, bin):
                 s = un_escape(current_label)
                 if s == 'TOP1':
                     s = 'ROOT1'
-                dep_token.set_deprel(s[:-1])
+                dep_token.set_edge_label(s[:-1])
                 head_table[current] = i + 1
                 attachment_point[node] = current
                 break
@@ -184,7 +184,7 @@ def fall_back_left_branching(forms, poss):
     n = len(poss)
     for i, (form, pos) in enumerate(zip(forms, poss)):
         token = construct_conll_token(form, pos)
-        token.set_deprel('_')
+        token.set_edge_label('_')
         tree.add_node(i, token, True)
         if i == 0:
             tree.add_to_root(i)

@@ -163,7 +163,7 @@ class DCP_Labels(DCP_evaluator):
         :param id:
         :return:
         """
-        self.labels.add(index.dep_label())
+        self.labels.add(index.edge_label())
 
     def evaluateVariable(self, var, id):
         pass
@@ -233,7 +233,7 @@ class OUTPUT_DCP(DCP_evaluator):
             for obj in arg:
                 if not isinstance(obj, LCFRS_var):
                     if i == index.index():
-                        self.string += str(self.terminal_to_index(obj + '::' + index.dep_label())) + '^{' + str(self.sync_index[index.index()]) + '}'
+                        self.string += str(self.terminal_to_index(obj + '::' + index.edge_label())) + '^{' + str(self.sync_index[index.index()]) + '}'
                         return
                     else:
                         i += 1

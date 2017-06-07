@@ -53,7 +53,7 @@ class The_DCP_evaluator(DCP_evaluator):
     def evaluateIndex(self, index, id):
         i = index.index()
         position = sorted(self.__der.terminal_positions(id))[i]
-        return DCP_position(position, index.dep_label())
+        return DCP_position(position, index.edge_label())
 
     # term: DCP_term
     def evaluateTerm(self, term, id):
@@ -118,8 +118,8 @@ def dcp_to_hybridtree_recur(dcp, tree, next_id, construct_token):
         tree.set_label(id, label)
     else:
         raise Exception
-    if head.dep_label() is not None:
-        tree.node_token(id).set_deprel(head.dep_label())
+    if head.edge_label() is not None:
+        tree.node_token(id).set_edge_label(head.edge_label())
     for child in dcp.arg():
         (tree_child, next_id) = \
             dcp_to_hybridtree_recur(child, tree, next_id, construct_token)
