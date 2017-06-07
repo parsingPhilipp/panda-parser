@@ -30,17 +30,17 @@ def build_corpus(path, start, stop, exclude):
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 train_limit = 40474
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
-train_exclude = []
+train_exclude = [7561,17632,46234,50224]
 train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
 
 validation_start = 40475
 validation_size = validation_start + 4999
 validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-validation_corpus = build_corpus(validation_path, validation_start, validation_size, [])
+validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
 
 test_start = 40475
 test_limit = test_start + 4999
-test_exclude = []
+test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
@@ -243,6 +243,8 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
 def main():
     grammar = LCFRS('START')
     for tree in train_corpus:
+        if not tree.complete() or tree.empty_fringe():
+            continue
         part = recursive_partitioning(tree)
         tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
         grammar.add_gram(tree_grammar)
