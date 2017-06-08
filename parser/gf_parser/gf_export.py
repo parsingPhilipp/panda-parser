@@ -1,6 +1,8 @@
+from __future__ import print_function
 from grammar.lcfrs import *
 from grammar.linearization import Enumerator
 from subprocess import call
+from math import isnan
 import os
 
 LANGUAGE = "LCFRS"
@@ -31,6 +33,8 @@ def export(grammar, prefix, name, override=False):
             i += 1
             name_ = name + '_' + str(i)
         name = name_
+
+    nan_probs = 0
 
     with open(os.path.join(prefix, name + SUFFIX), 'w') as abstract \
             , open(os.path.join(prefix, name + LANGUAGE + SUFFIX), 'w') as concrete \
@@ -110,11 +114,18 @@ def export(grammar, prefix, name, override=False):
                 concrete.write(transform_def(rule.lhs(), 0) + " ; \n")
 
             # define probability
-            probs.write("Func" + str(id) + " " + str(rule.weight()) + "\n")
+            if not isnan(rule.weight()):
+                probs.write("Func" + str(id) + " " + str(rule.weight()) + "\n")
+            else:
+                nan_probs += 1
+                probs.write("Func" + str(id) + " 0.0" + "\n")
 
         abstract.write("\n  flags startcat = " + print_nont(grammar.start()) + ";\n")
         abstract.write("\n}\n")
         concrete.write("\n}\n")
+
+        if nan_probs > 0:
+            print(nan_probs, "occurrences of rule weight NaN replaced by 0.0 during gf export")
 
     return name # rules, name
 
