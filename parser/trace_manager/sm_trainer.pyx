@@ -110,20 +110,46 @@ cdef class PyEMTrainer:
                 prob = 1.0 / len(normalization_groups[rule_to_group[i]])
 
             # this may violates properness
-            # but EM makes the grammar proper again
+            # but we make the grammar proper again soon
             if tie_breaking:
                 prob_new = random.gauss(prob, sigma)
-                while prob_new < 0.0:
+                while prob_new <= 0.0:
                     prob_new = random.gauss(prob, sigma)
                 prob = prob_new
 
             initial_weights.append(prob)
+
+        # restore properness
+        if tie_breaking:
+            for group in normalization_groups:
+                group_sum = 0.0
+                for idx in group:
+                    group_sum += initial_weights[idx]
+                if group_sum > 0:
+                    for idx in group:
+                        initial_weights[idx] = initial_weights[idx] / group_sum
+                else:
+                    for idx in group:
+                        initial_weights[idx] = 1 / len(group)
 
         cdef EMTrainerBuilder trainerBuilder
         cdef shared_ptr[EMTrainer[NONTERMINAL, size_t]] emTrainer \
             = make_shared[EMTrainer[NONTERMINAL, size_t]](trainerBuilder.build_em_trainer[NONTERMINAL, size_t](self.traceManager.trace_manager))
 
         final_weights = deref(emTrainer).do_em_training[SemiRing](initial_weights, normalization_groups, n_epochs)
+
+        # ensure properness
+        if tie_breaking:
+            for group in normalization_groups:
+                group_sum = 0.0
+                for idx in group:
+                    group_sum += final_weights[idx]
+                if group_sum > 0:
+                    for idx in group:
+                        final_weights[idx] = final_weights[idx] / group_sum
+                else:
+                    for idx in group:
+                        final_weights[idx] = 1 / len(group)
 
         for i in range(0, len(grammar.rule_index())):
             grammar.rule_index(i).set_weight(final_weights[i])
