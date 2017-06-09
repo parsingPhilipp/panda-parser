@@ -23,6 +23,7 @@ cdef extern from "Trainer/SplitMergeTrainer.h" namespace "Trainer":
     cdef cppclass SplitMergeTrainer[Nonterminal, TraceID]:
         shared_ptr[Splitter] splitter
         LatentAnnotation split_merge_cycle(LatentAnnotation)
+        void em_train(LatentAnnotation)
 
 cdef extern from "Trainer/EMTrainerLA.h" namespace "Trainer":
     ctypedef enum TrainingMode:
@@ -248,6 +249,8 @@ cdef class PyLatentAnnotation:
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la):
         self.latentAnnotation = la
 
+    cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent = 1.0, size_t seed=0):
+        deref(self.latentAnnotation).add_random_noise(grammarInfo.grammarInfo, randPercent, seed)
 
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
@@ -339,6 +342,9 @@ cdef class PySplitMergeTrainer:
         pyLaTrained.latentAnnotation = la_trained
         output_helper("Completed split/merge cycles in " + str(time.time() - timeStart) + " seconds")
         return pyLaTrained
+
+    cpdef void em_train(self, PyLatentAnnotation la):
+        deref(self.splitMergeTrainer).em_train(deref(la.latentAnnotation))
 
     cpdef reset_random_seed(self, unsigned seed):
         deref(deref(self.splitMergeTrainer).splitter).reset_random_seed(seed)

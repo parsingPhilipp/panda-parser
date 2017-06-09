@@ -11,9 +11,10 @@ from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 import time
 import copy
 import os
+import pickle
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
-from parser.sDCP_parser.sdcp_trace_manager import compute_reducts
+from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.trace_manager.sm_trainer_util import PyStorageManager, PyGrammarInfo
 from parser.trace_manager.sm_trainer import PyEMTrainer, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
@@ -26,6 +27,8 @@ def build_corpus(path, start, stop, exclude):
         , path
         , hold=False)
 
+grammar_path = '/tmp/constituent_grammar.pkl'
+reduct_path = '/tmp/constituent_grammar_reduct.pkl'
 # train_limit = 5000
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 train_limit = 40474
@@ -241,46 +244,64 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
 
 
 def main():
-    grammar = LCFRS('START')
-    for tree in train_corpus:
-        if not tree.complete() or tree.empty_fringe():
-            continue
-        part = recursive_partitioning(tree)
-        tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
-        grammar.add_gram(tree_grammar)
-    grammar.make_proper()
+    # induce or load grammar
+    if not os.path.isfile(grammar_path):
+        grammar = LCFRS('START')
+        for tree in train_corpus:
+            if not tree.complete() or tree.empty_fringe():
+                continue
+            part = recursive_partitioning(tree)
+            tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
+            grammar.add_gram(tree_grammar)
+        grammar.make_proper()
+        pickle.dump(grammar, open(grammar_path, 'wb'))
+    else:
+        grammar = pickle.load(open(grammar_path, 'rb'))
 
-    # do_parsing(grammar)
+    # compute or load reducts
+    if not os.path.isfile(reduct_path):
+        trace = compute_reducts(grammar, train_corpus, terminal_labeling)
+        trace.serialize(reduct_path)
+    else:
+        trace = PySDCPTraceManager(grammar, terminal_labeling)
+        trace.load_traces_from_file(reduct_path)
 
-    # compute reducts
-    trace = compute_reducts(grammar, train_corpus, terminal_labeling)
-
-    # do EM training
-    emTrainer = PyEMTrainer(trace)
-    emTrainer.em_training(grammar, n_epochs=em_epochs, init="rfe", tie_breaking=True, seed=seed)
-
-    baseline_parser = GFParser_k_best(grammar, k=k_best)
-
-    # prepare SM training
+    # prepare EM training
     grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
     storageManager = PyStorageManager()
 
+    em_builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
+    em_builder.set_em_epochs(em_epochs)
+    em_builder.set_simple_expector(threads=threads)
+    emTrainer = em_builder.build()
+
+    # randomize initial weights and do em training
+    la_no_splits = build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)
+    la_no_splits.add_random_noise(grammarInfo, seed=seed)
+    emTrainer.em_train(la_no_splits)
+    la_no_splits.project_weights(grammar, grammarInfo)
+
+    # emTrainerOld = PyEMTrainer(trace)
+    # emTrainerOld.em_training(grammar, 30, "rfe", tie_breaking=True)
+
+    # compute parses for validation set
+    baseline_parser = GFParser_k_best(grammar, k=k_best)
+    validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
+                                      terminal_labeling, baseline_parser, validation_corpus, validationMethod)
+
+    # prepare SM training
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
     builder.set_em_epochs(em_epochs)
     builder.set_split_randomization(1.0, seed + 1)
     builder.set_simple_expector(threads=threads)
-
-
-    validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
-                                      terminal_labeling, baseline_parser, validation_corpus, validationMethod)
     builder.set_score_validator(validator, validationDropIterations)
-
     splitMergeTrainer = builder.set_percent_merger(merge_percentage).build()
+
     splitMergeTrainer.setMaxDrops(validationDropIterations, mode="smoothing")
     splitMergeTrainer.setEMepochs(em_epochs, mode="smoothing")
 
     # set initial latent annotation
-    latentAnnotation = [build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)]
+    latentAnnotation = [la_no_splits]
 
     # do SM training
     for i in range(1, sm_cycles + 1):
