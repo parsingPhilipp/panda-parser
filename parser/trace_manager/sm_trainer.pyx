@@ -76,6 +76,9 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainer[Nonterminal, TraceID] build()
         shared_ptr[EMTrainerLA] getEmTrainer()
 
+cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
+    cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo)
+
 cdef extern from "util.h":
     cdef cppclass Double
     cdef cppclass LogDouble
@@ -251,6 +254,96 @@ cdef class PyLatentAnnotation:
 
     cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent = 1.0, size_t seed=0):
         deref(self.latentAnnotation).add_random_noise(grammarInfo.grammarInfo, randPercent, seed)
+
+    def project_weights(self, grammar, PyGrammarInfo grammarInfo):
+        trivial_split = True
+        for nont in range(len(deref(self.latentAnnotation).nonterminalSplits)):
+            if deref(self.latentAnnotation).nonterminalSplits[nont] > 1:
+                trivial_split = False
+                break
+
+        cdef shared_ptr[LatentAnnotation] la_proj
+        if trivial_split:
+            la_proj = self.latentAnnotation
+        else:
+            # guarantee properness:
+            for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
+                group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
+                split_total_probs = [0.0] * (deref(self.latentAnnotation).nonterminalSplits[nont])
+                for i in group:
+                    rule_dimensions = [deref(self.latentAnnotation).nonterminalSplits[_nont]
+                                       for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+                    rule_dimensions_product = itertools.product(*[range(dim) for dim in rule_dimensions])
+
+                    lhs_dims = deref(self.latentAnnotation).nonterminalSplits[
+                        deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+                    ]
+
+                    for la in rule_dimensions_product:
+                        index = list(la)
+                        weight = deref(self.latentAnnotation).get_weight(i, index)
+                        assert weight >= 0.0 and weight <= 1.0001
+                        split_total_probs[la[0]] += weight
+                if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
+                    output_helper(str(split_total_probs))
+                    raise
+
+            la_proj = make_shared[LatentAnnotation](project_annotation[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo)))
+
+            # guarantee properness:
+            for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
+                group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
+                split_total_probs = [0.0] * (deref(la_proj).nonterminalSplits[nont])
+                for i in group:
+                    rule_dimensions = [deref(la_proj).nonterminalSplits[_nont]
+                                       for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+                    rule_dimensions_product = itertools.product(*[range(dim) for dim in rule_dimensions])
+
+                    lhs_dims = deref(la_proj).nonterminalSplits[
+                        deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+                    ]
+
+                    for la in rule_dimensions_product:
+                        index = list(la)
+                        weight = deref(la_proj).get_weight(i, index)
+                        if not weight >= 0.0 and weight <= 1.0001:
+                            output_helper(str(weight))
+                            assert weight >= 0.0 and weight <= 1.0001
+                        split_total_probs[la[0]] += weight
+                if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
+                    output_helper(str(split_total_probs))
+                    if not all([ abs(x - 1.0) <= 0.1 for x in split_total_probs]):
+                        for i in group:
+                            rule_dimensions = [deref(la_proj).nonterminalSplits[_nont]
+                                           for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+                            rule_dimensions_product = itertools.product(*[range(dim) for dim in rule_dimensions])
+
+                            lhs_dims = deref(la_proj).nonterminalSplits[
+                                deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+                            ]
+
+                            for la in rule_dimensions_product:
+                                index = list(la)
+                                weight = deref(la_proj).get_weight(i, index)
+                                output_helper(str(i) + " " + str(index) + " " + str(weight))
+                        raise
+
+        for i in range(0, len(grammar.rule_index())):
+            rule = grammar.rule_index(i)
+
+            rule_dimensions = [deref(la_proj).nonterminalSplits[nont]
+                               for nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+            rule_dimensions_product = [la for la in itertools.product(*[range(dim) for dim in rule_dimensions])]
+
+            lhs_dims = deref(la_proj).nonterminalSplits[
+                deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+            ]
+
+            assert len(rule_dimensions_product) == 1
+            index = list(rule_dimensions_product[0])
+            weight = deref(la_proj).get_weight(i, index)
+            rule.set_weight(weight)
+
 
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
