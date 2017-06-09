@@ -6,6 +6,7 @@ from grammar.linearization import Enumerator
 from collections import defaultdict
 from math import exp
 import os.path
+from functools import reduce
 
 default_prefix = '/tmp/'
 default_name = 'gfgrammar'
@@ -165,7 +166,15 @@ class GFParser_k_best(GFParser):
 
     def k_best_derivation_trees(self):
         for weight, gf_deriv in self._derivations:
-            yield exp(-weight), GFDerivation(self.grammar, gf_deriv)
+            der = GFDerivation(self.grammar, gf_deriv)
+            try:
+                probability = exp(-weight)
+            except OverflowError:
+                # print("Recieved invalid derivation weight from GF parser", weight)
+                probability = reduce(lambda x, y: x * y, [der.getRule(idx).weight() for idx in der.ids()], 1.0)
+
+            yield probability, GFDerivation(self.grammar, gf_deriv)
+
 
     def viterbi_derivation(self):
         if self._viterbi is not None:
