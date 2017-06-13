@@ -306,7 +306,7 @@ def bottom(tree, id_set):
     :return: list of string  (node ids)
     Compute list of node ids that delimit id_set from the bottom.
     """
-    bottom_nodes = [id for id in tree.id_yield()
+    bottom_nodes = [id for id in tree.nodes()
                     if tree.parent(id) in id_set and id not in id_set]
     return bottom_nodes
 
