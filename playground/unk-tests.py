@@ -183,6 +183,7 @@ def main(limit=3000
          , rule_pruning=0.0001
          , rule_smoothing=0.01
          , validation=True
+         , validationMethod = 'likelihood'
          , validationCorpus=None
          , validationSplit=20
          , validationDropIterations=6
