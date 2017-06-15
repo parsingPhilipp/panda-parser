@@ -361,6 +361,31 @@ cdef class PySDCPParser(object):
     cpdef void print_trace(self):
         self.parser.print_trace()
 
+
+    def count_derivations(self):
+        if not self.recognized():
+            return 0
+
+        initial = PyParseItem()
+        initial.set_item(self.parser[0].goal[0])
+        (result, _) = self.parses_per_pitem(initial, {})
+        return result
+
+
+    def parses_per_pitem(self, pItemNo, resultMap):
+        if pItemNo in resultMap:
+            return resultMap[pItemNo], resultMap
+        result = 0
+        for incomingEdge in self.query_trace(pItemNo):
+            noPerTrace = 1
+            for pItem in incomingEdge[1]:
+                (count, resultMap) = self.parses_per_pitem(pItem, resultMap)
+                noPerTrace *= count
+            result += noPerTrace
+        resultMap[pItemNo] = result
+        return result, resultMap
+
+
     def __del__(self):
         del self.parser
 
@@ -444,6 +469,13 @@ class PysDCPParser(pi.AbstractParser):
             return self.parser.all_derivation_trees(self.grammar)
         else:
             return []
+
+    def count_derivation_trees(self):
+        if self.recognized():
+            return self.parser.count_derivations()
+        else:
+            return 0
+
 
     @staticmethod
     def __preprocess(grammar, term_labelling, debug=False):

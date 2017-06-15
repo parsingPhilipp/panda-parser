@@ -1,3 +1,6 @@
+import random
+from dependency.top_bottom_max import top_max, bottom_max
+
 # Auxiliary routines for dealing with spans in an input string.
 
 # ################################################################
@@ -96,6 +99,304 @@ def fanout_limited_partitioning(part, fanout):
                 next_agenda += subchildren[::-1]  # reversed
         agenda = next_agenda
     return part
+
+
+# Transform existing partitioning to limit number of
+# spans.
+# Breadth-first search among descendants for subpartitioning
+# that stays within fanout.
+# left-to-right breadth first-search instead of right-to-left
+# part: recursive partitioning
+# fanout: int
+# return: recursive partitioning
+def fanout_limited_partitioning_left_to_right(part, fanout):
+    (root, children) = part
+    agenda = children  
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                child2 = restrict_part([(rest, children)], rest)[0]
+                child1_restrict = fanout_limited_partitioning_left_to_right(child1, fanout)
+                child2_restrict = fanout_limited_partitioning_left_to_right(child2, fanout)
+                return root, sort_part(child1_restrict, child2_restrict)
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    return part
+
+
+# Transform existing partitioning to limit number of
+# spans.
+# Choose position p such that p = argmax |part(p)|
+# part: recursive partitioning
+# fanout: int
+# return: recursive partitioning
+def fanout_limited_partitioning_argmax(part, fanout):
+    (root, children) = part
+    if children == []:
+        return part
+    agenda = children
+    argmax = None
+    argroot = {}
+    argchildren = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                    if argmax == None or len(subroot) > len(argroot):
+                        argmax = child1
+                        (argroot, argchildren) = argmax
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    rest = remove_spans_from_spans(root, argroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_argmax(argmax, fanout)
+    child2_restrict = fanout_limited_partitioning_argmax(child2, fanout)
+    return root, sort_part(child1_restrict, child2_restrict)
+
+
+
+# Transform existing partitioning to limit number of
+# spans.
+# Choose position p such that no new nonterminal is added to grammar if possible.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+
+def fanout_limited_partitioning_no_new_nont(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    agenda = children
+
+    oneIn = None
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                # check if first nonterminal was already created
+                subindex = []
+                for pos in subroot:
+                    subindex += [tree.index_node(pos+1)]
+                positions = map(int, subroot)
+                b_max = bottom_max(tree, subindex)
+                t_max = top_max(tree, subindex)
+                spans = join_spans(positions)
+                nont = nont_labelling.label_nonterminal(tree, subindex, t_max, b_max, len(spans))
+                if nont in nonts:
+                    child2 = restrict_part([(rest, children)], rest)[0]
+                    (subroot2, subchildren2) = child2
+                    # check if second nonterminal was already created
+                    subindex2 = []
+                    for pos in subroot2:
+                        subindex2 += [tree.index_node(pos+1)]
+                    positions2 = map(int, subroot2)
+                    b_max2 = bottom_max(tree, subindex2)
+                    t_max2 = top_max(tree, subindex2)
+                    spans2 = join_spans(positions2)
+                    nont2 = nont_labelling.label_nonterminal(tree, subindex2, t_max2, b_max2, len(spans2))
+
+                    if nont2 in nonts:
+                        child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+                        child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+                        return root, sort_part(child1_restrict, child2_restrict)
+                    elif oneIn == None:
+                        oneIn = (child1, child2)
+
+            next_agenda += subchildren
+        agenda = next_agenda
+
+    # check if at least one candidate was found:
+    if oneIn != None:
+        (child1, child2) = oneIn
+        child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+        child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+        return root, sort_part(child1_restrict, child2_restrict)
+
+    if fallback == '-rtl':
+        return fallback_rtl(part, fanout, tree, nonts, nont_labelling, fallback)
+    elif fallback == '-ltr':
+        return fallback_ltr(part, fanout, tree, nonts, nont_labelling, fallback)
+    elif fallback == '-argmax':
+        return fallback_argmax(part, fanout, tree, nonts, nont_labelling, fallback)
+    else:
+        return fallback_random(part, fanout, tree, nonts, nont_labelling, fallback)
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_random(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    agenda = children
+    possibleChoices = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                possibleChoices += [child1]
+            next_agenda += subchildren
+        agenda = next_agenda
+    if possibleChoices == []:
+        return part
+    chosen = random.choice(possibleChoices)
+    chosen = tuple(chosen)
+    (subroot, subchildren) = chosen
+    rest = remove_spans_from_spans(root, subroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_no_new_nont(chosen, fanout, tree, nonts, nont_labelling, fallback)
+    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+    return root, sort_part(child1_restrict, child2_restrict)
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_argmax(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    if children == []:
+        return part
+    agenda = children
+    argmax = None
+    argroot = {}
+    argchildren = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                    if argmax == None or len(subroot) > len(argroot):
+                        argmax = child1
+                        (argroot, argchildren) = argmax
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    rest = remove_spans_from_spans(root, argroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_no_new_nont(argmax, fanout, tree, nonts, nont_labelling, fallback)
+    child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+    return root, sort_part(child1_restrict, child2_restrict)
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_ltr(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    agenda = children  
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                child2 = restrict_part([(rest, children)], rest)[0]
+                child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+                child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+                return root, sort_part(child1_restrict, child2_restrict)
+            else:
+                next_agenda += subchildren
+        agenda = next_agenda
+    return part
+
+#Fallback function if fanout_limited_partitioning_no_new_nont_rec has 
+#not found a position corresponding to an existing nonterminal.
+# part: recursive partitioning
+# fanout: int
+# tree: HybridTree
+# nont_labelling: AbstractLabeling
+# nonts: list of nonterminals
+# return: recursive partitioning
+def fallback_rtl(part, fanout, tree, nonts, nont_labelling, fallback):
+    (root, children) = part
+    agenda = children[::-1]  # reversed to favour left branching
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                child2 = restrict_part([(rest, children)], rest)[0]
+                child1_restrict = fanout_limited_partitioning_no_new_nont(child1, fanout, tree, nonts, nont_labelling, fallback)
+                child2_restrict = fanout_limited_partitioning_no_new_nont(child2, fanout, tree, nonts, nont_labelling, fallback)
+                return root, sort_part(child1_restrict, child2_restrict)
+            else:
+                next_agenda += subchildren[::-1]  # reversed
+        agenda = next_agenda
+    return part
+
+
+
+# Transform existing partitioning to limit number of
+# spans.
+# Choose subpartitioning that stays within fanout randomly.
+# part: recursive partitioning
+# fanout: int
+# return: recursive partitioning
+def fanout_limited_partitioning_random_choice(part, fanout):
+    (root, children) = part
+    agenda = children
+    possibleChoices = []
+    while len(agenda) > 0:
+        next_agenda = []
+        while len(agenda) > 0:
+            child1 = agenda[0]
+            agenda = agenda[1:]
+            (subroot, subchildren) = child1
+            rest = remove_spans_from_spans(root, subroot)
+            if n_spans(subroot) <= fanout and n_spans(rest) <= fanout:
+                possibleChoices += [child1]
+            next_agenda += subchildren
+        agenda = next_agenda
+    if possibleChoices == []:
+        return part
+    chosen = random.choice(possibleChoices)
+    chosen = tuple(chosen)
+    (subroot, subchildren) = chosen
+    rest = remove_spans_from_spans(root, subroot)
+    child2 = restrict_part([(rest, children)], rest)[0]
+    child1_restrict = fanout_limited_partitioning_random_choice(chosen, fanout)
+    child2_restrict = fanout_limited_partitioning_random_choice(child2, fanout)
+    return root, sort_part(child1_restrict, child2_restrict)
+
 
 
 # With spans2 together covering a subset of what spans1 covers,

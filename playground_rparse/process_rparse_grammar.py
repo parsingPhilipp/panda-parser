@@ -193,6 +193,21 @@ def fall_back_left_branching(forms, poss):
     return tree
 
 
+def fall_back_left_branching_token(clean_tokens):
+    tree = HybridTree()
+    n = len(clean_tokens)
+    for i, token in enumerate(clean_tokens):
+        token.set_edge_label('_')
+        tree.add_node(i, token, True)
+        if i == 0:
+            tree.add_to_root(i)
+        else:
+            tree.add_child(i-1, i)
+    return tree
+
+
+
+
 def parse(gf, input, output, verbose=False, bin=''):
     parse_failures = 0
     parse_time = 0.0
