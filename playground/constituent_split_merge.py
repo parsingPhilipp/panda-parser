@@ -316,7 +316,7 @@ def main():
             print("Rules in smoothed grammar: ", len(smGrammar.rules()))
             parser = GFParser(smGrammar)
         elif parsing_method == "filter-ctf":
-            # latentAnnotation[-1].project_weights(grammar, grammarInfo)
+            latentAnnotation[-1].project_weights(grammar, grammarInfo)
             parser = Coarse_to_fine_parser(grammar, GFParser_k_best, latentAnnotation[-1], grammarInfo, trace.get_nonterminal_map(), k=k_best)
         else:
             raise()
