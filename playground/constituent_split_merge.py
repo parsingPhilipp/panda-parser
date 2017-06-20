@@ -29,13 +29,19 @@ def build_corpus(path, start, stop, exclude):
 
 grammar_path = '/tmp/constituent_grammar.pkl'
 reduct_path = '/tmp/constituent_grammar_reduct.pkl'
+terminal_labeling_path = '/tmp/constituent_labeling.pkl'
 # train_limit = 5000
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 train_limit = 40474
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 train_exclude = [7561,17632,46234,50224]
-train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
+train_corpus = None
 
+def get_train_corpus():
+    global train_corpus
+    if train_corpus is None:
+        train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
+    return train_corpus
 validation_start = 40475
 validation_size = validation_start + 4999
 validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
@@ -47,7 +53,11 @@ test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
-terminal_labeling = FormPosTerminalsUnk(train_corpus, 20)
+if not os.path.isfile(terminal_labeling_path):
+    terminal_labeling = FormPosTerminalsUnk(get_train_corpus(), 20)
+    pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
+else:
+    terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1')[0]
 
 max_length = 2000
@@ -242,12 +252,11 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
 
     return validator
 
-
 def main():
     # induce or load grammar
     if not os.path.isfile(grammar_path):
         grammar = LCFRS('START')
-        for tree in train_corpus:
+        for tree in get_train_corpus():
             if not tree.complete() or tree.empty_fringe():
                 continue
             part = recursive_partitioning(tree)
@@ -260,12 +269,15 @@ def main():
 
     # compute or load reducts
     if not os.path.isfile(reduct_path):
-        trace = compute_reducts(grammar, train_corpus, terminal_labeling)
+        trace = compute_reducts(grammar, get_train_corpus(), terminal_labeling)
         trace.serialize(reduct_path)
     else:
         trace = PySDCPTraceManager(grammar, terminal_labeling)
         trace.load_traces_from_file(reduct_path)
 
+    global train_corpus
+    if train_corpus is not None:
+        del train_corpus
     # prepare EM training
     grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
     storageManager = PyStorageManager()
@@ -284,10 +296,13 @@ def main():
     # emTrainerOld = PyEMTrainer(trace)
     # emTrainerOld.em_training(grammar, 30, "rfe", tie_breaking=True)
 
+    global validation_corpus
     # compute parses for validation set
     baseline_parser = GFParser_k_best(grammar, k=k_best)
     validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
-                                      terminal_labeling, baseline_parser, validation_corpus, validationMethod)
+                                       terminal_labeling, baseline_parser, validation_corpus, validationMethod)
+    del baseline_parser
+    del validation_corpus
 
     # prepare SM training
     builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
@@ -319,8 +334,9 @@ def main():
             latentAnnotation[-1].project_weights(grammar, grammarInfo)
             parser = Coarse_to_fine_parser(grammar, GFParser_k_best, latentAnnotation[-1], grammarInfo, trace.get_nonterminal_map(), k=k_best)
         else:
-            raise()
+            raise(Exception())
         do_parsing(parser)
+        del parser
 
 
 def main2():
