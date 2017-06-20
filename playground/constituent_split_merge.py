@@ -66,6 +66,8 @@ seed = 0
 merge_percentage = 50.0
 sm_cycles = 4
 threads = 10
+smoothing_factor = 0.05
+split_randomization = 5.0
 
 validationMethod = "F1"
 validationDropIterations = 6
@@ -310,6 +312,8 @@ def main():
     builder.set_split_randomization(1.0, seed + 1)
     builder.set_simple_expector(threads=threads)
     builder.set_score_validator(validator, validationDropIterations)
+    builder.set_smoothing_factor(smoothingFactor=smoothing_factor)
+    builder.set_split_randomization(percent=split_randomization)
     splitMergeTrainer = builder.set_percent_merger(merge_percentage).build()
 
     splitMergeTrainer.setMaxDrops(validationDropIterations, mode="smoothing")
