@@ -82,13 +82,17 @@ class FormPosTerminalsUnk(TerminalLabeling):
         :param filter: a list of POS tags which are always UNKed
         :type filter: list[str]
         """
-        self.__terminal_counts = defaultdict(lambda: 0)
+        self.__terminal_counts = {}
         self.__UNK = UNK
         self.__threshold = threshold
         for tree in trees:
             for token in tree.token_yield():
                 if token.pos() not in filter:
-                    self.__terminal_counts[(token.form().lower(), token.pos())] += 1
+                    key = (token.form().lower(), token.pos())
+                    if key in self.__terminal_counts:
+                        self.__terminal_counts[key] += 1
+                    else:
+                        self.__terminal_counts[key] = 1
 
     def __str__(self):
         return 'form-pos-unk-' + str(self.__threshold) + '-pos'
@@ -96,7 +100,7 @@ class FormPosTerminalsUnk(TerminalLabeling):
     def token_label(self, token):
         pos = token.pos()
         form = token.form().lower()
-        if self.__terminal_counts.get((form, pos)) < self.__threshold:
+        if self.__terminal_counts.get((form, pos), 0) < self.__threshold:
             form = self.__UNK
         return form + '-:-' + pos
 
