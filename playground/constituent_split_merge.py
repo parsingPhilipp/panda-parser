@@ -58,7 +58,7 @@ if not os.path.isfile(terminal_labeling_path):
     pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
 else:
     terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
-recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1')[0]
+recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1-left-to-right')[0]
 
 max_length = 2000
 em_epochs = 30
