@@ -92,7 +92,7 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
 # Induction via unlabelled structure (recursive partitioning).
 
 
-def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTerminals(), isolate_pos=False):
+def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTerminals(), isolate_pos=False, feature_logging=None):
     """
     :type tree: ConstituentTree
     :param fringes: recursive partitioning
@@ -103,7 +103,7 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
     Get LCFRS for tree.
     """
     gram = LCFRS(start=start)
-    (first, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos)
+    (first, _, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging)
     lhs = LCFRS_lhs(start)
     lhs.add_arg([LCFRS_var(0, 0)])
     dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
@@ -111,7 +111,7 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
     return gram
 
 
-def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos):
+def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging):
     """
     :type tree: ConstituentTree
     :param fringes: recursive partitioning
@@ -125,12 +125,14 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isola
     nonts = []
     child_spans = []
     child_seqs = []
+    child_feats = []
     for child in children:
-        (child_nont, child_span, child_seq) = \
-            fringe_extract_lcfrs_recur(tree, child, gram, naming, term_labeling, isolate_pos)
+        (child_nont, child_span, child_seq, child_feat) = \
+            fringe_extract_lcfrs_recur(tree, child, gram, naming, term_labeling, isolate_pos, feature_logging)
         nonts += [child_nont]
         child_spans += [child_span]
         child_seqs += [child_seq]
+        child_feats += [child_feat]
     spans = join_spans(fringe)
     term_to_pos = {}  # maps input position to position in LCFRS rule
     args = []
@@ -146,11 +148,15 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isola
         dcp_rule = DCP_rule(dcp_lhs, dcp_rhs)
         dcp_rules += [dcp_rule]
     nont = id_nont(id_seq, tree, naming) + '/' + str(len(spans))
+    nont_feat = feats(id_seq, tree)
     lhs = LCFRS_lhs(nont)
     for arg in args:
         lhs.add_arg(arg)
-    gram.add_rule(lhs, nonts, dcp=dcp_rules)
-    return nont, spans, id_seq
+    rule = gram.add_rule(lhs, nonts, dcp=dcp_rules)
+    if feature_logging is not None:
+        feature_logging[(nont, nont_feat)] += 1
+        feature_logging[(rule.get_idx(), nont_feat, tuple(child_feats))] += 1
+    return nont, spans, id_seq, nont_feat
 
 
 def id_nont(id_seq, tree, naming):
@@ -167,6 +173,20 @@ def id_nont(id_seq, tree, naming):
         return id_nont_child(id_seq, tree)
     else:
         raise Exception('unknown naming ' + naming)
+
+
+def feats(id_seqs, tree):
+    seqs_feats = []
+    for id_seq in id_seqs:
+        seq_feats = []
+        for id in id_seq:
+            token = tree.node_token(id)
+            id_feat = [("function", token.edge())]
+            if tree.is_leaf(id):
+                id_feat += token.morph_feats()
+            seq_feats.append(tuple(sorted(id_feat, key=lambda x: x[0])))
+        seqs_feats.append(tuple(seq_feats))
+    return tuple(seqs_feats)
 
 
 def id_nont_strict(id_seqs, tree):

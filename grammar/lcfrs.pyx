@@ -470,13 +470,24 @@ class LCFRS:
 
     # Join grammar into this.
     # other: LCFRS
-    def add_gram(self, other):
-        for rule in other.__rules:
-            lhs = rule.lhs()
-            nonts = rule.rhs()
-            weight = rule.weight()
-            dcp = rule.dcp()
-            self.add_rule(lhs, nonts, weight=weight, dcp=dcp)
+    def add_gram(self, other, feature_logging=None):
+        if feature_logging is not None:
+            selfLog = feature_logging[0]
+            otherLog = feature_logging[1]
+        for other_rule in other.__rules:
+            lhs = other_rule.lhs()
+            nonts = other_rule.rhs()
+            weight = other_rule.weight()
+            dcp = other_rule.dcp()
+            self_rule = self.add_rule(lhs, nonts, weight=weight, dcp=dcp)
+
+            if feature_logging is not None:
+                for key in otherLog:
+                    if key[0] == other_rule.get_idx():
+                        selfLog[(self_rule.get_idx(),) + key[1:]] += otherLog[key]
+                        selfLog[(lhs.nont(), key[1])] += otherLog[key]
+                        # for entry in zip(nonts, list(key[2])):
+                        #    selfLog[(entry[0],) + entry[1]] += 1
 
     # String representation. First print rules for start symbol.
     # Otherwise leave order unchanged.
