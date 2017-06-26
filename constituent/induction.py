@@ -92,7 +92,7 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
 # Induction via unlabelled structure (recursive partitioning).
 
 
-def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTerminals()):
+def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTerminals(), isolate_pos=False):
     """
     :type tree: ConstituentTree
     :param fringes: recursive partitioning
@@ -103,8 +103,7 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
     Get LCFRS for tree.
     """
     gram = LCFRS(start=start)
-    root = tree.root
-    (first, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling)
+    (first, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos)
     lhs = LCFRS_lhs(start)
     lhs.add_arg([LCFRS_var(0, 0)])
     dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
@@ -112,7 +111,7 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
     return gram
 
 
-def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling):
+def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos):
     """
     :type tree: ConstituentTree
     :param fringes: recursive partitioning
@@ -128,7 +127,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling):
     child_seqs = []
     for child in children:
         (child_nont, child_span, child_seq) = \
-            fringe_extract_lcfrs_recur(tree, child, gram, naming, term_labeling)
+            fringe_extract_lcfrs_recur(tree, child, gram, naming, term_labeling, isolate_pos)
         nonts += [child_nont]
         child_spans += [child_span]
         child_seqs += [child_seq]
@@ -138,7 +137,8 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling):
     for span in spans:
         args += [span_to_arg(span, child_spans, tree, term_to_pos, term_labeling)]
     # root[0] is legacy for single-rooted constituent trees
-    id_seq = make_id_seq(tree, tree.root[0], fringe)
+    id_seq = make_id_seq_single_pos(tree, tree.root[0], fringe) if isolate_pos \
+        else make_id_seq(tree, tree.root[0], fringe)
     dcp_rules = []
     for (i, seq) in enumerate(id_seq):
         dcp_rhs = make_fringe_terms(tree, seq, child_seqs, term_to_pos, term_labeling)
@@ -248,8 +248,21 @@ def make_id_seq(tree, id, fringe):
         return seqs
 
 
+def make_id_seq_single_pos(tree, id, fringe):
+    """
+    :type tree: ConstituentTree
+    """
+    if len(tree.id_yield()) == 1:
+        assert set(tree.fringe(id)) - fringe == set()
+        return [[id]]
+    else:
+        if len(fringe) == 1:
+            position = list(fringe)[0]
+            return [[tree.id_yield()[position]]]
+        else:
+            return make_id_seq(tree, id, fringe)
 
-# return:
+
 def make_fringe_terms(tree, seq, child_seqss, term_to_pos, term_labeling):
     """
     :type tree: ConstituentTree
