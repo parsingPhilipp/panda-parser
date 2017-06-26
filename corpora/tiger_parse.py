@@ -80,8 +80,17 @@ def sentence_name_to_hybridtree(name, file_name):
             id = term.get('id')
             word = term.get('word')
             pos = term.get('pos')
+            case = term.get('case')
+            number = term.get('number')
+            gender = term.get('gender')
+            person = term.get('person')
+            degree = term.get('degree')
+            tense = term.get('tense')
+            mood = term.get('mood')
+            morph_feats = [("case", case), ("number", number), ("gender", gender), ("person", person), ("tense", tense),
+                           ("degree", degree), ("mood", mood)]
             if is_word(pos, word):
-                tree.add_leaf(id, pos, word.encode('utf_8'))
+                tree.add_leaf(id, pos, word.encode('utf_8'), morph=morph_feats)
             else:
                 tree.add_punct(id, pos, word.encode('utf_8'))
         for nont in graph.iterfind('nonterminals/nt'):
