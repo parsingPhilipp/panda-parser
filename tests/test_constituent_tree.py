@@ -8,12 +8,10 @@ class ConstituentTreeTest(unittest.TestCase):
     def test_something(self):
         tree = self.tree
         print "rooted", tree.root
-        tree.add_to_root("VP")
+        tree.add_to_root("VP1")
         print "rooted", tree.root
-        tree.set_label("V", "V")
-        tree.set_label("VP", "VP")
-        tree.set_label("ADV", "ADV")
 
+        print tree
         print "sent label", tree.sent_label()
 
         print "leaves", tree.leaves()
@@ -49,17 +47,22 @@ class ConstituentTreeTest(unittest.TestCase):
 
     def setUp(self):
         tree = ConstituentTree("s1")
-        tree.add_leaf("f1", "VP", "hat")
-        tree.add_leaf("f2", "ADV", "schnell")
-        tree.add_leaf("f3", "VP", "gearbeitet")
+        tree.add_leaf("f1", "VAFIN", "hat", morph=[("number","Sg"), ("person", "3"), ("tense", "Past"), ("mood","Ind")])
+        tree.add_leaf("f2", "ADV", "schnell", morph=[("degree", "Pos")])
+        tree.add_leaf("f3", "VVPP", "gearbeitet")
         tree.add_punct("f4", "PUNC", ".")
 
-        tree.add_child("V", "f1")
-        tree.add_child("V", "f3")
-        tree.add_child("ADV", "f2")
+        tree.add_child("VP2", "f1")
+        tree.add_child("VP2", "f3")
+        tree.add_child("ADVP", "f2")
 
-        tree.add_child("VP", "V")
-        tree.add_child("VP", "ADV")
+        tree.add_child("VP1", "VP2")
+        tree.add_child("VP1", "ADVP")
+
+        tree.set_label("VP2", "VP")
+        tree.set_label("VP1", "VP")
+        tree.set_label("ADVP", "ADVP")
+
         self.tree = tree
 
 

@@ -105,11 +105,12 @@ class ConstituencyToken(MonadicToken):
 
 
 class ConstituentTerminal(ConstituencyToken):
-    def __init__(self, form, pos, edge='--'):
+    def __init__(self, form, pos, edge='--', morph=[]):
         super(ConstituentTerminal, self).__init__()
         self._edge = edge
         self.__form = form
         self.__pos = pos
+        self._morph = morph
 
     def rank(self):
         return 0
@@ -120,8 +121,11 @@ class ConstituentTerminal(ConstituencyToken):
     def pos(self):
         return self.__pos
 
+    def morph_feats(self):
+        return self._morph
+
     def __str__(self):
-        return self.form() + ' : ' + self.pos() + '\t' + self.edge()
+        return self.form() + ' : ' + self.pos() + '\t' + self.edge() + '\t' + str(self._morph)
 
     def __hash__(self):
         return hash((self.__form, self.__pos))
