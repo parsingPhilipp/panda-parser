@@ -4,6 +4,8 @@ import unittest
 from hybridtree.constituent_tree import ConstituentTree
 from constituent.induction import fringe_extract_lcfrs
 from collections import defaultdict
+from constituent.construct_morph_annotation import build_nont_splits_dict
+from util.enumerator import Enumerator
 
 
 class ConstituentTreeTest(unittest.TestCase):
@@ -14,6 +16,7 @@ class ConstituentTreeTest(unittest.TestCase):
         print "rooted", tree.root
 
         print tree
+
         print "sent label", tree.sent_label()
 
         print "leaves", tree.leaves()
@@ -85,6 +88,14 @@ class ConstituentTreeTest(unittest.TestCase):
         for key in feature_log1:
             print key, feature_log1[key]
         grammar.make_proper()
+
+        build_nont_splits_dict(grammar, feature_log1, nonterminals=Enumerator())
+
+        print grammar.rule_index(0)
+        print grammar.rule_index(2)
+
+
+
     def setUp(self):
         tree = ConstituentTree("s1")
         tree.add_leaf("f1", "VAFIN", "hat", morph=[("number","Sg"), ("person", "3"), ("tense", "Past"), ("mood","Ind")])
