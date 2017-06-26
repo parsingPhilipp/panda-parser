@@ -154,6 +154,15 @@ class DCP_string(str, DCP_rhs_object):
     def evaluateMe(self, evaluator, id=None):
         return evaluator.evaluateString(self, id)
 
+        # String representation.
+        # return: string
+
+    def __str__(self):
+        if self.__edge_label:
+            s = ':{' + self.__edge_label + '}'
+        else:
+            s = ''
+        return super(DCP_string, self).__str__() + s
 
 # An index replaced by an input position, according to parsing of a string with
 # the left (LCFRS) component of hybrid grammar.
@@ -176,7 +185,11 @@ class DCP_position:
     # String representation.
     # return: string
     def __str__(self):
-        return '[' + str(self.position()) + ']'
+        if self.__edge_label:
+            s = ':{' + self.__edge_label + '}'
+        else:
+            s = ''
+        return '[' + str(self.position()) + s + ']'
 
 
 # A terminal occurrence (may linked to LCFRS terminal),

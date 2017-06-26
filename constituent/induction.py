@@ -169,9 +169,9 @@ def id_nont(id_seq, tree, naming):
         raise Exception('unknown naming ' + naming)
 
 
-def id_nont_strict(id_seq, tree):
+def id_nont_strict(id_seqs, tree):
     """
-    :type id_seq: [[str]]
+    :type id_seqs: [[str]]
     :type tree: ConstituentTree
     :rtype: str
     Making naming on exact derived nonterminals.
@@ -179,15 +179,15 @@ def id_nont_strict(id_seq, tree):
     Where there is child missing, we have -.
     """
     s = ''
-    for i, seq in enumerate(id_seq):
+    for i, seq in enumerate(id_seqs):
         for j, id in enumerate(seq):
             if tree.is_leaf(id):
                 s += tree.leaf_pos(id)
             else:
-                s += tree.label(id)
+                s += tree.node_token(id).category()
             if j < len(seq) - 1:
                 s += '/'
-        if i < len(id_seq) - 1:
+        if i < len(id_seqs) - 1:
             s += '-'
     return s
 
@@ -205,10 +205,10 @@ def id_nont_child(id_seq, tree):
             if tree.is_leaf(seq[0]):
                 s += tree.leaf_pos(seq[0])
             else:
-                s += tree.label(seq[0])
+                s += tree.node_token(seq[0]).category()
         else:
             id = tree.parent(seq[0])
-            s += 'children_of_' + tree.label(id)
+            s += 'children_of_' + tree.node_token(id).category()
         if i < len(id_seq) - 1:
             s += '-'
     return s
