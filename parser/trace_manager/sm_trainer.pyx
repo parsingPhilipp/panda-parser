@@ -1,6 +1,7 @@
 from libcpp.map cimport map
 from libcpp.memory cimport make_shared
 from cython.operator cimport dereference as deref
+from libcpp cimport bool as c_bool
 from parser.commons.commons cimport *
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2, PyStorageManager
@@ -12,6 +13,9 @@ import itertools
 
 DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
+
+DEF IO_PRECISION_DEFAULT = 0.000001
+DEF IO_CYCLE_LIMIT_DEFAULT = 200
 
 cdef extern from "Trainer/EMTrainer.h" namespace "Trainer":
     cdef cppclass EMTrainer[Nonterminal, TraceID]:
@@ -78,6 +82,13 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
 
 cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
     cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo)
+    cdef LatentAnnotation mix_annotations[Nonterminal](const LatentAnnotation& la1
+            , const LatentAnnotation& la2
+            , const GrammarInfo2& info
+            , const vector[c_bool]& keepFromOne
+            , const double ioPrecision
+            , const unsigned_int ioCycleLimit
+    )
 
 cdef extern from "util.h":
     cdef cppclass Double
@@ -343,6 +354,27 @@ cdef class PyLatentAnnotation:
             index = list(rule_dimensions_product[0])
             weight = deref(la_proj).get_weight(i, index)
             rule.set_weight(weight)
+
+
+    cpdef genetic_recombination(self, PyLatentAnnotation otherAnnotation
+                        , PyGrammarInfo info
+                        , vector[c_bool] keepFromOne
+                        , double ioPrecision
+                        , unsigned_int ioCycleLimit
+                        ):
+        pyLa = PyLatentAnnotation()
+        pyLa.set_latent_annotation(make_shared[LatentAnnotation](
+            mix_annotations[NONTERMINAL](deref(self.latentAnnotation)
+                                        , deref(otherAnnotation.latentAnnotation)
+                                        , deref(info.grammarInfo)
+                                        , keepFromOne
+                                        , IO_PRECISION_DEFAULT
+                                        , IO_CYCLE_LIMIT_DEFAULT
+                                        )
+        ))
+
+        return pyLa
+
 
 
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):

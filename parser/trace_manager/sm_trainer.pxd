@@ -1,5 +1,7 @@
 from libcpp.vector cimport vector
 from libcpp.memory cimport shared_ptr
+from libcpp cimport bool as c_bool
+from parser.commons.commons cimport unsigned_int
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2
 
 cdef extern from "Trainer/TrainingCommon.h":
@@ -19,4 +21,9 @@ cdef class PyLatentAnnotation:
     cdef shared_ptr[LatentAnnotation] latentAnnotation
     cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent=?, size_t seed=?)
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la)
+    cpdef genetic_recombination(self, PyLatentAnnotation otherAnnotation
+                        , PyGrammarInfo info
+                        , vector[c_bool] keepFromOne
+                        , double ioPrecision
+                        , unsigned_int ioCycleLimit)
     cpdef tuple serialize(self)
