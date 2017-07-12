@@ -191,9 +191,9 @@ class STermConverter(gd.DCP_evaluator):
     def evaluateString(self, s, id):
         # print s
         if s.edge_label() is not None:
-            self.builder.add_terminal(self.terminal_encoder(s + " : " + str(s.edge_label())))
+            self.builder.add_terminal(self.terminal_encoder(s.get_string() + " : " + str(s.edge_label())))
         else:
-            self.builder.add_terminal(self.terminal_encoder(s))
+            self.builder.add_terminal(self.terminal_encoder(s.get_string()))
 
     def evaluateVariable(self, var, id):
         # print var

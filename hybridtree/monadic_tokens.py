@@ -150,7 +150,7 @@ class ConstituentCategory(ConstituencyToken):
         return str(self.category()) + '\t' + self.edge()
 
     def __hash__(self):
-        return hash(self.__category)
+        return hash((self.__category, self._edge))
 
     def type(self):
         return "CONSTITUENT-CATEGORY"
@@ -164,4 +164,4 @@ def construct_constituent_token(form, pos, terminal):
     if terminal:
         return ConstituentTerminal(form, pos)
     else:
-        return ConstituentCategory(form)
+        return ConstituentCategory(form.get_string(), edge=form.edge_label())

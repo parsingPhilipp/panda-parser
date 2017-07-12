@@ -115,7 +115,7 @@ def dcp_to_hybridtree_recur(dcp, tree, next_id, construct_token):
         id = str(next_id)
         next_id += 1
         tree.add_node(id, construct_token(label, None, False))
-        tree.set_label(id, label)
+        # tree.set_label(id, label)
     else:
         raise Exception
     if head.edge_label() is not None:

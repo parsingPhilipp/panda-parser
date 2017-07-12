@@ -141,8 +141,10 @@ class DCP_index(DCP_rhs_object):
 
 # A terminal of DCP_rule that is not linked to some terminal
 # in the LCFRS component of the hybrid grammar
-class DCP_string(str, DCP_rhs_object):
-    __edge_label = None
+class DCP_string(DCP_rhs_object):
+    def __init__(self, string, edge_label=None):
+        self.__string = string
+        self.__edge_label = edge_label
 
     def set_edge_label(self, edge_label):
         self.__edge_label = edge_label
@@ -157,12 +159,15 @@ class DCP_string(str, DCP_rhs_object):
         # String representation.
         # return: string
 
+    def get_string(self):
+        return self.__string
+
     def __str__(self):
         if self.__edge_label:
             s = ':{' + self.__edge_label + '}'
         else:
             s = ''
-        return super(DCP_string, self).__str__() + s
+        return self.__string + s
 
 # An index replaced by an input position, according to parsing of a string with
 # the left (LCFRS) component of hybrid grammar.
