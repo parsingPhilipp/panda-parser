@@ -337,7 +337,6 @@ def main():
     random.seed(seed)
     for round in range(1, genetic_cycles + 1):
         newpopulation = list(latentAnnotations)
-        print("Created deepcopy.")
         # Cross all candidates!
         for leftIndex in range(0, len(latentAnnotations)):
             for rightIndex in range(leftIndex, len(latentAnnotations)):
