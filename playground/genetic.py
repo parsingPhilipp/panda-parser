@@ -339,7 +339,7 @@ def main():
         newpopulation = list(latentAnnotations)
         # Cross all candidates!
         for leftIndex in range(0, len(latentAnnotations)):
-            for rightIndex in range(leftIndex, len(latentAnnotations)):
+            for rightIndex in range(leftIndex+1, len(latentAnnotations)):
                 left = latentAnnotations[leftIndex][1]
                 right = latentAnnotations[rightIndex][1]
                 # TODO: How to determine NTs to keep?
