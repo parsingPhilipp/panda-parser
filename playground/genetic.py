@@ -255,7 +255,7 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
                 raise()
 
         validator.add_scored_candidates(manager, scores, 1.0 if len(relevant) > 0 else 0.0)
-        print(tree_count, scores)
+        # print(tree_count, scores)
         parser.clear()
 
     print("trees used for validation ", tree_count, "with", der_count * 1.0 / tree_count, "derivations on average")
@@ -336,7 +336,9 @@ def main():
 
     random.seed(seed)
     for round in range(1, genetic_cycles + 1):
-        newpopulation = list(latentAnnotations)
+        print("Starting Genetic Recombination Round ", round)
+        # newpopulation = list(latentAnnotations)
+        newpopulation = []
         # Cross all candidates!
         for leftIndex in range(0, len(latentAnnotations)):
             for rightIndex in range(leftIndex+1, len(latentAnnotations)):
@@ -346,13 +348,17 @@ def main():
                 keepFromOne = []
                 for i in range(0, len(grammar.nonts())):
                     keepFromOne.append(random.choice([True, False]))
-                la = left.genetic_recombination(right, grammarInfo, keepFromOne, 0.00001, 30)
-                # TODO: do EM-Training on recombined LAs
+
+                la = left.genetic_recombination(right, grammarInfo, keepFromOne, 0.00000001, 300)
+
+                # do SM-Training on recombined LAs
+                la = splitMergeTrainer.split_merge_cycle(la)
+
                 fscore = evaluate_la(grammar, grammarInfo, la, trace)
                 print("Genetic combination yields (F-score): ", fscore)
                 heapq.heappush(newpopulation, (fscore, la))
-        print("New Population Size: ", len(newpopulation))
-        latentAnnotations = heapq.nsmallest(genetic_population, newpopulation)
+        heapq.heapify(newpopulation)
+        latentAnnotations = heapq.nsmallest(genetic_population, heapq.merge(latentAnnotations, newpopulation))
         heapq.heapify(latentAnnotations)
         print("Best annotation has F-Score of ", min(latentAnnotations)[0])
 

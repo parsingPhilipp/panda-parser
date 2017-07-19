@@ -293,7 +293,9 @@ cdef class PyLatentAnnotation:
                     for la in rule_dimensions_product:
                         index = list(la)
                         weight = deref(self.latentAnnotation).get_weight(i, index)
-                        assert weight >= 0.0 and weight <= 1.0001
+                        if not weight >= 0.0 and weight <= 1.0001:
+                            output_helper("Weight not in range: " + str(weight))
+                            assert weight >= 0.0 and weight <= 1.0001
                         split_total_probs[la[0]] += weight
                 if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
                     output_helper(str(split_total_probs))
@@ -324,6 +326,7 @@ cdef class PyLatentAnnotation:
                 if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
                     output_helper(str(split_total_probs))
                     if not all([ abs(x - 1.0) <= 0.1 for x in split_total_probs]):
+                        output_helper("Error: Grammar is not proper!")
                         for i in group:
                             rule_dimensions = [deref(la_proj).nonterminalSplits[_nont]
                                            for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
@@ -362,18 +365,20 @@ cdef class PyLatentAnnotation:
                         , double ioPrecision
                         , unsigned_int ioCycleLimit
                         ):
-        pyLa = PyLatentAnnotation()
-        pyLa.set_latent_annotation(make_shared[LatentAnnotation](
-            mix_annotations[NONTERMINAL](deref(self.latentAnnotation)
-                                        , deref(otherAnnotation.latentAnnotation)
-                                        , deref(info.grammarInfo)
-                                        , keepFromOne
-                                        , IO_PRECISION_DEFAULT
-                                        , IO_CYCLE_LIMIT_DEFAULT
-                                        )
-        ))
+        cdef shared_ptr[LatentAnnotation] la_trained \
+                    = make_shared[LatentAnnotation](
+                                  mix_annotations[NONTERMINAL](deref(self.latentAnnotation)
+                                                              , deref(otherAnnotation.latentAnnotation)
+                                                              , deref(info.grammarInfo)
+                                                              , keepFromOne
+                                                              , IO_PRECISION_DEFAULT
+                                                              , IO_CYCLE_LIMIT_DEFAULT
+                                                              )
+                              )
+        cdef PyLatentAnnotation pyLaTrained = PyLatentAnnotation()
+        pyLaTrained.latentAnnotation = la_trained
 
-        return pyLa
+        return pyLaTrained
 
 
 

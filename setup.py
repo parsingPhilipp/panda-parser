@@ -15,8 +15,8 @@ with open(path.join(here, 'README.rst')) as f:
 sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
-the_branch = 'origin/MT_Hypergraph'
-the_commit = '01fbf1a8ddb4c508ad0ebdc9888d90980d295848'
+the_branch = 'origin/MT_Genetic'
+the_commit = '52df1433e5f34d3e58a2ef56549d1bab624cdb6e'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
