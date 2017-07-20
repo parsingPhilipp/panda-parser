@@ -336,7 +336,7 @@ def main():
 
     random.seed(seed)
     for round in range(1, genetic_cycles + 1):
-        print("Starting Genetic Recombination Round ", round)
+        print("Genetic: Starting Recombination Round ", round)
         # newpopulation = list(latentAnnotations)
         newpopulation = []
         # Cross all candidates!
@@ -355,12 +355,12 @@ def main():
                 la = splitMergeTrainer.split_merge_cycle(la)
 
                 fscore = evaluate_la(grammar, grammarInfo, la, trace)
-                print("Genetic combination yields (F-score): ", fscore)
+                print("Genetic: Genetic combination yields (F-score): ", fscore)
                 heapq.heappush(newpopulation, (fscore, la))
         heapq.heapify(newpopulation)
         latentAnnotations = heapq.nsmallest(genetic_population, heapq.merge(latentAnnotations, newpopulation))
         heapq.heapify(latentAnnotations)
-        print("Best annotation has F-Score of ", min(latentAnnotations)[0])
+        print("Genetic: Best annotation has F-Score of ", min(latentAnnotations)[0])
 
 
 def evaluate_la(grammar, grammarInfo, la, trace):
