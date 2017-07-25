@@ -1,3 +1,5 @@
+from copy import deepcopy
+
 class Edge:
     @property
     def inputs(self):
@@ -60,7 +62,7 @@ class DirectedOrderedGraph:
                 closure[node] = [node]
         else:
             for node in self._nodes:
-                closure[node] = list(function(node))
+                closure[node] = deepcopy(function(node))
 
         changed = True
         while changed:
@@ -113,13 +115,10 @@ class DirectedOrderedGraph:
             self._nonterminal_edges.append(edge)
 
     def add_terminal_edge(self, inputs, label, output):
-        _inputs = list(inputs)
-        self.add_edge(Edge([output], _inputs, label))
+        self.add_edge(Edge([output], deepcopy(inputs), label))
 
     def add_nonterminal_edge(self, inputs, outputs):
-        _inputs = list(inputs)
-        _outputs = list(outputs)
-        self.add_edge(Edge(_outputs, _inputs))
+        self.add_edge(Edge(deepcopy(outputs), deepcopy(inputs)))
 
     def add_to_inputs(self, node):
         assert self._incoming_edge[node] is None
@@ -173,7 +172,7 @@ class DirectedOrderedGraph:
         assert isinstance(nt_edge, Edge)
         assert len(dog._inputs) == len(nt_edge.inputs)
         assert len(dog._outputs) == len(nt_edge.outputs)
-        print(len(dog._nonterminal_edges), all([edge is None for edge in dog._nonterminal_edges]))
+        # print(len(dog._nonterminal_edges), all([edge is None for edge in dog._nonterminal_edges]))
         assert (len(dog._nonterminal_edges) == 0) or all([edge is None for edge in dog._nonterminal_edges])
 
         max_node = max(self._nodes)
@@ -325,7 +324,7 @@ class DirectedOrderedGraph:
         for node in edge.inputs:
             if node not in dog._nodes:
                 dog.add_node(node)
-        dog.add_edge(Edge(list(edge.outputs), list(edge.inputs), edge.label))
+        dog.add_edge(deepcopy(edge))
         for node2 in edge.inputs:
             self.__fill_rec(node2, dog, visited, lhs, top_rhs, bot_rhs)
 
@@ -335,6 +334,7 @@ def pairwise_disjoint_elem(list):
         if elem in list[i+1:]:
             return False
     return True
+
 
 def pairwise_disjoint(lists):
     for i, l1 in enumerate(lists):

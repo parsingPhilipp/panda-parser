@@ -87,8 +87,18 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(dog_s1(), dog.extract_dog([1, 4, 5], [[4], [5]]))
         self.assertEqual(dog_s3(), dog.extract_dog([3, 7, 6, 8, 9, 10], [[7], [6, 8, 9, 10]]))
 
-
-
+    def test_copy_and_substitution_order_invariance(self):
+        dog = dog_s13()
+        dog.replace_by(0, dog_s131())
+        dog_2 = deepcopy(dog)
+        self.assertEqual(dog, dog_2)
+        dog.replace_by(1, dog_s132())
+        self.assertNotEqual(dog, dog_2)
+        dog_2.replace_by(2, dog_s133())
+        dog_2.replace_by(1, dog_s132())
+        self.assertNotEqual(dog, dog_2)
+        dog.replace_by(2, dog_s133())
+        self.assertEqual(dog, dog_2)
 
 
 if __name__ == '__main__':
