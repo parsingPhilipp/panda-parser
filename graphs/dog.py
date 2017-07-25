@@ -29,7 +29,6 @@ class DirectedOrderedGraph:
         self._terminal_edges = []
         self._nonterminal_edges = []
         self._parents = {}
-        self._children = {}
         self._incoming_edge = {}
 
     @property
@@ -39,6 +38,13 @@ class DirectedOrderedGraph:
     def incoming_edge(self, node):
         return self._incoming_edge[node]
 
+    def children(self, node):
+        edge = self._incoming_edge[node]
+        if edge is None:
+            return []
+        else:
+            return edge.inputs
+
     def type(self):
         _type = []
         for edge in self._nonterminal_edges:
@@ -46,7 +52,7 @@ class DirectedOrderedGraph:
         _type.append((len(self._inputs), len(self._outputs)))
         return _type
 
-    def _node_closure(self, the_dict, reflexive=False):
+    def _node_closure(self, function, reflexive=False):
         closure = {}
 
         if reflexive:
@@ -54,21 +60,21 @@ class DirectedOrderedGraph:
                 closure[node] = [node]
         else:
             for node in self._nodes:
-                closure[node] = list(the_dict[node])
+                closure[node] = list(function(node))
 
         changed = True
         while changed:
             changed = False
             for node in self._nodes:
                 for _node in closure[node]:
-                    for __node in the_dict[_node]:
+                    for __node in function(_node):
                         if __node not in closure[node]:
                             changed = True
                             closure[node].append(__node)
         return closure
 
     def cyclic(self):
-        downward_closure = self._node_closure(self._children)
+        downward_closure = self._node_closure(lambda x: self.children(x))
 
         for node in self._nodes:
             if node in downward_closure[node]:
@@ -77,7 +83,7 @@ class DirectedOrderedGraph:
         return False
 
     def output_connected(self):
-        upward_closure = self._node_closure(self._parents, reflexive=True)
+        upward_closure = self._node_closure(lambda n: self._parents[n], reflexive=True)
 
         for node in self._nodes:
             if not any([True for x in upward_closure[node] if x in self._outputs]):
@@ -95,11 +101,9 @@ class DirectedOrderedGraph:
         assert len(edge.outputs) > 0
         assert all([node in self._nodes for node in edge.inputs])
         assert all([node in self._nodes for node in edge.outputs])
-        assert all([node not in self._children for node in edge.outputs])
         assert all([self._incoming_edge[output] is None for output in edge.outputs])
         for output in edge.outputs:
             self._incoming_edge[output] = edge
-            self._children[output] = edge.inputs
             for node in edge.inputs:
                 if output not in self._parents[node]:
                     self._parents[node].append(output)
@@ -118,9 +122,8 @@ class DirectedOrderedGraph:
         self.add_edge(Edge(_outputs, _inputs))
 
     def add_to_inputs(self, node):
-        assert node not in self._children
+        assert self._incoming_edge[node] is None
         self._inputs.append(node)
-        self._children[node] = []
 
     def add_to_outputs(self, node):
         self._outputs.append(node)
@@ -147,12 +150,6 @@ class DirectedOrderedGraph:
             del self._parents[node]
             for key in self._parents:
                 self.__replace_inplace(self._parents[key], node, node_new)
-
-        if node in self._children:
-            self._children[node_new] = self._children[node]
-            del self._children[node]
-            for key in self._children:
-                self.__replace_inplace(self._children[key], node, node_new)
 
         for edge in self._nonterminal_edges + self._terminal_edges:
             if edge is not None:
@@ -192,7 +189,6 @@ class DirectedOrderedGraph:
         for node in nt_edge.inputs:
             self._parents[node] = [parent for parent in self._parents[node] if parent not in nt_edge.outputs]
         for node in nt_edge.outputs:
-            del self._children[node]
             self._incoming_edge[node] = None
 
         # add all new nodes
@@ -216,7 +212,7 @@ class DirectedOrderedGraph:
     def __ordered_nodes_rec(self, ordered, v):
         if v not in ordered:
             ordered.append(v)
-            for v_2 in self._children[v]:
+            for v_2 in self.children(v):
                 self.__ordered_nodes_rec(ordered, v_2)
 
 
