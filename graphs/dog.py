@@ -226,8 +226,17 @@ class DirectedOrderedGraph:
         for i, node in enumerate(ordered_nodes):
             self.rename_node(node, i)
 
-    # def top(self, nodes):
-    # def __top_rec(self, nodes):
+    def top(self, nodes):
+        tops = [node for node in nodes
+                if node in self._outputs
+                   or any([node2 not in nodes for node2 in self._parents[node]])]
+        return [node for node in self.ordered_nodes() if node in tops]
+
+    def bottom(self, nodes):
+        bottoms = [node for node in self._nodes
+                   if node not in nodes
+                    and any([node2 in nodes for node2 in self._parents[node]])]
+        return [node for node in self.ordered_nodes() if node in bottoms]
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -265,3 +274,72 @@ class DirectedOrderedGraph:
             if not self.__compare_rec(other, sn2, on2, s_visited, o_visited):
                 return False
         return True
+
+    def extract_dog(self, lhs, rhs):
+        assert all([pairwise_disjoint_elem(list) for list in [lhs] + rhs])
+        assert all([elem in lhs for list in rhs for elem in list])
+        assert pairwise_disjoint(rhs)
+        assert all([elem in self._nodes for elem in lhs])
+        dog = DirectedOrderedGraph()
+
+        top_lhs = self.top(lhs)
+        bot_lhs = self.bottom(lhs)
+
+        bot_rhs = [self.bottom(rhs_i) for rhs_i in rhs]
+        top_rhs = [self.top(rhs_i) for rhs_i in rhs]
+
+        # lhs
+        for node in top_lhs:
+            if node not in dog._nodes:
+                dog.add_node(node)
+            dog.add_to_outputs(node)
+        for node in bot_lhs:
+            if node not in dog._nodes:
+                dog.add_node(node)
+            dog.add_to_inputs(node)
+
+        # rhs
+        for i in range(len(rhs)):
+            for node in bot_rhs[i] + top_rhs[i]:
+                if node not in dog._nodes:
+                    dog.add_node(node)
+            dog.add_nonterminal_edge(bot_rhs[i], top_rhs[i])
+
+        # fill recursive
+        visited = []
+        for node in top_lhs:
+            self.__fill_rec(node, dog, visited, lhs, top_rhs, bot_rhs)
+        return dog
+
+    def __fill_rec(self, node, dog, visited, lhs, top_rhs, bot_rhs):
+        if node not in lhs or node in visited:
+            return
+        visited.append(node)
+        for i, tops in enumerate(top_rhs):
+            if node in tops:
+                for node2 in bot_rhs[i]:
+                    self.__fill_rec(node2, dog, visited, lhs, top_rhs, bot_rhs)
+                return
+        edge = self.incoming_edge(node)
+        assert edge is not None
+        for node in edge.inputs:
+            if node not in dog._nodes:
+                dog.add_node(node)
+        dog.add_edge(Edge(list(edge.outputs), list(edge.inputs), edge.label))
+        for node2 in edge.inputs:
+            self.__fill_rec(node2, dog, visited, lhs, top_rhs, bot_rhs)
+
+
+def pairwise_disjoint_elem(list):
+    for i, elem in enumerate(list):
+        if elem in list[i+1:]:
+            return False
+    return True
+
+def pairwise_disjoint(lists):
+    for i, l1 in enumerate(lists):
+        for l2 in lists[i+1:]:
+            for elem in l1:
+                if elem in l2:
+                    return False
+    return True

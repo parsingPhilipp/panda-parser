@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 from graphs.dog import *
 
@@ -51,6 +52,43 @@ class MyTestCase(unittest.TestCase):
         dog = dog_se()
         dog.compress_node_names()
         self.assertListEqual(dog.ordered_nodes(), [i for i in range(6)])
+
+    def test_top_bottom(self):
+        dog = build_acyclic_dog()
+
+        nodes = [1, 4, 5]
+        self.assertListEqual(dog.top(nodes), [1, 4])
+        self.assertListEqual(dog.bottom(nodes), [6])
+
+        nodes = [3, 7, 6, 8, 9, 10]
+        self.assertListEqual(dog.top(nodes), [6, 3])
+        self.assertListEqual(dog.bottom(nodes), [4])
+
+        nodes = [i for i in range(11)]
+        self.assertListEqual(dog.top(nodes), [0])
+        self.assertListEqual(dog.bottom(nodes), [])
+
+        nodes = [2, 4, 5, 7, 8, 9, 10]
+        for node in nodes:
+            self.assertListEqual(dog.top([node]), [node])
+            self.assertListEqual(dog.bottom([node]), [])
+
+    def test_extraction(self):
+        dog = build_acyclic_dog()
+
+        self.assertEqual(dog_se(), dog.extract_dog([i for i in range(11)], [[1, 4, 5], [2], [3, 6, 7, 8, 9, 10]]))
+
+        for (lab, i) in [
+            ('und', 2), ('Sie', 4), ('entwickelt', 5), ('druckt', 7),
+            ('Verpackungen', 8), ('und', 9), ('Etiketten', 10)
+        ]:
+            self.assertEqual(build_terminal_dog(lab), dog.extract_dog([i], []))
+
+        self.assertEqual(dog_s1(), dog.extract_dog([1, 4, 5], [[4], [5]]))
+        self.assertEqual(dog_s3(), dog.extract_dog([3, 7, 6, 8, 9, 10], [[7], [6, 8, 9, 10]]))
+
+
+
 
 
 if __name__ == '__main__':
@@ -108,7 +146,7 @@ def dog_se():
     dog.add_terminal_edge([1, 2, 3], 'CS', 0)
     dog.add_nonterminal_edge([5], [1, 4])
     dog.add_nonterminal_edge([], [2])
-    dog.add_nonterminal_edge([4], [3, 5])
+    dog.add_nonterminal_edge([4], [5, 3])
     return dog
 
 
@@ -133,8 +171,8 @@ def dog_s3():
     dog = DirectedOrderedGraph()
     for i in range(4):
         dog.add_node(i)
-    dog.add_to_outputs(0)
     dog.add_to_outputs(3)
+    dog.add_to_outputs(0)
     dog.add_to_inputs(1)
 
     dog.add_terminal_edge([1, 2, 3], 'S', 0)
