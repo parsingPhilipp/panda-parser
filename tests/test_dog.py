@@ -1,6 +1,7 @@
 from __future__ import print_function
 import unittest
 from graphs.dog import *
+from graphs.decomposition import *
 
 
 class MyTestCase(unittest.TestCase):
@@ -100,6 +101,30 @@ class MyTestCase(unittest.TestCase):
         dog.replace_by(2, dog_s133())
         self.assertEqual(dog, dog_2)
 
+    def test_primary(self):
+        dog = build_acyclic_dog()
+        self.assertTrue(dog.primary_is_tree())
+        dog2 = build_acyclic_dog_permuted()
+        self.assertFalse(dog2.primary_is_tree())
+
+    def test_upward_closure(self):
+        dog = build_acyclic_dog()
+        for (lab, i) in [
+            ('und', 2), ('Sie', 4), ('entwickelt', 5), ('druckt', 7),
+            ('Verpackungen', 8), ('und', 9), ('Etiketten', 10)
+        ]:
+            self.assertListEqual(upward_closure(dog, [i]), [i])
+
+        self.assertSetEqual(set(upward_closure(dog, [4, 5])), set([1, 4, 5]))
+        self.assertSetEqual(set(upward_closure(dog, [8, 9, 10])), set([6, 8, 9, 10]))
+        self.assertSetEqual(set(upward_closure(dog, [4, 5, 2, 7, 8, 9, 10])), set([i for i in range(11)]))
+
+    def test_dsg(self):
+        dsg = build_dsg()
+        rec_part = dsg.extract_recursive_partitioning()
+        self.assertEqual(rec_part, ([0, 1, 2, 3, 4, 5, 6], [([0, 1], [([0], []), ([1], [])]), ([2], []), ([3, 4, 5, 6], [([3], []), ([4, 5, 6], [([4], []), ([5], []), ([6], [])])])]))
+        dcmp = compute_decomposition(dsg, rec_part)
+        self.assertEqual(dcmp, ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [([1, 4, 5], [([4], []), ([5], [])]), ([2], []), ([3, 6, 7, 8, 9, 10], [([7], []), ([6, 8, 9, 10], [([8], []), ([9], []), ([10], [])])])]))
 
 if __name__ == '__main__':
     unittest.main()
@@ -110,10 +135,10 @@ def build_acyclic_dog():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([1, 2, 3], 'CS', 0)
-    dog.add_terminal_edge([4, 5, 6], 'S', 1)
-    dog.add_terminal_edge([4, 7, 6], 'S', 3)
-    dog.add_terminal_edge([8, 9, 10], 'CNP', 6)
+    dog.add_terminal_edge([(1, 'p'), (2, 'p'), (3, 'p')], 'CS', 0)
+    dog.add_terminal_edge([(4, 'p'), (5, 'p'), 6], 'S', 1)
+    dog.add_terminal_edge([4, (7, 'p'), (6, 'p')], 'S', 3)
+    dog.add_terminal_edge([(8, 'p'), (9, 'p'), (10, 'p')], 'CNP', 6)
     for (lab, i) in [
         ('und', 2), ('Sie', 4), ('entwickelt', 5), ('druckt', 7),
         ('Verpackungen', 8), ('und', 9), ('Etiketten', 10)
@@ -219,3 +244,9 @@ def dog_s132():
 
 def dog_s133():
     return build_terminal_dog('Etiketten')
+
+def build_dsg():
+    dog = build_acyclic_dog()
+    sentence = ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]
+    synchronization = [[4], [5], [2], [7], [8], [9], [10]]
+    return DeepSyntaxGraph(sentence, dog, synchronization)

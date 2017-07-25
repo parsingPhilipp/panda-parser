@@ -12,7 +12,15 @@ class Edge:
     def __init__(self, outputs, inputs, label=None):
         self._label = label
         self._outputs = outputs
-        self._inputs = inputs
+        self._inputs = []
+        self._primary_inputs = []
+        for i, elem in enumerate(inputs):
+            if isinstance(elem, tuple):
+                if elem[1] == 'p':
+                    self._primary_inputs.append(i)
+                self._inputs.append(elem[0])
+            else:
+                self._inputs.append(elem)
 
     @property
     def label(self):
@@ -22,6 +30,13 @@ class Edge:
     def terminal(self):
         return self._label is not None
 
+    def set_primary(self, i):
+        assert i < len(self.inputs)
+        self._primary_inputs.append(i)
+
+    @property
+    def primary_inputs(self):
+        return self._primary_inputs
 
 class DirectedOrderedGraph:
     def __init__(self):
@@ -53,6 +68,10 @@ class DirectedOrderedGraph:
             _type.append((len(edge.outputs), len(edge.inputs)))
         _type.append((len(self._inputs), len(self._outputs)))
         return _type
+
+    @property
+    def terminal_edges(self):
+        return self._terminal_edges
 
     def _node_closure(self, function, reflexive=False):
         closure = {}
@@ -304,7 +323,7 @@ class DirectedOrderedGraph:
                     dog.add_node(node)
             dog.add_nonterminal_edge(bot_rhs[i], top_rhs[i])
 
-        # fill recursive
+        # fill recursively
         visited = []
         for node in top_lhs:
             self.__fill_rec(node, dog, visited, lhs, top_rhs, bot_rhs)
@@ -327,6 +346,69 @@ class DirectedOrderedGraph:
         dog.add_edge(deepcopy(edge))
         for node2 in edge.inputs:
             self.__fill_rec(node2, dog, visited, lhs, top_rhs, bot_rhs)
+
+    def primary_is_tree(self):
+        outgoing = {}
+        for edge in self._terminal_edges + self._nonterminal_edges:
+            if edge is None:
+                continue
+            if len(edge.inputs) > 0 and len(edge.primary_inputs) == 0:
+                return False
+            for i in edge.primary_inputs:
+                node = edge.inputs[i]
+                if node in outgoing:
+                    return False
+                outgoing[node] = (edge, i)
+        return True
+
+
+class DeepSyntaxGraph:
+    def __init__(self, sentence, dog, synchronization, label=None):
+        self.__dog = dog
+        self.__sentence = sentence
+        self.__label = label
+        self.__synchronization = synchronization
+
+    def get_graph_position(self, sentence_position):
+        return self.__synchronization[sentence_position]
+
+    @property
+    def label(self):
+        return self.__label
+
+    @property
+    def dog(self):
+        return self.__dog
+
+    @property
+    def sentence(self):
+        return self.__sentence
+
+    def extract_recursive_partitioning(self):
+        assert self.dog.primary_is_tree()
+        assert len(self.dog.outputs) == 1
+        return self.__extract_recursive_partitioning_rec(self.dog.outputs[0])
+
+    def __extract_recursive_partitioning_rec(self, node):
+        covered = [sent_pos for sent_pos in range(len(self.sentence))
+                   if node in self.get_graph_position(sent_pos)]
+        edge = self.dog.incoming_edge(node)
+        if edge is None:
+            return (covered, [])
+        children = []
+        for i in edge.primary_inputs:
+            child_node = edge.inputs[i]
+            child_rec_par = self.__extract_recursive_partitioning_rec(child_node)
+            assert child_rec_par != ([], [])
+            children += [child_rec_par]
+            for sent_pos in child_rec_par[0]:
+                assert sent_pos not in covered
+                covered.append(sent_pos)
+        covered.sort()
+        if len(children) == 1 and covered == children[0][0]:
+            return children[0]
+        else:
+            return covered, children
 
 
 def pairwise_disjoint_elem(list):
