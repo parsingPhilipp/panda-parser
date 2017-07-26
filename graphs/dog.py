@@ -314,22 +314,22 @@ class DirectedOrderedGraph:
     def __eq__(self, other):
         assert self.output_connected()
         assert other.output_connected()
-        s_visited = []
-        o_visited = []
+        morphism = {}
+        inverse_morphism = {}
         if len(self._outputs) != len(other.outputs):
             return False
         for so, oo in zip(self._outputs, other.outputs):
-            if not self.__compare_rec(other, so, oo, s_visited, o_visited):
+            if not self.__compare_rec(other, so, oo, morphism, inverse_morphism):
                 return False
         return True
 
-    def __compare_rec(self, other, sn, on, s_visited, o_visited):
-        if sn in s_visited:
-            return on in o_visited
-        if on in o_visited:
+    def __compare_rec(self, other, sn, on, morphism, inverse_morphism):
+        if sn in morphism:
+            return on in inverse_morphism and morphism[sn] == on and inverse_morphism[on] == sn
+        if on in inverse_morphism:
             return False
-        s_visited.append(sn)
-        o_visited.append(on)
+        morphism[sn] = on
+        inverse_morphism[on] = sn
         se = self._incoming_edge[sn]
         oe = other.incoming_edge(on)
         if se is None and oe is None:
@@ -341,9 +341,21 @@ class DirectedOrderedGraph:
         if len(se.inputs) != len(oe.inputs) or len(se.outputs) != len(oe.outputs):
             return False
         for sn2, on2 in zip(se.inputs, oe.inputs):
-            if not self.__compare_rec(other, sn2, on2, s_visited, o_visited):
+            if not self.__compare_rec(other, sn2, on2, morphism, inverse_morphism):
                 return False
         return True
+
+    def compute_isomorphism(self, other):
+        assert self.output_connected()
+        assert other.output_connected()
+        morphism = {}
+        inverse_morphism = {}
+        if len(self._outputs) != len(other.outputs):
+            return None
+        for so, oo in zip(self._outputs, other.outputs):
+            if not self.__compare_rec(other, so, oo, morphism, inverse_morphism):
+                return None
+        return morphism, inverse_morphism
 
     def extract_dog(self, lhs, rhs):
         assert all([pairwise_disjoint_elem(list) for list in [lhs] + rhs])
