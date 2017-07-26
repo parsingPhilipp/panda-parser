@@ -155,10 +155,14 @@ def build_acyclic_dog():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([(1, 'p'), (2, 'p'), (3, 'p')], 'CS', 0)
-    dog.add_terminal_edge([(4, 'p'), (5, 'p'), 6], 'S', 1)
-    dog.add_terminal_edge([4, (7, 'p'), (6, 'p')], 'S', 3)
-    dog.add_terminal_edge([(8, 'p'), (9, 'p'), (10, 'p')], 'CNP', 6)
+    dog.add_terminal_edge([(1, 'p'), (2, 'p'), (3, 'p')], 'CS', 0)\
+        .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
+    dog.add_terminal_edge([(4, 'p'), (5, 'p'), 6], 'S', 1)\
+        .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
+    dog.add_terminal_edge([4, (7, 'p'), (6, 'p')], 'S', 3) \
+        .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
+    dog.add_terminal_edge([(8, 'p'), (9, 'p'), (10, 'p')], 'CNP', 6) \
+        .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     for (lab, i) in [
         ('und', 2), ('Sie', 4), ('entwickelt', 5), ('druckt', 7),
         ('Verpackungen', 8), ('und', 9), ('Etiketten', 10)
@@ -173,10 +177,14 @@ def build_acyclic_dog_permuted():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([1, 2, 3], 'CS', 0)
-    dog.add_terminal_edge([4, 5, 6], 'S', 1)
-    dog.add_terminal_edge([4, 7, 6], 'S', 3)
-    dog.add_terminal_edge([8, 9, 10], 'CNP', 6)
+    dog.add_terminal_edge([1, 2, 3], 'CS', 0)\
+        .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
+    dog.add_terminal_edge([4, 5, 6], 'S', 1) \
+        .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
+    dog.add_terminal_edge([4, 7, 6], 'S', 3) \
+        .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
+    dog.add_terminal_edge([8, 9, 10], 'CNP', 6)\
+        .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     for (lab, i) in [
         ('und', 2), ('Sie', 4), ('entwickelt', 7), ('druckt', 5),
         ('Verpackungen', 8), ('und', 9), ('Etiketten', 10)
@@ -198,7 +206,8 @@ def dog_se():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([1, 2, 3], 'CS', 0)
+    dog.add_terminal_edge([1, 2, 3], 'CS', 0)\
+        .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     dog.add_nonterminal_edge([5], [1, 4])
     dog.add_nonterminal_edge([], [2])
     dog.add_nonterminal_edge([4], [5, 3])
@@ -213,7 +222,8 @@ def dog_s1():
     dog.add_to_outputs(1)
     dog.add_to_inputs(3)
 
-    dog.add_terminal_edge([1, 2, 3], 'S', 0)
+    dog.add_terminal_edge([1, 2, 3], 'S', 0)\
+        .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
     dog.add_nonterminal_edge([], [1])
     dog.add_nonterminal_edge([], [2])
 
@@ -230,7 +240,8 @@ def dog_s3():
     dog.add_to_outputs(0)
     dog.add_to_inputs(1)
 
-    dog.add_terminal_edge([1, 2, 3], 'S', 0)
+    dog.add_terminal_edge([1, 2, 3], 'S', 0)\
+        .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
     dog.add_nonterminal_edge([], [2])
     dog.add_nonterminal_edge([], [3])
 
@@ -251,7 +262,8 @@ def dog_s13():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([1, 2, 3], 'CNP', 0)
+    dog.add_terminal_edge([1, 2, 3], 'CNP', 0)\
+        .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     for i in range(1, 4):
         dog.add_nonterminal_edge([], [i])
     return dog

@@ -14,6 +14,7 @@ class Edge:
         self._outputs = outputs
         self._inputs = []
         self._primary_inputs = []
+        self._functions = []
         for i, elem in enumerate(inputs):
             if isinstance(elem, tuple):
                 if elem[1] == 'p':
@@ -21,6 +22,7 @@ class Edge:
                 self._inputs.append(elem[0])
             else:
                 self._inputs.append(elem)
+            self._functions.append("--")
 
     @property
     def label(self):
@@ -33,15 +35,31 @@ class Edge:
     def set_primary(self, i):
         assert i < len(self.inputs)
         self._primary_inputs.append(i)
+        return self
+
+    def set_function(self, i, gr_function):
+        assert i < len(self.inputs)
+        self._functions[i] = gr_function
+        return self
 
     @property
     def primary_inputs(self):
         return self._primary_inputs
 
     def __str__(self):
-        return "[" + ", ".join(map(str, self.inputs)) + "] -" \
+        return "[" + ", ".join(map(self.__function_strings, enumerate(self.inputs))) + "] -" \
                + (str(self.label) if self.label is not None else "") \
                + "-> [" + ", ".join(map(str, self.outputs)) + "]"
+
+    def __function_strings(self, pair):
+        i, node = pair
+        if self._functions[i] == '--':
+            return str(node)
+        else:
+            return str(self._functions[i]) + ':' + str(node)
+
+    def compare_labels(self, other):
+        return all(map(lambda x, y: x ==y, [self.label] + self._functions, [other.label] + other._functions))
 
 class DirectedOrderedGraph:
     def __init__(self):
@@ -143,12 +161,13 @@ class DirectedOrderedGraph:
             self._terminal_edges.append(edge)
         else:
             self._nonterminal_edges.append(edge)
+        return edge
 
     def add_terminal_edge(self, inputs, label, output):
-        self.add_edge(Edge([output], deepcopy(inputs), label))
+        return self.add_edge(Edge([output], deepcopy(inputs), label))
 
     def add_nonterminal_edge(self, inputs, outputs):
-        self.add_edge(Edge(deepcopy(outputs), deepcopy(inputs)))
+        return self.add_edge(Edge(deepcopy(outputs), deepcopy(inputs)))
 
     def add_to_inputs(self, node):
         assert self._incoming_edge[node] is None
@@ -295,7 +314,7 @@ class DirectedOrderedGraph:
             return True
         if se is None or oe is None:
             return False
-        if se.label != oe.label:
+        if not se.compare_labels(oe):
             return False
         if len(se.inputs) != len(oe.inputs) or len(se.outputs) != len(oe.outputs):
             return False
