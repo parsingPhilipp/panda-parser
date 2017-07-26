@@ -182,10 +182,14 @@ class DirectedOrderedGraph:
             if elem == old:
                 the_list[i] = new
 
-    def rename_node(self, node, node_new):
+    def rename_node(self, node, node_new, trace=None):
         if node == node_new:
             return
         assert node_new not in self._nodes
+
+        if trace is not None:
+            trace[node] = node_new
+
         self.__replace_inplace(self._nodes, node, node_new)
         self.__replace_inplace(self._inputs, node, node_new)
         self.__replace_inplace(self._outputs, node, node_new)
@@ -224,14 +228,16 @@ class DirectedOrderedGraph:
         # print(len(dog._nonterminal_edges), all([edge is None for edge in dog._nonterminal_edges]))
         assert (len(dog._nonterminal_edges) == 0) or all([edge is None for edge in dog._nonterminal_edges])
 
-        max_node = max(self._nodes)
+        dog_node_renaming = {}
+        max_node = max(self._nodes + dog._nodes)
         for j, node in enumerate(dog._nodes):
-            dog.rename_node(node, max_node + 1 + j)
+            dog.rename_node(node, max_node + 1 + j, dog_node_renaming)
 
+        dog_node_renaming2 = {}
         for host_node, replace_node in zip(nt_edge.inputs, dog._inputs):
-            dog.rename_node(replace_node, host_node)
+            dog.rename_node(replace_node, host_node, dog_node_renaming2)
         for host_node, replace_node in zip(nt_edge.outputs, dog._outputs):
-            dog.rename_node(replace_node, host_node)
+            dog.rename_node(replace_node, host_node, dog_node_renaming2)
 
         # clean up old parent/ child database entries
         for node in nt_edge.inputs:
@@ -250,6 +256,7 @@ class DirectedOrderedGraph:
 
         # remove nonterminal_edge (replace by None!)
         self._nonterminal_edges[i] = None
+        return self.compose_node_renaming(dog_node_renaming, dog_node_renaming2)
 
     def ordered_nodes(self):
         ordered = []
@@ -263,16 +270,31 @@ class DirectedOrderedGraph:
             for v_2 in self.children(v):
                 self.__ordered_nodes_rec(ordered, v_2)
 
+    def compose_node_renaming(self, renaming1, renaming2):
+        renaming = {}
+        for node in renaming1:
+            if renaming1[node] in renaming2:
+                renaming[node] = renaming2[renaming1[node]]
+            else:
+                renaming[node] = renaming1[node]
+        for node2 in renaming2:
+            if node2 not in renaming:
+                renaming[node2] = renaming2[node2]
+        return renaming
 
     def compress_node_names(self):
         if self.ordered_nodes() == [i for i in range(len(self._nodes))]:
             return
         max_node = max(self._nodes) + 1
+
+        renaming1 = {}
         for i, node in enumerate(self._nodes):
-            self.rename_node(node, max_node + i)
+            self.rename_node(node, max_node + i, renaming1)
         ordered_nodes = self.ordered_nodes()
+        renaming2 = {}
         for i, node in enumerate(ordered_nodes):
-            self.rename_node(node, i)
+            self.rename_node(node, i, renaming2)
+        return self.compose_node_renaming(renaming1, renaming2)
 
     def top(self, nodes):
         tops = [node for node in nodes
