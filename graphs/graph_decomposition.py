@@ -28,15 +28,19 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=id, start="START", normal
     rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, normalize)
 
     # construct a chain rule from START to initial nonterminal of decomposition
+    # LCFRS part
     lcfrs_lhs = LCFRS_lhs(start)
     lcfrs_lhs.add_arg([LCFRS_var(0, 0)])
 
+    # DOG part
     dog = DirectedOrderedGraph()
     dog.add_node(0)
     dog.add_nonterminal_edge([], [0])
     dog.add_to_outputs(0)
 
-    lcfrs.add_rule(lcfrs_lhs, [rhs_nont], weight=1.0, dcp=[dog])
+    # no sync
+    sync = []
+    lcfrs.add_rule(lcfrs_lhs, [rhs_nont], weight=1.0, dcp=[dog, sync])
 
     return lcfrs
 
@@ -46,13 +50,19 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, normalize):
     # build lcfrs part
     lcfrs_lhs = LCFRS_lhs(lhs_nont)
     rhs_sent_pos = map(lambda x: x[0], rec_par[1])
-    fill_lcfrs_lhs(lcfrs_lhs, rec_par[0], rhs_sent_pos, dsg.sentence)
+    generated_sent_positions = fill_lcfrs_lhs(lcfrs_lhs, rec_par[0], rhs_sent_pos, dsg.sentence)
 
     # build dog part
     rhs_nodes = map(lambda x: x[0], decomp[1])
     dog = dsg.dog.extract_dog(decomp[0], rhs_nodes)
     if normalize:
-        dog.compress_node_names()
+        node_renaming = dog.compress_node_names()
+    else:
+        node_renaming = {}
+
+    # build terminal synchronization
+    sync = [[node_renaming.get(node, node) for node in dsg.get_graph_position(sent_position)]
+            for sent_position in generated_sent_positions]
 
     # recursively compute rules for rhs
     rhs_nonts = []
@@ -60,7 +70,7 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, normalize):
         rhs_nonts.append(induce_grammar_rec(lcfrs, dsg, child_rec_par, child_decomp, labeling, normalize))
 
     # create rule
-    lcfrs.add_rule(lcfrs_lhs, rhs_nonts, weight=1.0, dcp=[dog])
+    lcfrs.add_rule(lcfrs_lhs, rhs_nonts, weight=1.0, dcp=[dog, sync])
     return lhs_nont
 
 def fill_lcfrs_lhs(lhs, sent_positions, children, sentence):
@@ -77,8 +87,8 @@ def fill_lcfrs_lhs(lhs, sent_positions, children, sentence):
     :return: LCFRS_lhs :raise Exception:
     """
     spans = join_spans(sent_positions)
-
     children_spans = map(join_spans, children)
+    generated_sentence_positions = []
 
     for (low, high) in spans:
         arg = []
@@ -100,8 +110,9 @@ def fill_lcfrs_lhs(lhs, sent_positions, children, sentence):
             # Add terminal
             if not match:
                 arg.append(sentence[i])
+                generated_sentence_positions.append(i)
                 i += 1
                 # raise Exception('Expected ingredient for LCFRS argument was not found.')
         lhs.add_arg(arg)
 
-    return lhs
+    return generated_sentence_positions
