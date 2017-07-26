@@ -1,7 +1,9 @@
 from __future__ import print_function
 from graphs.dog import DirectedOrderedGraph, DeepSyntaxGraph
 from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs, LCFRS_var
+from parser.derivation_interface import AbstractDerivation
 from decomposition import join_spans
+from copy import deepcopy
 
 def upward_closure(dog, nodes):
     assert isinstance(dog, DirectedOrderedGraph)
@@ -116,3 +118,35 @@ def fill_lcfrs_lhs(lhs, sent_positions, children, sentence):
         lhs.add_arg(arg)
 
     return generated_sentence_positions
+
+def dog_evaluation(derivation):
+    assert isinstance(derivation, AbstractDerivation)
+    dog, sync = dog_evaluation_rec(derivation, derivation.root_id())
+    renaming = dog.compress_node_names()
+
+    sync2 = {}
+    for sent_pos in sync:
+        sync2[sent_pos] = [renaming.get(node, node) for node in sync[sent_pos]]
+
+    return dog, sync2
+
+def dog_evaluation_rec(derivation, idx):
+    rule = derivation.getRule(idx)
+    host_graph = deepcopy(rule.dcp()[0])
+
+    generated_sent_positions = derivation.terminal_positions(idx)
+    assert len(generated_sent_positions) == len(rule.dcp()[1])
+
+    sync = {}
+    for sent_position, graph_nodes in zip(generated_sent_positions, rule.dcp()[1]):
+        sync[sent_position] = graph_nodes
+
+    for i, child_idx in enumerate(derivation.child_ids(idx)):
+        child_graph, child_sync = dog_evaluation_rec(derivation, child_idx)
+        renaming = host_graph.replace_by(i, child_graph)
+
+        for sent_position in child_sync:
+            assert sent_position not in sync
+            sync[sent_position] = [renaming.get(node, node) for node in child_sync[sent_position]]
+
+    return host_graph, sync

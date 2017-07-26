@@ -4,6 +4,7 @@ from graphs.dog import *
 from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_name_to_deep_syntax_graph
 from hybridtree.monadic_tokens import ConstituentTerminal
+from parser.naive.parsing import LCFRS_parser
 
 
 class MyTestCase(unittest.TestCase):
@@ -130,7 +131,7 @@ class MyTestCase(unittest.TestCase):
         self.__structurally_equal(rec_part, dcmp)
 
         grammar = induce_grammar_from(dsg, rec_part, dcmp, labeling=str)
-        print(grammar)
+        # print(grammar)
 
         for nont, label in zip(["[4]", "[5]", "[2]", "[7]", "[8]", "[9]", "[10]"],
                 ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]):
@@ -141,6 +142,30 @@ class MyTestCase(unittest.TestCase):
                                 [dog_s1(), dog_s13(), dog_s3(), dog_se()]):
             for rule in grammar.lhs_nont_to_rules(nont):
                 self.assertEqual(rule.dcp()[0], graph)
+
+        parser = LCFRS_parser(grammar)
+        parser.set_input(dsg.sentence) # ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]
+        parser.parse()
+        self.assertTrue(parser.recognized())
+
+        derivation = parser.best_derivation_tree()
+        self.assertNotEqual(derivation, None)
+
+        dog, sync = dog_evaluation(derivation)
+        self.assertEqual(dog, dsg.dog)
+
+        sync_list = [(key, sync[key]) for key in sync]
+        self.assertEqual(len(sync_list), len(dsg.sentence))
+        sync_list.sort(lambda x, y: x[0] < y[0])
+        sync_list = map(lambda x: x[1], sync_list)
+        # print(dog)
+        # print(sync)
+        # print(sync_list)
+
+        morphism, _ = dsg.dog.compute_isomorphism(dog)
+
+        for i in range(len(dsg.sentence)):
+            self.assertListEqual(map(lambda x: morphism[x], dsg.get_graph_position(i)), sync_list[i])
 
     def __structurally_equal(self, rec_part, decomp):
         self.assertEqual(len(rec_part[1]), len(decomp[1]))
@@ -153,7 +178,7 @@ class MyTestCase(unittest.TestCase):
         f = lambda token: token.form() if isinstance(token, ConstituentTerminal) else token
         dsg.dog.project_labels(f)
 
-        print(map(str,dsg.sentence))
+        print(map(str, dsg.sentence))
         print(dsg.label)
         print(dsg.dog)
         print([dsg.get_graph_position(i) for i in range(len(dsg.sentence))])
