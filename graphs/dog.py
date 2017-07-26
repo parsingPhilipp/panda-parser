@@ -38,6 +38,11 @@ class Edge:
     def primary_inputs(self):
         return self._primary_inputs
 
+    def __str__(self):
+        return "[" + ", ".join(map(str, self.inputs)) + "] -" \
+               + (str(self.label) if self.label is not None else "") \
+               + "-> [" + ", ".join(map(str, self.outputs)) + "]"
+
 class DirectedOrderedGraph:
     def __init__(self):
         self._nodes = []
@@ -72,6 +77,12 @@ class DirectedOrderedGraph:
     @property
     def terminal_edges(self):
         return self._terminal_edges
+
+    def __str__(self):
+        return "G[inputs=[" + ", ".join(map(str, self._inputs)) + "], " \
+                + "outputs=[" + ", ".join(map(str, self._outputs)) + "], " \
+                + "nont_edges=[" + ", ".join(map(str, self._nonterminal_edges)) + "], " \
+                + "term_edges=[" + ", ".join(map(str, self._terminal_edges)) + "]] "
 
     def _node_closure(self, function, reflexive=False):
         closure = {}
@@ -394,7 +405,7 @@ class DeepSyntaxGraph:
                    if node in self.get_graph_position(sent_pos)]
         edge = self.dog.incoming_edge(node)
         if edge is None:
-            return (covered, [])
+            return covered, []
         children = []
         for i in edge.primary_inputs:
             child_node = edge.inputs[i]

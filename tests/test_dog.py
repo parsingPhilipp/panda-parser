@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 from graphs.dog import *
-from graphs.decomposition import *
+from graphs.graph_decomposition import *
 
 
 class MyTestCase(unittest.TestCase):
@@ -125,6 +125,26 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(rec_part, ([0, 1, 2, 3, 4, 5, 6], [([0, 1], [([0], []), ([1], [])]), ([2], []), ([3, 4, 5, 6], [([3], []), ([4, 5, 6], [([4], []), ([5], []), ([6], [])])])]))
         dcmp = compute_decomposition(dsg, rec_part)
         self.assertEqual(dcmp, ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [([1, 4, 5], [([4], []), ([5], [])]), ([2], []), ([3, 6, 7, 8, 9, 10], [([7], []), ([6, 8, 9, 10], [([8], []), ([9], []), ([10], [])])])]))
+        self.__structurally_equal(rec_part, dcmp)
+
+        grammar = induce_grammar_from(dsg, rec_part, dcmp, labeling=str)
+        print(grammar)
+
+        for nont, label in zip(["[4]", "[5]", "[2]", "[7]", "[8]", "[9]", "[10]"],
+                ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]):
+            for rule in grammar.lhs_nont_to_rules(nont):
+                self.assertEqual(rule.dcp()[0], build_terminal_dog(label))
+
+        for nont, graph in zip(["[1, 4, 5]", "[6, 8, 9, 10]", "[3, 6, 7, 8, 9, 10]", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"],
+                                [dog_s1(), dog_s13(), dog_s3(), dog_se()]):
+            for rule in grammar.lhs_nont_to_rules(nont):
+                self.assertEqual(rule.dcp()[0], graph)
+
+    def __structurally_equal(self, rec_part, decomp):
+        self.assertEqual(len(rec_part[1]), len(decomp[1]))
+        for rec_part_child, decomp_child in zip(rec_part[1], decomp[1]):
+            self.__structurally_equal(rec_part_child, decomp_child)
+
 
 if __name__ == '__main__':
     unittest.main()
