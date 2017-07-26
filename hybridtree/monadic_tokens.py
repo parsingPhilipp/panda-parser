@@ -125,7 +125,7 @@ class ConstituentTerminal(ConstituencyToken):
         return self._morph
 
     def __str__(self):
-        return self.form() + ' : ' + self.pos() + '\t' + self.edge() + '\t' + str(self._morph)
+        return self.form() + ' : ' + self.pos() + '\t' + str(self.edge()) + '\t' + str(self._morph)
 
     def __hash__(self):
         return hash((self.__form, self.__pos))

@@ -391,6 +391,9 @@ class DirectedOrderedGraph:
                 outgoing[node] = (edge, i)
         return True
 
+    def project_labels(self, proj):
+        for edge in self._terminal_edges:
+            edge.label = proj(edge.label)
 
 class DeepSyntaxGraph:
     def __init__(self, sentence, dog, synchronization, label=None):

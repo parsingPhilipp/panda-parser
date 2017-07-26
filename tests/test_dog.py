@@ -2,6 +2,8 @@ from __future__ import print_function
 import unittest
 from graphs.dog import *
 from graphs.graph_decomposition import *
+from corpora.tiger_parse import sentence_name_to_deep_syntax_graph
+from hybridtree.monadic_tokens import ConstituentTerminal
 
 
 class MyTestCase(unittest.TestCase):
@@ -144,6 +146,22 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(len(rec_part[1]), len(decomp[1]))
         for rec_part_child, decomp_child in zip(rec_part[1], decomp[1]):
             self.__structurally_equal(rec_part_child, decomp_child)
+
+    def test_tiger_parse_to_dsg(self):
+        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_release_aug07.corrected.16012013.xml")
+
+        f = lambda token: token.form() if isinstance(token, ConstituentTerminal) else token
+        dsg.dog.project_labels(f)
+
+        print(map(str,dsg.sentence))
+        print(dsg.label)
+        print(dsg.dog)
+        print([dsg.get_graph_position(i) for i in range(len(dsg.sentence))])
+
+        # strip "VROOT"
+        sub_dog = dsg.dog.extract_dog([i for i in range(11)], [])
+
+        self.assertEqual(sub_dog, build_acyclic_dog())
 
 
 if __name__ == '__main__':
