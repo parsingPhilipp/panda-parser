@@ -42,6 +42,10 @@ class Edge:
         self._functions[i] = gr_function
         return self
 
+    def get_function(self, i):
+        assert i < len(self.inputs)
+        return self._functions[i]
+
     @property
     def primary_inputs(self):
         return self._primary_inputs
