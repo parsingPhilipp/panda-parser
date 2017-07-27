@@ -2,9 +2,10 @@ from __future__ import print_function
 import unittest
 from graphs.dog import *
 from graphs.graph_decomposition import *
-from corpora.tiger_parse import sentence_name_to_deep_syntax_graph
+from corpora.tiger_parse import sentence_name_to_deep_syntax_graph, sentence_names_to_deep_syntax_graphs
 from hybridtree.monadic_tokens import ConstituentTerminal
 from parser.naive.parsing import LCFRS_parser
+from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning
 from grammar.induction.terminal_labeling import PosTerminals
 
@@ -242,10 +243,7 @@ class MyTestCase(unittest.TestCase):
                 return token
 
         rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
-        # rec_part = rec_part_strategy(dsg)
-
-        rep_part_direct = dsg.recursive_partitioning()
-        rec_part = fanout_limited_partitioning(rep_part_direct, 1)
+        rec_part = rec_part_strategy(dsg)
         dcmp = compute_decomposition(dsg, rec_part)
 
         grammar = induce_grammar_from(dsg, rec_part, dcmp, labeling=labeling, terminal_labeling=term_labeling)
@@ -260,8 +258,52 @@ class MyTestCase(unittest.TestCase):
         derivation = parser.best_derivation_tree()
         self.assertNotEqual(derivation, None)
 
+    def test_induction_on_a_corpus(self):
+        start = 1
+        stop = 50
+        path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
+        # path = "res/tiger/tiger_8000.xml"
+        exclude = []
+        dsgs = sentence_names_to_deep_syntax_graphs(
+            ['s' + str(i) for i in range(start, stop + 1) if i not in exclude]
+            , path
+            , hold=False)
 
+        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
 
+        def label_edge(edge):
+            if isinstance(edge.label, ConstituentTerminal):
+                return edge.label.pos()
+            else:
+                return edge.label
+        nonterminal_labeling = lambda nodes, dsg: simple_labeling(nodes, dsg, label_edge)
+
+        term_labeling_token = PosTerminals()
+        def term_labeling(token):
+            if isinstance(token, ConstituentTerminal):
+                return term_labeling_token.token_label(token)
+            else:
+                return token
+
+        grammar = induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, term_labeling)
+        grammar.make_proper()
+
+        parser = CFGParser(grammar)
+
+        for dsg in dsgs:
+            parser.set_input(term_labeling_token.prepare_parser_input(dsg.sentence))
+            parser.parse()
+            self.assertTrue(parser.recognized())
+            derivation = parser.best_derivation_tree()
+            dog, sync = dog_evaluation(derivation)
+            dsg2 = DeepSyntaxGraph(dsg.sentence, dog, sync)
+
+            f = lambda token: token.pos() if isinstance(token, ConstituentTerminal) else token
+            dsg.dog.project_labels(f)
+            parser.clear()
+
+            # print('dsg: ', dsg.dog, '\n', [dsg.get_graph_position(i) for i in range(len(dsg.sentence))], '\n\n parsed: ', dsg2.dog, '\n', [dsg2.get_graph_position(i+1) for i in range(len(dsg2.sentence))])
+            # print()
 
 if __name__ == '__main__':
     unittest.main()

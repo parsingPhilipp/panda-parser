@@ -28,6 +28,16 @@ def compute_decomposition(dsg, recursive_partitioning):
     return closed_nodes, map(lambda rp: compute_decomposition(dsg, rp), recursive_partitioning[1])
 
 
+def induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, terminal_labeling, start="START", normalize=True):
+    grammar = LCFRS(start=start)
+    for dsg in dsgs:
+        rec_part = rec_part_strategy(dsg)
+        decomp = compute_decomposition(dsg, rec_part)
+        dsg_grammar = induce_grammar_from(dsg, rec_part, decomp, nonterminal_labeling, terminal_labeling, start, normalize)
+        grammar.add_gram(dsg_grammar)
+    return grammar
+
+
 def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), terminal_labeling=id, start="START", normalize=True):
     lcfrs = LCFRS(start=start)
     rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize)
