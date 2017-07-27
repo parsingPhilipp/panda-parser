@@ -284,7 +284,7 @@ class DirectedOrderedGraph:
 
     def compress_node_names(self):
         if self.ordered_nodes() == [i for i in range(len(self._nodes))]:
-            return
+            return {}
         max_node = max(self._nodes) + 1
 
         renaming1 = {}
