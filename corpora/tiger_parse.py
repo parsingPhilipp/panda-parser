@@ -115,6 +115,20 @@ def sentence_name_to_hybridtree(name, file_name):
         return None
 
 
+def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True):
+        dsgs = []
+        for name in names:
+            dsg = sentence_name_to_deep_syntax_graph(name, file_name)
+            if dsg is not None:
+                dsgs += [dsg]
+            else:
+                print 'missing', name
+
+        if not hold:
+            clear()
+        return dsgs
+
+
 # Return tree for name. Return None if none.
 # name: string
 # file_name: string
@@ -152,8 +166,8 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
             if is_word(pos, word):
                 output_idx = node_enum.object_index(id)
                 dog.add_node(output_idx)
-                terminal = ConstituentTerminal(word.encode('utf_8'), pos, morph_feats)
-                dog.add_terminal_edge([], ConstituentTerminal(word, pos, morph_feats), output_idx)
+                terminal = ConstituentTerminal(word.encode('utf_8'), pos, morph=morph_feats)
+                dog.add_terminal_edge([], ConstituentTerminal(word, pos, morph=morph_feats), output_idx)
                 sentence.append(terminal)
                 sync.append([output_idx])
                 # tree.add_leaf(id, pos, word.encode('utf_8'), morph=morph_feats)
