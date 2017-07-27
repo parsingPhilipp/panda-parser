@@ -8,6 +8,7 @@ from parser.naive.parsing import LCFRS_parser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning
 from grammar.induction.terminal_labeling import PosTerminals
+import subprocess
 
 
 class MyTestCase(unittest.TestCase):
@@ -259,6 +260,7 @@ class MyTestCase(unittest.TestCase):
         self.assertNotEqual(derivation, None)
 
     def test_induction_on_a_corpus(self):
+        interactive = True
         start = 1
         stop = 50
         path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
@@ -304,6 +306,25 @@ class MyTestCase(unittest.TestCase):
 
             # print('dsg: ', dsg.dog, '\n', [dsg.get_graph_position(i) for i in range(len(dsg.sentence))], '\n\n parsed: ', dsg2.dog, '\n', [dsg2.get_graph_position(i+1) for i in range(len(dsg2.sentence))])
             # print()
+            if interactive:
+                if dsg.label == 's50':
+                    pass
+                if dsg.dog != dog:
+                    z1 = render_and_view_dog(dsg.dog, "corpus_" + dsg.label)
+                    z2 = render_and_view_dog(dog, "parsed_" + dsg.label)
+                    z1.communicate()
+                    z2.communicate()
+
+    def test_dot_export(self):
+        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_s26954.xml")
+
+        f = lambda token: token.form() if isinstance(token, ConstituentTerminal) else token
+        dsg.dog.project_labels(f)
+
+        dot = dsg.dog.export_dot("s26954")
+        print(dot)
+
+        render_and_view_dog(dsg.dog, "foo")
 
 if __name__ == '__main__':
     unittest.main()
@@ -351,6 +372,21 @@ def build_acyclic_dog_permuted():
         dog.add_terminal_edge([], lab, i)
 
     return dog
+
+def render_and_view_dog(dog, name, path="/tmp/"):
+    dot = dog.export_dot(name)
+    dot_path = path + name + '.dot'
+    pdf_path = path + name + '.pdf'
+    with open(dot_path, 'w') as dot_file:
+        dot_file.write(dot)
+
+    command = ["dot", "-Tpdf", dot_path, "-o", pdf_path]
+    p = subprocess.Popen(command)
+    p.communicate()
+    # print(command, p.returncode, p.stderr, p.stdout)
+
+    q = subprocess.Popen(["zathura", pdf_path])
+    return q
 
 def build_terminal_dog(terminal):
     dog = DirectedOrderedGraph()

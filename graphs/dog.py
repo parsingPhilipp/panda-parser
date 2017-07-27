@@ -433,6 +433,37 @@ class DirectedOrderedGraph:
         for edge in self._terminal_edges:
             edge.label = proj(edge.label)
 
+    def export_dot(self, title):
+
+        def node_line(node):
+            s = "\t" + str(node) + " [shape=plaintext"
+            inputs = ['i'+str(i) for i, n in enumerate(self._inputs) if n == node]
+            outputs = ['o'+str(i) for i, n in enumerate(self._outputs) if n == node]
+            if len(inputs) + len(outputs) > 0:
+                label = str(node) + '[' + ','.join(inputs + outputs) + ']'
+                s += ' , label=\"' + label + '\"'
+            s += '];'
+            return s
+
+        def edge_line(edge, idx, label):
+            return "\t" + idx + "[ shape=box, label=\"" + str(label) + "\"];"
+
+        def tentacles(edge, idx):
+            inputs = ["\t" + str(inp) + "->" + idx + "[label = \""
+                      + (str(edge.get_function(i)) + ':' if edge.get_function(i) != '--' else "")
+                      + str(i) + "\"];" for i, inp in enumerate(edge.inputs)]
+            outputs = ["\t" + idx + "->" + str(out) for out in edge.outputs]
+            return inputs + outputs
+
+
+        node_lines = [node_line(node) for node in self._nodes]
+        term_edge_lines = [line for i, edge in enumerate(self._terminal_edges) for line in [edge_line(edge, 't' + str(i), edge.label)] + tentacles(edge, 't' + str(i))]
+        nont_edge_lines = [line for i, edge in enumerate(self._nonterminal_edges) if edge is not None for line in [edge_line(edge, 'n' + str(i), 'e' + str(i))] + tentacles('n' + str(i))]
+        return 'digraph G {\n\trankdir=BT;\n'\
+               + '\tlabelloc=top;\n\tlabel=\"' + title + '\";\n'\
+               + '\n'.join(node_lines + term_edge_lines + nont_edge_lines)\
+               + '\n}'
+
 
 class DeepSyntaxGraph:
     def __init__(self, sentence, dog, synchronization, label=None):
