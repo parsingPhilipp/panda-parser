@@ -5,6 +5,8 @@ from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_name_to_deep_syntax_graph
 from hybridtree.monadic_tokens import ConstituentTerminal
 from parser.naive.parsing import LCFRS_parser
+from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning
+from grammar.induction.terminal_labeling import PosTerminals
 
 
 class MyTestCase(unittest.TestCase):
@@ -130,7 +132,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(dcmp, ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [([1, 4, 5], [([4], []), ([5], [])]), ([2], []), ([3, 6, 7, 8, 9, 10], [([7], []), ([6, 8, 9, 10], [([8], []), ([9], []), ([10], [])])])]))
         self.__structurally_equal(rec_part, dcmp)
 
-        grammar = induce_grammar_from(dsg, rec_part, dcmp, labeling=str)
+        grammar = induce_grammar_from(dsg, rec_part, dcmp, terminal_labeling=str)
         # print(grammar)
 
         for nont, label in zip(["[4]", "[5]", "[2]", "[7]", "[8]", "[9]", "[10]"],
@@ -144,7 +146,40 @@ class MyTestCase(unittest.TestCase):
                 self.assertEqual(rule.dcp()[0], graph)
 
         parser = LCFRS_parser(grammar)
-        parser.set_input(dsg.sentence) # ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]
+        parser.set_input(dsg.sentence)  # ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]
+        parser.parse()
+        self.assertTrue(parser.recognized())
+
+        derivation = parser.best_derivation_tree()
+        self.assertNotEqual(derivation, None)
+
+        dog, sync = dog_evaluation(derivation)
+        self.assertEqual(dog, dsg.dog)
+
+        sync_list = [(key, sync[key]) for key in sync]
+        self.assertEqual(len(sync_list), len(dsg.sentence))
+        sync_list.sort(lambda x, y: x[0] < y[0])
+        sync_list = map(lambda x: x[1], sync_list)
+        # print(dog)
+        # print(sync)
+        # print(sync_list)
+
+        morphism, _ = dsg.dog.compute_isomorphism(dog)
+
+        for i in range(len(dsg.sentence)):
+            self.assertListEqual(map(lambda x: morphism[x], dsg.get_graph_position(i)), sync_list[i])
+
+    def test_induction_with_labeling_strategies(self):
+        dsg = build_dsg()
+        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('right-branching')[0]
+        rec_part = rec_part_strategy(dsg)
+        dcmp = compute_decomposition(dsg, rec_part)
+
+        grammar = induce_grammar_from(dsg, rec_part, dcmp, labeling=simple_labeling, terminal_labeling=str)
+        print(grammar)
+
+        parser = LCFRS_parser(grammar)
+        parser.set_input(dsg.sentence)  # ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]
         parser.parse()
         self.assertTrue(parser.recognized())
 
@@ -173,7 +208,7 @@ class MyTestCase(unittest.TestCase):
             self.__structurally_equal(rec_part_child, decomp_child)
 
     def test_tiger_parse_to_dsg(self):
-        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_release_aug07.corrected.16012013.xml")
+        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_s26954.xml")
 
         f = lambda token: token.form() if isinstance(token, ConstituentTerminal) else token
         dsg.dog.project_labels(f)
@@ -187,6 +222,45 @@ class MyTestCase(unittest.TestCase):
         sub_dog = dsg.dog.extract_dog([i for i in range(11)], [])
 
         self.assertEqual(sub_dog, build_acyclic_dog())
+
+    def test_induction_from_corpus_tree(self):
+        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_s26954.xml")
+
+        def label_edge(edge):
+            if isinstance(edge.label, ConstituentTerminal):
+                return edge.label.pos()
+            else:
+                return edge.label
+        labeling = lambda nodes, dsg: simple_labeling(nodes, dsg, label_edge)
+
+        term_labeling_token = PosTerminals()
+
+        def term_labeling(token):
+            if isinstance(token, ConstituentTerminal):
+                return term_labeling_token.token_label(token)
+            else:
+                return token
+
+        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
+        # rec_part = rec_part_strategy(dsg)
+
+        rep_part_direct = dsg.recursive_partitioning()
+        rec_part = fanout_limited_partitioning(rep_part_direct, 1)
+        dcmp = compute_decomposition(dsg, rec_part)
+
+        grammar = induce_grammar_from(dsg, rec_part, dcmp, labeling=labeling, terminal_labeling=term_labeling)
+
+        print(grammar)
+
+        parser = LCFRS_parser(grammar)
+        parser.set_input(term_labeling_token.prepare_parser_input(dsg.sentence))
+        parser.parse()
+        self.assertTrue(parser.recognized())
+
+        derivation = parser.best_derivation_tree()
+        self.assertNotEqual(derivation, None)
+
+
 
 
 if __name__ == '__main__':
