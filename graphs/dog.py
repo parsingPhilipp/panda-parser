@@ -429,6 +429,7 @@ class DirectedOrderedGraph:
         for edge in self._terminal_edges:
             edge.label = proj(edge.label)
 
+
 class DeepSyntaxGraph:
     def __init__(self, sentence, dog, synchronization, label=None):
         self.__dog = dog
@@ -451,7 +452,7 @@ class DeepSyntaxGraph:
     def sentence(self):
         return self.__sentence
 
-    def extract_recursive_partitioning(self):
+    def recursive_partitioning(self):
         assert self.dog.primary_is_tree()
         assert len(self.dog.outputs) == 1
         return self.__extract_recursive_partitioning_rec(self.dog.outputs[0])
@@ -461,7 +462,7 @@ class DeepSyntaxGraph:
                    if node in self.get_graph_position(sent_pos)]
         edge = self.dog.incoming_edge(node)
         if edge is None:
-            return covered, []
+            return set(covered), []
         children = []
         for i in edge.primary_inputs:
             child_node = edge.inputs[i]
@@ -471,11 +472,14 @@ class DeepSyntaxGraph:
             for sent_pos in child_rec_par[0]:
                 assert sent_pos not in covered
                 covered.append(sent_pos)
-        covered.sort()
+        covered = set(covered)
         if len(children) == 1 and covered == children[0][0]:
             return children[0]
         else:
-            return covered, children
+            return set(covered), children
+
+    def id_yield(self):
+        return map(lambda x: self.get_graph_position(x), [i for i in range(len(self.sentence))])
 
 
 def pairwise_disjoint_elem(list):

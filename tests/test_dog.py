@@ -118,14 +118,14 @@ class MyTestCase(unittest.TestCase):
         ]:
             self.assertListEqual(upward_closure(dog, [i]), [i])
 
-        self.assertSetEqual(set(upward_closure(dog, [4, 5])), set([1, 4, 5]))
-        self.assertSetEqual(set(upward_closure(dog, [8, 9, 10])), set([6, 8, 9, 10]))
+        self.assertSetEqual(set(upward_closure(dog, [4, 5])), {1, 4, 5})
+        self.assertSetEqual(set(upward_closure(dog, [8, 9, 10])), {6, 8, 9, 10})
         self.assertSetEqual(set(upward_closure(dog, [4, 5, 2, 7, 8, 9, 10])), set([i for i in range(11)]))
 
     def test_dsg(self):
         dsg = build_dsg()
-        rec_part = dsg.extract_recursive_partitioning()
-        self.assertEqual(rec_part, ([0, 1, 2, 3, 4, 5, 6], [([0, 1], [([0], []), ([1], [])]), ([2], []), ([3, 4, 5, 6], [([3], []), ([4, 5, 6], [([4], []), ([5], []), ([6], [])])])]))
+        rec_part = dsg.recursive_partitioning()
+        self.assertEqual(rec_part, ({0, 1, 2, 3, 4, 5, 6}, [({0, 1}, [({0}, []), ({1}, [])]), ({2}, []), ({3, 4, 5, 6}, [({3}, []), ({4, 5, 6}, [({4}, []), ({5}, []), ({6}, [])])])]))
         dcmp = compute_decomposition(dsg, rec_part)
         self.assertEqual(dcmp, ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [([1, 4, 5], [([4], []), ([5], [])]), ([2], []), ([3, 6, 7, 8, 9, 10], [([7], []), ([6, 8, 9, 10], [([8], []), ([9], []), ([10], [])])])]))
         self.__structurally_equal(rec_part, dcmp)
