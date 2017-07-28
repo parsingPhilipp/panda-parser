@@ -71,6 +71,71 @@ class CPOS_KON_APPR(TerminalLabeling):
         return 'cpos-KON-APPR'
 
 
+class FormTerminalsUnk(TerminalLabeling):
+    def __init__(self, trees, threshold, UNK="UNKNOWN", filter=[]):
+        """
+        :param trees: corpus of trees
+        :param threshold: UNK words below the threshold
+        :type threshold: int
+        :param UNK: representation string of UNK in grammar
+        :type UNK: str
+        :param filter: a list of POS tags which are always UNKed
+        :type filter: list[str]
+        """
+        self.__terminal_counts = {}
+        self.__UNK = UNK
+        self.__threshold = threshold
+        for tree in trees:
+            for token in tree.token_yield():
+                if token.pos() not in filter:
+                    key = token.form().lower()
+                    if key in self.__terminal_counts:
+                        self.__terminal_counts[key] += 1
+                    else:
+                        self.__terminal_counts[key] = 1
+
+    def __str__(self):
+        return 'form-unk-' + str(self.__threshold)
+
+    def token_label(self, token):
+        form = token.form().lower()
+        if self.__terminal_counts.get(form, 0) < self.__threshold:
+            form = self.__UNK
+        return form
+
+
+class FormTerminalsPOS(TerminalLabeling):
+    def __init__(self, trees, threshold, filter=[]):
+        """
+        :param trees: corpus of trees
+        :param threshold: UNK words below the threshold
+        :type threshold: int
+        :param UNK: representation string of UNK in grammar
+        :type UNK: str
+        :param filter: a list of POS tags which are always UNKed
+        :type filter: list[str]
+        """
+        self.__terminal_counts = {}
+        self.__threshold = threshold
+        for tree in trees:
+            for token in tree.token_yield():
+                if token.pos() not in filter:
+                    key = token.form().lower()
+                    if key in self.__terminal_counts:
+                        self.__terminal_counts[key] += 1
+                    else:
+                        self.__terminal_counts[key] = 1
+
+    def __str__(self):
+        return 'form-POS-' + str(self.__threshold)
+
+    def token_label(self, token):
+        form = token.form().lower()
+        if self.__terminal_counts.get(form, 0) < self.__threshold:
+            form = token.pos()
+        return form
+
+
 class FormPosTerminalsUnk(TerminalLabeling):
     def __init__(self, trees, threshold, UNK="UNKNOWN", filter=[]):
         """
