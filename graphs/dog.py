@@ -464,6 +464,23 @@ class DirectedOrderedGraph:
                + '\n'.join(node_lines + term_edge_lines + nont_edge_lines)\
                + '\n}'
 
+    def export_graph_json(self, terminal_encoding, tentacle_labels=True):
+        def label_edge(edge):
+            label = str(edge.label)
+            if tentacle_labels:
+                label += '_' + '_'.join([edge.get_function(i) for i in range(len(edge.inputs))])
+            return label
+
+        data = {"type": "hypergraph"}
+        data['nodes'] = [node for node in self._nodes]
+        data['edges'] = [{'id': idx
+                         , 'label': terminal_encoding.object_index(label_edge(edge))
+                         , 'attachment': edge.inputs + edge.outputs
+                         } for idx, edge in enumerate(self._nonterminal_edges + self._terminal_edges)
+                        ]
+        data['ports'] = self._inputs + self._outputs
+        return data
+
 
 class DeepSyntaxGraph:
     def __init__(self, sentence, dog, synchronization, label=None):
@@ -515,6 +532,30 @@ class DeepSyntaxGraph:
 
     def id_yield(self):
         return map(lambda x: self.get_graph_position(x), [i for i in range(len(self.sentence))])
+
+    def export_bihypergraph_json(self, terminal_encoding, tentacle_labels=True):
+        data = {"type": "bihypergraph"}
+        data["G2"] = self.dog.export_graph_json(terminal_encoding, tentacle_labels)
+        max_node = max(data["G2"]['nodes'])
+        data["G1"] = self.string_to_graph_json(self.sentence, terminal_encoding, start_node=max_node + 1)
+        data["alignment"] = [{'id': idx
+                             , 'label': terminal_encoding.object_index(None)
+                             , 'attachment': [max_node + 1 + idx] + self.__synchronization[idx]
+                             } for idx in range(len(self.__synchronization)) if self.__synchronization[idx] != []
+                            ]
+        return data
+
+    @staticmethod
+    def string_to_graph_json(string, terminal_encoding, start_node=0):
+        data = {'type': 'hypergraph'
+                , 'nodes': [i for i in range(start_node, start_node + len(string) + 1)]
+                , 'edges': [{'id': idx
+                            , 'label': terminal_encoding.object_index(symbol)
+                            , 'attachment': [start_node + idx, start_node + idx + 1]
+                            } for idx, symbol in enumerate(string)]
+                , 'ports': [start_node, start_node + len(string)]
+                }
+        return data
 
 
 def pairwise_disjoint_elem(list):

@@ -9,6 +9,8 @@ from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning
 from grammar.induction.terminal_labeling import PosTerminals
 import subprocess
+import json
+from util.enumerator import Enumerator
 
 
 class MyTestCase(unittest.TestCase):
@@ -260,7 +262,7 @@ class MyTestCase(unittest.TestCase):
         self.assertNotEqual(derivation, None)
 
     def test_induction_on_a_corpus(self):
-        interactive = True
+        interactive = False
         start = 1
         stop = 50
         path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
@@ -325,6 +327,18 @@ class MyTestCase(unittest.TestCase):
         print(dot)
 
         render_and_view_dog(dsg.dog, "foo")
+
+    def test_json_export(self):
+        dog = build_acyclic_dog()
+        terminals = Enumerator()
+        data = dog.export_graph_json(terminals)
+        with open('/tmp/json_graph_1.json', 'w') as file:
+            json.dump(data, file)
+
+        dsg = build_dsg()
+        data = dsg.export_bihypergraph_json(terminals)
+        with open('/tmp/json_bigraph_1.json', 'w') as file:
+            json.dump(data, file)
 
 if __name__ == '__main__':
     unittest.main()
