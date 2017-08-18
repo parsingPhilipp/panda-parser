@@ -1,3 +1,5 @@
+from __future__ import print_function
+import sys
 cdef class Enumerator:
     def __init__(self, unsigned_long first_index=0):
         self.first_index = first_index
@@ -56,11 +58,11 @@ cdef class Enumerator:
 #             self.ind_to_obj[self.counter] = obj
 #             return self.counter
 
-'''
-    def print_index(self):
-        for i in range(self.first_index, self.counter + 1):
-            print >> self.file, i, self.index_object(i)
 
+    def print_index(self, to_file=sys.stdout):
+        for i in range(self.first_index, self.counter):
+            print(str(i) + " " + str(self.index_object(i)), file=to_file)
+'''
     def print_index_and_stats(self, grammar, inh, syn):
         fanouts = defaultdict(lambda: 0)
         inherits = defaultdict(lambda: 0)
