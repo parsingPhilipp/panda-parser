@@ -51,9 +51,14 @@ class Edge:
         return self._primary_inputs
 
     def __str__(self):
-        return "[" + ", ".join(map(self.__function_strings, enumerate(self.inputs))) + "] -" \
+        try:
+            s = "[" + ", ".join(map(self.__function_strings, enumerate(self.inputs))) + "] -" \
                + (str(self.label) if self.label is not None else "") \
                + "-> [" + ", ".join(map(str, self.outputs)) + "]"
+        except UnicodeEncodeError:
+            # TODO: proper handling of encoding problems
+            s = "foo"
+        return s
 
     def __function_strings(self, pair):
         i, node = pair
@@ -78,6 +83,10 @@ class DirectedOrderedGraph:
     @property
     def outputs(self):
         return self._outputs
+
+    @property
+    def nodes(self):
+        return self._nodes
 
     def incoming_edge(self, node):
         return self._incoming_edge[node]
@@ -473,11 +482,24 @@ class DirectedOrderedGraph:
 
         data = {"type": "hypergraph"}
         data['nodes'] = [node for node in self._nodes]
-        data['edges'] = [{'id': idx
+        data['edges'] = []
+        idx = 0
+        for edge in self._nonterminal_edges:
+            data['edges'].append({
+                           'id': idx
                          , 'label': terminal_encoding.object_index(label_edge(edge))
                          , 'attachment': edge.inputs + edge.outputs
-                         } for idx, edge in enumerate(self._nonterminal_edges + self._terminal_edges)
-                        ]
+                         , 'terminal': False
+                         })
+            idx += 1
+        for edge in self._terminal_edges:
+            data['edges'].append({
+                'id': idx
+                , 'label': terminal_encoding.object_index(label_edge(edge))
+                , 'attachment': edge.inputs + edge.outputs
+                , 'terminal': True
+            })
+            idx +=1
         data['ports'] = self._inputs + self._outputs
         return data
 
@@ -552,6 +574,7 @@ class DeepSyntaxGraph:
                 , 'edges': [{'id': idx
                             , 'label': terminal_encoding.object_index(symbol)
                             , 'attachment': [start_node + idx, start_node + idx + 1]
+                            , 'terminal': True
                             } for idx, symbol in enumerate(string)]
                 , 'ports': [start_node, start_node + len(string)]
                 }
