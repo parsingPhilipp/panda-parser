@@ -2,7 +2,7 @@ from __future__ import print_function
 import unittest
 from graphs.dog import *
 from graphs.graph_decomposition import *
-from corpora.tiger_parse import sentence_name_to_deep_syntax_graph, sentence_names_to_deep_syntax_graphs
+from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 from hybridtree.monadic_tokens import ConstituentTerminal
 from parser.naive.parsing import LCFRS_parser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
@@ -212,7 +212,7 @@ class MyTestCase(unittest.TestCase):
             self.__structurally_equal(rec_part_child, decomp_child)
 
     def test_tiger_parse_to_dsg(self):
-        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_s26954.xml")
+        dsg = sentence_names_to_deep_syntax_graphs(["s26954"], "res/tiger/tiger_s26954.xml", hold=False)[0]
 
         f = lambda token: token.form() if isinstance(token, ConstituentTerminal) else token
         dsg.dog.project_labels(f)
@@ -228,7 +228,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(sub_dog, build_acyclic_dog())
 
     def test_induction_from_corpus_tree(self):
-        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_s26954.xml")
+        dsg = sentence_names_to_deep_syntax_graphs(["s26954"], "res/tiger/tiger_s26954.xml", hold=False)[0]
 
         def label_edge(edge):
             if isinstance(edge.label, ConstituentTerminal):
@@ -318,7 +318,7 @@ class MyTestCase(unittest.TestCase):
                     z2.communicate()
 
     def test_dot_export(self):
-        dsg = sentence_name_to_deep_syntax_graph("s26954", "res/tiger/tiger_s26954.xml")
+        dsg = sentence_names_to_deep_syntax_graphs(["s26954"], "res/tiger/tiger_s26954.xml", hold=False)[0]
 
         f = lambda token: token.form() if isinstance(token, ConstituentTerminal) else token
         dsg.dog.project_labels(f)
