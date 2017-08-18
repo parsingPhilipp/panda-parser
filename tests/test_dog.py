@@ -1,6 +1,7 @@
 from __future__ import print_function
 import unittest
 from graphs.dog import *
+from graphs.graph_bimorphism_json_export import export_dog_grammar_to_json
 from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 from hybridtree.monadic_tokens import ConstituentTerminal
@@ -339,6 +340,48 @@ class MyTestCase(unittest.TestCase):
         data = dsg.export_bihypergraph_json(terminals)
         with open('/tmp/json_bigraph_1.json', 'w') as file:
             json.dump(data, file)
+
+        rule_dog = dog_se()
+        data2 = rule_dog.export_graph_json(terminals)
+        with open('/tmp/json_nonterminal_graph_1.json', 'w') as file:
+            json.dump(data2, file)
+
+        terminals.print_index()
+
+    def test_json_grammar_export(self):
+        dog = build_acyclic_dog()
+        terminals = Enumerator()
+        data = dog.export_graph_json(terminals)
+        with open('/tmp/json_graph_1.json', 'w') as file:
+            json.dump(data, file)
+
+        dsg = build_dsg()
+        data = dsg.export_bihypergraph_json(terminals)
+        with open('/tmp/json_bigraph_1.json', 'w') as file:
+            json.dump(data, file)
+
+        rule_dog = dog_se()
+        data2 = rule_dog.export_graph_json(terminals)
+        with open('/tmp/json_nonterminal_graph_1.json', 'w') as file:
+            json.dump(data2, file)
+
+        terminals.print_index()
+
+        dsg = build_dsg()
+        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('right-branching')[0]
+        rec_part = rec_part_strategy(dsg)
+        dcmp = compute_decomposition(dsg, rec_part)
+
+        grammar = induce_grammar_from(dsg, rec_part, dcmp, labeling=simple_labeling, terminal_labeling=str)
+
+        print(grammar)
+        data = export_dog_grammar_to_json(grammar, terminals)
+        with open('/tmp/json_grammar.json', 'w') as file:
+            json.dump(data, file)
+
+
+
+
 
 if __name__ == '__main__':
     unittest.main()
