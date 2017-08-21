@@ -475,9 +475,9 @@ class DirectedOrderedGraph:
                + '\n'.join(node_lines + term_edge_lines + nont_edge_lines)\
                + '\n}'
 
-    def export_graph_json(self, terminal_encoding, tentacle_labels=True):
+    def export_graph_json(self, terminal_encoding, tentacle_labels=True, terminal_labeling=str):
         def label_edge(edge):
-            label = str(edge.label)
+            label = str(terminal_labeling(edge.label))
             if tentacle_labels:
                 label += '_' + '_'.join([edge.get_function(i) for i in range(len(edge.inputs))])
             return label
@@ -557,12 +557,12 @@ class DeepSyntaxGraph:
     def id_yield(self):
         return map(lambda x: self.get_graph_position(x), [i for i in range(len(self.sentence))])
 
-    def export_bihypergraph_json(self, terminal_encoding, tentacle_labels=True):
+    def export_bihypergraph_json(self, terminal_encoding, tentacle_labels=True, terminal_labeling=str):
         data = {"type": "bihypergraph"}
-        data["G2"] = self.dog.export_graph_json(terminal_encoding, tentacle_labels)
+        data["G2"] = self.dog.export_graph_json(terminal_encoding, tentacle_labels, terminal_labeling=terminal_labeling)
         max_node = max(data["G2"]['nodes'])
         max_edge = max(map(lambda x: x['id'], data["G2"]['edges']))
-        data["G1"] = self.string_to_graph_json(self.sentence, terminal_encoding, start_node=max_node + 1, start_edge=max_edge + 1)
+        data["G1"] = self.string_to_graph_json(self.sentence, terminal_encoding, terminal_labeling=terminal_labeling, start_node=max_node + 1, start_edge=max_edge + 1)
         max_edge = max(map(lambda x: x['id'], data["G1"]['edges']))
         data["alignment"] = [{'id': idx + max_edge + 1
                              , 'label': terminal_encoding.object_index(None)
@@ -572,11 +572,11 @@ class DeepSyntaxGraph:
         return data
 
     @staticmethod
-    def string_to_graph_json(string, terminal_encoding, start_node=0, start_edge=0):
+    def string_to_graph_json(string, terminal_encoding, terminal_labeling=id, start_node=0, start_edge=0):
         data = {'type': 'hypergraph'
                 , 'nodes': [i for i in range(start_node, start_node + len(string) + 1)]
                 , 'edges': [{'id': idx + start_edge
-                            , 'label': terminal_encoding.object_index(symbol)
+                            , 'label': terminal_encoding.object_index(terminal_labeling(symbol))
                             , 'attachment': [start_node + idx, start_node + idx + 1]
                             , 'terminal': True
                             } for idx, symbol in enumerate(string)]

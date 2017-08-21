@@ -17,6 +17,8 @@ def export_dog_grammar_to_json(grammar, terminals):
                 rule_obj["alignment"].append(edge)
         data["rules"].append(rule_obj)
     data["start"] = grammar.start()
+    data["alignmentLabel"] = terminals.object_index(None)
+    data["nonterminalEdgeLabel"] = terminals.object_index(None)
     return data
 
 
@@ -61,3 +63,13 @@ def convert_lcfrs_part(rule, terminals, next_node=0, first_edge=0):
                      , "label": terminals.object_index(None)})
 
     return {"nodes": nodes, "ports": ports, "edges": edges}, terminal_nodes
+
+
+def export_corpus_to_json(corpus, terminals, terminal_labeling=str):
+    data = {  "corpus": []
+            , "alignmentLabel": terminals.object_index(None)
+            , "nonterminalEdgeLabel": terminals.object_index(None)
+            }
+    for dsg in corpus:
+        data["corpus"].append(dsg.export_bihypergraph_json(terminals, terminal_labeling=terminal_labeling))
+    return data

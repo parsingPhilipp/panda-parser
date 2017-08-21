@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 from graphs.dog import *
-from graphs.graph_bimorphism_json_export import export_dog_grammar_to_json
+from graphs.graph_bimorphism_json_export import export_dog_grammar_to_json, export_corpus_to_json
 from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 from hybridtree.monadic_tokens import ConstituentTerminal
@@ -379,12 +379,61 @@ class MyTestCase(unittest.TestCase):
         with open('/tmp/json_grammar.json', 'w') as file:
             json.dump(data, file)
 
+        with open('/tmp/json_corpus.json', 'w') as file:
+            json.dump(export_corpus_to_json([dsg], terminals), file)
+
+    def test_json_corpus_grammar_export(self):
+        start = 1
+        stop = 5
+        # path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
+        path = "res/tiger/tiger_8000.xml"
+        exclude = []
+        dsgs = sentence_names_to_deep_syntax_graphs(
+            ['s' + str(i) for i in range(start, stop + 1) if i not in exclude]
+            , path
+            , hold=False)
+
+        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
+
+        def label_edge(edge):
+            if isinstance(edge.label, ConstituentTerminal):
+                return edge.label.pos()
+            else:
+                return edge.label
+
+        nonterminal_labeling = lambda nodes, dsg: simple_labeling(nodes, dsg, label_edge)
+
+        term_labeling_token = PosTerminals()
+
+        def term_labeling(token):
+            if isinstance(token, ConstituentTerminal):
+                return term_labeling_token.token_label(token)
+            else:
+                return token
+
+        grammar = induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, term_labeling)
+        grammar.make_proper()
+
+        terminals = Enumerator()
+
+        data = export_dog_grammar_to_json(grammar, terminals)
+        with open('/tmp/json_grammar.json', 'w') as file:
+            json.dump(data, file)
+
+        with open('/tmp/json_corpus.json', 'w') as file:
+            json.dump(export_corpus_to_json(dsgs, terminals, terminal_labeling=term_labeling), file)
+
+        with open('/tmp/enumerator.enum', 'w') as file:
+            terminals.print_index(file)
+
+
 
 
 
 
 if __name__ == '__main__':
     unittest.main()
+
 
 def build_acyclic_dog():
     dog = DirectedOrderedGraph()
@@ -408,6 +457,7 @@ def build_acyclic_dog():
 
     return dog
 
+
 def build_acyclic_dog_permuted():
     dog = DirectedOrderedGraph()
     for i in range(11):
@@ -430,6 +480,7 @@ def build_acyclic_dog_permuted():
 
     return dog
 
+
 def render_and_view_dog(dog, name, path="/tmp/"):
     dot = dog.export_dot(name)
     dot_path = path + name + '.dot'
@@ -445,12 +496,14 @@ def render_and_view_dog(dog, name, path="/tmp/"):
     q = subprocess.Popen(["zathura", pdf_path])
     return q
 
+
 def build_terminal_dog(terminal):
     dog = DirectedOrderedGraph()
     dog.add_node(0)
     dog.add_to_outputs(0)
     dog.add_terminal_edge([], terminal, 0)
     return dog
+
 
 def dog_se():
     dog = DirectedOrderedGraph()
@@ -481,8 +534,10 @@ def dog_s1():
 
     return dog
 
+
 def dog_s2():
     return build_terminal_dog('und')
+
 
 def dog_s3():
     dog = DirectedOrderedGraph()
@@ -499,14 +554,18 @@ def dog_s3():
 
     return dog
 
+
 def dog_s11():
     return build_terminal_dog('Sie')
+
 
 def dog_s12():
     return build_terminal_dog('entwickelt')
 
+
 def dog_s32():
     return build_terminal_dog('druckt')
+
 
 def dog_s13():
     dog = DirectedOrderedGraph()
@@ -520,14 +579,18 @@ def dog_s13():
         dog.add_nonterminal_edge([], [i])
     return dog
 
+
 def dog_s131():
     return build_terminal_dog('Verpackungen')
+
 
 def dog_s132():
     return build_terminal_dog('und')
 
+
 def dog_s133():
     return build_terminal_dog('Etiketten')
+
 
 def build_dsg():
     dog = build_acyclic_dog()
