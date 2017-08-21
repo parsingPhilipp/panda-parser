@@ -1,5 +1,6 @@
 from copy import deepcopy
 
+
 class Edge:
     @property
     def inputs(self):
@@ -69,6 +70,7 @@ class Edge:
 
     def compare_labels(self, other):
         return all(map(lambda x, y: x ==y, [self.label] + self._functions, [other.label] + other._functions))
+
 
 class DirectedOrderedGraph:
     def __init__(self):
@@ -559,8 +561,10 @@ class DeepSyntaxGraph:
         data = {"type": "bihypergraph"}
         data["G2"] = self.dog.export_graph_json(terminal_encoding, tentacle_labels)
         max_node = max(data["G2"]['nodes'])
-        data["G1"] = self.string_to_graph_json(self.sentence, terminal_encoding, start_node=max_node + 1)
-        data["alignment"] = [{'id': idx
+        max_edge = max(map(lambda x: x['id'], data["G2"]['edges']))
+        data["G1"] = self.string_to_graph_json(self.sentence, terminal_encoding, start_node=max_node + 1, start_edge=max_edge + 1)
+        max_edge = max(map(lambda x: x['id'], data["G1"]['edges']))
+        data["alignment"] = [{'id': idx + max_edge + 1
                              , 'label': terminal_encoding.object_index(None)
                              , 'attachment': [max_node + 1 + idx] + self.__synchronization[idx]
                              } for idx in range(len(self.__synchronization)) if self.__synchronization[idx] != []
@@ -568,10 +572,10 @@ class DeepSyntaxGraph:
         return data
 
     @staticmethod
-    def string_to_graph_json(string, terminal_encoding, start_node=0):
+    def string_to_graph_json(string, terminal_encoding, start_node=0, start_edge=0):
         data = {'type': 'hypergraph'
                 , 'nodes': [i for i in range(start_node, start_node + len(string) + 1)]
-                , 'edges': [{'id': idx
+                , 'edges': [{'id': idx + start_edge
                             , 'label': terminal_encoding.object_index(symbol)
                             , 'attachment': [start_node + idx, start_node + idx + 1]
                             , 'terminal': True

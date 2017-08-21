@@ -5,9 +5,11 @@ def export_dog_grammar_to_json(grammar, terminals):
     for rule in grammar.rules():
         rule_obj = {"idx": rule.get_idx(), "lhs_nont": rule.lhs().nont(), "rhs_nonts": rule.rhs(),
                     "weight": rule.weight(), "dog": rule.dcp()[0].export_graph_json(terminals)}
-        rule_obj["lcfrs"], terminal_nodes = convert_lcfrs_part(rule, terminals, max(rule.dcp()[0].nodes) + 1)
+        next_node = max(rule.dcp()[0].nodes) + 1
+        next_edge = max(map(lambda x: x['id'], rule_obj['dog']['edges'])) + 1
+        rule_obj["lcfrs"], terminal_nodes = convert_lcfrs_part(rule, terminals, next_node=next_node, first_edge=next_edge)
         rule_obj["alignment"] = []
-        idx = 0
+        idx = max(map(lambda x: x['id'], rule_obj['lcfrs']['edges'])) + 1
         for sent_node, sync in zip(terminal_nodes, rule.dcp()[1]):
             if len(sync) > 0:
                 edge = {'attachment': [sent_node] + sync, 'label': terminals.object_index(None), 'id': idx}
