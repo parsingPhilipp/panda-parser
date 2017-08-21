@@ -16,7 +16,7 @@ sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
 the_branch = 'origin/MT_Hypergraph'
-the_commit = 'e908e8d030432edc86278d65ab2b17f8c292728d'
+the_commit = 'b8192b2ec224199ea4fcfbe69ff3fff9fd9eae50'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
