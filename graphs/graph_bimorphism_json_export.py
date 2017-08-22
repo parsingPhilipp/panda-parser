@@ -1,4 +1,6 @@
 from grammar.lcfrs import LCFRS_rule, LCFRS_var
+
+
 def export_dog_grammar_to_json(grammar, terminals):
     data = {}
     data["rules"] = []

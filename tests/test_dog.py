@@ -12,6 +12,10 @@ from grammar.induction.terminal_labeling import PosTerminals
 import subprocess
 import json
 from util.enumerator import Enumerator
+from setup import schick_executable
+import shutil
+import os
+import sys
 
 
 class MyTestCase(unittest.TestCase):
@@ -384,7 +388,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_json_corpus_grammar_export(self):
         start = 1
-        stop = 5
+        stop = 500
         # path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
         path = "res/tiger/tiger_8000.xml"
         exclude = []
@@ -417,18 +421,32 @@ class MyTestCase(unittest.TestCase):
         terminals = Enumerator()
 
         data = export_dog_grammar_to_json(grammar, terminals)
-        with open('/tmp/json_grammar.json', 'w') as file:
+        grammar_path = '/tmp/json_grammar.json'
+        with open(grammar_path, 'w') as file:
             json.dump(data, file)
 
-        with open('/tmp/json_corpus.json', 'w') as file:
+        corpus_path = '/tmp/json_corpus.json'
+        with open(corpus_path, 'w') as file:
             json.dump(export_corpus_to_json(dsgs, terminals, terminal_labeling=term_labeling), file)
 
         with open('/tmp/enumerator.enum', 'w') as file:
             terminals.print_index(file)
 
+        reduct_dir = '/tmp/reduct_grammars'
+        if os.path.isdir(reduct_dir):
+            shutil.rmtree(reduct_dir)
+        os.makedirs(reduct_dir)
+        p = subprocess.Popen([' '.join(["java", "-jar", os.path.join("util", schick_executable), 'dog-reduct', '-g', grammar_path, '-t', corpus_path, "-o", reduct_dir])], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
+        while True:
+            nextline = p.stdout.readline()
+            if nextline == '' and p.poll() is not None:
+                break
+            sys.stdout.write(nextline)
+            sys.stdout.flush()
 
-
+        p.wait()
+        self.assertEqual(0, p.returncode)
 
 
 if __name__ == '__main__':

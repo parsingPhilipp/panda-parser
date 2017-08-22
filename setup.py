@@ -5,6 +5,7 @@ from setuptools.command.build_ext import build_ext
 from git import Repo
 from Cython.Build import cythonize
 from os import path
+import subprocess
 
 here = path.abspath(path.dirname(__file__))
 
@@ -24,9 +25,24 @@ compute_root = ""
 eigen_include = [compute_root + "/usr/include/eigen3", compute_root + "/usr/include"]
 add_include = [compute_root + "/usr/local/include"]
 
+# Schick Parser (mainly implemented by Timo Schick according to construction
+# by Drewes, Gebhardt, & Vogler 2016)
+schick_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:hybrid-grammars/hypergraphreduct.git"
+schick_dep_name = "schick-parser"
+schick_commit = '1b00f6e1916ecb64b8f31d6fc90cb6e7b69060e2'
+schick_dependency_src_path = path.join(here, "build", schick_dep_name)
+schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
+
+
+
 class CustomBuildExtCommand(build_ext):
     """Customized setuptools install command - checks out repo with c++ parsing and training backend."""
     def run(self):
+        self.checkout_sterm_parser()
+        self.build_schick_parser()
+        build_ext.run(self)
+
+    def checkout_sterm_parser(self):
         print("Checking out commit " + the_commit + " of " + dep_name + ".")
         if not path.isdir(cython_dependency_src_path):
             repo = Repo.clone_from(sterm_parser_repo, cython_dependency_src_path)
@@ -41,7 +57,29 @@ class CustomBuildExtCommand(build_ext):
         # reset the index and working tree to match the pointed-to commit
         # repo.head.reset(index=True, working_tree=True)
 
-        build_ext.run(self)
+    def build_schick_parser(self):
+        print("Checking out commit " + schick_commit + " of " + schick_dep_name + ".")
+        if not path.isdir(schick_dependency_src_path):
+            repo = Repo.clone_from(schick_parser_repo, schick_dependency_src_path)
+        else:
+            repo = Repo(schick_dependency_src_path)
+
+        repo.remote('origin').fetch()
+        repo.git.checkout(schick_commit)
+
+        print("Building " + schick_dep_name + " using Maven.")
+
+        p = subprocess.Popen(['mvn clean package'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=schick_dependency_src_path)
+        for line in p.stdout.readlines():
+            print(line,)
+        retval = p.wait()
+        if retval == 0:
+            p = subprocess.Popen(' '.join(['cp', path.join(schick_dependency_src_path, 'target', schick_executable), path.join(here, 'util')]), stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True)
+            for line in p.stdout.readlines():
+                print(line,)
+            retval = p.wait()
+        return retval
+
 
 
 ext_modules=[
@@ -70,49 +108,50 @@ ext_modules=[
         , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include)
 ]
 
-setup(
-    cmdclass={
-        'build_ext': CustomBuildExtCommand,
-    },
-    name='hyberparse',
-    version='0.2.1',
-    description='Implementation of LCFRS/sDCP hybrid grammars',
-    url='https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars',
-    author='Kilian Gebhardt',
-    author_email='kilian.gebhardt@tu-dresden.de',
+if __name__ == '__main__':
+    setup(
+        cmdclass={
+            'build_ext': CustomBuildExtCommand,
+        },
+        name='hyberparse',
+        version='0.2.1',
+        description='Implementation of LCFRS/sDCP hybrid grammars',
+        url='https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars',
+        author='Kilian Gebhardt',
+        author_email='kilian.gebhardt@tu-dresden.de',
 
-    license=None,
+        license=None,
 
-    classifiers=[
-        # How mature is this project? Common values are
-        #   3 - Alpha
-        #   4 - Beta
-        #   5 - Production/Stable
-        'Development Status :: 3 - Alpha',
+        classifiers=[
+            # How mature is this project? Common values are
+            #   3 - Alpha
+            #   4 - Beta
+            #   5 - Production/Stable
+            'Development Status :: 3 - Alpha',
 
-        # Indicate who your project is intended for
-        'Intended Audience :: NLP Researchers',
-        'Topic :: Syntactic Parsing :: Grammar-based parsing formalisms',
+            # Indicate who your project is intended for
+            'Intended Audience :: NLP Researchers',
+            'Topic :: Syntactic Parsing :: Grammar-based parsing formalisms',
 
-        # Pick your license as you wish (should match "license" above)
-        # 'License :: OSI Approved :: MIT License',
+            # Pick your license as you wish (should match "license" above)
+            # 'License :: OSI Approved :: MIT License',
 
-        # Specify the Python versions you support here. In particular, ensure
-        # that you indicate whether you support Python 2, Python 3 or both.
-        'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
-        # 'Programming Language :: Python :: 3',
-        # 'Programming Language :: Python :: 3.3',
-        # 'Programming Language :: Python :: 3.4',
-        # 'Programming Language :: Python :: 3.5',
-    ],
+            # Specify the Python versions you support here. In particular, ensure
+            # that you indicate whether you support Python 2, Python 3 or both.
+            'Programming Language :: Python :: 2',
+            'Programming Language :: Python :: 2.7',
+            # 'Programming Language :: Python :: 3',
+            # 'Programming Language :: Python :: 3.3',
+            # 'Programming Language :: Python :: 3.4',
+            # 'Programming Language :: Python :: 3.5',
+        ],
 
-    # What does your project relate to?
-    keywords='parsing parse LCFRS hybrid grammar',
+        # What does your project relate to?
+        keywords='parsing parse LCFRS hybrid grammar',
 
-    packages=[],
-    # install_requires=[],
+        packages=[],
+        # install_requires=[],
 
-    ext_modules=cythonize(ext_modules),
-    requires=['Cython']
-)
+        ext_modules=cythonize(ext_modules),
+        requires=['Cython']
+    )
