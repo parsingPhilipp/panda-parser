@@ -12,10 +12,12 @@ from grammar.induction.terminal_labeling import PosTerminals
 import subprocess
 import json
 from util.enumerator import Enumerator
-from setup import schick_executable
+# from setup import schick_executable
+schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 import shutil
 import os
 import sys
+from graphs.schick_parser_rtg_import import read_rtg
 
 
 class MyTestCase(unittest.TestCase):
@@ -388,7 +390,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_json_corpus_grammar_export(self):
         start = 1
-        stop = 500
+        stop = 5
         # path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
         path = "res/tiger/tiger_8000.xml"
         exclude = []
@@ -447,6 +449,10 @@ class MyTestCase(unittest.TestCase):
 
         p.wait()
         self.assertEqual(0, p.returncode)
+
+        rtg = read_rtg('/tmp/reduct_grammars/1.gra')
+
+        print(rtg.rules)
 
 
 if __name__ == '__main__':

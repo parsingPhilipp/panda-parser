@@ -557,7 +557,7 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
         parser.parse()
         derivations = map(lambda x: x[1], parser.k_best_derivation_trees())
         manager = PyDerivationManager(baseline_grammar, nont_map)
-        manager.convert_hypergraphs(derivations)
+        manager.convert_derivations_to_hypergraphs(derivations)
         scores = []
 
         gold_labels = {}

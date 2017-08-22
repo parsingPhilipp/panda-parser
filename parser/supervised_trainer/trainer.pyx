@@ -1,5 +1,6 @@
 from cython.operator cimport dereference as deref
 from parser.derivation_interface import AbstractDerivation
+from grammar.rtg import RTG
 
 cdef extern from "Manage/Manager.h":
     cppclass Element[InfoT]:
@@ -53,7 +54,7 @@ cdef class PyDerivationManager(PyTraceManager):
             , self.edge_labels
             , False)
 
-    cpdef void convert_hypergraphs(self, corpus):
+    cpdef void convert_derivations_to_hypergraphs(self, corpus):
         cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
         cdef vector[Element[Node[NONTERMINAL]]] sources
         cdef PyElement pyElement
@@ -91,4 +92,39 @@ cdef class PyDerivationManager(PyTraceManager):
 
     cpdef Enumerator get_nonterminal_map(self):
         return self.nonterminal_map
+
+    cpdef void convert_rtgs_to_hypergraphs(self, rtgs):
+        cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
+        cdef vector[Element[Node[NONTERMINAL]]] sources
+        cdef PyElement pyElement
+
+        for rtg in rtgs:
+            assert(isinstance(rtg, RTG))
+            hg = make_shared[Hypergraph[NONTERMINAL, size_t]](self.node_labels, self.edge_labels)
+            nodeMap = {}
+
+            # create nodes
+            for nont in rtg.nonterminals:
+                orig_nont = nont[0]
+                nLabel = self.nonterminal_map.object_index(orig_nont)
+                pyElement2 = PyElement()
+                pyElement2.element = make_shared[Element[Node[NONTERMINAL]]](deref(hg).create(nLabel))
+                nodeMap[nont] = pyElement2
+
+            # create edges
+            for rule in rtg.rules:
+                eLabel = rule.symbol
+                for rhs_nont in rule.rhs:
+                    pyElement = nodeMap[rhs_nont]
+                    sources.push_back(deref(pyElement.element))
+
+                # target
+                pyElement = nodeMap[rule.lhs]
+                deref(hg).add_hyperedge(eLabel, deref(pyElement.element), sources)
+                sources.clear()
+
+            # root
+            pyElement = nodeMap[rtg.initial]
+            add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element))
+            # nodeMap.clear()
 

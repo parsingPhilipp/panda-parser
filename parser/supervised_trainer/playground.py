@@ -59,7 +59,7 @@ def main():
 
     # create derivation manager and add derivations
     manager = PyDerivationManager(grammar)
-    manager.convert_hypergraphs(derivations)
+    manager.convert_derivations_to_hypergraphs(derivations)
     manager.serialize("/tmp/derivations.txt")
 
     # build and configure split/merge trainer and supplementary objects

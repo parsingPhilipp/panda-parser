@@ -210,7 +210,7 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
         parser.parse()
         derivations = [der for _, der in parser.k_best_derivation_trees()]
         manager = PyDerivationManager(baseline_grammar, nont_map)
-        manager.convert_hypergraphs(derivations)
+        manager.convert_derivations_to_hypergraphs(derivations)
         scores = []
 
         relevant = set([tuple(t) for t in gold_tree.labelled_spans()])
