@@ -79,7 +79,7 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling,
         node_renaming = {}
 
     # build terminal synchronization
-    sync = [[node_renaming.get(node, node) for node in dsg.get_graph_position(sent_position)]
+    sync = [[node_renaming.get(node, int(node)) for node in dsg.get_graph_position(sent_position)]
             for sent_position in generated_sent_positions]
 
     # recursively compute rules for rhs
