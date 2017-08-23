@@ -391,7 +391,7 @@ class MyTestCase(unittest.TestCase):
 
     def test_json_corpus_grammar_export(self):
         start = 1
-        stop = 5
+        stop = 50
         # path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
         path = "res/tiger/tiger_8000.xml"
         exclude = []
@@ -463,6 +463,13 @@ class MyTestCase(unittest.TestCase):
         derivation_manager.convert_rtgs_to_hypergraphs(rtgs)
         derivation_manager.serialize('/tmp/reduct_manager.trace')
 
+        for i,_ in enumerate(rtgs):
+            derivations = [der for der in derivation_manager.enumerate_derivations(i, grammar)]
+            self.assertGreaterEqual(len(derivations), 1)
+            if len(derivations) > 1:
+                print ("Sentence", i)
+                for der in derivations:
+                    print(der)
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 from libcpp.vector cimport vector
 from libcpp.memory cimport make_shared, shared_ptr
-from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr, build_trace_manager_ptr
+from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr, build_trace_manager_ptr, Element, Hypergraph, Node, HyperEdge
 from util.enumerator cimport Enumerator
 
 ctypedef size_t NONTERMINAL

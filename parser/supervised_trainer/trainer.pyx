@@ -5,25 +5,6 @@ from cython.operator cimport dereference as deref
 from parser.derivation_interface import AbstractDerivation
 from grammar.rtg import RTG
 
-cdef extern from "Manage/Manager.h":
-    cppclass Element[InfoT]:
-        pass
-
-cdef extern from "Manage/Hypergraph.h" namespace "Manage":
-    cppclass Node[NodeLabelT]:
-        pass
-    cppclass HyperEdge[NodeT, LabelT]:
-        pass
-    cppclass Hypergraph[NodeLabelT, EdgeLabelT]:
-        Hypergraph(shared_ptr[vector[NodeLabelT]] nLabels
-                   , shared_ptr[vector[EdgeLabelT]] eLabels)
-        Element[Node[NodeLabelT]] create(NodeLabelT nLabel)
-        Element[HyperEdge[Node[NodeLabelT], EdgeLabelT]] add_hyperedge(
-                EdgeLabelT eLabel
-                , Element[Node[NodeLabelT]]& target
-                , vector[Element[Node[NodeLabelT]]]& sources
-                )
-
 cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
     cdef void add_hypergraph_to_trace[Nonterminal, TraceID](
             TraceManagerPtr[Nonterminal, TraceID] manager
