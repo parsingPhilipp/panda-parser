@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 from cython.operator cimport dereference as deref
 from parser.derivation_interface import AbstractDerivation
 from grammar.rtg import RTG
@@ -94,6 +97,14 @@ cdef class PyDerivationManager(PyTraceManager):
         return self.nonterminal_map
 
     cpdef void convert_rtgs_to_hypergraphs(self, rtgs):
+        """
+        :param rtgs: a sequence of reduct RTG of the grammar passed in the constructor, i.e.,\n 
+                     - nonterminals are of the the form (N, X) where N is a nonterminal in grammar,\n 
+                     - the initial nonterminal is the start symbol of grammar,\n 
+                     - rules are of the from (N, X) -> n((N_1, X_1) … (N_k, X_k)) where 
+                       N -> N_1 … N_k is the rule with idx n in grammar
+        :type rtgs: iterable[RTG]
+        """
         cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
         cdef vector[Element[Node[NONTERMINAL]]] sources
         cdef PyElement pyElement

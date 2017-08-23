@@ -1,18 +1,28 @@
 from grammar.rtg import RTG
 import re
 
+
+def read_nonterminal(nonterminal):
+    match = re.search(r'^\((.*), (<(H(\d)+, )*H\d+>)\)$', nonterminal)
+    if match:
+        return match.group(1), match.group(2)
+    else:
+        return nonterminal
+
+
 def read_rtg(path):
     with open(path) as file:
         first = True
         rtg = None
         for line in file.readlines():
             if first:
-                rtg = RTG(line)
+                rtg = RTG(read_nonterminal(line))
                 first = False
             else:
                 match = re.search(r'^(\(.*\)) -> (\d*)\((.*)\) #\d(\.\d*)?$', line)
                 if match:
                     lhs_tmp = match.group(1)
+                    lhs = read_nonterminal(lhs_tmp)
                     symbol = int(match.group(2))
                     rhs_tmp = match.group(3)
                     rhs = []
@@ -27,8 +37,7 @@ def read_rtg(path):
                     if match2:
                         rhs.append(match2.group(1))
                     rhs.reverse()
-                    # TODO: split the nonterminals in tuples of original nonterminal and annotation (graph ids)
-                    rtg.construct_and_add_rule(lhs_tmp, symbol, rhs)
+                    rtg.construct_and_add_rule(lhs, symbol, map(read_nonterminal, rhs))
                 else:
                     raise IOError("Could not parse line " + line)
         return rtg

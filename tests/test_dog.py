@@ -18,6 +18,7 @@ import shutil
 import os
 import sys
 from graphs.schick_parser_rtg_import import read_rtg
+from parser.supervised_trainer.trainer import PyDerivationManager
 
 
 class MyTestCase(unittest.TestCase):
@@ -451,8 +452,17 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(0, p.returncode)
 
         rtg = read_rtg('/tmp/reduct_grammars/1.gra')
+        rtg2 = read_rtg('/tmp/reduct_grammars/2.gra')
+        rtg3 = read_rtg('/tmp/reduct_grammars/3.gra')
+        rtg4 = read_rtg('/tmp/reduct_grammars/4.gra')
+        rtg5 = read_rtg('/tmp/reduct_grammars/5.gra')
 
-        print(rtg.rules)
+        rtgs = [rtg, rtg2, rtg3, rtg4, rtg5]
+
+        derivation_manager = PyDerivationManager(grammar)
+        derivation_manager.convert_rtgs_to_hypergraphs(rtgs)
+        derivation_manager.serialize('/tmp/reduct_manager.trace')
+
 
 
 if __name__ == '__main__':
