@@ -445,25 +445,38 @@ class MyTestCase(unittest.TestCase):
         p.wait()
         self.assertEqual(0, p.returncode)
 
-        rtg = read_rtg('/tmp/reduct_grammars/1.gra')
-        rtg2 = read_rtg('/tmp/reduct_grammars/2.gra')
-        rtg3 = read_rtg('/tmp/reduct_grammars/3.gra')
-        rtg4 = read_rtg('/tmp/reduct_grammars/4.gra')
-        rtg5 = read_rtg('/tmp/reduct_grammars/5.gra')
-
-        rtgs = [rtg, rtg2, rtg3, rtg4, rtg5]
+        rtgs = []
+        for i in range(1, len(dsgs) + 1):
+            rtgs.append(read_rtg('/tmp/reduct_grammars/' + str(i) + '.gra'))
 
         derivation_manager = PyDerivationManager(grammar)
         derivation_manager.convert_rtgs_to_hypergraphs(rtgs)
         derivation_manager.serialize('/tmp/reduct_manager.trace')
 
-        for i,_ in enumerate(rtgs):
+        f = lambda token: token.pos() if isinstance(token, ConstituentTerminal) else token
+
+        for i, (rtg, dsg) in enumerate(zip(rtgs, dsgs)):
             derivations = [der for der in derivation_manager.enumerate_derivations(i, grammar)]
             self.assertGreaterEqual(len(derivations), 1)
             if len(derivations) > 1:
                 print ("Sentence", i)
                 for der in derivations:
                     print(der)
+
+            for der in derivations:
+                dog, sync = dog_evaluation(der)
+                dsg2 = DeepSyntaxGraph(der.compute_yield(), dog, sync)
+                dsg.dog.project_labels(f)
+                dsg.sentence = map(f, dsg.sentence)
+                self.assertEqual(dsg.sentence, dsg2.sentence)
+                morphs = dsg.dog.compute_isomorphism(dsg2.dog)
+                self.assertFalse(morphs is None)
+                self.assertListEqual([[morphs[0].get(node, node) for node in syncs]
+                                      for syncs in dsg.synchronization], dsg2.synchronization)
+                # print("i", i)
+                # print("dsg", dsg.sentence, dsg.dog, dsg.synchronization)
+                # print("dsg_reduct", dsg2.sentence, dsg2.dog, dsg2.synchronization)
+                # print("morph", morphs[0])
 
 
 if __name__ == '__main__':
