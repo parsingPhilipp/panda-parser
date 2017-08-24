@@ -332,11 +332,15 @@ def main():
     for i in range(0, genetic_initial):
         splitMergeTrainer.reset_random_seed(seed + i + 1)
         la = splitMergeTrainer.split_merge_cycle(la_no_splits)
+        if not la.check_for_validity():
+            print('[Genetic] Initial LA', i, 'is not consistent! (See details before)')
         heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, trace), la))
+
+    print("Genetic: Started with an Annotation of F-Score of ", min(latentAnnotations)[0])
 
     random.seed(seed)
     for round in range(1, genetic_cycles + 1):
-        print("Genetic: Starting Recombination Round ", round)
+        print("[Genetic] Starting Recombination Round ", round)
         # newpopulation = list(latentAnnotations)
         newpopulation = []
         # Cross all candidates!
@@ -350,17 +354,21 @@ def main():
                     keepFromOne.append(random.choice([True, False]))
 
                 la = left.genetic_recombination(right, grammarInfo, keepFromOne, 0.00000001, 300)
+                if not la.check_for_validity():
+                    print('[Genetic] LA is not consistent! (See details before)')
 
                 # do SM-Training on recombined LAs
                 la = splitMergeTrainer.split_merge_cycle(la)
+                if not la.check_for_validity():
+                    print('[Genetic] Split/Merge introduced inconsistencys into LA! (See details before)')
 
                 fscore = evaluate_la(grammar, grammarInfo, la, trace)
-                print("Genetic: Genetic combination yields (F-score): ", fscore)
+                print("[Genetic] Genetic combination yields (F-score): ", fscore)
                 heapq.heappush(newpopulation, (fscore, la))
         heapq.heapify(newpopulation)
         latentAnnotations = heapq.nsmallest(genetic_population, heapq.merge(latentAnnotations, newpopulation))
         heapq.heapify(latentAnnotations)
-        print("Genetic: Best annotation has F-Score of ", min(latentAnnotations)[0])
+        print("[Genetic] Best annotation has F-Score of ", min(latentAnnotations)[0])
 
 
 def evaluate_la(grammar, grammarInfo, la, trace):

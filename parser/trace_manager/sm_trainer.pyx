@@ -380,6 +380,8 @@ cdef class PyLatentAnnotation:
 
         return pyLaTrained
 
+    cpdef c_bool check_for_validity(self, double delta = 0.0005):
+        return deref(self.latentAnnotation).check_for_validity(delta)
 
 
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):
