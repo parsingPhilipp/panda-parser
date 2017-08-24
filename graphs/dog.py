@@ -117,7 +117,7 @@ class DirectedOrderedGraph:
                 + "nont_edges=[" + ", ".join(map(str, self._nonterminal_edges)) + "], " \
                 + "term_edges=[" + ", ".join(map(str, self._terminal_edges)) + "]] "
 
-    def _node_closure(self, function, reflexive=False):
+    def node_closure(self, function, reflexive=False):
         closure = {}
 
         if reflexive:
@@ -139,7 +139,7 @@ class DirectedOrderedGraph:
         return closure
 
     def cyclic(self):
-        downward_closure = self._node_closure(lambda x: self.children(x))
+        downward_closure = self.node_closure(lambda x: self.children(x))
 
         for node in self._nodes:
             if node in downward_closure[node]:
@@ -148,7 +148,7 @@ class DirectedOrderedGraph:
         return False
 
     def output_connected(self):
-        upward_closure = self._node_closure(lambda n: self._parents[n], reflexive=True)
+        upward_closure = self.node_closure(lambda n: self._parents[n], reflexive=True)
 
         for node in self._nodes:
             if not any([True for x in upward_closure[node] if x in self._outputs]):
@@ -587,6 +587,44 @@ class DeepSyntaxGraph:
                 , 'ports': [start_node, start_node + len(string)]
                 }
         return data
+
+    def labeled_frames(self, replace_nodes_by_string_positions=True, guard=lambda x: True):
+        frames = []
+
+        descendants = self.dog.node_closure(self.dog.children)
+
+        for node in self.dog.nodes:
+            edge = self.dog.incoming_edge(node)
+
+            if replace_nodes_by_string_positions:
+                predicate = [i for i, sync in enumerate(self.synchronization) if node in sync]
+                if predicate == []:
+                   predicate = edge.label
+                else:
+                    predicate = tuple(sorted(predicate))
+            else:
+                predicate = edge.label
+
+            arg_label_list = []
+            for i, child in enumerate(edge.inputs):
+                func = edge.get_function(i)
+
+                if replace_nodes_by_string_positions:
+                    arg = [i for i, sync in enumerate(self.synchronization) if child in sync]
+                    if arg == []:
+                        arg = [i for i, sync in enumerate(self.synchronization)
+                               if any([desc in descendants[child] for desc in sync])]
+                    arg = tuple(sorted(arg))
+                else:
+                    arg = self.dog.incoming_edge(child).label
+
+                arg_label_list.append((arg, func))
+
+            frame = predicate, tuple(arg_label_list)
+            if guard(frame):
+                frames.append(frame)
+
+        return frames
 
 
 def pairwise_disjoint_elem(list):

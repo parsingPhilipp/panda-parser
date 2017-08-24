@@ -19,6 +19,7 @@ import os
 import sys
 from graphs.schick_parser_rtg_import import read_rtg
 from parser.supervised_trainer.trainer import PyDerivationManager
+from graphs.parse_accuracy import PredicateArgumentScoring
 
 
 class MyTestCase(unittest.TestCase):
@@ -296,6 +297,8 @@ class MyTestCase(unittest.TestCase):
 
         parser = CFGParser(grammar)
 
+        scorer = PredicateArgumentScoring()
+
         for dsg in dsgs:
             parser.set_input(term_labeling_token.prepare_parser_input(dsg.sentence))
             parser.parse()
@@ -308,6 +311,11 @@ class MyTestCase(unittest.TestCase):
             dsg.dog.project_labels(f)
             parser.clear()
 
+            scorer.add_accuracy_frames(
+                dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
+                dsg2.labeled_frames(guard=lambda x: len(x[1]) > 0)
+            )
+
             # print('dsg: ', dsg.dog, '\n', [dsg.get_graph_position(i) for i in range(len(dsg.sentence))], '\n\n parsed: ', dsg2.dog, '\n', [dsg2.get_graph_position(i+1) for i in range(len(dsg2.sentence))])
             # print()
             if interactive:
@@ -318,6 +326,13 @@ class MyTestCase(unittest.TestCase):
                     z2 = render_and_view_dog(dog, "parsed_" + dsg.label)
                     z1.communicate()
                     z2.communicate()
+
+        print("Labeled frames:")
+        print("P", scorer.labeled_frame_scorer.precision(), "R", scorer.labeled_frame_scorer.recall(),
+              "F1", scorer.labeled_frame_scorer.fmeasure())
+        print("Labeled dependencies:")
+        print("P", scorer.labeled_dependency_scorer.precision(), "R", scorer.labeled_dependency_scorer.recall(),
+              "F1", scorer.labeled_dependency_scorer.fmeasure())
 
     def test_dot_export(self):
         dsg = sentence_names_to_deep_syntax_graphs(["s26954"], "res/tiger/tiger_s26954.xml", hold=False)[0]
@@ -477,6 +492,41 @@ class MyTestCase(unittest.TestCase):
                 # print("dsg", dsg.sentence, dsg.dog, dsg.synchronization)
                 # print("dsg_reduct", dsg2.sentence, dsg2.dog, dsg2.synchronization)
                 # print("morph", morphs[0])
+
+    def test_frames(self):
+        dsg = build_dsg()
+        # print(dsg.labeled_frames())
+        # print(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0))
+        # print(dsg.labeled_frames(replace_nodes_by_string_positions=False))
+        scorer = PredicateArgumentScoring()
+        # print(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True))
+
+        self.assertListEqual(dsg.labeled_frames(),
+                             [('CS', (((0, 1, 4, 5, 6), 'CJ'), ((2,), 'CD'), ((0, 3, 4, 5, 6), 'CJ'))),
+                              ('S', (((0,), 'SB'), ((1,), 'HD'), ((4, 5, 6), 'OA'))), ((2,), ()),
+                              ('S', (((0,), 'SB'), ((3,), 'HD'), ((4, 5, 6), 'OA'))), ((0,), ()), ((1,), ()),
+                              ('CNP', (((4,), 'CJ'), ((5,), 'CD'), ((6,), 'CJ'))), ((3,), ()), ((4,), ()), ((5,), ()),
+                              ((6,), ())]
+                             )
+        self.assertListEqual(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
+                             [('CS', (((0, 1, 4, 5, 6), 'CJ'), ((2,), 'CD'), ((0, 3, 4, 5, 6), 'CJ'))),
+                              ('S', (((0,), 'SB'), ((1,), 'HD'), ((4, 5, 6), 'OA'))),
+                              ('S', (((0,), 'SB'), ((3,), 'HD'), ((4, 5, 6), 'OA'))),
+                              ('CNP', (((4,), 'CJ'), ((5,), 'CD'), ((6,), 'CJ')))])
+        self.assertListEqual(dsg.labeled_frames(replace_nodes_by_string_positions=False),
+                             [('CS', (('S', 'CJ'), ('und', 'CD'), ('S', 'CJ'))),
+                              ('S', (('Sie', 'SB'), ('entwickelt', 'HD'), ('CNP', 'OA'))), ('und', ()),
+                              ('S', (('Sie', 'SB'), ('druckt', 'HD'), ('CNP', 'OA'))), ('Sie', ()), ('entwickelt', ()),
+                              ('CNP', (('Verpackungen', 'CJ'), ('und', 'CD'), ('Etiketten', 'CJ'))), ('druckt', ()),
+                              ('Verpackungen', ()), ('und', ()), ('Etiketten', ())])
+        self.assertListEqual(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True),
+                             [('CS', (0, 1, 4, 5, 6), 'CJ'), ('CS', (2,), 'CD'), ('CS', (0, 3, 4, 5, 6), 'CJ'),
+                              ('S', (0,), 'SB'), ('S', (1,), 'HD'), ('S', (4, 5, 6), 'OA'), ('S', (0,), 'SB'),
+                              ('S', (3,), 'HD'), ('S', (4, 5, 6), 'OA'), ('CNP', (4,), 'CJ'), ('CNP', (5,), 'CD'),
+                              ('CNP', (6,), 'CJ')])
+        self.assertListEqual(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True),
+                             scorer.extract_dependencies_from_frames(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
+                                                                     include_label=True))
 
 
 if __name__ == '__main__':
