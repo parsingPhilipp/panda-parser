@@ -165,13 +165,10 @@ class MyTestCase(unittest.TestCase):
         derivation = parser.best_derivation_tree()
         self.assertNotEqual(derivation, None)
 
-        dog, sync = dog_evaluation(derivation)
+        dog, sync_list = dog_evaluation(derivation)
         self.assertEqual(dog, dsg.dog)
 
-        sync_list = [(key, sync[key]) for key in sync]
         self.assertEqual(len(sync_list), len(dsg.sentence))
-        sync_list.sort(lambda x, y: x[0] < y[0])
-        sync_list = map(lambda x: x[1], sync_list)
         # print(dog)
         # print(sync)
         # print(sync_list)
@@ -198,13 +195,10 @@ class MyTestCase(unittest.TestCase):
         derivation = parser.best_derivation_tree()
         self.assertNotEqual(derivation, None)
 
-        dog, sync = dog_evaluation(derivation)
+        dog, sync_list = dog_evaluation(derivation)
         self.assertEqual(dog, dsg.dog)
 
-        sync_list = [(key, sync[key]) for key in sync]
         self.assertEqual(len(sync_list), len(dsg.sentence))
-        sync_list.sort(lambda x, y: x[0] < y[0])
-        sync_list = map(lambda x: x[1], sync_list)
         # print(dog)
         # print(sync)
         # print(sync_list)

@@ -145,8 +145,9 @@ def dog_evaluation(derivation):
     sync2 = {}
     for sent_pos in sync:
         sync2[sent_pos] = [renaming.get(node, node) for node in sync[sent_pos]]
+    sync_list = map(lambda x: x[1], sorted([(key, sync2[key]) for key in sync2], key=lambda x: x[0]))
 
-    return dog, sync2
+    return dog, sync_list
 
 
 def dog_evaluation_rec(derivation, idx):
