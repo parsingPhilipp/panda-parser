@@ -528,6 +528,10 @@ class DeepSyntaxGraph:
     def sentence(self):
         return self.__sentence
 
+    @property
+    def synchronization(self):
+        return self.__synchronization
+
     def recursive_partitioning(self):
         assert self.dog.primary_is_tree()
         assert len(self.dog.outputs) == 1
