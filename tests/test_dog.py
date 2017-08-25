@@ -1,6 +1,7 @@
 from __future__ import print_function
 import unittest
 from graphs.dog import *
+from graphs.util import render_and_view_dog
 from graphs.graph_bimorphism_json_export import export_dog_grammar_to_json, export_corpus_to_json
 from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
@@ -577,22 +578,6 @@ def build_acyclic_dog_permuted():
         dog.add_terminal_edge([], lab, i)
 
     return dog
-
-
-def render_and_view_dog(dog, name, path="/tmp/"):
-    dot = dog.export_dot(name)
-    dot_path = path + name + '.dot'
-    pdf_path = path + name + '.pdf'
-    with open(dot_path, 'w') as dot_file:
-        dot_file.write(dot)
-
-    command = ["dot", "-Tpdf", dot_path, "-o", pdf_path]
-    p = subprocess.Popen(command)
-    p.communicate()
-    # print(command, p.returncode, p.stderr, p.stdout)
-
-    q = subprocess.Popen(["zathura", pdf_path])
-    return q
 
 
 def build_terminal_dog(terminal):
