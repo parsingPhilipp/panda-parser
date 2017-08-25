@@ -16,6 +16,7 @@ cdef extern from "Trainer/LatentAnnotation.h" namespace "Trainer":
         vector[vector[double]] get_rule_weights()
         vector[double] get_root_weights()
         void add_random_noise(shared_ptr[GrammarInfo2], double randPercent, size_t seed)
+        c_bool is_proper(shared_ptr[GrammarInfo2] info)
         c_bool check_for_validity(double delta)
 
 cdef class PyLatentAnnotation:
@@ -28,4 +29,5 @@ cdef class PyLatentAnnotation:
                         , double ioPrecision
                         , unsigned_int ioCycleLimit)
     cpdef tuple serialize(self)
+    cpdef c_bool is_proper(self, PyGrammarInfo info)
     cpdef c_bool check_for_validity(self, double delta = *)

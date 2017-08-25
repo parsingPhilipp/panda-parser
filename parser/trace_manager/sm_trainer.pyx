@@ -399,6 +399,9 @@ cdef class PyLatentAnnotation:
     cpdef c_bool check_for_validity(self, double delta = 0.0005):
         return deref(self.latentAnnotation).check_for_validity(delta)
 
+    cpdef c_bool is_proper(self, PyGrammarInfo info):
+        return deref(self.latentAnnotation).is_proper(info.grammarInfo);
+
 
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
