@@ -322,7 +322,7 @@ def main():
     builder.set_score_validator(validator, validationDropIterations)
     builder.set_smoothing_factor(smoothingFactor=smoothing_factor)
     builder.set_split_randomization(percent=split_randomization)
-    splitMergeTrainer = builder.set_percent_merger(merge_percentage).build()
+    splitMergeTrainer = builder.set_scc_merger(merge_percentage, threads=threads).build()
 
     splitMergeTrainer.setMaxDrops(validationDropIterations, mode="smoothing")
     splitMergeTrainer.setEMepochs(em_epochs, mode="smoothing")
