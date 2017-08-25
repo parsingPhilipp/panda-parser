@@ -334,9 +334,11 @@ def main():
         la = splitMergeTrainer.split_merge_cycle(la_no_splits)
         if not la.check_for_validity():
             print('[Genetic] Initial LA', i, 'is not consistent! (See details before)')
+        if not la.is_proper(grammarInfo):
+            print('[Genetic] Initial LA', i, 'is not proper!')
         heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, trace), la))
 
-    print("Genetic: Started with an Annotation of F-Score of ", min(latentAnnotations)[0])
+    print("[Genetic] Started with an Annotation of F-Score of ", min(latentAnnotations)[0])
 
     random.seed(seed)
     for round in range(1, genetic_cycles + 1):
@@ -356,11 +358,15 @@ def main():
                 la = left.genetic_recombination(right, grammarInfo, keepFromOne, 0.00000001, 300)
                 if not la.check_for_validity():
                     print('[Genetic] LA is not consistent! (See details before)')
+                if not la.is_proper(grammarInfo):
+                    print('[Genetic] LA is not proper!')
 
                 # do SM-Training on recombined LAs
                 la = splitMergeTrainer.split_merge_cycle(la)
                 if not la.check_for_validity():
                     print('[Genetic] Split/Merge introduced inconsistencys into LA! (See details before)')
+                if not la.is_proper(grammarInfo):
+                    print('[Genetic] Split/Merge introduced problems with properness!')
 
                 fscore = evaluate_la(grammar, grammarInfo, la, trace)
                 print("[Genetic] Genetic combination yields (F-score): ", fscore)
