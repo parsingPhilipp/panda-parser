@@ -143,7 +143,8 @@ class PredicateArgumentScoring:
 
     @staticmethod
     def extract_unlabeled_frames(frames):
-        return [(predicate, tuple([argument for argument, _ in arg_role_pairs])) for predicate, arg_role_pairs in frames]
+        return [(predicate, tuple([argument for argument, _ in arg_role_pairs]))
+                for predicate, arg_role_pairs in frames]
 
     @property
     def labeled_dependency_scorer(self):

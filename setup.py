@@ -34,7 +34,6 @@ schick_dependency_src_path = path.join(here, "build", schick_dep_name)
 schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 
 
-
 class CustomBuildExtCommand(build_ext):
     """Customized setuptools install command - checks out repo with c++ parsing and training backend."""
     def run(self):

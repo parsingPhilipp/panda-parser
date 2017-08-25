@@ -54,8 +54,8 @@ class Edge:
     def __str__(self):
         try:
             s = "[" + ", ".join(map(self.__function_strings, enumerate(self.inputs))) + "] -" \
-               + (str(self.label) if self.label is not None else "") \
-               + "-> [" + ", ".join(map(str, self.outputs)) + "]"
+                + (str(self.label) if self.label is not None else "") \
+                + "-> [" + ", ".join(map(str, self.outputs)) + "]"
         except UnicodeEncodeError:
             # TODO: proper handling of encoding problems
             s = "foo"
@@ -69,7 +69,7 @@ class Edge:
             return str(self._functions[i]) + ':' + str(node)
 
     def compare_labels(self, other):
-        return all(map(lambda x, y: x ==y, [self.label] + self._functions, [other.label] + other._functions))
+        return all(map(lambda x, y: x == y, [self.label] + self._functions, [other.label] + other._functions))
 
 
 class DirectedOrderedGraph:
@@ -113,9 +113,9 @@ class DirectedOrderedGraph:
 
     def __str__(self):
         return "G[inputs=[" + ", ".join(map(str, self._inputs)) + "], " \
-                + "outputs=[" + ", ".join(map(str, self._outputs)) + "], " \
-                + "nont_edges=[" + ", ".join(map(str, self._nonterminal_edges)) + "], " \
-                + "term_edges=[" + ", ".join(map(str, self._terminal_edges)) + "]] "
+               + "outputs=[" + ", ".join(map(str, self._outputs)) + "], " \
+               + "nont_edges=[" + ", ".join(map(str, self._nonterminal_edges)) + "], " \
+               + "term_edges=[" + ", ".join(map(str, self._terminal_edges)) + "]] "
 
     def node_closure(self, function, reflexive=False):
         closure = {}
@@ -314,13 +314,13 @@ class DirectedOrderedGraph:
     def top(self, nodes):
         tops = [node for node in nodes
                 if node in self._outputs
-                   or any([node2 not in nodes for node2 in self._parents[node]])]
+                or any([node2 not in nodes for node2 in self._parents[node]])]
         return [node for node in self.ordered_nodes() if node in tops]
 
     def bottom(self, nodes):
         bottoms = [node for node in self._nodes
                    if node not in nodes
-                    and any([node2 in nodes for node2 in self._parents[node]])]
+                   and any([node2 in nodes for node2 in self._parents[node]])]
         return [node for node in self.ordered_nodes() if node in bottoms]
 
     def missing_children(self, nodes):
@@ -458,8 +458,8 @@ class DirectedOrderedGraph:
 
         def node_line(node):
             s = "\t" + str(node) + " [shape=plaintext"
-            inputs = ['i'+str(i) for i, n in enumerate(self._inputs) if n == node]
-            outputs = ['o'+str(i) for i, n in enumerate(self._outputs) if n == node]
+            inputs = ['i' + str(i) for i, n in enumerate(self._inputs) if n == node]
+            outputs = ['o' + str(i) for i, n in enumerate(self._outputs) if n == node]
             if len(inputs) + len(outputs) > 0:
                 label = str(node) + '[' + ','.join(inputs + outputs) + ']'
                 s += ' , label=\"' + label + '\"'
@@ -476,13 +476,14 @@ class DirectedOrderedGraph:
             outputs = ["\t" + idx + "->" + str(out) for out in edge.outputs]
             return inputs + outputs
 
-
         node_lines = [node_line(node) for node in self._nodes]
-        term_edge_lines = [line for i, edge in enumerate(self._terminal_edges) for line in [edge_line(edge, 't' + str(i), edge.label)] + tentacles(edge, 't' + str(i))]
-        nont_edge_lines = [line for i, edge in enumerate(self._nonterminal_edges) if edge is not None for line in [edge_line(edge, 'n' + str(i), 'e' + str(i))] + tentacles('n' + str(i))]
-        return 'digraph G {\n\trankdir=BT;\n'\
-               + '\tlabelloc=top;\n\tlabel=\"' + title + '\";\n'\
-               + '\n'.join(node_lines + term_edge_lines + nont_edge_lines)\
+        term_edge_lines = [line for i, edge in enumerate(self._terminal_edges) for line in
+                           [edge_line(edge, 't' + str(i), edge.label)] + tentacles(edge, 't' + str(i))]
+        nont_edge_lines = [line for i, edge in enumerate(self._nonterminal_edges) if edge is not None for line in
+                           [edge_line(edge, 'n' + str(i), 'e' + str(i))] + tentacles('n' + str(i))]
+        return 'digraph G {\n\trankdir=BT;\n' \
+               + '\tlabelloc=top;\n\tlabel=\"' + title + '\";\n' \
+               + '\n'.join(node_lines + term_edge_lines + nont_edge_lines) \
                + '\n}'
 
     def export_graph_json(self, terminal_encoding, tentacle_labels=True, terminal_labeling=str):
@@ -498,11 +499,11 @@ class DirectedOrderedGraph:
         idx = 0
         for edge in self._nonterminal_edges:
             data['edges'].append({
-                           'id': idx
-                         , 'label': terminal_encoding.object_index(label_edge(edge))
-                         , 'attachment': edge.inputs + edge.outputs
-                         , 'terminal': False
-                         })
+                'id': idx
+                , 'label': terminal_encoding.object_index(label_edge(edge))
+                , 'attachment': edge.inputs + edge.outputs
+                , 'terminal': False
+            })
             idx += 1
         for edge in self._terminal_edges:
             data['edges'].append({
@@ -511,7 +512,7 @@ class DirectedOrderedGraph:
                 , 'attachment': edge.inputs + edge.outputs
                 , 'terminal': True
             })
-            idx +=1
+            idx += 1
         data['ports'] = self._inputs + self._outputs
         return data
 
@@ -576,25 +577,26 @@ class DeepSyntaxGraph:
         data["G2"] = self.dog.export_graph_json(terminal_encoding, tentacle_labels, terminal_labeling=terminal_labeling)
         max_node = max(data["G2"]['nodes'])
         max_edge = max(map(lambda x: x['id'], data["G2"]['edges']))
-        data["G1"] = self.string_to_graph_json(self.sentence, terminal_encoding, terminal_labeling=terminal_labeling, start_node=max_node + 1, start_edge=max_edge + 1)
+        data["G1"] = self.string_to_graph_json(self.sentence, terminal_encoding, terminal_labeling=terminal_labeling,
+                                               start_node=max_node + 1, start_edge=max_edge + 1)
         max_edge = max(map(lambda x: x['id'], data["G1"]['edges']))
         data["alignment"] = [{'id': idx + max_edge + 1
-                             , 'label': terminal_encoding.object_index(None)
-                             , 'attachment': [max_node + 1 + idx] + self.__synchronization[idx]
-                             } for idx in range(len(self.__synchronization)) if self.__synchronization[idx] != []
-                            ]
+                                 , 'label': terminal_encoding.object_index(None)
+                                 , 'attachment': [max_node + 1 + idx] + self.__synchronization[idx]
+                              } for idx in range(len(self.__synchronization)) if self.__synchronization[idx] != []
+                             ]
         return data
 
     @staticmethod
     def string_to_graph_json(string, terminal_encoding, terminal_labeling=id, start_node=0, start_edge=0):
         data = {'type': 'hypergraph'
-                , 'nodes': [i for i in range(start_node, start_node + len(string) + 1)]
-                , 'edges': [{'id': idx + start_edge
+            , 'nodes': [i for i in range(start_node, start_node + len(string) + 1)]
+            , 'edges': [{'id': idx + start_edge
                             , 'label': terminal_encoding.object_index(terminal_labeling(symbol))
                             , 'attachment': [start_node + idx, start_node + idx + 1]
                             , 'terminal': True
-                            } for idx, symbol in enumerate(string)]
-                , 'ports': [start_node, start_node + len(string)]
+                         } for idx, symbol in enumerate(string)]
+            , 'ports': [start_node, start_node + len(string)]
                 }
         return data
 
@@ -609,7 +611,7 @@ class DeepSyntaxGraph:
             if replace_nodes_by_string_positions:
                 predicate = [i for i, sync in enumerate(self.synchronization) if node in sync]
                 if predicate == []:
-                   predicate = edge.label
+                    predicate = edge.label
                 else:
                     predicate = tuple(sorted(predicate))
             else:
@@ -639,14 +641,14 @@ class DeepSyntaxGraph:
 
 def pairwise_disjoint_elem(list):
     for i, elem in enumerate(list):
-        if elem in list[i+1:]:
+        if elem in list[i + 1:]:
             return False
     return True
 
 
 def pairwise_disjoint(lists):
     for i, l1 in enumerate(lists):
-        for l2 in lists[i+1:]:
+        for l2 in lists[i + 1:]:
             for elem in l1:
                 if elem in l2:
                     return False

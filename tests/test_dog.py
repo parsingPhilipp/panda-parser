@@ -13,8 +13,6 @@ from grammar.induction.terminal_labeling import PosTerminals
 import subprocess
 import json
 from util.enumerator import Enumerator
-# from setup import schick_executable
-schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 import shutil
 import os
 import sys
@@ -22,8 +20,12 @@ from graphs.schick_parser_rtg_import import read_rtg
 from parser.supervised_trainer.trainer import PyDerivationManager
 from graphs.parse_accuracy import PredicateArgumentScoring
 
+# from setup import schick_executable
+schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 
-class MyTestCase(unittest.TestCase):
+
+
+class GraphTests(unittest.TestCase):
     def test_acyclic_dog(self):
         for dog in [build_acyclic_dog(), dog_s1(), dog_s2(), dog_s3(), dog_s11(), dog_s12(), dog_s13(), dog_s131()]:
             self.assertFalse(dog.cyclic())
