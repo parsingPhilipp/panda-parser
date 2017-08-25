@@ -90,6 +90,9 @@ class ParseAccuracy(object):
     def fmeasure(self):
         return 2.0 * self.precision() * self.recall() / (self.precision() + self.recall())
 
+    def exact_match(self):
+        return 1.0 * self.__exact_match / self.__n
+
 
 # Keep records needed to compute recall/precision.
 class ParseAccuracyPenalizeFailures(ParseAccuracy):
