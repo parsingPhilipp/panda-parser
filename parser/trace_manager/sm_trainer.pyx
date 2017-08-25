@@ -74,6 +74,9 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_percent_merger(double, unsigned)
         SplitMergeTrainerBuilder& set_threshold_merger(double)
         SplitMergeTrainerBuilder& set_threshold_merger(double, unsigned)
+        SplitMergeTrainerBuilder& set_scc_merger(double threshold)
+        SplitMergeTrainerBuilder& set_scc_merger(double threshold, unsigned threads)
+        SplitMergeTrainerBuilder& set_scc_merger(double threshold, vector[size_t] relevantNonterminals, unsigned threads)
         SplitMergeTrainerBuilder& set_split_randomization(double, unsigned)
         SplitMergeTrainerBuilder& set_smoothing_factor(double smoothingFactor)
         SplitMergeTrainerBuilder& set_threads(unsigned_int)
@@ -243,6 +246,19 @@ cdef class PySplitMergeTrainerBuilder:
             deref(self.splitMergeTrainerBuilder).set_threshold_merger(threshold, threads)
         else:
             deref(self.splitMergeTrainerBuilder).set_threshold_merger(threshold)
+        return self
+
+    cpdef PySplitMergeTrainerBuilder set_scc_merger(self, double threshold, unsigned threads=0, vector[size_t] relevantNonterminals=[]):
+        if threads > 0:
+            if len(relevantNonterminals) > 0:
+                deref(self.splitMergeTrainerBuilder).set_scc_merger(threshold, relevantNonterminals, threads)
+            else:
+                deref(self.splitMergeTrainerBuilder).set_scc_merger(threshold, threads)
+        else:
+            if len(relevantNonterminals) > 0:
+                deref(self.splitMergeTrainerBuilder).set_scc_merger(threshold, relevantNonterminals, 1)
+            else:
+                deref(self.splitMergeTrainerBuilder).set_scc_merger(threshold)
         return self
 
     cpdef PySplitMergeTrainerBuilder set_split_randomization(self, double percent=1.0, unsigned seed=0):
