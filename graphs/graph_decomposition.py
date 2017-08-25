@@ -173,7 +173,19 @@ def dog_evaluation_rec(derivation, idx):
 
 
 def simple_labeling(nodes, dsg, edge_label=lambda e: e.label):
+    return top_bot_labeling(nodes, dsg, top_label=edge_label, bot_label=edge_label)
+
+
+def top_bot_labeling(nodes, dsg, top_label=lambda e: e.label, bot_label=lambda e: e.label):
+    assert isinstance(dsg, DeepSyntaxGraph)
+    top_label = [top_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes)]
+    bot_label = [bot_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.bottom(nodes)]
+    return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + ']'
+
+
+def missing_child_labeling(nodes, dsg, edge_label=lambda e: e.label, child_label=lambda e, i: e.label):
     assert isinstance(dsg, DeepSyntaxGraph)
     top_label = [edge_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes)]
-    bot_label = [edge_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.bottom(nodes)]
+    bot_label = ['-'.join([child_label(dsg.dog.incoming_edge(node), i) for node, i in nodes])
+                 for nodes in dsg.dog.missing_children(nodes)]
     return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + ']'

@@ -323,6 +323,16 @@ class DirectedOrderedGraph:
                     and any([node2 in nodes for node2 in self._parents[node]])]
         return [node for node in self.ordered_nodes() if node in bottoms]
 
+    def missing_children(self, nodes):
+        relevant_parents = {node: [(parent, self.children(parent).index(node))
+                                   for parent in self._parents[node] if parent in nodes]
+                            for node in self._nodes
+                            if node not in nodes
+                            and any([node2 in nodes for node2 in self._parents[node]])}
+        if len(relevant_parents) > 0:
+            pass
+        return [relevant_parents[node] for node in self.ordered_nodes() if node in relevant_parents]
+
     def __ne__(self, other):
         return not self.__eq__(other)
 
