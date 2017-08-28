@@ -1,12 +1,13 @@
 # Parsing of the Tiger corpus and capture of hybrid trees or dee syntax graphs
-
+from __future__ import print_function
 import re
 from os.path import expanduser
+from operator import itemgetter
 
 try:
-    import xml.etree.cElementTree as ET
+    import xml.etree.cElementTree as cET
 except ImportError:
-    import xml.etree.ElementTree as ET
+    import xml.etree.ElementTree as cET
 
 from hybridtree.constituent_tree import ConstituentTree
 from graphs.dog import DirectedOrderedGraph, DeepSyntaxGraph
@@ -38,7 +39,7 @@ def clear():
 def initialize(file_name):
     global xml_file
     if xml_file is None:
-        xml_file = ET.parse(file_name)
+        xml_file = cET.parse(file_name)
 
 
 # Sentence number to name.
@@ -60,7 +61,7 @@ def sentence_names_to_hybridtrees(names, file_name, hold=True):
         if tree is not None:
             trees += [tree]
         else:
-            print 'missing', name
+            print('missing', name)
 
     if not hold:
         clear()
@@ -80,7 +81,7 @@ def sentence_name_to_hybridtree(name, file_name):
         root = graph.get('root')
         tree.add_to_root(root)
         for term in graph.iterfind('terminals/t'):
-            id = term.get('id')
+            ident = term.get('id')
             word = term.get('word')
             pos = term.get('pos')
             case = term.get('case')
@@ -93,17 +94,17 @@ def sentence_name_to_hybridtree(name, file_name):
             morph_feats = [("case", case), ("number", number), ("gender", gender), ("person", person), ("tense", tense),
                            ("degree", degree), ("mood", mood)]
             if is_word(pos, word):
-                tree.add_leaf(id, pos, word.encode('utf_8'), morph=morph_feats)
+                tree.add_leaf(ident, pos, word.encode('utf_8'), morph=morph_feats)
             else:
-                tree.add_punct(id, pos, word.encode('utf_8'))
+                tree.add_punct(ident, pos, word.encode('utf_8'))
         for nont in graph.iterfind('nonterminals/nt'):
-            id = nont.get('id')
+            ident = nont.get('id')
             cat = nont.get('cat')
-            tree.set_label(id, cat)
+            tree.set_label(ident, cat)
             for child in nont.iterfind('edge'):
                 child_id = child.get('idref')
                 if not is_punct(graph, child_id):
-                    tree.add_child(id, child_id)
+                    tree.add_child(ident, child_id)
         for nont in graph.iterfind('nonterminals/nt'):
             for child in nont.iterfind('edge'):
                 child_id = child.get('idref')
@@ -122,7 +123,7 @@ def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True):
             if dsg is not None:
                 dsgs += [dsg]
             else:
-                print 'missing', name
+                print('missing', name)
 
         if not hold:
             clear()
@@ -150,7 +151,7 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
         graph = sent.find('graph')
 
         for term in graph.iterfind('terminals/t'):
-            id = term.get('id')
+            ident = term.get('id')
             word = term.get('word')
             pos = term.get('pos')
             case = term.get('case')
@@ -164,7 +165,7 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
                            ("tense", tense),
                            ("degree", degree), ("mood", mood)]
             if is_word(pos, word):
-                output_idx = node_enum.object_index(id)
+                output_idx = node_enum.object_index(ident)
                 dog.add_node(output_idx)
                 terminal = ConstituentTerminal(word.encode('utf_8'), pos, morph=morph_feats)
                 dog.add_terminal_edge([], ConstituentTerminal(word, pos, morph=morph_feats), output_idx)
@@ -175,20 +176,21 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
                     parent_id = parent.get('idref')
                     edge_label = parent.get('label')
                     parent_idx = node_enum.object_index(parent_id)
-                    if not parent_idx in inner_nodes:
+                    if parent_idx not in inner_nodes:
                         inner_nodes[parent_idx] = ('_', [(output_idx, 's', edge_label)])
                     else:
                         inner_nodes[parent_idx][1].append((output_idx, 's', edge_label))
             else:
+                # todo: handle punctuation
                 pass
-                # tree.add_punct(id, pos, word.encode('utf_8'))
+
         for nont in graph.iterfind('nonterminals/nt'):
-            id = nont.get('id')
+            ident = nont.get('id')
             cat = nont.get('cat')
-            idx = node_enum.object_index(id)
+            idx = node_enum.object_index(ident)
             dog.add_node(idx)
 
-            if not idx in inner_nodes:
+            if idx not in inner_nodes:
                 inner_nodes[idx] = (cat, [])
             else:
                 inner_nodes[idx] = (cat, inner_nodes[idx][1])
@@ -204,11 +206,10 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
                 parent_id = parent.get('idref')
                 edge_label = parent.get('label')
                 parent_idx = node_enum.object_index(parent_id)
-                if not parent_idx in inner_nodes:
+                if parent_idx not in inner_nodes:
                     inner_nodes[parent_idx] = ('_', [(idx, 's', edge_label)])
                 else:
                     inner_nodes[parent_idx][1].append((idx, 's', edge_label))
-                    # tree.add_child(id, child_id)
 
         for idx in inner_nodes:
             reordered = sorted(inner_nodes[idx][1], key=lambda x: (x[2], inner_nodes[idx][1].index(x)))
@@ -225,22 +226,21 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
         return None
 
 
-
 # Is word? Exclude bullet, POS starting with $, and words tagged as
 # XY ('Nichtwort, Sonderzeichen').
 # pos: string (part of speech)
 # word: string
 # return: boolean 
 def is_word(pos, word):
-    return not ( re.search(r'&bullet;', word) or re.search(r'^\$', pos) or \
-                 (re.search(r'^XY$', pos) and re.search(r'^[a-z]$', word) ) )
+    return not (re.search(r'&bullet;', word) or re.search(r'^\$', pos) or
+                (re.search(r'^XY$', pos) and re.search(r'^[a-z]$', word)))
 
 
 # In graph, is element specified by id punctuation?
 # graph: XML element
 # id: string
-def is_punct(graph, id):
-    term = graph.find('terminals/t[@id="%s"]' % id)
+def is_punct(graph, ident):
+    term = graph.find('terminals/t[@id="%s"]' % ident)
     if term is not None:
         word = term.get('word')
         pos = term.get('pos')
