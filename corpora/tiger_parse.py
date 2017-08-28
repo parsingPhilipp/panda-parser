@@ -211,9 +211,10 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
                     # tree.add_child(id, child_id)
 
         for idx in inner_nodes:
-            edge = dog.add_terminal_edge(inner_nodes[idx][1], inner_nodes[idx][0], idx)
-            for i, tentacle in enumerate(inner_nodes[idx][1]):
-                edge.set_function(i, inner_nodes[idx][1][i][2])
+            reordered = sorted(inner_nodes[idx][1], key=lambda x: (x[2], inner_nodes[idx][1].index(x)))
+            edge = dog.add_terminal_edge(reordered, inner_nodes[idx][0], idx)
+            for i, tentacle in enumerate(reordered):
+                edge.set_function(i, reordered[i][2])
 
         root = graph.get('root')
         root_idx = node_enum.object_index(root)
