@@ -543,12 +543,12 @@ class DeepSyntaxGraph:
     def synchronization(self):
         return self.__synchronization
 
-    def recursive_partitioning(self):
+    def recursive_partitioning(self, subgrouping=False):
         assert self.dog.primary_is_tree()
         assert len(self.dog.outputs) == 1
-        return self.__extract_recursive_partitioning_rec(self.dog.outputs[0])
+        return self.__extract_recursive_partitioning_rec(self.dog.outputs[0], subgrouping)
 
-    def __extract_recursive_partitioning_rec(self, node):
+    def __extract_recursive_partitioning_rec(self, node, subgrouping):
         covered = [sent_pos for sent_pos in range(len(self.sentence))
                    if node in self.get_graph_position(sent_pos)]
         edge = self.dog.incoming_edge(node)
@@ -557,7 +557,7 @@ class DeepSyntaxGraph:
         children = []
         for i in edge.primary_inputs:
             child_node = edge.inputs[i]
-            child_rec_par = self.__extract_recursive_partitioning_rec(child_node)
+            child_rec_par = self.__extract_recursive_partitioning_rec(child_node, subgrouping)
             assert child_rec_par != ([], [])
             children += [child_rec_par]
             for sent_pos in child_rec_par[0]:
@@ -566,8 +566,27 @@ class DeepSyntaxGraph:
         covered = set(covered)
         if len(children) == 1 and covered == children[0][0]:
             return children[0]
+        elif subgrouping and len(children) > 2:
+            children_new = {}
+            for i, child_rec_par in enumerate(children):
+                func = edge.get_function(i)
+                if func in children_new:
+                    children_new[func] += [child_rec_par]
+                else:
+                    children_new[func] = [child_rec_par]
+            new_child_list = []
+            for func in children_new:
+                if len(children_new[func]) > 1:
+                    new_child_list.append((set([sent_pos for child in children_new[func] for sent_pos in child[0]])
+                                           , children_new[func]))
+                else:
+                    new_child_list += children_new[func]
+            if len(new_child_list) == 1 and covered == new_child_list[0][0]:
+                return new_child_list[0]
+            else:
+                return covered, new_child_list
         else:
-            return set(covered), children
+            return covered, children
 
     def id_yield(self):
         return map(lambda x: self.get_graph_position(x), [i for i in range(len(self.sentence))])

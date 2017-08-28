@@ -531,6 +531,40 @@ class GraphTests(unittest.TestCase):
                              scorer.extract_dependencies_from_frames(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
                                                                      include_label=True))
 
+    def test_subgrouping(self):
+        start = 4
+        stop = 4
+        exclude = []
+        path = "res/tiger/tiger_8000.xml"
+        dsgs = sentence_names_to_deep_syntax_graphs(
+            ['s' + str(i) for i in range(start, stop + 1) if i not in exclude]
+            , path
+            , hold=False)
+        f = lambda token: token.pos() if isinstance(token, ConstituentTerminal) else token
+        for dsg in dsgs:
+            dsg.dog.project_labels(f)
+            render_and_view_dog(dsg.dog, "tigerdsg4", "/tmp/")
+            print(map(lambda x: x.form(), dsg.sentence))
+            print(dsg.synchronization)
+            print(dsg.recursive_partitioning())
+            print(fanout_limited_partitioning(dsg.recursive_partitioning(), 1))
+            print(dsg.recursive_partitioning(subgrouping=True))
+            print(fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping=True), 1))
+            self.assertTupleEqual(({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}
+                                   , [({0, 1, 2, 3, 4},
+                                       [({0}, []), ({1}, []), ({2}, []), ({3, 4}, [({3}, []), ({4}, [])])]),
+                                      ({6, 7, 8, 9, 10, 11},
+                                       [({11}, []), ({8, 9, 10, 6, 7}, [({9, 10}, [({9}, []), ({10}, [])]), (
+                                                                  {8, 6, 7}, [({6}, []), ({7}, []), ({8}, [])])])]),
+                                      ({5}, [])]),
+                                  dsg.recursive_partitioning(subgrouping=True))
+            self.assertTupleEqual(({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, [
+                ({0, 1, 2, 3, 4, 5}, [({0, 1, 2, 3, 4}, [({0, 1, 2}, [({0, 1}, [({0}, []), ({1}, [])]), ({2}, [])]),
+                                                         ({3, 4}, [({3}, []), ({4}, [])])]), ({5}, [])]), (
+                    {6, 7, 8, 9, 10, 11}, [({8, 9, 10, 6, 7}, [({8, 6, 7}, [({6, 7}, [({6}, []), ({7}, [])]), (
+                                 {8}, [])]), ({9, 10}, [({9}, []), ({10}, [])])]), ({11}, [])])]),
+                                  fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping=True), 1))
+
 
 if __name__ == '__main__':
     unittest.main()
