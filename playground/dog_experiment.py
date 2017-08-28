@@ -82,6 +82,9 @@ def run_experiment():
     grammar = induction_on_a_corpus(train_dsgs, rec_part_strategy, nonterminal_labeling, term_labeling)
     grammar.make_proper()
 
+    parser = GFParser_k_best(grammar, k=200)
+    do_parsing(parser, test_dsgs, term_labeling_token, oracle=True)
+    return
     # Compute reducts, i.e., intersect grammar with each training dsg
     terminal_map = Enumerator()
     basedir = '/tmp/dog_experiments'
@@ -186,7 +189,7 @@ def run_experiment():
         del parser
 
 
-def do_parsing(parser, test_dsgs, term_labeling_token):
+def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
     interactive = True  # False
 
     scorer = PredicateArgumentScoring()
@@ -201,7 +204,10 @@ def do_parsing(parser, test_dsgs, term_labeling_token):
         dsg.dog.project_labels(f)
 
         if parser.recognized():
-            derivation = parser.best_derivation_tree()
+            if oracle:
+                derivation = compute_oracle_derivation(parser, dsg)
+            else:
+                derivation = parser.best_derivation_tree()
             dog, sync = dog_evaluation(derivation)
 
             if not dog.output_connected():
@@ -248,5 +254,38 @@ def do_parsing(parser, test_dsgs, term_labeling_token):
           "F1", scorer.unlabeled_dependency_scorer.fmeasure(), "EM", scorer.unlabeled_dependency_scorer.exact_match())
 
 
+def compute_oracle_derivation(parser, dsg):
+    validationMethod = "F1"
+    best_der = None
+    best_f1 = -1
+    best_prec = -1
+    best_rec = -1
+
+    relevant = set([tuple(t) for t in dsg.labeled_frames(guard=lambda x: x[1] > 0)])
+    for _, derivation in parser.k_best_derivation_trees():
+        dog, sync = dog_evaluation(derivation)
+        dsg2 = DeepSyntaxGraph(dsg.sentence, dog, sync)
+        system_spans = dsg2.labeled_frames(guard=lambda x: x[1] > 0)
+
+        retrieved = set([tuple(t) for t in system_spans])
+        inters = retrieved & relevant
+
+        # in case of parse failure there are two options here:
+        #   - parse failure -> no spans at all, thus precision = 1
+        #   - parse failure -> a dummy tree with all spans wrong, thus precision = 0
+
+        precision = 1.0 * len(inters) / len(retrieved) \
+            if len(retrieved) > 0 else 0
+        recall = 1.0 * len(inters) / len(relevant) \
+            if len(relevant) > 0 else 0
+        fmeasure = 2.0 * precision * recall / (precision + recall) \
+            if precision + recall > 0 else 0
+
+        if (validationMethod == "F1" and fmeasure > best_f1)\
+                or (validationMethod == "Precision" and precision > best_prec)\
+                or (validationMethod == "Recall"and recall > best_rec):
+            best_der, best_f1, best_prec, best_rec = derivation, fmeasure, precision, recall
+
+    return best_der
 if __name__ == "__main__":
     run_experiment()
