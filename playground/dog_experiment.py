@@ -5,12 +5,13 @@ from os import path
 import shutil
 import subprocess
 import sys
+from itertools import product
 # structure representation and corpus tools
 from graphs.dog import DeepSyntaxGraph
 from hybridtree.monadic_tokens import ConstituentTerminal
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 # grammar induction
-from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
+from grammar.induction.recursive_partitioning import fanout_limited_partitioning, fanout_limited_partitioning_left_to_right
 from grammar.induction.terminal_labeling import PosTerminals
 from graphs.graph_decomposition import simple_labeling, top_bot_labeling, missing_child_labeling, induction_on_a_corpus, dog_evaluation
 # reduct computation
@@ -33,9 +34,9 @@ schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 threads = 1
 
 
-def run_experiment():
+def run_experiment(rec_part_strategy, nonterminal_labeling, exp):
     start = 1
-    stop = 50
+    stop = 7000
 
     test_start = 7001
     test_stop = 7200
@@ -53,24 +54,6 @@ def run_experiment():
         , hold=False)
 
     # Grammar induction
-    rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
-
-    def label_edge(edge):
-        if isinstance(edge.label, ConstituentTerminal):
-            return edge.label.pos()
-        else:
-            return edge.label
-
-    def stupid_edge(edge):
-        return "X"
-
-    def label_child(edge, j):
-        return edge.get_function(j)
-
-    # nonterminal_labeling = lambda nodes, dsg: simple_labeling(nodes, dsg, label_edge)
-    nonterminal_labeling = lambda nodes, dsg: top_bot_labeling(nodes, dsg, label_edge, stupid_edge)
-    # nonterminal_labeling = lambda nodes, dsg: missing_child_labeling(nodes, dsg, label_edge, label_child)
-
     term_labeling_token = PosTerminals()
 
     def term_labeling(token):
@@ -82,12 +65,15 @@ def run_experiment():
     grammar = induction_on_a_corpus(train_dsgs, rec_part_strategy, nonterminal_labeling, term_labeling)
     grammar.make_proper()
 
-    parser = GFParser_k_best(grammar, k=200)
-    do_parsing(parser, test_dsgs, term_labeling_token, oracle=True)
-    return
+    parser = GFParser_k_best(grammar, k=500)
+    return do_parsing(parser, test_dsgs, term_labeling_token, oracle=True)
+
+
     # Compute reducts, i.e., intersect grammar with each training dsg
+    basedir = path.join('/tmp/dog_experiments', 'exp' + str(exp))
+    reduct_dir = path.join(basedir, 'reduct_grammars')
+
     terminal_map = Enumerator()
-    basedir = '/tmp/dog_experiments'
     if not os.path.isdir(basedir):
         os.makedirs(basedir)
     data = export_dog_grammar_to_json(grammar, terminal_map)
@@ -102,7 +88,6 @@ def run_experiment():
     with open(path.join(basedir, 'enumerator.enum'), 'w') as file:
         terminal_map.print_index(file)
 
-    reduct_dir = path.join(basedir, 'reduct_grammars')
     if os.path.isdir(reduct_dir):
         shutil.rmtree(reduct_dir)
     os.makedirs(reduct_dir)
@@ -118,6 +103,7 @@ def run_experiment():
         sys.stdout.flush()
 
     p.wait()
+
     rtgs = []
     for i in range(1, len(train_dsgs) + 1):
         rtgs.append(read_rtg(path.join(reduct_dir, str(i) + '.gra')))
@@ -148,6 +134,8 @@ def run_experiment():
     emTrainer.em_train(la_no_splits)
     la_no_splits.project_weights(grammar, grammarInfo)
 
+    do_parsing(CFGParser(grammar), test_dsgs, term_labeling_token)
+    return
     ## prepare SM training
     builder = PySplitMergeTrainerBuilder(derivation_manager, grammarInfo)
     builder.set_em_epochs(em_epochs)
@@ -252,6 +240,7 @@ def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
     print("Unlabeled dependencies:")
     print("P", scorer.unlabeled_dependency_scorer.precision(), "R", scorer.unlabeled_dependency_scorer.recall(),
           "F1", scorer.unlabeled_dependency_scorer.fmeasure(), "EM", scorer.unlabeled_dependency_scorer.exact_match())
+    return scorer
 
 
 def compute_oracle_derivation(parser, dsg):
@@ -287,5 +276,64 @@ def compute_oracle_derivation(parser, dsg):
             best_der, best_f1, best_prec, best_rec = derivation, fmeasure, precision, recall
 
     return best_der
+
+
+def main():
+    directions = ["left-to-right", "right-to-left"]
+
+    def rec_part_strategy(direction, subgrouping, fanout):
+        if direction == "right-to-left":
+            return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping), fanout)
+        else:
+            return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping),
+                                                                         fanout)
+
+    subgroupings = [True, False]
+    fanouts = [1]
+
+    def label_edge(edge):
+        if isinstance(edge.label, ConstituentTerminal):
+            return edge.label.pos()
+        else:
+            return edge.label
+
+    def stupid_edge(edge):
+        return "X"
+
+    def label_child(edge, j):
+        return edge.get_function(j)
+
+    def simple_nonterminal_labeling(nodes, dsg):
+        return simple_labeling(nodes, dsg, label_edge)
+
+    def bot_stupid_nonterminal_labeling(nodes, dsg):
+        return top_bot_labeling(nodes, dsg, label_edge, stupid_edge)
+
+    def missing_child_nonterminal_labeling(nodes, dsg):
+        return missing_child_labeling(nodes, dsg, label_edge, label_child)
+
+    nonterminal_labelings = [simple_nonterminal_labeling, bot_stupid_nonterminal_labeling,
+                             missing_child_nonterminal_labeling]
+
+    exp = 0
+    scorers = []
+    for direction, subgrouping, fanout, nonterminal_labelings in \
+            product(directions, subgroupings, fanouts, nonterminal_labelings):
+
+        print()
+        print("Experiment", exp, "direction", direction, "fanout", fanout, "subgrouping", subgrouping, "nonterminals"
+              , nonterminal_labelings.__name__)
+        print()
+
+        scorer = run_experiment(rec_part_strategy(direction, subgrouping, fanout), nonterminal_labelings, exp)
+        scorers.append(scorer)
+
+        exp += 1
+
+    best_scorer = min(scorers, key=lambda s: s.labeled_frame_scorer.fmeasure())
+    print()
+    print("Best labeled frame F1 of", best_scorer.labeled_frame_scorer.fmeasure()
+          , "in experiment", scorers.index(best_scorer))
+
 if __name__ == "__main__":
-    run_experiment()
+    main()
