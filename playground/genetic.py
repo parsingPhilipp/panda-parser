@@ -71,7 +71,10 @@ threads = 10
 smoothing_factor = 0.05
 split_randomization = 5.0
 
-genetic_initial = 3
+scc_merger_threshold = -0.2
+
+
+genetic_initial = 2
 genetic_population = 3
 genetic_cycles = 2
 
@@ -322,7 +325,7 @@ def main():
     builder.set_score_validator(validator, validationDropIterations)
     builder.set_smoothing_factor(smoothingFactor=smoothing_factor)
     builder.set_split_randomization(percent=split_randomization)
-    splitMergeTrainer = builder.set_scc_merger(merge_percentage, threads=threads).build()
+    splitMergeTrainer = builder.set_scc_merger(threshold=scc_merger_threshold, threads=threads).build()
 
     splitMergeTrainer.setMaxDrops(validationDropIterations, mode="smoothing")
     splitMergeTrainer.setEMepochs(em_epochs, mode="smoothing")
