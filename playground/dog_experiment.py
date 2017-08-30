@@ -326,15 +326,15 @@ def main():
     start_exp = 0
     exp = start_exp
     scorers = []
-    for direction, subgrouping, fanout, nonterminal_labelings, reorder in \
+    for direction, subgrouping, fanout, nonterminal_labeling, reorder in \
             product(directions, subgroupings, fanouts, nonterminal_labelings, reorder_children):
 
         print()
         print("Experiment", exp, "direction", direction, "fanout", fanout, "subgrouping", subgrouping, "nonterminals"
-              , nonterminal_labelings.__name__, "reorder children", reorder)
+              , nonterminal_labeling.__name__, "reorder children", reorder)
         print()
 
-        scorer = run_experiment(rec_part_strategy(direction, subgrouping, fanout), nonterminal_labelings, exp=exp
+        scorer = run_experiment(rec_part_strategy(direction, subgrouping, fanout), nonterminal_labeling, exp=exp
                                 , reorder_children=reorder)
         scorers.append(scorer)
 
