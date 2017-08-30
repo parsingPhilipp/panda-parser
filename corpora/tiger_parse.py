@@ -116,10 +116,10 @@ def sentence_name_to_hybridtree(name, file_name):
         return None
 
 
-def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True):
+def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True, reorder_children=False):
         dsgs = []
         for name in names:
-            dsg = sentence_name_to_deep_syntax_graph(name, file_name)
+            dsg = sentence_name_to_deep_syntax_graph(name, file_name, reorder_children)
             if dsg is not None:
                 dsgs += [dsg]
             else:
@@ -134,7 +134,7 @@ def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True):
 # name: string
 # file_name: string
 # return: ConstituentTree
-def sentence_name_to_deep_syntax_graph(name, file_name):
+def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
     initialize(expanduser(file_name))
     sent = xml_file.find('.//body/s[@id="%s"]' % name)
     if sent is not None:
@@ -212,7 +212,10 @@ def sentence_name_to_deep_syntax_graph(name, file_name):
                     inner_nodes[parent_idx][1].append((idx, 's', edge_label))
 
         for idx in inner_nodes:
-            reordered = sorted(inner_nodes[idx][1], key=lambda x: (x[2], inner_nodes[idx][1].index(x)))
+            if reorder_children:
+                reordered = sorted(inner_nodes[idx][1], key=lambda x: (x[2], inner_nodes[idx][1].index(x)))
+            else:
+                reordered = inner_nodes[idx][1]
             edge = dog.add_terminal_edge(reordered, inner_nodes[idx][0], idx)
             for i, tentacle in enumerate(reordered):
                 edge.set_function(i, reordered[i][2])

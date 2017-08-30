@@ -548,9 +548,13 @@ class DeepSyntaxGraph:
         assert len(self.dog.outputs) == 1
         return self.__extract_recursive_partitioning_rec(self.dog.outputs[0], subgrouping)
 
+    def covered_sentence_positions(self, dog_positions):
+        return [sent_pos for sent_pos in range(len(self.sentence))
+                if any([dog_pos in self.get_graph_position(sent_pos)
+                        for dog_pos in dog_positions])]
+
     def __extract_recursive_partitioning_rec(self, node, subgrouping):
-        covered = [sent_pos for sent_pos in range(len(self.sentence))
-                   if node in self.get_graph_position(sent_pos)]
+        covered = self.covered_sentence_positions([node])
         edge = self.dog.incoming_edge(node)
         if edge is None:
             return set(covered), []

@@ -32,10 +32,28 @@ def induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, termina
     grammar = LCFRS(start=start)
     for dsg in dsgs:
         rec_part = rec_part_strategy(dsg)
+        # if calc_fanout(rec_part) > 1 or calc_rank(rec_part) > 2:
+        #     rec_part = rec_part_strategy(dsg)
+        #     assert False
         decomp = compute_decomposition(dsg, rec_part)
         dsg_grammar = induce_grammar_from(dsg, rec_part, decomp, nonterminal_labeling, terminal_labeling, start, normalize)
         grammar.add_gram(dsg_grammar)
     return grammar
+
+
+def consecutive_spans(positions):
+    if len(positions) == 0:
+        return 0
+    positions = sorted(list(positions))
+    pos = positions[0]
+    spans = 1
+    i = 1
+    while i < len(positions):
+        if pos + 1 < positions[i]:
+            spans += 1
+        pos = positions[i]
+        i += 1
+    return spans
 
 
 def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), terminal_labeling=id, start="START", normalize=True):
@@ -180,7 +198,8 @@ def top_bot_labeling(nodes, dsg, top_label=lambda e: e.label, bot_label=lambda e
     assert isinstance(dsg, DeepSyntaxGraph)
     top_label = [top_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes)]
     bot_label = [bot_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.bottom(nodes)]
-    return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + ']'
+    fanout = consecutive_spans(dsg.covered_sentence_positions(nodes))
+    return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + '; f' + str(fanout) + ']'
 
 
 def missing_child_labeling(nodes, dsg, edge_label=lambda e: e.label, child_label=lambda e, i: e.label):
@@ -188,4 +207,5 @@ def missing_child_labeling(nodes, dsg, edge_label=lambda e: e.label, child_label
     top_label = [edge_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes)]
     bot_label = ['-'.join([child_label(dsg.dog.incoming_edge(node), i) for node, i in nodes])
                  for nodes in dsg.dog.missing_children(nodes)]
-    return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + ']'
+    fanout = consecutive_spans(dsg.covered_sentence_positions(nodes))
+    return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + '; f' + str(fanout) + ']'

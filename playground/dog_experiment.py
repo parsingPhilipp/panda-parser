@@ -5,6 +5,7 @@ from os import path
 import shutil
 import subprocess
 import sys
+import time
 from itertools import product
 # structure representation and corpus tools
 from graphs.dog import DeepSyntaxGraph
@@ -34,7 +35,7 @@ schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 threads = 1
 
 
-def run_experiment(rec_part_strategy, nonterminal_labeling, exp):
+def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_children):
     start = 1
     stop = 7000
 
@@ -47,11 +48,13 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp):
     train_dsgs = sentence_names_to_deep_syntax_graphs(
         ['s' + str(i) for i in range(start, stop + 1) if i not in exclude]
         , corpus_path
-        , hold=False)
+        , hold=False
+        , reorder_children=reorder_children)
     test_dsgs = sentence_names_to_deep_syntax_graphs(
         ['s' + str(i) for i in range(test_start, test_stop + 1) if i not in exclude]
         , corpus_path
-        , hold=False)
+        , hold=False
+        , reorder_children=reorder_children)
 
     # Grammar induction
     term_labeling_token = PosTerminals()
@@ -64,6 +67,8 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp):
 
     grammar = induction_on_a_corpus(train_dsgs, rec_part_strategy, nonterminal_labeling, term_labeling)
     grammar.make_proper()
+
+    print("Nonterminals", len(grammar.nonts()), "Rules", len(grammar.rules()))
 
     parser = GFParser_k_best(grammar, k=500)
     return do_parsing(parser, test_dsgs, term_labeling_token, oracle=True)
@@ -184,6 +189,7 @@ def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
 
     not_output_connected = 0
 
+    start = time.time()
     for dsg in test_dsgs:
         parser.set_input(term_labeling_token.prepare_parser_input(dsg.sentence))
         parser.parse()
@@ -226,6 +232,7 @@ def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
             scorer.add_failure(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0))
 
         parser.clear()
+    print("Completed parsing in", time.time() - start, "seconds.")
     print("Parse failures:", scorer.labeled_frame_scorer.n_failures())
     print("Not output connected", not_output_connected)
     print("Labeled frames:")
@@ -289,7 +296,8 @@ def main():
                                                                          fanout)
 
     subgroupings = [True, False]
-    fanouts = [1]
+    fanouts = [2]
+    reorder_children = [True, False]
 
     def label_edge(edge):
         if isinstance(edge.label, ConstituentTerminal):
@@ -315,25 +323,27 @@ def main():
     nonterminal_labelings = [simple_nonterminal_labeling, bot_stupid_nonterminal_labeling,
                              missing_child_nonterminal_labeling]
 
-    exp = 0
+    start_exp = 0
+    exp = start_exp
     scorers = []
-    for direction, subgrouping, fanout, nonterminal_labelings in \
-            product(directions, subgroupings, fanouts, nonterminal_labelings):
+    for direction, subgrouping, fanout, nonterminal_labelings, reorder in \
+            product(directions, subgroupings, fanouts, nonterminal_labelings, reorder_children):
 
         print()
         print("Experiment", exp, "direction", direction, "fanout", fanout, "subgrouping", subgrouping, "nonterminals"
-              , nonterminal_labelings.__name__)
+              , nonterminal_labelings.__name__, "reorder children", reorder)
         print()
 
-        scorer = run_experiment(rec_part_strategy(direction, subgrouping, fanout), nonterminal_labelings, exp)
+        scorer = run_experiment(rec_part_strategy(direction, subgrouping, fanout), nonterminal_labelings, exp=exp
+                                , reorder_children=reorder)
         scorers.append(scorer)
 
         exp += 1
 
-    best_scorer = min(scorers, key=lambda s: s.labeled_frame_scorer.fmeasure())
+    best_scorer = max(scorers, key=lambda s: s.labeled_frame_scorer.fmeasure())
     print()
     print("Best labeled frame F1 of", best_scorer.labeled_frame_scorer.fmeasure()
-          , "in experiment", scorers.index(best_scorer))
+          , "in experiment", scorers.index(best_scorer) + start_exp)
 
 if __name__ == "__main__":
     main()
