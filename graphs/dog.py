@@ -434,19 +434,35 @@ class DirectedOrderedGraph:
         for node2 in edge.inputs:
             self.__fill_rec(node2, dog, visited, lhs, top_rhs, bot_rhs)
 
-    def primary_is_tree(self):
+    def primary_is_tree(self, weak=False):
+        """
+        :param weak: if weak == True, then an "internal edge" of the DOG is allowed to be a leave of the tree
+                     otherwise, each internal edge needs have at least one primary child
+        :type weak: bool
+        """
         outgoing = {}
         for edge in self._terminal_edges + self._nonterminal_edges:
             if edge is None:
                 continue
-            if len(edge.inputs) > 0 and len(edge.primary_inputs) == 0:
+            if (not weak) and len(edge.inputs) > 0 and len(edge.primary_inputs) == 0:
                 return False
             for i in edge.primary_inputs:
                 node = edge.inputs[i]
                 if node in outgoing:
                     return False
                 outgoing[node] = (edge, i)
+
+        upward_closure = self.node_closure(lambda n: outgoing[n][0].outputs if n in outgoing else [], reflexive=True)
+
+        for node in self._nodes:
+            if not any([True for x in upward_closure[node] if x in self._outputs]):
+                return False
+
         return True
+
+    def internal_edges_without_primary_input(self):
+        return [edge for edge in self._terminal_edges
+                if len(edge.inputs) > 0 and len(edge.primary_inputs) == 0]
 
     def project_labels(self, proj):
         for edge in self._terminal_edges:
@@ -659,7 +675,7 @@ class DeepSyntaxGraph:
     def synchronization(self):
         return self.__synchronization
 
-    def recursive_partitioning(self, subgrouping=False):
+    def recursive_partitioning(self, subgrouping=False, weak=False):
         assert self.dog.primary_is_tree()
         assert len(self.dog.outputs) == 1
         return self.__extract_recursive_partitioning_rec(self.dog.outputs[0], subgrouping)
