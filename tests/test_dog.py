@@ -143,21 +143,24 @@ class GraphTests(unittest.TestCase):
     def test_dsg(self):
         dsg = build_dsg()
         rec_part = dsg.recursive_partitioning()
-        self.assertEqual(rec_part, ({0, 1, 2, 3, 4, 5, 6}, [({0, 1}, [({0}, []), ({1}, [])]), ({2}, []), ({3, 4, 5, 6}, [({3}, []), ({4, 5, 6}, [({4}, []), ({5}, []), ({6}, [])])])]))
+        self.assertEqual(rec_part, ({0, 1, 2, 3, 4, 5, 6}, [({0, 1}, [({0}, []), ({1}, [])]), ({2}, []), (
+            {3, 4, 5, 6}, [({3}, []), ({4, 5, 6}, [({4}, []), ({5}, []), ({6}, [])])])]))
         dcmp = compute_decomposition(dsg, rec_part)
-        self.assertEqual(dcmp, ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [([1, 4, 5], [([4], []), ([5], [])]), ([2], []), ([3, 6, 7, 8, 9, 10], [([7], []), ([6, 8, 9, 10], [([8], []), ([9], []), ([10], [])])])]))
+        self.assertEqual(dcmp, ([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [([1, 4, 5], [([4], []), ([5], [])]), ([2], []), (
+            [3, 6, 7, 8, 9, 10], [([7], []), ([6, 8, 9, 10], [([8], []), ([9], []), ([10], [])])])]))
         self.__structurally_equal(rec_part, dcmp)
 
         grammar = induce_grammar_from(dsg, rec_part, dcmp, terminal_labeling=str)
         # print(grammar)
 
         for nont, label in zip(["[4]", "[5]", "[2]", "[7]", "[8]", "[9]", "[10]"],
-                ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]):
+                               ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]):
             for rule in grammar.lhs_nont_to_rules(nont):
                 self.assertEqual(rule.dcp()[0], build_terminal_dog(label))
 
-        for nont, graph in zip(["[1, 4, 5]", "[6, 8, 9, 10]", "[3, 6, 7, 8, 9, 10]", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"],
-                                [dog_s1(), dog_s13(), dog_s3(), dog_se()]):
+        for nont, graph in zip(
+                ["[1, 4, 5]", "[6, 8, 9, 10]", "[3, 6, 7, 8, 9, 10]", "[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]"],
+                [dog_s1(), dog_s13(), dog_s3(), dog_se()]):
             for rule in grammar.lhs_nont_to_rules(nont):
                 self.assertEqual(rule.dcp()[0], graph)
 
@@ -319,7 +322,8 @@ class GraphTests(unittest.TestCase):
                 dsg2.labeled_frames(guard=lambda x: len(x[1]) > 0)
             )
 
-            # print('dsg: ', dsg.dog, '\n', [dsg.get_graph_position(i) for i in range(len(dsg.sentence))], '\n\n parsed: ', dsg2.dog, '\n', [dsg2.get_graph_position(i+1) for i in range(len(dsg2.sentence))])
+            # print('dsg: ', dsg.dog, '\n', [dsg.get_graph_position(i) for i in range(len(dsg.sentence))],
+            # '\n\n parsed: ', dsg2.dog, '\n', [dsg2.get_graph_position(i+1) for i in range(len(dsg2.sentence))])
             # print()
             if interactive:
                 if dsg.label == 's50':
@@ -451,7 +455,9 @@ class GraphTests(unittest.TestCase):
         if os.path.isdir(reduct_dir):
             shutil.rmtree(reduct_dir)
         os.makedirs(reduct_dir)
-        p = subprocess.Popen([' '.join(["java", "-jar", os.path.join("util", schick_executable), 'dog-reduct', '-g', grammar_path, '-t', corpus_path, "-o", reduct_dir])], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        p = subprocess.Popen([' '.join(
+            ["java", "-jar", os.path.join("util", schick_executable), 'dog-reduct', '-g', grammar_path, '-t',
+             corpus_path, "-o", reduct_dir])], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         while True:
             nextline = p.stdout.readline()
@@ -477,7 +483,7 @@ class GraphTests(unittest.TestCase):
             derivations = [der for der in derivation_manager.enumerate_derivations(i, grammar)]
             self.assertGreaterEqual(len(derivations), 1)
             if len(derivations) > 1:
-                print ("Sentence", i)
+                print("Sentence", i)
                 for der in derivations:
                     print(der)
 
@@ -586,9 +592,9 @@ def build_acyclic_dog():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([(1, 'p'), (2, 'p'), (3, 'p')], 'CS', 0)\
+    dog.add_terminal_edge([(1, 'p'), (2, 'p'), (3, 'p')], 'CS', 0) \
         .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
-    dog.add_terminal_edge([(4, 'p'), (5, 'p'), 6], 'S', 1)\
+    dog.add_terminal_edge([(4, 'p'), (5, 'p'), 6], 'S', 1) \
         .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
     dog.add_terminal_edge([4, (7, 'p'), (6, 'p')], 'S', 3) \
         .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
@@ -609,13 +615,13 @@ def build_acyclic_dog_permuted():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([1, 2, 3], 'CS', 0)\
+    dog.add_terminal_edge([1, 2, 3], 'CS', 0) \
         .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     dog.add_terminal_edge([4, 5, 6], 'S', 1) \
         .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
     dog.add_terminal_edge([4, 7, 6], 'S', 3) \
         .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
-    dog.add_terminal_edge([8, 9, 10], 'CNP', 6)\
+    dog.add_terminal_edge([8, 9, 10], 'CNP', 6) \
         .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     for (lab, i) in [
         ('und', 2), ('Sie', 4), ('entwickelt', 7), ('druckt', 5),
@@ -671,7 +677,7 @@ def dog_se():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([1, 2, 3], 'CS', 0)\
+    dog.add_terminal_edge([1, 2, 3], 'CS', 0) \
         .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     dog.add_nonterminal_edge([5], [1, 4])
     dog.add_nonterminal_edge([], [2])
@@ -687,7 +693,7 @@ def dog_s1():
     dog.add_to_outputs(1)
     dog.add_to_inputs(3)
 
-    dog.add_terminal_edge([1, 2, 3], 'S', 0)\
+    dog.add_terminal_edge([1, 2, 3], 'S', 0) \
         .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
     dog.add_nonterminal_edge([], [1])
     dog.add_nonterminal_edge([], [2])
@@ -707,7 +713,7 @@ def dog_s3():
     dog.add_to_outputs(0)
     dog.add_to_inputs(1)
 
-    dog.add_terminal_edge([1, 2, 3], 'S', 0)\
+    dog.add_terminal_edge([1, 2, 3], 'S', 0) \
         .set_function(0, "SB").set_function(1, "HD").set_function(2, "OA")
     dog.add_nonterminal_edge([], [2])
     dog.add_nonterminal_edge([], [3])
@@ -733,7 +739,7 @@ def dog_s13():
         dog.add_node(i)
     dog.add_to_outputs(0)
 
-    dog.add_terminal_edge([1, 2, 3], 'CNP', 0)\
+    dog.add_terminal_edge([1, 2, 3], 'CNP', 0) \
         .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     for i in range(1, 4):
         dog.add_nonterminal_edge([], [i])
