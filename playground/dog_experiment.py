@@ -316,11 +316,12 @@ def compute_oracle_derivation(parser, dsg, mapping=id):
 def main():
     directions = ["left-to-right", "right-to-left"]
 
-    def rec_part_strategy(direction, subgrouping, fanout):
+    def rec_part_strategy(direction, subgrouping, fanout, binarize):
         if direction == "right-to-left":
             return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping), fanout)
         else:
-            return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping),
+            return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping
+                                                                                                    , weak=binarize),
                                                                          fanout)
 
     subgroupings = [True, False]
@@ -354,6 +355,7 @@ def main():
     start_exp = 0
     exp = start_exp
     scorers = []
+    binarize = True
     for direction, subgrouping, fanout, nonterminal_labeling, reorder in \
             product(directions, subgroupings, fanouts, nonterminal_labelings, reorder_children):
 
@@ -362,8 +364,8 @@ def main():
               , nonterminal_labeling.__name__, "reorder children", reorder)
         print()
 
-        scorer = run_experiment(rec_part_strategy(direction, subgrouping, fanout), nonterminal_labeling, exp=exp
-                                , reorder_children=reorder)
+        scorer = run_experiment(rec_part_strategy(direction, subgrouping, fanout, binarize), nonterminal_labeling, exp=exp
+                                , reorder_children=reorder, binarize=binarize)
         scorers.append(scorer)
 
         exp += 1
