@@ -7,17 +7,57 @@ from copy import deepcopy
 
 
 def upward_closure(dog, nodes):
+    """
+    :param dog:
+    :type dog:
+    :param nodes:
+    :type nodes:
+    :return:
+    :rtype:
+    The name is a bit outdated. Actually we perform an upward closure on normal edges and a downward closure
+    on strange edges [see the comment below.]
+    """
     assert isinstance(dog, DirectedOrderedGraph)
+
+    # First we need to compute strange edges, i.e., the smallest set U of edges s.t.
+    #   - every edge, which has some input and where every primary input is the output of an edge in U, is in U.
+    # In particular, edges with some input but without primary inputs are in U.
+    strange = dog.internal_edges_without_primary_input()
+    changed = True
+    while changed:
+        changed = False
+        for edge in dog.terminal_edges:
+            if edge not in strange \
+                    and edge.inputs != [] \
+                    and all([any([edge.inputs[i] == strange_edge.outputs[0] for strange_edge in strange])
+                             for i in edge.primary_inputs]):
+                strange.append(edge)
+                changed = True
+    strange_outs = [edge.outputs[0] for edge in strange]
+
+    # Compute the actual node closure
     closure = list(nodes)
     changed = True
     while changed:
         changed = False
         for edge in dog.terminal_edges:
-            if edge.inputs != [] and all([edge.inputs[i] in closure for i in edge.primary_inputs]):
+            if ((edge.inputs != []                           # consider only non-leaves
+                        and all([edge.inputs[i] in closure  # who have all their primary predecessors in the closure
+                                 or edge.inputs[i] in strange_outs # or in strange
+                                 for i in edge.primary_inputs])
+                        # and at least one primary input not not in strange
+                        and any([edge.inputs[i] in closure for i in edge.primary_inputs]))
+                    # alternatively: if edge in strange and its output is in the closure
+                    or (edge in strange and edge.outputs[0] in closure)):
+                # do an upward closure on outputs of edge
                 for node in edge.outputs:
                     if node not in closure:
                         closure.append(node)
                         changed = True
+                # do a downward closure on strange, primary inputs of edge
+                for i in edge.primary_inputs:
+                    if edge.inputs[i] in strange_outs and edge.inputs[i] not in closure:
+                        closure.append(edge.inputs[i])
     closure.sort()
     return closure
 

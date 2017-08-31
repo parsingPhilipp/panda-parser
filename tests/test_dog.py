@@ -5,10 +5,10 @@ from graphs.util import render_and_view_dog
 from graphs.graph_bimorphism_json_export import export_dog_grammar_to_json, export_corpus_to_json
 from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
-from hybridtree.monadic_tokens import ConstituentTerminal
+from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
 from parser.naive.parsing import LCFRS_parser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
-from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning
+from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning, fanout_limited_partitioning_left_to_right
 from grammar.induction.terminal_labeling import PosTerminals
 import subprocess
 import json
@@ -588,6 +588,67 @@ class GraphTests(unittest.TestCase):
         # render_and_view_dog(debin_dog, 'debinerized')
         self.assertEqual(dog, debin_dog)
 
+    def test_primary_tree_violation_workaround(self):
+        label = 's150'
+        path = "res/tiger/tiger_8000.xml"
+        train_dsgs = sentence_names_to_deep_syntax_graphs([label], path, hold=False, reorder_children=True)
+        binarize = True
+
+        # Grammar induction
+        term_labeling_token = PosTerminals()
+
+        def label_edge(edge):
+            if isinstance(edge.label, ConstituentTerminal):
+                return edge.label.pos()
+            else:
+                return edge.label
+
+        def term_labeling(token):
+            if isinstance(token, ConstituentTerminal):
+                return term_labeling_token.token_label(token)
+            else:
+                return token
+
+        if binarize:
+            def modify_token(token):
+                if isinstance(token, ConstituentCategory):
+                    token_new = deepcopy(token)
+                    token_new.set_category(token.category() + '-BAR')
+                    return token_new
+                elif isinstance(token, str):
+                    return token + '-BAR'
+                else:
+                    assert False
+
+            train_dsgs = [dsg.binarize(bin_modifier=modify_token) for dsg in train_dsgs]
+
+            def is_bin(token):
+                if isinstance(token, ConstituentCategory):
+                    if token.category().endswith('-BAR'):
+                        return True
+                elif isinstance(token, str):
+                    if token.endswith('-BAR'):
+                        return True
+                return False
+
+            def debinarize(dsg):
+                return dsg.debinarize(is_bin=is_bin)
+
+        else:
+            debinarize = id
+
+        def rec_part_strategy(direction, subgrouping, fanout):
+            if direction == "right-to-left":
+                return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping), fanout)
+            else:
+                return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping, weak=True),
+                                                                             fanout)
+        the_rec_part_strategy = rec_part_strategy("left-to-right", True, 1)
+
+        def simple_nonterminal_labeling(nodes, dsg):
+            return simple_labeling(nodes, dsg, label_edge)
+        # render_and_view_dog(train_dsgs[0].dog, 'train_dsg_tmp')
+        grammar = induction_on_a_corpus(train_dsgs, the_rec_part_strategy, simple_nonterminal_labeling, term_labeling)
 
 if __name__ == '__main__':
     unittest.main()
