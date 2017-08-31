@@ -478,7 +478,7 @@ class DirectedOrderedGraph:
         term_edge_lines = [line for i, edge in enumerate(self._terminal_edges) for line in
                            [edge_line(edge, 't' + str(i), edge.label)] + tentacles(edge, 't' + str(i))]
         nont_edge_lines = [line for i, edge in enumerate(self._nonterminal_edges) if edge is not None for line in
-                           [edge_line(edge, 'n' + str(i), 'e' + str(i))] + tentacles('n' + str(i))]
+                           [edge_line(edge, 'n' + str(i), 'e' + str(i))] + tentacles(edge, 'n' + str(i))]
         return 'digraph G {\n\trankdir=BT;\n' \
                + '\tlabelloc=top;\n\tlabel=\"' + title + '\";\n' \
                + '\n'.join(node_lines + term_edge_lines + nont_edge_lines) \
