@@ -576,10 +576,12 @@ class GraphTests(unittest.TestCase):
 
         bin_dog_control = build_acyclic_dog_binarized()
         # render_and_view_dog(bin_dog_control, 'binarized_dog')
+        self.assertTrue(dog.primary_is_tree())
 
         bin_dog = dog.binarize()
         #render_and_view_dog(bin_dog, 'binarized_auto')
         self.assertEqual(bin_dog, bin_dog_control)
+        self.assertTrue(bin_dog.primary_is_tree())
 
         debin_dog = bin_dog.debinarize()
         # render_and_view_dog(debin_dog, 'debinerized')

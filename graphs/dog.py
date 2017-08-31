@@ -530,6 +530,8 @@ class DirectedOrderedGraph:
                 new_edge = bin_dog.add_terminal_edge(edge.inputs, edge.label, edge.outputs[0])
                 for i, _ in enumerate(edge.inputs):
                     new_edge.set_function(i, edge.get_function(i))
+                    if i in edge.primary_inputs:
+                        new_edge.set_primary(i)
             else:
                 new_nodes = []
                 for i in range(len(edge.inputs) - 2):
@@ -542,8 +544,9 @@ class DirectedOrderedGraph:
                 for (i, left), right, right_function, output \
                         in zip(enumerate(edge.inputs), new_nodes, right_functions, outputs):
                     label = edge.label if i == 0 else bin_modifier(edge.label)
-                    primary = 'p' if i in edge.primary_inputs else 's'
-                    bin_dog.add_terminal_edge([(left, primary), (right, 'p')], label, output)\
+                    primary_l = 'p' if i in edge.primary_inputs else 's'
+                    primary_r = 'p' if i < len(edge.inputs) - 2 or (i == len(edge.inputs) - 2 and (i + 1) in edge.primary_inputs) else 's'
+                    bin_dog.add_terminal_edge([(left, primary_l), (right, primary_r)], label, output)\
                         .set_function(0, edge.get_function(i)).set_function(1, right_function)
         return bin_dog
 
@@ -568,10 +571,12 @@ class DirectedOrderedGraph:
         for node in self._outputs:
             assert node not in bin_nodes
             dog.add_to_outputs(node)
-        for edge in self._nonterminal_edges:
-            assert not any([node in bin_nodes for node in edge.inputs])
-            assert not any([node in bin_nodes for node in edge.outputs])
-            dog.add_nonterminal_edge(edge.inputs, edge.outputs)
+        if any([edge is not None for edge in self._nonterminal_edges]):
+            for edge in self._nonterminal_edges:
+                assert edge is not None
+                assert not any([node in bin_nodes for node in edge.inputs])
+                assert not any([node in bin_nodes for node in edge.outputs])
+                dog.add_nonterminal_edge(edge.inputs, edge.outputs)
 
         closest_non_bin_node = {node: None for node in bin_nodes}
         left_of = {node: [] for node in bin_nodes}
@@ -605,6 +610,8 @@ class DirectedOrderedGraph:
                     new_edge = dog.add_terminal_edge(edge.inputs, edge.label, edge.outputs[0])
                     for i, _ in enumerate(edge.inputs):
                         new_edge.set_function(i, edge.get_function(i))
+                        if i in edge.primary_inputs:
+                            new_edge.set_primary(i)
                 else:
                     assert edge.inputs[0] not in bin_nodes
                     inputs = [(edge.inputs[0], 'p' if 0 in edge.primary_inputs else 's')]
