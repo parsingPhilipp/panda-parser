@@ -6,10 +6,11 @@ import shutil
 import subprocess
 import sys
 import time
+from copy import deepcopy
 from itertools import product
 # structure representation and corpus tools
 from graphs.dog import DeepSyntaxGraph
-from hybridtree.monadic_tokens import ConstituentTerminal
+from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 # grammar induction
 from grammar.induction.recursive_partitioning import fanout_limited_partitioning, fanout_limited_partitioning_left_to_right
@@ -65,13 +66,40 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
         else:
             return token
 
+    if binarize:
+        def modify_token(token):
+            if isinstance(token, ConstituentCategory):
+                token_new = deepcopy(token)
+                token_new.set_category(token.category() + '-BAR')
+                return token_new
+            elif isinstance(token, str):
+                return token + '-BAR'
+            else:
+                assert False
+        train_dsgs = [dsg.binarize(bin_modifier=modify_token) for dsg in train_dsgs]
+
+        def is_bin(token):
+            if isinstance(token, ConstituentCategory):
+                if token.category().endswith('-BAR'):
+                    return True
+            elif isinstance(token, str):
+                if token.endswith('-BAR'):
+                    return True
+            return False
+
+        def debinarize(dsg):
+            return dsg.debinarize(is_bin=is_bin)
+
+    else:
+        debinarize = id
+
     grammar = induction_on_a_corpus(train_dsgs, rec_part_strategy, nonterminal_labeling, term_labeling)
     grammar.make_proper()
 
     print("Nonterminals", len(grammar.nonts()), "Rules", len(grammar.rules()))
 
     parser = GFParser_k_best(grammar, k=500)
-    return do_parsing(parser, test_dsgs, term_labeling_token, oracle=True)
+    return do_parsing(parser, test_dsgs, term_labeling_token, oracle=True, debinarize=debinarize)
 
 
     # Compute reducts, i.e., intersect grammar with each training dsg
@@ -182,7 +210,7 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
         del parser
 
 
-def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
+def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False, debinarize=id):
     interactive = True  # False
 
     scorer = PredicateArgumentScoring()
@@ -199,7 +227,7 @@ def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
 
         if parser.recognized():
             if oracle:
-                derivation = compute_oracle_derivation(parser, dsg)
+                derivation = compute_oracle_derivation(parser, dsg, debinarize)
             else:
                 derivation = parser.best_derivation_tree()
             dog, sync = dog_evaluation(derivation)
@@ -208,9 +236,9 @@ def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
                 not_output_connected += 1
                 if interactive:
                     z2 = render_and_view_dog(dog, "parsed_" + dsg.label)
-                    z2.communicate()
+                    # z2.communicate()
 
-            dsg2 = DeepSyntaxGraph(dsg.sentence, dog, sync)
+            dsg2 = DeepSyntaxGraph(dsg.sentence, debinarize(dog), sync)
 
             scorer.add_accuracy_frames(
                 dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
@@ -250,7 +278,7 @@ def do_parsing(parser, test_dsgs, term_labeling_token, oracle=False):
     return scorer
 
 
-def compute_oracle_derivation(parser, dsg):
+def compute_oracle_derivation(parser, dsg, mapping=id):
     validationMethod = "F1"
     best_der = None
     best_f1 = -1
@@ -260,7 +288,7 @@ def compute_oracle_derivation(parser, dsg):
     relevant = set([tuple(t) for t in dsg.labeled_frames(guard=lambda x: x[1] > 0)])
     for _, derivation in parser.k_best_derivation_trees():
         dog, sync = dog_evaluation(derivation)
-        dsg2 = DeepSyntaxGraph(dsg.sentence, dog, sync)
+        dsg2 = DeepSyntaxGraph(dsg.sentence, mapping(dog), sync)
         system_spans = dsg2.labeled_frames(guard=lambda x: x[1] > 0)
 
         retrieved = set([tuple(t) for t in system_spans])
