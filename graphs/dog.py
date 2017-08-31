@@ -514,7 +514,7 @@ class DirectedOrderedGraph:
         data['ports'] = self._inputs + self._outputs
         return data
 
-    def binarize(self, edge_suffix='-BAR', bin_func='--'):
+    def binarize(self, bin_modifier=lambda x: x + '-BAR', bin_func='--'):
         bin_dog = DirectedOrderedGraph()
         for node in self.nodes:
             bin_dog.add_node(node)
@@ -541,20 +541,20 @@ class DirectedOrderedGraph:
                 outputs = [edge.outputs[0]] + new_nodes
                 for (i, left), right, right_function, output \
                         in zip(enumerate(edge.inputs), new_nodes, right_functions, outputs):
-                    label = edge.label if i == 0 else edge.label + edge_suffix
+                    label = edge.label if i == 0 else bin_modifier(edge.label)
                     primary = 'p' if i in edge.primary_inputs else 's'
                     bin_dog.add_terminal_edge([(left, primary), (right, 'p')], label, output)\
                         .set_function(0, edge.get_function(i)).set_function(1, right_function)
         return bin_dog
 
-    def debinarize(self, edge_suffix="-BAR"):
+    def debinarize(self, is_bin=lambda x: x.endswith("-BAR")):
         dog = DirectedOrderedGraph()
         nodes = []
         bin_nodes = []
         for node in self.nodes:
             if node in self._incoming_edge:
                 incoming_edge = self.incoming_edge(node)
-                if incoming_edge.label.endswith(edge_suffix):
+                if is_bin(incoming_edge.label):
                     bin_nodes.append(node)
                 else:
                     nodes.append(node)
@@ -770,12 +770,12 @@ class DeepSyntaxGraph:
 
         return frames
 
-    def binarize(self, edge_suffix="-BAR", bin_func="--"):
-        bin_dog = self.dog.binarize(edge_suffix=edge_suffix, bin_func=bin_func)
+    def binarize(self, bin_modifier=lambda x: x + "-BAR", bin_func="--"):
+        bin_dog = self.dog.binarize(bin_modifier=bin_modifier, bin_func=bin_func)
         return DeepSyntaxGraph(self.sentence, bin_dog, self.synchronization, self.label)
 
-    def debinarize(self, edge_suffix="-BAR"):
-        dog = self.dog.debinarize(edge_suffix=edge_suffix)
+    def debinarize(self, is_bin=lambda x: x.endswith("-BAR")):
+        dog = self.dog.debinarize(is_bin=is_bin)
         assert all([all([node in dog.nodes for node in sync]) for sync in self.synchronization])
         return DeepSyntaxGraph(self.sentence, dog, self.synchronization)
 
