@@ -676,7 +676,7 @@ class DeepSyntaxGraph:
         return self.__synchronization
 
     def recursive_partitioning(self, subgrouping=False, weak=False):
-        assert self.dog.primary_is_tree()
+        assert self.dog.primary_is_tree(weak=weak)
         assert len(self.dog.outputs) == 1
         return self.__extract_recursive_partitioning_rec(self.dog.outputs[0], subgrouping)
 
