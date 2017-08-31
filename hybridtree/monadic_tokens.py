@@ -155,6 +155,9 @@ class ConstituentCategory(ConstituencyToken):
     def type(self):
         return "CONSTITUENT-CATEGORY"
 
+    def set_category(self, category):
+        self.__category = category
+
 
 def construct_conll_token(form, pos, _=True):
     return CoNLLToken(form, '_', pos, pos, '_', '_')
