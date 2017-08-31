@@ -36,7 +36,7 @@ schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 threads = 1
 
 
-def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_children):
+def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_children, binarize=True):
     start = 1
     stop = 7000
 
@@ -324,7 +324,7 @@ def main():
                                                                          fanout)
 
     subgroupings = [True, False]
-    fanouts = [2]
+    fanouts = [1]
     reorder_children = [True, False]
 
     def label_edge(edge):
