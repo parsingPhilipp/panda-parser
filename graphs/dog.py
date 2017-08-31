@@ -547,6 +547,84 @@ class DirectedOrderedGraph:
                         .set_function(0, edge.get_function(i)).set_function(1, right_function)
         return bin_dog
 
+    def debinarize(self, edge_suffix="-BAR"):
+        dog = DirectedOrderedGraph()
+        nodes = []
+        bin_nodes = []
+        for node in self.nodes:
+            if node in self._incoming_edge:
+                incoming_edge = self.incoming_edge(node)
+                if incoming_edge.label.endswith(edge_suffix):
+                    bin_nodes.append(node)
+                else:
+                    nodes.append(node)
+            else:
+                nodes.append(node)
+        for node in nodes:
+            dog.add_node(node)
+        for node in self._inputs:
+            assert node not in bin_nodes
+            dog.add_to_inputs(node)
+        for node in self._outputs:
+            assert node not in bin_nodes
+            dog.add_to_outputs(node)
+        for edge in self._nonterminal_edges:
+            assert not any([node in bin_nodes for node in edge.inputs])
+            assert not any([node in bin_nodes for node in edge.outputs])
+            dog.add_nonterminal_edge(edge.inputs, edge.outputs)
+
+        closest_non_bin_node = {node: None for node in bin_nodes}
+        left_of = {node: [] for node in bin_nodes}
+        changed = True
+        while changed:
+            changed = False
+            for node in bin_nodes:
+                assert len(self._parents[node]) == 1
+                parent = self._parents[node][0]
+                if parent in nodes and closest_non_bin_node[node] != parent:
+                    closest_non_bin_node[node] = parent
+                    changed = True
+                elif parent in bin_nodes and closest_non_bin_node[parent] != closest_non_bin_node[node]:
+                    left_of[node] = left_of[parent] + [parent]
+                    closest_non_bin_node[node] = closest_non_bin_node[parent]
+                    changed = True
+        conflation = {}
+        for node in closest_non_bin_node:
+            parent = closest_non_bin_node[node]
+            assert parent is not None
+            if parent in conflation:
+                conflation[parent] += [node]
+            else:
+                conflation[parent] = [node]
+        for parent in conflation:
+            conflation[parent] = sorted(conflation[parent], key=lambda x: left_of[x])
+
+        for edge in self.terminal_edges:
+            if edge.outputs[0] not in bin_nodes:
+                if not any([node in bin_nodes for node in edge.inputs]):
+                    new_edge = dog.add_terminal_edge(edge.inputs, edge.label, edge.outputs[0])
+                    for i, _ in enumerate(edge.inputs):
+                        new_edge.set_function(i, edge.get_function(i))
+                else:
+                    assert edge.inputs[0] not in bin_nodes
+                    inputs = [(edge.inputs[0], 'p' if 0 in edge.primary_inputs else 's')]
+                    functions = [edge.get_function(0)]
+
+                    for node in conflation[edge.outputs[0]][:-1]:
+                        bin_edge = self.incoming_edge(node)
+                        inputs += [(bin_edge.inputs[0], 'p' if 0 in bin_edge.primary_inputs else 's')]
+                        functions += [bin_edge.get_function(0)]
+
+                    bin_edge = self.incoming_edge(conflation[edge.outputs[0]][-1])
+                    inputs += [(node, 'p' if i in bin_edge.primary_inputs else 's')
+                               for i, node in enumerate(bin_edge.inputs)]
+                    functions += [bin_edge.get_function(0), bin_edge.get_function(1)]
+                    new_edge = dog.add_terminal_edge(inputs, edge.label, edge.outputs[0])
+                    for i, func in enumerate(functions):
+                        new_edge.set_function(i, func)
+
+        return dog
+
 
 class DeepSyntaxGraph:
     def __init__(self, sentence, dog, synchronization, label=None):
@@ -695,6 +773,11 @@ class DeepSyntaxGraph:
     def binarize(self, edge_suffix="-BAR", bin_func="--"):
         bin_dog = self.dog.binarize(edge_suffix=edge_suffix, bin_func=bin_func)
         return DeepSyntaxGraph(self.sentence, bin_dog, self.synchronization, self.label)
+
+    def debinarize(self, edge_suffix="-BAR"):
+        dog = self.dog.debinarize(edge_suffix=edge_suffix)
+        assert all([all([node in dog.nodes for node in sync]) for sync in self.synchronization])
+        return DeepSyntaxGraph(self.sentence, dog, self.synchronization)
 
 
 def pairwise_disjoint_elem(list):

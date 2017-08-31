@@ -581,6 +581,10 @@ class GraphTests(unittest.TestCase):
         #render_and_view_dog(bin_dog, 'binarized_auto')
         self.assertEqual(bin_dog, bin_dog_control)
 
+        debin_dog = bin_dog.debinarize()
+        # render_and_view_dog(debin_dog, 'debinerized')
+        self.assertEqual(dog, debin_dog)
+
 
 if __name__ == '__main__':
     unittest.main()
