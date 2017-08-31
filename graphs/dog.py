@@ -516,6 +516,39 @@ class DirectedOrderedGraph:
         data['ports'] = self._inputs + self._outputs
         return data
 
+    def binarize(self, edge_suffix='-BAR', bin_func='--'):
+        bin_dog = DirectedOrderedGraph()
+        for node in self.nodes:
+            bin_dog.add_node(node)
+        for node in self._inputs:
+            bin_dog.add_to_inputs(node)
+        for node in self._outputs:
+            bin_dog.add_to_outputs(node)
+        for edge in self._nonterminal_edges:
+            bin_dog.add_nonterminal_edge(edge.inputs, edge.outputs)
+        next_node = max(self.nodes) + 1
+        for edge in self._terminal_edges:
+            if len(edge.inputs) <= 2:
+                new_edge = bin_dog.add_terminal_edge(edge.inputs, edge.label, edge.outputs[0])
+                for i, _ in enumerate(edge.inputs):
+                    new_edge.set_function(i, edge.get_function(i))
+            else:
+                new_nodes = []
+                for i in range(len(edge.inputs) - 2):
+                    new_nodes.append(next_node)
+                    bin_dog.add_node(next_node)
+                    next_node += 1
+                new_nodes.append(edge.inputs[-1])
+                right_functions = [bin_func] * (len(edge.inputs) - 2) + [edge.get_function(len(edge.inputs) - 1)]
+                outputs = [edge.outputs[0]] + new_nodes
+                for (i, left), right, right_function, output \
+                        in zip(enumerate(edge.inputs), new_nodes, right_functions, outputs):
+                    label = edge.label if i == 0 else edge.label + edge_suffix
+                    primary = 'p' if i in edge.primary_inputs else 's'
+                    bin_dog.add_terminal_edge([(left, primary), (right, 'p')], label, output)\
+                        .set_function(0, edge.get_function(i)).set_function(1, right_function)
+        return bin_dog
+
 
 class DeepSyntaxGraph:
     def __init__(self, sentence, dog, synchronization, label=None):
@@ -660,6 +693,10 @@ class DeepSyntaxGraph:
                 frames.append(frame)
 
         return frames
+
+    def binarize(self, edge_suffix="-BAR", bin_func="--"):
+        bin_dog = self.dog.binarize(edge_suffix=edge_suffix, bin_func=bin_func)
+        return DeepSyntaxGraph(self.sentence, bin_dog, self.synchronization, self.label)
 
 
 def pairwise_disjoint_elem(list):

@@ -565,6 +565,16 @@ class GraphTests(unittest.TestCase):
                                  {8}, [])]), ({9, 10}, [({9}, []), ({10}, [])])]), ({11}, [])])]),
                                   fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping=True), 1))
 
+    def test_binarization(self):
+        dog = build_acyclic_dog()
+
+        bin_dog_control = build_acyclic_dog_binarized()
+        # render_and_view_dog(bin_dog_control, 'binarized_dog')
+
+        bin_dog = dog.binarize()
+        #render_and_view_dog(bin_dog, 'binarized_auto')
+        self.assertEqual(bin_dog, bin_dog_control)
+
 
 if __name__ == '__main__':
     unittest.main()
@@ -609,6 +619,37 @@ def build_acyclic_dog_permuted():
         .set_function(0, "CJ").set_function(1, "CD").set_function(2, "CJ")
     for (lab, i) in [
         ('und', 2), ('Sie', 4), ('entwickelt', 7), ('druckt', 5),
+        ('Verpackungen', 8), ('und', 9), ('Etiketten', 10)
+    ]:
+        dog.add_terminal_edge([], lab, i)
+
+    return dog
+
+
+def build_acyclic_dog_binarized():
+    dog = DirectedOrderedGraph()
+    for i in range(15):
+        dog.add_node(i)
+    dog.add_to_outputs(0)
+
+    dog.add_terminal_edge([(1, 'p'), (11, 'p')], 'CS', 0) \
+        .set_function(0, "CJ")
+    dog.add_terminal_edge([(2, 'p'), (3, 'p')], 'CS-BAR', 11)\
+        .set_function(0, "CD").set_function(1, "CJ")
+    dog.add_terminal_edge([(4, 'p'), (12, 'p')], 'S', 1) \
+        .set_function(0, "SB")
+    dog.add_terminal_edge([(5, 'p'), 6], 'S-BAR', 12)\
+        .set_function(0, "HD").set_function(1, "OA")
+    dog.add_terminal_edge([4, (13, 'p')], 'S', 3) \
+        .set_function(0, "SB")
+    dog.add_terminal_edge([(7, 'p'), (6, 'p')], 'S-BAR', 13)\
+        .set_function(0, "HD").set_function(1, "OA")
+    dog.add_terminal_edge([(8, 'p'), (14, 'p')], 'CNP', 6) \
+        .set_function(0, "CJ")
+    dog.add_terminal_edge([(9, 'p'), (10, 'p')], 'CNP-BAR', 14)\
+        .set_function(0, "CD").set_function(1, "CJ")
+    for (lab, i) in [
+        ('und', 2), ('Sie', 4), ('entwickelt', 5), ('druckt', 7),
         ('Verpackungen', 8), ('und', 9), ('Etiketten', 10)
     ]:
         dog.add_terminal_edge([], lab, i)
