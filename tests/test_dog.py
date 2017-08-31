@@ -545,7 +545,8 @@ class GraphTests(unittest.TestCase):
         dsgs = sentence_names_to_deep_syntax_graphs(
             ['s' + str(i) for i in range(start, stop + 1) if i not in exclude]
             , path
-            , hold=False)
+            , hold=False
+            , reorder_children=True)
         f = lambda token: token.pos() if isinstance(token, ConstituentTerminal) else token
         for dsg in dsgs:
             dsg.dog.project_labels(f)
