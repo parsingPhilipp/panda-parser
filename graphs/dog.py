@@ -694,11 +694,11 @@ class DeepSyntaxGraph:
         for i in edge.primary_inputs:
             child_node = edge.inputs[i]
             child_rec_par = self.__extract_recursive_partitioning_rec(child_node, subgrouping)
-            assert child_rec_par != ([], [])
-            children += [child_rec_par]
-            for sent_pos in child_rec_par[0]:
-                assert sent_pos not in covered
-                covered.append(sent_pos)
+            if len(child_rec_par[0]) > 0:
+                children += [child_rec_par]
+                for sent_pos in child_rec_par[0]:
+                    assert sent_pos not in covered
+                    covered.append(sent_pos)
         covered = set(covered)
         if len(children) == 1 and covered == children[0][0]:
             return children[0]

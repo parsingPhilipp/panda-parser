@@ -590,8 +590,9 @@ class GraphTests(unittest.TestCase):
 
     def test_primary_tree_violation_workaround(self):
         label = 's150'
+        label2 = 's6516'
         path = "res/tiger/tiger_8000.xml"
-        train_dsgs = sentence_names_to_deep_syntax_graphs([label], path, hold=False, reorder_children=True)
+        train_dsgs = sentence_names_to_deep_syntax_graphs([label, label2], path, hold=False, reorder_children=True)
         binarize = True
 
         # Grammar induction
