@@ -355,19 +355,22 @@ def main():
                 right = latentAnnotations[rightIndex][1]
                 # TODO: How to determine NTs to keep?
                 keepFromOne = []
-                for i in range(0, len(grammar.nonts())):
-                    keepFromOne.append(random.choice([True, False]))
+                while True:
+                    for i in range(0, len(grammar.nonts())):
+                        keepFromOne.append(random.choice([True, False]))
+                    if not (all(keepFromOne) or not any(keepFromOne)): # do not keep all from one LA
+                        break
 
                 la = left.genetic_recombination(right, grammarInfo, keepFromOne, 0.00000001, 300)
                 if not la.check_for_validity():
-                    print('[Genetic] LA is not consistent! (See details before)')
+                    print('[Genetic] LA is not valid! (See details before)')
                 if not la.is_proper(grammarInfo):
                     print('[Genetic] LA is not proper!')
 
                 # do SM-Training on recombined LAs
                 la = splitMergeTrainer.split_merge_cycle(la)
                 if not la.check_for_validity():
-                    print('[Genetic] Split/Merge introduced inconsistencys into LA! (See details before)')
+                    print('[Genetic] Split/Merge introduced invalid weights into LA! (See details before)')
                 if not la.is_proper(grammarInfo):
                     print('[Genetic] Split/Merge introduced problems with properness!')
 
