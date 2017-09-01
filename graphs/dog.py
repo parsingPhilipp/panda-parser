@@ -756,7 +756,7 @@ class DeepSyntaxGraph:
         return data
 
     def labeled_frames(self, replace_nodes_by_string_positions=True, guard=lambda x: True):
-        frames = []
+        frames = set()
 
         descendants = self.dog.node_closure(self.dog.children)
 
@@ -772,7 +772,7 @@ class DeepSyntaxGraph:
             else:
                 predicate = edge.label
 
-            arg_label_list = []
+            arg_label_set = []
             for i, child in enumerate(edge.inputs):
                 func = edge.get_function(i)
 
@@ -785,11 +785,11 @@ class DeepSyntaxGraph:
                 else:
                     arg = self.dog.incoming_edge(child).label
 
-                arg_label_list.append((arg, func))
+                arg_label_set.append((arg, func))
 
-            frame = predicate, tuple(arg_label_list)
+            frame = predicate, frozenset(arg_label_set)
             if guard(frame):
-                frames.append(frame)
+                frames.add(frame)
 
         return frames
 

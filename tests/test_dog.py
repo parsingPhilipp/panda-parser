@@ -508,34 +508,50 @@ class GraphTests(unittest.TestCase):
         # print(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0))
         # print(dsg.labeled_frames(replace_nodes_by_string_positions=False))
         scorer = PredicateArgumentScoring()
+
+        def setify(frames):
+            return set([(label, frozenset(args)) for label, args in frames])
+
         # print(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True))
 
-        self.assertListEqual(dsg.labeled_frames(),
-                             [('CS', (((0, 1, 4, 5, 6), 'CJ'), ((2,), 'CD'), ((0, 3, 4, 5, 6), 'CJ'))),
-                              ('S', (((0,), 'SB'), ((1,), 'HD'), ((4, 5, 6), 'OA'))), ((2,), ()),
-                              ('S', (((0,), 'SB'), ((3,), 'HD'), ((4, 5, 6), 'OA'))), ((0,), ()), ((1,), ()),
-                              ('CNP', (((4,), 'CJ'), ((5,), 'CD'), ((6,), 'CJ'))), ((3,), ()), ((4,), ()), ((5,), ()),
-                              ((6,), ())]
-                             )
-        self.assertListEqual(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
-                             [('CS', (((0, 1, 4, 5, 6), 'CJ'), ((2,), 'CD'), ((0, 3, 4, 5, 6), 'CJ'))),
-                              ('S', (((0,), 'SB'), ((1,), 'HD'), ((4, 5, 6), 'OA'))),
-                              ('S', (((0,), 'SB'), ((3,), 'HD'), ((4, 5, 6), 'OA'))),
-                              ('CNP', (((4,), 'CJ'), ((5,), 'CD'), ((6,), 'CJ')))])
-        self.assertListEqual(dsg.labeled_frames(replace_nodes_by_string_positions=False),
-                             [('CS', (('S', 'CJ'), ('und', 'CD'), ('S', 'CJ'))),
-                              ('S', (('Sie', 'SB'), ('entwickelt', 'HD'), ('CNP', 'OA'))), ('und', ()),
-                              ('S', (('Sie', 'SB'), ('druckt', 'HD'), ('CNP', 'OA'))), ('Sie', ()), ('entwickelt', ()),
-                              ('CNP', (('Verpackungen', 'CJ'), ('und', 'CD'), ('Etiketten', 'CJ'))), ('druckt', ()),
-                              ('Verpackungen', ()), ('und', ()), ('Etiketten', ())])
-        self.assertListEqual(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True),
-                             [('CS', (0, 1, 4, 5, 6), 'CJ'), ('CS', (2,), 'CD'), ('CS', (0, 3, 4, 5, 6), 'CJ'),
-                              ('S', (0,), 'SB'), ('S', (1,), 'HD'), ('S', (4, 5, 6), 'OA'), ('S', (0,), 'SB'),
-                              ('S', (3,), 'HD'), ('S', (4, 5, 6), 'OA'), ('CNP', (4,), 'CJ'), ('CNP', (5,), 'CD'),
-                              ('CNP', (6,), 'CJ')])
-        self.assertListEqual(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True),
-                             scorer.extract_dependencies_from_frames(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
-                                                                     include_label=True))
+        self.assertSetEqual(dsg.labeled_frames(),
+                            setify([('CS', (((0, 1, 4, 5, 6), 'CJ'), ((2,), 'CD'), ((0, 3, 4, 5, 6), 'CJ'))),
+                                    ('S', (((0,), 'SB'), ((1,), 'HD'), ((4, 5, 6), 'OA'))), ((2,), ()),
+                                    ('S', (((0,), 'SB'), ((3,), 'HD'), ((4, 5, 6), 'OA'))), ((0,), ()), ((1,), ()),
+                                    ('CNP', (((4,), 'CJ'), ((5,), 'CD'), ((6,), 'CJ'))), ((3,), ()), ((4,), ()),
+                                    ((5,), ()),
+                                    ((6,), ())])
+                            )
+        self.assertSetEqual(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
+                            setify(
+                                [('CS', (((0, 1, 4, 5, 6), 'CJ'), ((2,), 'CD'), ((0, 3, 4, 5, 6), 'CJ'))),
+                                 ('S', (((0,), 'SB'), ((1,), 'HD'), ((4, 5, 6), 'OA'))),
+                                 ('S', (((0,), 'SB'), ((3,), 'HD'), ((4, 5, 6), 'OA'))),
+                                 ('CNP', (((4,), 'CJ'), ((5,), 'CD'), ((6,), 'CJ')))]))
+        self.assertSetEqual(dsg.labeled_frames(replace_nodes_by_string_positions=False),
+                            setify(
+                                [('CS', (('S', 'CJ'), ('und', 'CD'), ('S', 'CJ'))),
+                                 ('S', (('Sie', 'SB'), ('entwickelt', 'HD'), ('CNP', 'OA'))), ('und', ()),
+                                 ('S', (('Sie', 'SB'), ('druckt', 'HD'), ('CNP', 'OA'))), ('Sie', ()),
+                                 ('entwickelt', ()),
+                                 ('CNP', (('Verpackungen', 'CJ'), ('und', 'CD'), ('Etiketten', 'CJ'))), ('druckt', ()),
+                                 ('Verpackungen', ()), ('und', ()), ('Etiketten', ())]))
+        self.assertSetEqual(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True),
+                            {('CS', (0, 1, 4, 5, 6), 'CJ'), ('CS', (2,), 'CD'), ('CS', (0, 3, 4, 5, 6), 'CJ'),
+                             ('S', (0,), 'SB'), ('S', (1,), 'HD'), ('S', (4, 5, 6), 'OA'), ('S', (0,), 'SB'),
+                             ('S', (3,), 'HD'), ('S', (4, 5, 6), 'OA'), ('CNP', (4,), 'CJ'), ('CNP', (5,), 'CD'),
+                             ('CNP', (6,), 'CJ')})
+        self.assertSetEqual(scorer.extract_dependencies_from_frames(dsg.labeled_frames(), include_label=True),
+                            scorer.extract_dependencies_from_frames(dsg.labeled_frames(guard=lambda x: len(x[1]) > 0),
+                                                                    include_label=True))
+
+        self.assertSetEqual(scorer.extract_unlabeled_frames(dsg.labeled_frames()),
+                            {((4,), frozenset([])), ((0,), frozenset([])), ((5,), frozenset([])),
+                             ('CS', frozenset([(2,), (0, 3, 4, 5, 6), (0, 1, 4, 5, 6)])), ((3,), frozenset([])),
+                             ('S', frozenset([(3,), (0,), (4, 5, 6)])), ('S', frozenset([(0,), (4, 5, 6), (1,)])),
+                             ((1,), frozenset([])), ('CNP', frozenset([(5,), (6,), (4,)])), ((6,), frozenset([])),
+                             ((2,), frozenset([]))}
+                            )
 
     def test_subgrouping(self):
         start = 4

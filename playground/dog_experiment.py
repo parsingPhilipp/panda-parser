@@ -285,13 +285,12 @@ def compute_oracle_derivation(parser, dsg, mapping=id):
     best_prec = -1
     best_rec = -1
 
-    relevant = set([tuple(t) for t in dsg.labeled_frames(guard=lambda x: x[1] > 0)])
+    relevant = dsg.labeled_frames(guard=lambda x: x[1] > 0)
     for _, derivation in parser.k_best_derivation_trees():
         dog, sync = dog_evaluation(derivation)
         dsg2 = DeepSyntaxGraph(dsg.sentence, mapping(dog), sync)
-        system_spans = dsg2.labeled_frames(guard=lambda x: x[1] > 0)
+        retrieved = dsg2.labeled_frames(guard=lambda x: x[1] > 0)
 
-        retrieved = set([tuple(t) for t in system_spans])
         inters = retrieved & relevant
 
         # in case of parse failure there are two options here:
