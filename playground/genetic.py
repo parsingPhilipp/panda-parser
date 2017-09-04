@@ -339,10 +339,12 @@ def main():
             print('[Genetic] Initial LA', i, 'is not consistent! (See details before)')
         if not la.is_proper(grammarInfo):
             print('[Genetic] Initial LA', i, 'is not proper!')
-        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, trace), la))
+        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, trace),i, la))
+        print('[Genetic]    added initial LA', i)
+    (fBest, idBest, laBest) = min(latentAnnotations)
+    print("[Genetic] Started with best F-Score of ", fBest, "from Annotation ", idBest)
 
-    print("[Genetic] Started with an Annotation of F-Score of ", min(latentAnnotations)[0])
-
+    geneticCount = genetic_initial
     random.seed(seed)
     for round in range(1, genetic_cycles + 1):
         print("[Genetic] Starting Recombination Round ", round)
@@ -351,8 +353,8 @@ def main():
         # Cross all candidates!
         for leftIndex in range(0, len(latentAnnotations)):
             for rightIndex in range(leftIndex+1, len(latentAnnotations)):
-                left = latentAnnotations[leftIndex][1]
-                right = latentAnnotations[rightIndex][1]
+                (fLeft, idLeft, left) = latentAnnotations[leftIndex]
+                (fright, idRight, right) = latentAnnotations[rightIndex]
                 # TODO: How to determine NTs to keep?
                 keepFromOne = []
                 while True:
@@ -362,25 +364,28 @@ def main():
                         break
 
                 la = left.genetic_recombination(right, grammarInfo, keepFromOne, 0.00000001, 300)
+                print("[Genetic] created LA", geneticCount, "from ", idLeft, "and", idRight)
                 if not la.check_for_validity():
-                    print('[Genetic] LA is not valid! (See details before)')
+                    print('[Genetic] LA', geneticCount, 'is not valid! (See details before)')
                 if not la.is_proper(grammarInfo):
-                    print('[Genetic] LA is not proper!')
+                    print('[Genetic] LA', geneticCount, 'is not proper!')
 
                 # do SM-Training on recombined LAs
                 la = splitMergeTrainer.split_merge_cycle(la)
                 if not la.check_for_validity():
-                    print('[Genetic] Split/Merge introduced invalid weights into LA! (See details before)')
+                    print('[Genetic] Split/Merge introduced invalid weights into LA', geneticCount)
                 if not la.is_proper(grammarInfo):
-                    print('[Genetic] Split/Merge introduced problems with properness!')
+                    print('[Genetic] Split/Merge introduced problems with properness of LA', geneticCount)
 
                 fscore = evaluate_la(grammar, grammarInfo, la, trace)
-                print("[Genetic] Genetic combination yields (F-score): ", fscore)
-                heapq.heappush(newpopulation, (fscore, la))
+                print("[Genetic] LA", geneticCount, "has F-score: ", fscore)
+                heapq.heappush(newpopulation, (fscore, geneticCount, la))
+                geneticCount += 1
         heapq.heapify(newpopulation)
         latentAnnotations = heapq.nsmallest(genetic_population, heapq.merge(latentAnnotations, newpopulation))
         heapq.heapify(latentAnnotations)
-        print("[Genetic] Best annotation has F-Score of ", min(latentAnnotations)[0])
+        (fBest, idBest, laBest) = min(latentAnnotations)
+        print("[Genetic] Best LA", idBest, "has F-Score of ", fBest)
 
 
 def evaluate_la(grammar, grammarInfo, la, trace):
