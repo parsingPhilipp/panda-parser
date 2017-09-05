@@ -293,6 +293,9 @@ def main():
         del train_corpus
     # prepare EM training
     grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
+    if not grammarInfo.check_for_consistency():
+        print("[Genetic] GrammarInfo is not consistent!")
+
     storageManager = PyStorageManager()
 
     em_builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
