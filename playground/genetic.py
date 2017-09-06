@@ -35,6 +35,7 @@ terminal_labeling_path = '/tmp/constituent_labeling.pkl'
 # train_limit = 5000
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 train_limit = 200
+print("train_limit =", train_limit)
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 train_exclude = [7561,17632,46234,50224]
 train_corpus = None
@@ -46,11 +47,15 @@ def get_train_corpus():
     return train_corpus
 validation_start = 40475
 validation_size = validation_start + 100
+print("validation_start =", validation_start)
+print("validation_size =", validation_size)
 validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
 
 test_start = 40475
 test_limit = test_start + 100
+print("test_start =", test_start)
+print("test_limit =", test_limit)
 test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
@@ -82,6 +87,25 @@ validationMethod = "F1"
 validationDropIterations = 6
 
 k_best = 200
+
+
+
+print("max_length =", max_length)
+print("em_epochs =", em_epochs)
+print("seed =", seed)
+print("merge_percentage =", merge_percentage)
+print("sm_cycles =", sm_cycles)
+print("threads =", threads)
+print("smoothing_factor =", smoothing_factor)
+print ("split_randomization =", split_randomization)
+print("scc_merger_threshold =", scc_merger_threshold)
+print("genetic_initial =", genetic_initial)
+print("genetic_population =", genetic_population)
+print("genetic_cycles =", genetic_cycles)
+print("validationMethod =", validationMethod)
+print("validationDropIterations =", validationDropIterations)
+print("k_best =", k_best)
+
 
 # parsing_method = "single-best-annotation"
 parsing_method = "filter-ctf"
