@@ -225,11 +225,11 @@ def do_parsing(parser):
         name = parse_results + '_' + str(i)
 
     path = os.path.join(parse_results_prefix, name + parse_results_suffix)
-
-    with open(path, 'w') as result_file:
-        print('Exporting parse trees of length <=', max_length, 'to', str(path))
-        map(lambda x: x.strip_vroot(), system_trees)
-        result_file.writelines(hybridtrees_to_sentence_names(system_trees, test_start, max_length))
+    #
+    # with open(path, 'w') as result_file:
+    #     print('Exporting parse trees of length <=', max_length, 'to', str(path))
+    #     map(lambda x: x.strip_vroot(), system_trees)
+    #     result_file.writelines(hybridtrees_to_sentence_names(system_trees, test_start, max_length))
 
     return accuracy
 
