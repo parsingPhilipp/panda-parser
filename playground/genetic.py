@@ -39,12 +39,9 @@ print("train_limit =", train_limit)
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 train_exclude = [7561,17632,46234,50224]
 train_corpus = None
+train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
 
-def get_train_corpus():
-    global train_corpus
-    if train_corpus is None:
-        train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
-    return train_corpus
+
 validation_start = 40475
 validation_size = validation_start + 100
 print("validation_start =", validation_start)
@@ -70,7 +67,7 @@ test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.Ge
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
 if not os.path.isfile(terminal_labeling_path):
-    terminal_labeling = FormPosTerminalsUnk(get_train_corpus(), 20)
+    terminal_labeling = FormPosTerminalsUnk(train_corpus, 20)
     pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
 else:
     terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
@@ -302,7 +299,7 @@ def main():
     # induce or load grammar
     if not os.path.isfile(grammar_path):
         grammar = LCFRS('START')
-        for tree in get_train_corpus():
+        for tree in train_corpus:
             if not tree.complete() or tree.empty_fringe():
                 continue
             part = recursive_partitioning(tree)
@@ -315,7 +312,7 @@ def main():
 
     # compute or load reducts
     if not os.path.isfile(reduct_path):
-        traceTrain = compute_reducts(grammar, get_train_corpus(), terminal_labeling)
+        traceTrain = compute_reducts(grammar, train_corpus, terminal_labeling)
         traceTrain.serialize(reduct_path)
     else:
         traceTrain = PySDCPTraceManager(grammar, terminal_labeling)
@@ -324,9 +321,6 @@ def main():
     traceValidationGenetic = compute_reducts(grammar, validation_genetic_corpus, terminal_labeling)
     traceValidation = compute_reducts(grammar, validation_corpus, terminal_labeling)
 
-    global train_corpus
-    if train_corpus is not None:
-        del train_corpus
 
     # prepare EM training
     grammarInfo = PyGrammarInfo(grammar, traceTrain.get_nonterminal_map())
@@ -349,13 +343,11 @@ def main():
     # emTrainerOld = PyEMTrainer(traceTrain)
     # emTrainerOld.em_training(grammar, 30, "rfe", tie_breaking=True)
 
-    global validation_corpus
     # compute parses for validation set
     baseline_parser = GFParser_k_best(grammar, k=k_best)
     validator = build_score_validator(grammar, grammarInfo, traceTrain.get_nonterminal_map(), storageManager,
                                        terminal_labeling, baseline_parser, validation_corpus, validationMethod)
     del baseline_parser
-    del validation_corpus
 
     # prepare SM training
     builder = PySplitMergeTrainerBuilder(traceTrain, grammarInfo)
