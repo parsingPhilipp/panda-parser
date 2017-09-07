@@ -53,7 +53,7 @@ validation_corpus = build_corpus(validation_path, validation_start, validation_s
 validation_genetic_start = 40475
 validation_genetic_size = validation_genetic_start + 100
 print("validation_genetic_start =", validation_genetic_start)
-print("validation_size =", validation_genetic_size)
+print("validation_genetic_size =", validation_genetic_size)
 validation_genetic_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 validation_genetic_corpus = build_corpus(validation_genetic_path, validation_genetic_start, validation_genetic_size, train_exclude)
 
