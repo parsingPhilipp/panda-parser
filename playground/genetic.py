@@ -52,6 +52,15 @@ print("validation_size =", validation_size)
 validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
 
+
+validation_genetic_start = 40475
+validation_genetic_size = validation_genetic_start + 100
+print("validation_genetic_start =", validation_genetic_start)
+print("validation_size =", validation_genetic_size)
+validation_genetic_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+validation_genetic_corpus = build_corpus(validation_genetic_path, validation_genetic_start, validation_genetic_size, train_exclude)
+
+
 test_start = 40475
 test_limit = test_start + 100
 print("test_start =", test_start)
@@ -306,23 +315,27 @@ def main():
 
     # compute or load reducts
     if not os.path.isfile(reduct_path):
-        trace = compute_reducts(grammar, get_train_corpus(), terminal_labeling)
-        trace.serialize(reduct_path)
+        traceTrain = compute_reducts(grammar, get_train_corpus(), terminal_labeling)
+        traceTrain.serialize(reduct_path)
     else:
-        trace = PySDCPTraceManager(grammar, terminal_labeling)
-        trace.load_traces_from_file(reduct_path)
+        traceTrain = PySDCPTraceManager(grammar, terminal_labeling)
+        traceTrain.load_traces_from_file(reduct_path)
+
+    traceValidationGenetic = compute_reducts(grammar, validation_genetic_corpus, terminal_labeling)
+    traceValidation = compute_reducts(grammar, validation_corpus, terminal_labeling)
 
     global train_corpus
     if train_corpus is not None:
         del train_corpus
+
     # prepare EM training
-    grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
+    grammarInfo = PyGrammarInfo(grammar, traceTrain.get_nonterminal_map())
     if not grammarInfo.check_for_consistency():
         print("[Genetic] GrammarInfo is not consistent!")
 
     storageManager = PyStorageManager()
 
-    em_builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
+    em_builder = PySplitMergeTrainerBuilder(traceTrain, grammarInfo)
     em_builder.set_em_epochs(em_epochs)
     em_builder.set_simple_expector(threads=threads)
     emTrainer = em_builder.build()
@@ -333,19 +346,19 @@ def main():
     emTrainer.em_train(la_no_splits)
     la_no_splits.project_weights(grammar, grammarInfo)
 
-    # emTrainerOld = PyEMTrainer(trace)
+    # emTrainerOld = PyEMTrainer(traceTrain)
     # emTrainerOld.em_training(grammar, 30, "rfe", tie_breaking=True)
 
     global validation_corpus
     # compute parses for validation set
     baseline_parser = GFParser_k_best(grammar, k=k_best)
-    validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
+    validator = build_score_validator(grammar, grammarInfo, traceTrain.get_nonterminal_map(), storageManager,
                                        terminal_labeling, baseline_parser, validation_corpus, validationMethod)
     del baseline_parser
     del validation_corpus
 
     # prepare SM training
-    builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
+    builder = PySplitMergeTrainerBuilder(traceTrain, grammarInfo)
     builder.set_em_epochs(em_epochs)
     builder.set_split_randomization(1.0, seed + 1)
     builder.set_simple_expector(threads=threads)
@@ -366,10 +379,11 @@ def main():
             print('[Genetic] Initial LA', i, 'is not consistent! (See details before)')
         if not la.is_proper(grammarInfo):
             print('[Genetic] Initial LA', i, 'is not proper!')
-        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, trace),i, la))
+        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, traceValidationGenetic),i, la))
         print('[Genetic]    added initial LA', i)
     (fBest, idBest, laBest) = min(latentAnnotations)
-    print("[Genetic] Started with best F-Score of ", fBest, "from Annotation ", idBest)
+    validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation)
+    print("[Genetic] Started with best F-Score (validation) of", validation_score, "from Annotation ", idBest)
 
     geneticCount = genetic_initial
     random.seed(seed)
@@ -404,7 +418,7 @@ def main():
                 if not la.is_proper(grammarInfo):
                     print('[Genetic] Split/Merge introduced problems with properness of LA', geneticCount)
 
-                fscore = evaluate_la(grammar, grammarInfo, la, trace)
+                fscore = evaluate_la(grammar, grammarInfo, la, traceValidationGenetic)
                 print("[Genetic] LA", geneticCount, "has F-score: ", fscore)
                 heapq.heappush(newpopulation, (fscore, geneticCount, la))
                 geneticCount += 1
@@ -412,7 +426,8 @@ def main():
         latentAnnotations = heapq.nsmallest(genetic_population, heapq.merge(latentAnnotations, newpopulation))
         heapq.heapify(latentAnnotations)
         (fBest, idBest, laBest) = min(latentAnnotations)
-        print("[Genetic] Best LA", idBest, "has F-Score of ", fBest)
+        validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation)
+        print("[Genetic] Best LA", idBest, "has F-Score (validation) of ", validation_score)
 
 
 def evaluate_la(grammar, grammarInfo, la, trace):
