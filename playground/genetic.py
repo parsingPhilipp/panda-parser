@@ -42,19 +42,19 @@ train_corpus = None
 train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
 
 
-validation_start = 40475
+validation_start = 200
 validation_size = validation_start + 100
 print("validation_start =", validation_start)
 print("validation_size =", validation_size)
-validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
 
 
-validation_genetic_start = 40475
+validation_genetic_start = 300
 validation_genetic_size = validation_genetic_start + 100
 print("validation_genetic_start =", validation_genetic_start)
 print("validation_genetic_size =", validation_genetic_size)
-validation_genetic_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+validation_genetic_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 validation_genetic_corpus = build_corpus(validation_genetic_path, validation_genetic_start, validation_genetic_size, train_exclude)
 
 
@@ -103,7 +103,7 @@ print("merge_percentage =", merge_percentage)
 print("sm_cycles =", sm_cycles)
 print("threads =", threads)
 print("smoothing_factor =", smoothing_factor)
-print ("split_randomization =", split_randomization)
+print("split_randomization =", split_randomization)
 print("scc_merger_threshold =", scc_merger_threshold)
 print("genetic_initial =", genetic_initial)
 print("genetic_population =", genetic_population)
@@ -168,7 +168,7 @@ def dummy_constituent_tree(token_yield, full_yield, dummy_label, dummy_root):
     return tree
 
 
-def do_parsing(parser):
+def do_parsing(parser, corpus):
     accuracy = ParseAccuracyPenalizeFailures()
     system_trees = []
 
@@ -176,7 +176,7 @@ def do_parsing(parser):
 
     n = 0
 
-    for tree in test_corpus:
+    for tree in corpus:
 
         if not tree.complete() \
                 or tree.empty_fringe() \
@@ -371,11 +371,11 @@ def main():
             print('[Genetic] Initial LA', i, 'is not consistent! (See details before)')
         if not la.is_proper(grammarInfo):
             print('[Genetic] Initial LA', i, 'is not proper!')
-        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, traceValidationGenetic),i, la))
+        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, traceValidationGenetic, validation_genetic_corpus),i, la))
         print('[Genetic]    added initial LA', i)
     (fBest, idBest, laBest) = min(latentAnnotations)
-    validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation)
-    print("[Genetic] Started with best F-Score (validation) of", validation_score, "from Annotation ", idBest)
+    validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation, test_corpus)
+    print("[Genetic] Started with best F-Score (Test) of", validation_score, "from Annotation ", idBest)
 
     geneticCount = genetic_initial
     random.seed(seed)
@@ -410,7 +410,7 @@ def main():
                 if not la.is_proper(grammarInfo):
                     print('[Genetic] Split/Merge introduced problems with properness of LA', geneticCount)
 
-                fscore = evaluate_la(grammar, grammarInfo, la, traceValidationGenetic)
+                fscore = evaluate_la(grammar, grammarInfo, la, traceValidationGenetic, validation_genetic_corpus)
                 print("[Genetic] LA", geneticCount, "has F-score: ", fscore)
                 heapq.heappush(newpopulation, (fscore, geneticCount, la))
                 geneticCount += 1
@@ -418,14 +418,14 @@ def main():
         latentAnnotations = heapq.nsmallest(genetic_population, heapq.merge(latentAnnotations, newpopulation))
         heapq.heapify(latentAnnotations)
         (fBest, idBest, laBest) = min(latentAnnotations)
-        validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation)
-        print("[Genetic] Best LA", idBest, "has F-Score (validation) of ", validation_score)
+        validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation, test_corpus)
+        print("[Genetic] Best LA", idBest, "has F-Score (Test) of ", validation_score)
 
 
-def evaluate_la(grammar, grammarInfo, la, trace):
+def evaluate_la(grammar, grammarInfo, la, trace, corpus):
     parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, grammarInfo,
                                    trace.get_nonterminal_map(), k=k_best)
-    accuracy = do_parsing(parser)
+    accuracy = do_parsing(parser, corpus)
     return - accuracy.fmeasure()
 
 
