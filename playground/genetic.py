@@ -310,14 +310,15 @@ def main():
     else:
         grammar = pickle.load(open(grammar_path, 'rb'))
 
-    # compute or load reducts
-    if not os.path.isfile(reduct_path):
-        traceTrain = compute_reducts(grammar, train_corpus, terminal_labeling)
-        traceTrain.serialize(reduct_path)
-    else:
-        traceTrain = PySDCPTraceManager(grammar, terminal_labeling)
-        traceTrain.load_traces_from_file(reduct_path)
+    # # compute or load reducts
+    # if not os.path.isfile(reduct_path):
+    #     traceTrain = compute_reducts(grammar, train_corpus, terminal_labeling)
+    #     traceTrain.serialize(reduct_path)
+    # else:
+    #     traceTrain = PySDCPTraceManager(grammar, terminal_labeling)
+    #     traceTrain.load_traces_from_file(reduct_path)
 
+    traceTrain = compute_reducts(grammar, train_corpus, terminal_labeling)
     traceValidationGenetic = compute_reducts(grammar, validation_genetic_corpus, terminal_labeling)
     traceValidation = compute_reducts(grammar, validation_corpus, terminal_labeling)
 
