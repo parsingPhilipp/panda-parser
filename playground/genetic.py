@@ -296,19 +296,29 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
     return validator
 
 def main():
-    # induce or load grammar
-    if not os.path.isfile(grammar_path):
-        grammar = LCFRS('START')
-        for tree in train_corpus:
-            if not tree.complete() or tree.empty_fringe():
-                continue
-            part = recursive_partitioning(tree)
-            tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
-            grammar.add_gram(tree_grammar)
-        grammar.make_proper()
-        pickle.dump(grammar, open(grammar_path, 'wb'))
-    else:
-        grammar = pickle.load(open(grammar_path, 'rb'))
+    # # induce or load grammar
+    # if not os.path.isfile(grammar_path):
+    #     grammar = LCFRS('START')
+    #     for tree in train_corpus:
+    #         if not tree.complete() or tree.empty_fringe():
+    #             continue
+    #         part = recursive_partitioning(tree)
+    #         tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
+    #         grammar.add_gram(tree_grammar)
+    #     grammar.make_proper()
+    #     pickle.dump(grammar, open(grammar_path, 'wb'))
+    # else:
+    #     grammar = pickle.load(open(grammar_path, 'rb'))
+
+
+    grammar = LCFRS('START')
+    for tree in train_corpus:
+        if not tree.complete() or tree.empty_fringe():
+            continue
+        part = recursive_partitioning(tree)
+        tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
+        grammar.add_gram(tree_grammar)
+    grammar.make_proper()
 
     # # compute or load reducts
     # if not os.path.isfile(reduct_path):
