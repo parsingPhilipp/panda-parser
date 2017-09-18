@@ -317,7 +317,7 @@ def main():
 
     def rec_part_strategy(direction, subgrouping, fanout, binarize):
         if direction == "right-to-left":
-            return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping), fanout)
+            return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping, weak=binarize), fanout)
         else:
             return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping
                                                                                                     , weak=binarize),
