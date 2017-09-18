@@ -123,7 +123,7 @@ class GFParser(AbstractParser):
     def _preprocess(grammar, prefix=default_prefix, name=default_name, override=False):
         name_ = export(grammar, prefix, name, override)
         return_code = compile_gf_grammar(prefix, name_)
-        if(return_code != 0)
+        if return_code != 0:
             print("Grammar could not be compiled! (return code", return_code, ")")
         gf_grammar = pgf.readPGF(os.path.join(prefix, name_ + COMPILED_SUFFIX)).languages[name_ + LANGUAGE]
         return gf_grammar
