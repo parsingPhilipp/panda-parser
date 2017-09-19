@@ -1,7 +1,9 @@
 from __future__ import print_function
 import unittest
 from corpora.sdc_parse import parse_sentence, parse_file
-from graphs.util import render_and_view_dog, extract_recursive_partitioning
+from graphs.util import render_and_view_dog, extract_recursive_partitioning, pretty_print_rec_partitioning
+from graphs.graph_decomposition import compute_decomposition, induce_grammar_from, dog_evaluation
+from parser.naive.parsing import LCFRS_parser
 
 content = """
 #20001001
@@ -35,19 +37,61 @@ class MyTestCase(unittest.TestCase):
         render_and_view_dog(dog, 'SDCtest')
 
     def test_sdp_parsing(self):
-        path = 'res/sdp/trial/psd.sdp'
-        corpus = parse_file(path)
-        print(len(corpus))
+        for style in ['dm', 'pas', 'psd']:
+            path = 'res/sdp/trial/' + style + '.sdp'
+            corpus = parse_file(path)
+            print(len(corpus))
 
-        for i, dsg in enumerate(corpus):
-            if len(dsg.dog.outputs) > 1:
-                print(i, len(dsg.dog.nodes))
+            for i, dsg in enumerate(corpus):
+                # if i != 89:
+                #     continue
+                if True or len(dsg.dog.outputs) > 1:
+                    print(i, dsg, dsg.label)
+                    # if i == 89:
+                    # render_and_view_dog(dsg.dog, 'dm0', 'dm0')
+                    # render_and_view_dog(corpus[1].dog, 'dm1', 'dm1')
+                    # print(dsg.sentence, dsg.synchronization, dsg.label)
 
-        render_and_view_dog(corpus[52].dog, 'dm0', 'dm0')
-        # render_and_view_dog(corpus[1].dog, 'dm1', 'dm1')
-        print(corpus[52].sentence, corpus[52].synchronization, corpus[52].label)
+                    # dog39 = dsg.dog.extract_dog([39], [], enforce_outputs=False)
+                    # render_and_view_dog(dog39, "dog39")
 
-        print(extract_recursive_partitioning(corpus[52]))
+
+                    rec_part = extract_recursive_partitioning(dsg)
+
+                    if False and i == 89:
+                        pretty_print_rec_partitioning(rec_part)
+
+                    decomp = compute_decomposition(dsg, rec_part)
+                    # print(decomp)
+
+                    grammar = induce_grammar_from(dsg, rec_part, decomp,
+                                                  terminal_labeling=lambda x: x[0], enforce_outputs=False, normalize=False)
+                    if False and i == 89:
+                        print(grammar)
+
+                    parser = LCFRS_parser(grammar)
+                    parser.set_input(map(lambda x: x[0], dsg.sentence))
+
+                    print("parsing")
+
+                    parser.parse()
+                    self.assertTrue(parser.recognized())
+
+                    derivation = parser.best_derivation_tree()
+                    self.assertNotEqual(derivation, None)
+
+                    dog, sync_list = dog_evaluation(derivation)
+
+                    dsg.dog.project_labels(lambda x: x[0])
+
+                    if False and i == 89:
+                        render_and_view_dog(dsg.dog, "corpus", "corpus_graph")
+                        render_and_view_dog(dog, "parse_result", "parse_result")
+
+                    print("comparing")
+
+                    self.assertEqual(dog, dsg.dog)
+
 
 
 if __name__ == '__main__':

@@ -68,7 +68,8 @@ def compute_decomposition(dsg, recursive_partitioning):
     return closed_nodes, map(lambda rp: compute_decomposition(dsg, rp), recursive_partitioning[1])
 
 
-def induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, terminal_labeling, start="START", normalize=True):
+def induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, terminal_labeling, start="START",
+                          normalize=True):
     grammar = LCFRS(start=start)
     for dsg in dsgs:
         rec_part = rec_part_strategy(dsg)
@@ -76,7 +77,8 @@ def induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, termina
         #     rec_part = rec_part_strategy(dsg)
         #     assert False
         decomp = compute_decomposition(dsg, rec_part)
-        dsg_grammar = induce_grammar_from(dsg, rec_part, decomp, nonterminal_labeling, terminal_labeling, start, normalize)
+        dsg_grammar = induce_grammar_from(dsg, rec_part, decomp, nonterminal_labeling, terminal_labeling, start,
+                                          normalize)
         grammar.add_gram(dsg_grammar)
     return grammar
 
@@ -96,9 +98,10 @@ def consecutive_spans(positions):
     return spans
 
 
-def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), terminal_labeling=id, start="START", normalize=True):
+def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), terminal_labeling=id, start="START",
+                        normalize=True, enforce_outputs=True):
     lcfrs = LCFRS(start=start)
-    rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize)
+    rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize, enforce_outputs)
 
     # construct a chain rule from START to initial nonterminal of decomposition
     # LCFRS part
@@ -107,9 +110,12 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), te
 
     # DOG part
     dog = DirectedOrderedGraph()
-    dog.add_node(0)
-    dog.add_nonterminal_edge([], [0])
-    dog.add_to_outputs(0)
+    assert len(dsg.dog.inputs) == 0
+    assert not enforce_outputs or len(dsg.dog.outputs) > 0
+    for i in range(len(dsg.dog.outputs)):
+        dog.add_node(i)
+        dog.add_to_outputs(i)
+    dog.add_nonterminal_edge([], [i for i in range(len(dsg.dog.outputs))], enforce_outputs)
 
     # no sync
     sync = []
@@ -118,7 +124,7 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), te
     return lcfrs
 
 
-def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize):
+def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize, enforce_outputs=True):
     lhs_nont = labeling(decomp[0], dsg)
 
     # build lcfrs part
@@ -128,7 +134,7 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling,
 
     # build dog part
     rhs_nodes = map(lambda x: x[0], decomp[1])
-    dog = dsg.dog.extract_dog(decomp[0], rhs_nodes)
+    dog = dsg.dog.extract_dog(decomp[0], rhs_nodes, enforce_outputs)
     for edge in dog.terminal_edges:
         edge.label = terminal_labeling(edge.label)
     if normalize:
@@ -143,7 +149,8 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling,
     # recursively compute rules for rhs
     rhs_nonts = []
     for child_rec_par, child_decomp in zip(rec_par[1], decomp[1]):
-        rhs_nonts.append(induce_grammar_rec(lcfrs, dsg, child_rec_par, child_decomp, labeling, terminal_labeling, normalize))
+        rhs_nonts.append(
+            induce_grammar_rec(lcfrs, dsg, child_rec_par, child_decomp, labeling, terminal_labeling, normalize, enforce_outputs))
 
     # create rule
     lcfrs.add_rule(lcfrs_lhs, rhs_nonts, weight=1.0, dcp=[dog, sync])

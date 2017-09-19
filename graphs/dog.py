@@ -1,4 +1,6 @@
+from __future__ import print_function
 from copy import deepcopy
+from itertools import permutations, product
 
 
 class Edge:
@@ -83,12 +85,20 @@ class DirectedOrderedGraph:
         self._incoming_edge = {}
 
     @property
+    def inputs(self):
+        return self._inputs
+
+    @property
     def outputs(self):
         return self._outputs
 
     @property
     def nodes(self):
         return self._nodes
+
+    @property
+    def parents(self):
+        return self._parents
 
     def incoming_edge(self, node):
         return self._incoming_edge[node]
@@ -162,8 +172,8 @@ class DirectedOrderedGraph:
         self._parents[node] = []
         self._incoming_edge[node] = None
 
-    def add_edge(self, edge):
-        assert len(edge.outputs) > 0
+    def add_edge(self, edge, enforce_outputs=True):
+        assert not enforce_outputs or len(edge.outputs) > 0
         assert all([node in self._nodes for node in edge.inputs])
         assert all([node in self._nodes for node in edge.outputs])
         assert all([self._incoming_edge[output] is None for output in edge.outputs])
@@ -181,8 +191,8 @@ class DirectedOrderedGraph:
     def add_terminal_edge(self, inputs, label, output):
         return self.add_edge(Edge([output], deepcopy(inputs), label))
 
-    def add_nonterminal_edge(self, inputs, outputs):
-        return self.add_edge(Edge(deepcopy(outputs), deepcopy(inputs)))
+    def add_nonterminal_edge(self, inputs, outputs, enforce_outputs=True):
+        return self.add_edge(Edge(deepcopy(outputs), deepcopy(inputs)), enforce_outputs)
 
     def add_to_inputs(self, node):
         assert self._incoming_edge[node] is None
@@ -277,6 +287,10 @@ class DirectedOrderedGraph:
         ordered = []
         for root_node in self._outputs:
             self.__ordered_nodes_rec(ordered, root_node)
+        # just required if not output connected
+        for node in self.nodes:
+            if node not in ordered:
+                self.__ordered_nodes_rec(ordered, node)
         return ordered
 
     def __ordered_nodes_rec(self, ordered, v):
@@ -335,8 +349,12 @@ class DirectedOrderedGraph:
         return not self.__eq__(other)
 
     def __eq__(self, other):
-        assert self.output_connected()
-        assert other.output_connected()
+        if self.output_connected() != other.output_connected():
+            return False
+        if len(self.nodes) != len(other.nodes):
+            return False
+        if not self.output_connected():
+            return self.__compare_general(other)
         morphism = {}
         inverse_morphism = {}
         if len(self._outputs) != len(other.outputs):
@@ -368,6 +386,74 @@ class DirectedOrderedGraph:
                 return False
         return True
 
+    def __compare_general(self, other):
+        if len(self._outputs) != len(other.outputs):
+            return False
+
+        # first handle nodes reachable from outputs,
+        # here we can use the deterministic method used for output connected DOGs
+        morphism = {}
+        inverse_morphism = {}
+        for so, oo in zip(self._outputs, other.outputs):
+            if not self.__compare_rec(other, so, oo, morphism, inverse_morphism):
+                return False
+
+        # next, we handle nodes which are not output connected
+        # this requires non-determinism, as it is not clear which nodes correspond
+        self_nodes = {node for node in self.nodes if node not in morphism}
+        other_nodes = {node for node in other.nodes if node not in inverse_morphism}
+
+        assert len(self_nodes) == len(other_nodes)
+        assert len(self_nodes) != 0  # otherwise the graph would be output connected
+
+        def candidates(sn):
+            return [on for on in other_nodes if self.incoming_edge(sn).compare_labels(other.incoming_edge(on))]
+
+        # Beware! This loop has worst-case time complexity exponential in the size of self_nodes.
+        # The worst-case always occurs, if both graphs are not isomorphic.
+        # for extension in [dict(zip(list(self_nodes_p), other_nodes)) for self_nodes_p in permutations(self_nodes)]:
+        for ext_assignment in product(*map(candidates, self_nodes)):
+            if len(set(ext_assignment)) < len(ext_assignment):
+                continue
+            extension = {sn: on for sn, on in zip(self_nodes, ext_assignment)}
+
+            correct = True
+
+            for sn in self_nodes:
+                on = extension[sn]
+                se = self._incoming_edge[sn]
+                oe = other.incoming_edge(on)
+
+                if not se.compare_labels(oe)\
+                        or len(se.inputs) != len(oe.inputs) \
+                        or len(se.outputs) != len(oe.outputs):
+                    correct = False
+                    break
+                for sn2, on2 in zip(se.inputs, oe.inputs):
+                    if sn2 in morphism:
+                        if not morphism[sn2] == on2:
+                            correct = False
+                            break
+                    elif sn2 in extension:
+                        if not extension[sn2] == on2:
+                            correct = False
+                            break
+                if not correct:
+                    break
+                for sn2, on2 in zip(se.outputs, oe.outputs):
+                    if sn2 in morphism:
+                        if not morphism[sn2] == on2:
+                            correct = False
+                            break
+                    elif sn2 in extension:
+                        if not extension[sn2] == on2:
+                            correct = False
+                            break
+
+            if correct:
+                return True
+        return False
+
     def compute_isomorphism(self, other):
         assert self.output_connected()
         assert other.output_connected()
@@ -380,7 +466,7 @@ class DirectedOrderedGraph:
                 return None
         return morphism, inverse_morphism
 
-    def extract_dog(self, lhs, rhs):
+    def extract_dog(self, lhs, rhs, enforce_outputs=True):
         assert all([pairwise_disjoint_elem(list) for list in [lhs] + rhs])
         assert all([elem in lhs for list in rhs for elem in list])
         assert pairwise_disjoint(rhs)
@@ -408,12 +494,22 @@ class DirectedOrderedGraph:
             for node in bot_rhs[i] + top_rhs[i]:
                 if node not in dog._nodes:
                     dog.add_node(node)
-            dog.add_nonterminal_edge(bot_rhs[i], top_rhs[i])
+            dog.add_nonterminal_edge(bot_rhs[i], top_rhs[i], enforce_outputs)
 
         # fill recursively
         visited = []
         for node in top_lhs:
             self.__fill_rec(node, dog, visited, lhs, top_rhs, bot_rhs)
+
+        # add non-output connected nodes
+        if not enforce_outputs:
+            # find natural roots
+            for node in lhs:
+                if all([node not in rhs_set for rhs_set in rhs]):
+                    if node not in dog.nodes:
+                        dog.add_node(node)
+                    self.__fill_rec(node, dog, visited, lhs, top_rhs, bot_rhs)
+
         return dog
 
     def __fill_rec(self, node, dog, visited, lhs, top_rhs, bot_rhs):
@@ -803,9 +899,9 @@ class DeepSyntaxGraph:
         return DeepSyntaxGraph(self.sentence, dog, self.synchronization)
 
 
-def pairwise_disjoint_elem(list):
-    for i, elem in enumerate(list):
-        if elem in list[i + 1:]:
+def pairwise_disjoint_elem(some_list):
+    for i, elem in enumerate(some_list):
+        if elem in some_list[i + 1:]:
             return False
     return True
 

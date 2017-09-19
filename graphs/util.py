@@ -1,3 +1,4 @@
+from __future__ import print_function
 import subprocess
 from collections import defaultdict
 from decomposition import n_spans
@@ -18,7 +19,7 @@ def render_and_view_dog(dog, name, path="/tmp/"):
     return q
 
 
-def extract_recursive_partitioning(dsg, alpha=0.9):
+def extract_recursive_partitioning(dsg, alpha=0.9, beta=0.2):
     VROOT = max(dsg.dog.nodes) + 1
 
     # add all natural roots, i.e., nodes without predecessors but children or outputs of the dog
@@ -73,19 +74,18 @@ def extract_recursive_partitioning(dsg, alpha=0.9):
         return children
 
     # add all remaining outputs to either VROOT or in another position
-
     queue2 = [root for root in dsg.dog.outputs if root not in distance]
     while queue2:
         head = queue2[0]
         queue2 = queue2[1:]
         best_parent = VROOT
-        penalty = n_spans(dsg.covered_sentence_positions(unambiguous_children(head))) * alpha \
-                  + distance[VROOT] * (1 - alpha)
+        penalty = n_spans(dsg.covered_sentence_positions(unambiguous_children(head))) * beta \
+                  + (1.0 - beta)
         for parent in dsg.dog.parents[head]:
             if parent not in distance:
                 continue
-            penalty_2 = n_spans(unambiguous_children(head).union(current_children(parent))) * alpha \
-                        + distance[parent] * (1-alpha)
+            penalty_2 = n_spans(unambiguous_children(head).union(current_children(parent))) * beta \
+                        + (1.0 / distance[parent] * (1-beta))
             if penalty_2 < penalty:
                 best_parent = parent
                 penalty = penalty_2
@@ -99,16 +99,17 @@ def extract_recursive_partitioning(dsg, alpha=0.9):
             queue = queue[1:]
             add_unambiguous_children(first)
 
-    # resolve all unabigious attachments
+    # resolve all ambiguous attachments
     queue2 = [child for node in distance if node != VROOT
              for child in dsg.dog.children(node) if child not in distance]
     while queue2:
         while queue2:
             head = queue2[0]
             queue2 = queue2[1:]
+            if head in distance:
+                continue
             parent = sorted([parent for parent in dsg.dog.parents if parent in distance],
                             key=lambda x: distance[x] * alpha + n_spans(current_children(x).union(unambiguous_children(head))))[0]
-            penalty = distance[parent]
             distance[head] = distance[parent] + 1
             tree_map[parent].append(head)
             add_unambiguous_children(head)
@@ -124,10 +125,40 @@ def extract_recursive_partitioning(dsg, alpha=0.9):
         if node not in distance:
             assert dsg.dog.parents[node] == []
             parent = sorted([p for p in distance if p != VROOT], key=lambda x: n_spans(dsg.covered_sentence_positions({node, x}.union(current_children(x)))) * alpha + (1-alpha) * (1.0) / distance[x])[0]
-            parents = sorted([p for p in distance if p != VROOT], key=lambda x: n_spans(dsg.covered_sentence_positions({node, x}.union(current_children(x)))) * alpha + (1-alpha) * (1.0) / distance[x])
-            print(node, [(x, dsg.covered_sentence_positions({node, x}.union(current_children(x))), n_spans(dsg.covered_sentence_positions({node, x}.union(current_children(x)))),  (1.0) / distance[x]) for x in parents])
+            # parents = sorted([p for p in distance if p != VROOT], key=lambda x: n_spans(dsg.covered_sentence_positions({node, x}.union(current_children(x)))) * alpha + (1-alpha) * (1.0) / distance[x])
+            # print(node, [(x, dsg.covered_sentence_positions({node, x}.union(current_children(x))), n_spans(dsg.covered_sentence_positions({node, x}.union(current_children(x)))),  (1.0) / distance[x]) for x in parents])
 
             distance[node] = distance[parent] + 1
             tree_map[parent].append(node)
 
-    return tree_map, VROOT
+    def tree_map_to_recursive_partitioning_rec(node):
+        covered = set()
+        children = []
+        for child in tree_map[node]:
+            child_rec_par = tree_map_to_recursive_partitioning_rec(child)
+            children.append(child_rec_par)
+            assert covered.isdisjoint(child_rec_par[0])
+            covered = covered.union(child_rec_par[0])
+        if node != VROOT:
+            node_covered = set(dsg.covered_sentence_positions([node]))
+            if node_covered:
+                assert covered.isdisjoint(node_covered)
+                covered = covered.union(node_covered)
+                children.append((node_covered, []))
+        if len(children) > 1:
+            return covered, children
+        else:
+            return children[0]
+
+    # print(tree_map)
+
+    return tree_map_to_recursive_partitioning_rec(VROOT)
+
+
+def pretty_print_rec_partitioning(rec_par):
+    def print_rec(rec_par, indent):
+        print('\t' * indent, rec_par[0])
+        for child in rec_par[1]:
+            print_rec(child, indent+1)
+
+    print_rec(rec_par, 0)
