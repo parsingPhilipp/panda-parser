@@ -38,28 +38,34 @@ train_limit = 200
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 train_exclude = [7561,17632,46234,50224]
 train_corpus = None
+train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
 
-def get_train_corpus():
-    global train_corpus
-    if train_corpus is None:
-        train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
-    return train_corpus
-validation_start = 40475
+
+validation_start = 200
 validation_size = validation_start + 100
-validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+print("validation_start =", validation_start)
+print("validation_size =", validation_size)
+validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
+
+
+validation_genetic_start = 300
+validation_genetic_size = validation_genetic_start + 100
+print("validation_genetic_start =", validation_genetic_start)
+print("validation_genetic_size =", validation_genetic_size)
+validation_genetic_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
+validation_genetic_corpus = build_corpus(validation_genetic_path, validation_genetic_start, validation_genetic_size, train_exclude)
+
 
 test_start = 40475
 test_limit = test_start + 100
+print("test_start =", test_start)
+print("test_limit =", test_limit)
 test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
-if not os.path.isfile(terminal_labeling_path):
-    terminal_labeling = FormPosTerminalsUnk(get_train_corpus(), 20)
-    pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
-else:
-    terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
+terminal_labeling = FormPosTerminalsUnk(train_corpus, 20)
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1-left-to-right')[0]
 
 max_length = 2000
@@ -82,6 +88,25 @@ validationMethod = "F1"
 validationDropIterations = 6
 
 k_best = 200
+
+
+
+print("max_length =", max_length)
+print("em_epochs =", em_epochs)
+print("seed =", seed)
+print("merge_percentage =", merge_percentage)
+print("sm_cycles =", sm_cycles)
+print("threads =", threads)
+print("smoothing_factor =", smoothing_factor)
+print("split_randomization =", split_randomization)
+print("scc_merger_threshold =", scc_merger_threshold)
+print("genetic_initial =", genetic_initial)
+print("genetic_population =", genetic_population)
+print("genetic_cycles =", genetic_cycles)
+print("validationMethod =", validationMethod)
+print("validationDropIterations =", validationDropIterations)
+print("k_best =", k_best)
+
 
 # parsing_method = "single-best-annotation"
 parsing_method = "filter-ctf"
@@ -138,7 +163,7 @@ def dummy_constituent_tree(token_yield, full_yield, dummy_label, dummy_root):
     return tree
 
 
-def do_parsing(parser):
+def do_parsing(parser, corpus):
     accuracy = ParseAccuracyPenalizeFailures()
     system_trees = []
 
@@ -146,7 +171,7 @@ def do_parsing(parser):
 
     n = 0
 
-    for tree in test_corpus:
+    for tree in corpus:
 
         if not tree.complete() \
                 or tree.empty_fringe() \
@@ -201,11 +226,11 @@ def do_parsing(parser):
         name = parse_results + '_' + str(i)
 
     path = os.path.join(parse_results_prefix, name + parse_results_suffix)
-
-    with open(path, 'w') as result_file:
-        print('Exporting parse trees of length <=', max_length, 'to', str(path))
-        map(lambda x: x.strip_vroot(), system_trees)
-        result_file.writelines(hybridtrees_to_sentence_names(system_trees, test_start, max_length))
+    #
+    # with open(path, 'w') as result_file:
+    #     print('Exporting parse trees of length <=', max_length, 'to', str(path))
+    #     map(lambda x: x.strip_vroot(), system_trees)
+    #     result_file.writelines(hybridtrees_to_sentence_names(system_trees, test_start, max_length))
 
     return accuracy
 
@@ -266,36 +291,51 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
     return validator
 
 def main():
-    # induce or load grammar
-    if not os.path.isfile(grammar_path):
-        grammar = LCFRS('START')
-        for tree in get_train_corpus():
-            if not tree.complete() or tree.empty_fringe():
-                continue
-            part = recursive_partitioning(tree)
-            tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
-            grammar.add_gram(tree_grammar)
-        grammar.make_proper()
-        pickle.dump(grammar, open(grammar_path, 'wb'))
-    else:
-        grammar = pickle.load(open(grammar_path, 'rb'))
+    # # induce or load grammar
+    # if not os.path.isfile(grammar_path):
+    #     grammar = LCFRS('START')
+    #     for tree in train_corpus:
+    #         if not tree.complete() or tree.empty_fringe():
+    #             continue
+    #         part = recursive_partitioning(tree)
+    #         tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
+    #         grammar.add_gram(tree_grammar)
+    #     grammar.make_proper()
+    #     pickle.dump(grammar, open(grammar_path, 'wb'))
+    # else:
+    #     grammar = pickle.load(open(grammar_path, 'rb'))
 
-    # compute or load reducts
-    if not os.path.isfile(reduct_path):
-        trace = compute_reducts(grammar, get_train_corpus(), terminal_labeling)
-        trace.serialize(reduct_path)
-    else:
-        trace = PySDCPTraceManager(grammar, terminal_labeling)
-        trace.load_traces_from_file(reduct_path)
 
-    global train_corpus
-    if train_corpus is not None:
-        del train_corpus
+    grammar = LCFRS('START')
+    for tree in train_corpus:
+        if not tree.complete() or tree.empty_fringe():
+            continue
+        part = recursive_partitioning(tree)
+        tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
+        grammar.add_gram(tree_grammar)
+    grammar.make_proper()
+
+    # # compute or load reducts
+    # if not os.path.isfile(reduct_path):
+    #     traceTrain = compute_reducts(grammar, train_corpus, terminal_labeling)
+    #     traceTrain.serialize(reduct_path)
+    # else:
+    #     traceTrain = PySDCPTraceManager(grammar, terminal_labeling)
+    #     traceTrain.load_traces_from_file(reduct_path)
+
+    traceTrain = compute_reducts(grammar, train_corpus, terminal_labeling)
+    traceValidationGenetic = compute_reducts(grammar, validation_genetic_corpus, terminal_labeling)
+    traceValidation = compute_reducts(grammar, validation_corpus, terminal_labeling)
+
+
     # prepare EM training
-    grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
+    grammarInfo = PyGrammarInfo(grammar, traceTrain.get_nonterminal_map())
+    if not grammarInfo.check_for_consistency():
+        print("[Genetic] GrammarInfo is not consistent!")
+
     storageManager = PyStorageManager()
 
-    em_builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
+    em_builder = PySplitMergeTrainerBuilder(traceTrain, grammarInfo)
     em_builder.set_em_epochs(em_epochs)
     em_builder.set_simple_expector(threads=threads)
     emTrainer = em_builder.build()
@@ -306,19 +346,17 @@ def main():
     emTrainer.em_train(la_no_splits)
     la_no_splits.project_weights(grammar, grammarInfo)
 
-    # emTrainerOld = PyEMTrainer(trace)
+    # emTrainerOld = PyEMTrainer(traceTrain)
     # emTrainerOld.em_training(grammar, 30, "rfe", tie_breaking=True)
 
-    global validation_corpus
     # compute parses for validation set
     baseline_parser = GFParser_k_best(grammar, k=k_best)
-    validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
+    validator = build_score_validator(grammar, grammarInfo, traceTrain.get_nonterminal_map(), storageManager,
                                        terminal_labeling, baseline_parser, validation_corpus, validationMethod)
     del baseline_parser
-    del validation_corpus
 
     # prepare SM training
-    builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
+    builder = PySplitMergeTrainerBuilder(traceTrain, grammarInfo)
     builder.set_em_epochs(em_epochs)
     builder.set_split_randomization(1.0, seed + 1)
     builder.set_simple_expector(threads=threads)
@@ -339,10 +377,13 @@ def main():
             print('[Genetic] Initial LA', i, 'is not consistent! (See details before)')
         if not la.is_proper(grammarInfo):
             print('[Genetic] Initial LA', i, 'is not proper!')
-        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, trace), la))
+        heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, traceValidationGenetic, validation_genetic_corpus),i, la))
+        print('[Genetic]    added initial LA', i)
+    (fBest, idBest, laBest) = min(latentAnnotations)
+    validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation, test_corpus)
+    print("[Genetic] Started with best F-Score (Test) of", validation_score, "from Annotation ", idBest)
 
-    print("[Genetic] Started with an Annotation of F-Score of ", min(latentAnnotations)[0])
-
+    geneticCount = genetic_initial
     random.seed(seed)
     for round in range(1, genetic_cycles + 1):
         print("[Genetic] Starting Recombination Round ", round)
@@ -350,36 +391,43 @@ def main():
         newpopulation = []
         # Cross all candidates!
         for leftIndex in range(0, len(latentAnnotations)):
-            left = latentAnnotations[leftIndex][1]
+            (fLeft, idLeft, left) = latentAnnotations[leftIndex]
             # TODO: How to determine NTs to keep?
-            keepFromOne = [False] * len(grammar.nonts())
 
-            la = left.genetic_recombination(left, grammarInfo, keepFromOne, 0.00000001, 300)
-            if not la.check_for_validity():
-                print('[Genetic] LA is not valid! (See details before)')
-            if not la.is_proper(grammarInfo):
-                print('[Genetic] LA is not proper!')
-
-            # do SM-Training on recombined LAs
+            # do SM-Training
+            print("[Genetic] do SM-training on", idLeft, "and create LA", geneticCount)
             la = splitMergeTrainer.split_merge_cycle(la)
             if not la.check_for_validity():
-                print('[Genetic] Split/Merge introduced invalid weights into LA! (See details before)')
+                print('[Genetic] Split/Merge introduced invalid weights into LA', geneticCount)
             if not la.is_proper(grammarInfo):
-                print('[Genetic] Split/Merge introduced problems with properness!')
+                print('[Genetic] Split/Merge introduced problems with properness of LA', geneticCount)
 
-            fscore = evaluate_la(grammar, grammarInfo, la, trace)
-            print("[Genetic] Split-Merge Training yields (F-score): ", fscore)
-            heapq.heappush(newpopulation, (fscore, la))
+            fscore = evaluate_la(grammar, grammarInfo, la, traceValidationGenetic, validation_genetic_corpus)
+            print("[Genetic] LA", geneticCount, "has F-score: ", fscore)
+            heapq.heappush(newpopulation, (fscore, geneticCount, la))
+            geneticCount += 1
         heapq.heapify(newpopulation)
         latentAnnotations = heapq.nsmallest(genetic_population, heapq.merge(latentAnnotations, newpopulation))
         heapq.heapify(latentAnnotations)
-        print("[Genetic] Best annotation has F-Score of ", min(latentAnnotations)[0])
+        (fBest, idBest, laBest) = min(latentAnnotations)
+        validation_score = evaluate_la(grammar, grammarInfo, laBest, traceValidation, test_corpus)
+        print("[Genetic] Best LA", idBest, "has F-Score (Test) of ", validation_score)
 
 
-def evaluate_la(grammar, grammarInfo, la, trace):
-    parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, grammarInfo,
-                                   trace.get_nonterminal_map(), k=k_best)
-    accuracy = do_parsing(parser)
+genetic_eval_is_first = True
+genetic_eval_name = time.strftime("genetic_%Y%m%d%H%M%S")
+def evaluate_la(grammar, grammarInfo, la, trace, corpus):
+    global genetic_eval_is_first
+    if(genetic_eval_is_first):
+        genetic_eval_is_first = False
+        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, grammarInfo,
+                                   trace.get_nonterminal_map(), k=k_best,
+                                       save_preprocess=(parse_results_prefix, genetic_eval_name))
+    else:
+        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, grammarInfo,
+                                       trace.get_nonterminal_map(), k=k_best,
+                                       load_preprocess=(parse_results_prefix, genetic_eval_name))
+    accuracy = do_parsing(parser, corpus)
     return - accuracy.fmeasure()
 
 
