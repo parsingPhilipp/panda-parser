@@ -42,7 +42,7 @@ train_corpus = None
 train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
 
 
-validation_start = 200
+validation_start = train_limit + 1
 validation_size = validation_start + 100
 print("validation_start =", validation_start)
 print("validation_size =", validation_size)
@@ -50,7 +50,7 @@ validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/trai
 validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
 
 
-validation_genetic_start = 300
+validation_genetic_start = validation_size
 validation_genetic_size = validation_genetic_start + 100
 print("validation_genetic_start =", validation_genetic_start)
 print("validation_genetic_size =", validation_genetic_size)
