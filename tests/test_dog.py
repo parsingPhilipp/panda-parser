@@ -19,6 +19,8 @@ import sys
 from graphs.schick_parser_rtg_import import read_rtg
 from parser.supervised_trainer.trainer import PyDerivationManager
 from graphs.parse_accuracy import PredicateArgumentScoring
+from graphs.dog_generator import generate
+from random import randint
 
 # from setup import schick_executable
 schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
@@ -666,6 +668,11 @@ class GraphTests(unittest.TestCase):
             return simple_labeling(nodes, dsg, label_edge)
         # render_and_view_dog(train_dsgs[0].dog, 'train_dsg_tmp')
         grammar = induction_on_a_corpus(train_dsgs, the_rec_part_strategy, simple_nonterminal_labeling, term_labeling)
+
+    def test_dog_generation(self):
+        for i in range(10):
+            dog = generate(randint(2, 12), maximum_inputs=4, new_output=0.4, upward_closed=True)
+            render_and_view_dog(dog, 'random_dog_' + str(i))
 
 if __name__ == '__main__':
     unittest.main()
