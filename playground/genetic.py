@@ -66,11 +66,7 @@ test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
-if not os.path.isfile(terminal_labeling_path):
-    terminal_labeling = FormPosTerminalsUnk(train_corpus, 20)
-    pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
-else:
-    terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
+terminal_labeling = FormPosTerminalsUnk(train_corpus, 20)
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1-left-to-right')[0]
 
 max_length = 2000
