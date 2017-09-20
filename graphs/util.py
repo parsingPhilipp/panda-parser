@@ -82,6 +82,8 @@ def extract_recursive_partitioning(dsg, alpha=0.9, beta=0.2):
     while queue2:
         head = queue2[0]
         queue2 = queue2[1:]
+        if head in distance:
+            continue
         best_parent = VROOT
         penalty = n_spans(dsg.covered_sentence_positions(unambiguous_children(head))) * beta \
                   + (1.0 - beta)
