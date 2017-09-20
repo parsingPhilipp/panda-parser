@@ -54,6 +54,17 @@ class SDPTest(unittest.TestCase):
             for i, dsg in enumerate(corpus):
                 self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=lambda x: x[0])
 
+    # the comparison takes to long in some cases!
+    def __test_sdp_parsing_full(self):
+        path = 'res/osdp-12/sdp/2015/en.dm.sdp'
+        corpus = parse_file(path)
+        print(len(corpus))
+        for rec_part_strat in self.rec_part_strategies:
+            for i, dsg in enumerate(corpus):
+                if len(dsg.sentence) > 50:
+                    continue
+                self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=lambda x: x[0])
+
     def __process_single_dsg(self, i, dsg, rec_part_strat, terminal_labeling):
         if True or len(dsg.dog.outputs) > 1:
             print(i, dsg, dsg.label)
