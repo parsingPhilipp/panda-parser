@@ -102,14 +102,17 @@ class SDPTest(unittest.TestCase):
             self.assertEqual(dog, dsg.dog)
 
     def test_dog_generation(self):
-        for rec_part_strat in self.rec_part_strategies[1:]:
-            for i in range(500):
-                dsg = generate_sdg(randint(2, 12), maximum_inputs=4)
+        for rec_part_strat in self.rec_part_strategies:
+            for i in range(5000):
+                dsg = generate_sdg(randint(2, 12), maximum_inputs=3)
+                if rec_part_strat == extract_recursive_partitioning and dsg.dog.cyclic():
+                     continue
                 # render_and_view_dog(dsg.dog, 'random_dog_' + str(i))
-                self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=str)
-
-
-
+                try:
+                    self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=str)
+                except AssertionError:
+                    render_and_view_dog(dsg.dog, 'random_dog_' + str(i))
+                    self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=str)
 
 
 if __name__ == '__main__':
