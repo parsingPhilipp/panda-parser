@@ -1,9 +1,13 @@
 from __future__ import print_function
 import unittest
 from corpora.sdc_parse import parse_sentence, parse_file
+from decomposition import left_branching_partitioning
 from graphs.util import render_and_view_dog, extract_recursive_partitioning, pretty_print_rec_partitioning
 from graphs.graph_decomposition import compute_decomposition, induce_grammar_from, dog_evaluation
+from graphs.dog_generator import generate, generate_sdg
 from parser.naive.parsing import LCFRS_parser
+from itertools import product
+from random import randint
 
 content = """
 #20001001
@@ -28,7 +32,12 @@ content = """
 """
 
 
-class MyTestCase(unittest.TestCase):
+class SDPTest(unittest.TestCase):
+    def __init__(self, methodName='runTest'):
+        unittest.TestCase.__init__(self, methodName)
+        self.rec_part_strategies = [extract_recursive_partitioning,
+                               lambda dsg: left_branching_partitioning(len(dsg.sentence))]
+
     def test_sdp_format(self):
         lines = content.splitlines()
         print(lines[2:])
@@ -37,60 +46,69 @@ class MyTestCase(unittest.TestCase):
         render_and_view_dog(dog, 'SDCtest')
 
     def test_sdp_parsing(self):
-        for style in ['dm', 'pas', 'psd']:
+        for style, rec_part_strat in product(['dm', 'pas', 'psd'], self.rec_part_strategies):
             path = 'res/sdp/trial/' + style + '.sdp'
             corpus = parse_file(path)
             print(len(corpus))
 
             for i, dsg in enumerate(corpus):
-                # if i != 89:
-                #     continue
-                if True or len(dsg.dog.outputs) > 1:
-                    print(i, dsg, dsg.label)
-                    # if i == 89:
-                    # render_and_view_dog(dsg.dog, 'dm0', 'dm0')
-                    # render_and_view_dog(corpus[1].dog, 'dm1', 'dm1')
-                    # print(dsg.sentence, dsg.synchronization, dsg.label)
+                self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=lambda x: x[0])
 
-                    # dog39 = dsg.dog.extract_dog([39], [], enforce_outputs=False)
-                    # render_and_view_dog(dog39, "dog39")
+    def __process_single_dsg(self, i, dsg, rec_part_strat, terminal_labeling):
+        if True or len(dsg.dog.outputs) > 1:
+            print(i, dsg, dsg.label)
+            # if i == 89:
+            # render_and_view_dog(dsg.dog, 'dm0', 'dm0')
+            # render_and_view_dog(corpus[1].dog, 'dm1', 'dm1')
+            # print(dsg.sentence, dsg.synchronization, dsg.label)
+
+            # dog39 = dsg.dog.extract_dog([39], [], enforce_outputs=False)
+            # render_and_view_dog(dog39, "dog39")
+
+            rec_part = rec_part_strat(dsg)
+
+            if False and i == 89:
+                pretty_print_rec_partitioning(rec_part)
+
+            decomp = compute_decomposition(dsg, rec_part)
+            # print(decomp)
+
+            grammar = induce_grammar_from(dsg, rec_part, decomp,
+                                          terminal_labeling=terminal_labeling, enforce_outputs=False, normalize=True)
+            if False and i == 89:
+                print(grammar)
+
+            parser = LCFRS_parser(grammar)
+            parser.set_input(map(terminal_labeling, dsg.sentence))
+
+            print("parsing")
+
+            parser.parse()
+            self.assertTrue(parser.recognized())
+
+            derivation = parser.best_derivation_tree()
+            self.assertNotEqual(derivation, None)
+
+            dog, sync_list = dog_evaluation(derivation)
+
+            dsg.dog.project_labels(terminal_labeling)
+
+            if False and i == 89:
+                render_and_view_dog(dsg.dog, "corpus", "corpus_graph")
+                render_and_view_dog(dog, "parse_result", "parse_result")
+
+            print("comparing")
+
+            self.assertEqual(dog, dsg.dog)
+
+    def test_dog_generation(self):
+        for rec_part_strat in self.rec_part_strategies[1:]:
+            for i in range(500):
+                dsg = generate_sdg(randint(2, 12), maximum_inputs=4)
+                # render_and_view_dog(dsg.dog, 'random_dog_' + str(i))
+                self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=str)
 
 
-                    rec_part = extract_recursive_partitioning(dsg)
-
-                    if False and i == 89:
-                        pretty_print_rec_partitioning(rec_part)
-
-                    decomp = compute_decomposition(dsg, rec_part)
-                    # print(decomp)
-
-                    grammar = induce_grammar_from(dsg, rec_part, decomp,
-                                                  terminal_labeling=lambda x: x[0], enforce_outputs=False, normalize=False)
-                    if False and i == 89:
-                        print(grammar)
-
-                    parser = LCFRS_parser(grammar)
-                    parser.set_input(map(lambda x: x[0], dsg.sentence))
-
-                    print("parsing")
-
-                    parser.parse()
-                    self.assertTrue(parser.recognized())
-
-                    derivation = parser.best_derivation_tree()
-                    self.assertNotEqual(derivation, None)
-
-                    dog, sync_list = dog_evaluation(derivation)
-
-                    dsg.dog.project_labels(lambda x: x[0])
-
-                    if False and i == 89:
-                        render_and_view_dog(dsg.dog, "corpus", "corpus_graph")
-                        render_and_view_dog(dog, "parse_result", "parse_result")
-
-                    print("comparing")
-
-                    self.assertEqual(dog, dsg.dog)
 
 
 

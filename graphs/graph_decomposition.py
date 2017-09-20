@@ -102,6 +102,7 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), te
                         normalize=True, enforce_outputs=True):
     lcfrs = LCFRS(start=start)
     rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize, enforce_outputs)
+    rhs_top = dsg.dog.top(decomp[0])
 
     # construct a chain rule from START to initial nonterminal of decomposition
     # LCFRS part
@@ -112,10 +113,11 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), te
     dog = DirectedOrderedGraph()
     assert len(dsg.dog.inputs) == 0
     assert not enforce_outputs or len(dsg.dog.outputs) > 0
-    for i in range(len(dsg.dog.outputs)):
+    for i in range(len(rhs_top)):
         dog.add_node(i)
-        dog.add_to_outputs(i)
-    dog.add_nonterminal_edge([], [i for i in range(len(dsg.dog.outputs))], enforce_outputs)
+    for output in dsg.dog.outputs:
+        dog.add_to_outputs(rhs_top.index(output))
+    dog.add_nonterminal_edge([], [i for i in range(len(rhs_top))], enforce_outputs)
 
     # no sync
     sync = []

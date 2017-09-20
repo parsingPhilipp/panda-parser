@@ -1,4 +1,4 @@
-from graphs.dog import DirectedOrderedGraph
+from graphs.dog import DirectedOrderedGraph, DeepSyntaxGraph
 from random import shuffle, randint, choice, random
 
 
@@ -37,3 +37,11 @@ def generate(n_nodes, maximum_inputs=4, upward_closed=True, new_output=0.2, mult
         edge = dog.add_terminal_edge(inputs, randint(0, n_nodes), goal)
         targeted.add(goal)
     return dog
+
+
+def generate_sdg(n_nodes, maximum_inputs=4, upward_closed=False, new_output=0.1, multiple_output=0.0):
+    dog = generate(n_nodes, maximum_inputs, upward_closed, new_output, multiple_output)
+    sentence = [dog.incoming_edge(node) for node in dog.nodes]
+    sync = [[node] for node in dog.nodes]
+    dsg = DeepSyntaxGraph(sentence, dog, sync)
+    return dsg
