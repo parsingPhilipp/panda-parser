@@ -8,7 +8,8 @@ from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
 from parser.naive.parsing import LCFRS_parser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
-from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning, fanout_limited_partitioning_left_to_right
+from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning, \
+    fanout_limited_partitioning_left_to_right
 from grammar.induction.terminal_labeling import PosTerminals
 import subprocess
 import json
@@ -580,15 +581,70 @@ class GraphTests(unittest.TestCase):
                                        [({0}, []), ({1}, []), ({2}, []), ({3, 4}, [({3}, []), ({4}, [])])]),
                                       ({6, 7, 8, 9, 10, 11},
                                        [({11}, []), ({8, 9, 10, 6, 7}, [({9, 10}, [({9}, []), ({10}, [])]), (
-                                                                  {8, 6, 7}, [({6}, []), ({7}, []), ({8}, [])])])]),
+                                           {8, 6, 7}, [({6}, []), ({7}, []), ({8}, [])])])]),
                                       ({5}, [])]),
                                   dsg.recursive_partitioning(subgrouping=True))
             self.assertTupleEqual(({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}, [
                 ({0, 1, 2, 3, 4, 5}, [({0, 1, 2, 3, 4}, [({0, 1, 2}, [({0, 1}, [({0}, []), ({1}, [])]), ({2}, [])]),
                                                          ({3, 4}, [({3}, []), ({4}, [])])]), ({5}, [])]), (
                     {6, 7, 8, 9, 10, 11}, [({8, 9, 10, 6, 7}, [({8, 6, 7}, [({6, 7}, [({6}, []), ({7}, [])]), (
-                                 {8}, [])]), ({9, 10}, [({9}, []), ({10}, [])])]), ({11}, [])])]),
+                        {8}, [])]), ({9, 10}, [({9}, []), ({10}, [])])]), ({11}, [])])]),
                                   fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping=True), 1))
+
+    def test_fanout_marking(self):
+        label = 's1813'
+        path = "res/tiger/tiger_8000.xml"
+        dsgs = sentence_names_to_deep_syntax_graphs([label], path, hold=False, reorder_children=True)
+
+        term_labeling_token = PosTerminals()
+
+        def term_labeling(token):
+            if isinstance(token, ConstituentTerminal):
+                return term_labeling_token.token_label(token)
+            else:
+                return token
+
+        def rec_part_strategy(direction, subgrouping, fanout):
+            if direction == "right-to-left":
+                return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping), fanout)
+            else:
+                return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping),
+                                                                             fanout)
+
+        def label_edge(edge):
+            if isinstance(edge.label, ConstituentTerminal):
+                return edge.label.pos()
+            else:
+                return edge.label
+
+        def stupid_edge(edge):
+            return "X"
+
+        def label_child(edge, j):
+            return edge.get_function(j)
+
+        def simple_nonterminal_labeling(nodes, dsg):
+            return simple_labeling(nodes, dsg, label_edge)
+
+        def bot_stupid_nonterminal_labeling(nodes, dsg):
+            return top_bot_labeling(nodes, dsg, label_edge, stupid_edge)
+
+        def missing_child_nonterminal_labeling(nodes, dsg):
+            return missing_child_labeling(nodes, dsg, label_edge, label_child)
+
+        rec_part = rec_part_strategy("left-to-right", True, 2)(dsgs[0])
+        print(rec_part)
+
+        dcmp = compute_decomposition(dsgs[0], rec_part)
+        print(dcmp)
+
+        grammar = induce_grammar_from(dsgs[0], rec_part, dcmp, labeling=missing_child_nonterminal_labeling,
+                                      terminal_labeling=term_labeling)
+
+        print(grammar)
+
+        for rule in grammar.rules():
+            print(rule)
 
     def test_binarization(self):
         dog = build_acyclic_dog()
@@ -660,8 +716,9 @@ class GraphTests(unittest.TestCase):
             if direction == "right-to-left":
                 return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping), fanout)
             else:
-                return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping, weak=True),
-                                                                             fanout)
+                return lambda dsg: fanout_limited_partitioning_left_to_right(
+                    dsg.recursive_partitioning(subgrouping, weak=True),
+                    fanout)
         the_rec_part_strategy = rec_part_strategy("left-to-right", True, 1)
 
         def simple_nonterminal_labeling(nodes, dsg):
@@ -732,19 +789,19 @@ def build_acyclic_dog_binarized():
 
     dog.add_terminal_edge([(1, 'p'), (11, 'p')], 'CS', 0) \
         .set_function(0, "CJ")
-    dog.add_terminal_edge([(2, 'p'), (3, 'p')], 'CS-BAR', 11)\
+    dog.add_terminal_edge([(2, 'p'), (3, 'p')], 'CS-BAR', 11) \
         .set_function(0, "CD").set_function(1, "CJ")
     dog.add_terminal_edge([(4, 'p'), (12, 'p')], 'S', 1) \
         .set_function(0, "SB")
-    dog.add_terminal_edge([(5, 'p'), 6], 'S-BAR', 12)\
+    dog.add_terminal_edge([(5, 'p'), 6], 'S-BAR', 12) \
         .set_function(0, "HD").set_function(1, "OA")
     dog.add_terminal_edge([4, (13, 'p')], 'S', 3) \
         .set_function(0, "SB")
-    dog.add_terminal_edge([(7, 'p'), (6, 'p')], 'S-BAR', 13)\
+    dog.add_terminal_edge([(7, 'p'), (6, 'p')], 'S-BAR', 13) \
         .set_function(0, "HD").set_function(1, "OA")
     dog.add_terminal_edge([(8, 'p'), (14, 'p')], 'CNP', 6) \
         .set_function(0, "CJ")
-    dog.add_terminal_edge([(9, 'p'), (10, 'p')], 'CNP-BAR', 14)\
+    dog.add_terminal_edge([(9, 'p'), (10, 'p')], 'CNP-BAR', 14) \
         .set_function(0, "CD").set_function(1, "CJ")
     for (lab, i) in [
         ('und', 2), ('Sie', 4), ('entwickelt', 5), ('druckt', 7),
