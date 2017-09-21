@@ -1,6 +1,6 @@
 from __future__ import print_function
 import unittest
-from corpora.sdc_parse import parse_sentence, parse_file
+from corpora.sdc_parse import parse_sentence, parse_file, export_sentence, export_corpus
 from decomposition import left_branching_partitioning
 from graphs.util import render_and_view_dog, extract_recursive_partitioning, pretty_print_rec_partitioning
 from graphs.graph_decomposition import compute_decomposition, induce_grammar_from, dog_evaluation
@@ -40,10 +40,13 @@ class SDPTest(unittest.TestCase):
 
     def test_sdp_format(self):
         lines = content.splitlines()
-        print(lines[2:])
-        dog = parse_sentence(lines[2:]).dog
-        print(dog)
-        render_and_view_dog(dog, 'SDCtest')
+        # print(lines[2:])
+        dsg = parse_sentence(lines[2:])
+        dog = dsg.dog
+        # print(dog)
+        # render_and_view_dog(dog, 'SDCtest')
+        # print(export_sentence(dsg)[1:])
+        self.assertListEqual(lines[2:], export_sentence(dsg)[1:])
 
     def test_sdp_parsing(self):
         for style, rec_part_strat in product(['dm', 'pas', 'psd'], self.rec_part_strategies):
@@ -64,6 +67,36 @@ class SDPTest(unittest.TestCase):
                 if len(dsg.sentence) > 50:
                     continue
                 self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=lambda x: x[0])
+
+    def test_advanced_corpus_parsing(self):
+        train_limit = 500
+        train_dev_corpus_path = 'res/osdp-12/sdp/2015/en.dm.sdp'
+        training_last = 21999042
+        training_corpus = parse_file(train_dev_corpus_path, last_id=training_last, max_n=train_limit)
+
+        dev_start = 22000001
+        dev_limit = 10000
+        dev_corpus = parse_file(train_dev_corpus_path, start_id=dev_start, max_n=dev_limit)
+
+        cyclic = 0
+        checked = 0
+        for sdg in training_corpus:
+            checked += 1
+            if sdg.dog.cyclic():
+                cyclic += 1
+        self.assertEqual(checked, 500)
+        self.assertEqual(cyclic, 0)
+
+
+        cyclic = 0
+        checked = 0
+        for sdg in dev_corpus:
+            checked += 1
+            if sdg.dog.cyclic():
+                cyclic += 1
+        self.assertEqual(checked, 1692)
+        self.assertEqual(cyclic, 0)
+        export_corpus(dev_corpus, '/tmp/dev_corpus_export.dm.sdp')
 
     def __process_single_dsg(self, i, dsg, rec_part_strat, terminal_labeling):
         if True or len(dsg.dog.outputs) > 1:
