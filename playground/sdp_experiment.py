@@ -6,8 +6,10 @@ from graphs.graph_decomposition import induce_grammar_from, compute_decompositio
 from graphs.dog import DeepSyntaxGraph
 from decomposition import left_branching_partitioning
 from subprocess import call
+import multiprocessing
+import time
 
-train_limit = 2000
+train_limit = 5000
 train_dev_corpus_path = '../res/osdp-12/sdp/2015/en.dm.sdp'
 training_last = 21999042
 training_corpus = parse_file(train_dev_corpus_path, last_id=training_last, max_n=train_limit)
@@ -15,6 +17,18 @@ training_corpus = parse_file(train_dev_corpus_path, last_id=training_last, max_n
 dev_start = 22000001
 dev_limit = 50
 dev_corpus = parse_file(train_dev_corpus_path, start_id=dev_start, max_n=dev_limit)
+
+parsing_timeout = 10  # in seconds
+
+
+def worker(parser, graph, return_dict):
+    parser.parse()
+    if parser.recognized():
+        derivation = parser.best_derivation_tree()
+        assert derivation is not None
+        dog, sync_list = dog_evaluation(derivation)
+        result = DeepSyntaxGraph(graph.sentence, dog, sync_list, label=graph.label)
+        return_dict[0] = result
 
 
 def main():
@@ -56,29 +70,40 @@ def main():
 
     # testing (on dev set)
     print("Nonterminals:", len(grammar.nonts()), "Rules:", len(grammar.rules()))
-    print("parsing, ", end='')
+    manager = multiprocessing.Manager()
+    return_dict = manager.dict()
     parser = GFParser(grammar)
+    print("parsing, ", end='')
     recognized = 0
     results = []
     for graph in dev_corpus:
-        if len(graph.sentence) <= 20:
-            parser.set_input(map(terminal_labeling_lcfrs, graph.sentence))
-            parser.parse()
-        if len(graph.sentence) <= 20 and parser.recognized():
+        parser.set_input(map(terminal_labeling_lcfrs, graph.sentence))
+
+        # parse with timeout
+        start = time.time()
+        timeout = False
+        p = multiprocessing.Process(target=worker, args=(parser, graph, return_dict))
+        p.start()
+        p.join(timeout=parsing_timeout)
+        if p.is_alive():
+            p.terminate()
+            # print("Timeout after", time.time() - start, "seconds.")
+            p.join()
+            timeout = True
+
+        if 0 in return_dict and return_dict[0] is not None:
             recognized += 1
             print(".", end='')
-            derivation = parser.best_derivation_tree()
-            assert derivation is not None
-            dog, sync_list = dog_evaluation(derivation)
-            result = DeepSyntaxGraph(graph.sentence, dog, sync_list, label=graph.label)
-            results.append(result)
-
-            # graph.dog.project_labels(terminal_labeling)
+            results.append(return_dict[0])
         else:
-            print("-", end='')
+            if timeout:
+                print("t", end='')
+            else:
+                print("-", end='')
             results.append(build_dummy_dsg(graph.sentence, graph.label))
 
         parser.clear()
+        return_dict[0] = None
 
     print()
     print("From {} sentences, {} were recognized.".format(len(dev_corpus), recognized))
@@ -89,7 +114,6 @@ def main():
     export_corpus(results, system_file)
 
     call(["sh", "../util/semeval-run.sh", "Scorer", gold_file, system_file, "representation=DM"])
-
 
 
 if __name__ == "__main__":
