@@ -2,9 +2,10 @@ from __future__ import print_function
 from corpora.sdc_parse import parse_file, export_corpus, build_dummy_dsg
 from grammar.lcfrs import LCFRS
 from parser.gf_parser.gf_interface import GFParser
-from graphs.graph_decomposition import induce_grammar_from, compute_decomposition, dog_evaluation
+from graphs.graph_decomposition import induce_grammar_from, compute_decomposition, dog_evaluation, consecutive_spans
 from graphs.dog import DeepSyntaxGraph
-from decomposition import left_branching_partitioning
+from graphs.util import extract_recursive_partitioning
+from decomposition import left_branching_partitioning, fanout_limited_partitioning_left_to_right
 from subprocess import call
 import multiprocessing
 import time
@@ -18,7 +19,7 @@ dev_start = 22000001
 dev_limit = 50
 dev_corpus = parse_file(train_dev_corpus_path, start_id=dev_start, max_n=dev_limit)
 
-parsing_timeout = 10  # in seconds
+parsing_timeout = 20  # in seconds
 
 
 def worker(parser, graph, return_dict):
@@ -35,13 +36,16 @@ def main():
     grammar = LCFRS("START")
 
     def terminal_labeling(x):
-        return x
+        return '_', '_', x[2], x[3]
 
     def terminal_labeling_lcfrs(x):
         return x[2]
 
     def rec_part_strat(graph):
-        return left_branching_partitioning(len(graph.sentence))
+        # return left_branching_partitioning(len(graph.sentence))
+        direct = extract_recursive_partitioning(graph)
+        # return direct
+        return fanout_limited_partitioning_left_to_right(direct, 1)
 
     def nt_sub_labeling(edge):
         return edge.label[2]
@@ -60,7 +64,9 @@ def main():
             def labels(nodes):
                 return [nt_sub_labeling(graph.dog.incoming_edge(node)) for node in nodes]
 
-            return '[' + ','.join(labels(bot)) + ';' + ','.join(labels(top)) + ']'
+            fanout = consecutive_spans(graph.covered_sentence_positions(x))
+
+            return '[' + ','.join(labels(bot)) + ';' + ','.join(labels(top)) + ';' + str(fanout) + ']'
 
         graph_grammar = induce_grammar_from(graph, rec_part, decomp,
                                       terminal_labeling=terminal_labeling,
@@ -70,6 +76,7 @@ def main():
 
     # testing (on dev set)
     print("Nonterminals:", len(grammar.nonts()), "Rules:", len(grammar.rules()))
+    print(grammar, file=open('/tmp/the_grammar.txt', 'w'))
     manager = multiprocessing.Manager()
     return_dict = manager.dict()
     parser = GFParser(grammar)
