@@ -62,6 +62,8 @@ class GFParser(AbstractParser):
 
     def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None):
         self.grammar = grammar
+        self._goal = None
+        self._best = None
         if input is not None:
             if grammar.tmp_gf is not None:
                 self.gf_grammar = grammar.tmp_gf

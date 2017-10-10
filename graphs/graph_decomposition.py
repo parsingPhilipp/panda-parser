@@ -98,10 +98,12 @@ def consecutive_spans(positions):
     return spans
 
 
-def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), terminal_labeling=id, start="START",
+def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), terminal_labeling=id, terminal_labeling_lcfrs=None, start="START",
                         normalize=True, enforce_outputs=True):
+    if terminal_labeling_lcfrs is None:
+        terminal_labeling_lcfrs = terminal_labeling
     lcfrs = LCFRS(start=start)
-    rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize, enforce_outputs)
+    rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, terminal_labeling_lcfrs, normalize, enforce_outputs)
     rhs_top = dsg.dog.top(decomp[0])
 
     # construct a chain rule from START to initial nonterminal of decomposition
@@ -126,13 +128,13 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), te
     return lcfrs
 
 
-def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, normalize, enforce_outputs=True):
+def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, terminal_labeling_lcfrs, normalize, enforce_outputs=True):
     lhs_nont = labeling(decomp[0], dsg)
 
     # build lcfrs part
     lcfrs_lhs = LCFRS_lhs(lhs_nont)
     rhs_sent_pos = map(lambda x: x[0], rec_par[1])
-    generated_sent_positions = fill_lcfrs_lhs(lcfrs_lhs, rec_par[0], rhs_sent_pos, dsg.sentence, terminal_labeling)
+    generated_sent_positions = fill_lcfrs_lhs(lcfrs_lhs, rec_par[0], rhs_sent_pos, dsg.sentence, terminal_labeling_lcfrs)
 
     # build dog part
     rhs_nodes = map(lambda x: x[0], decomp[1])
@@ -152,7 +154,7 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling,
     rhs_nonts = []
     for child_rec_par, child_decomp in zip(rec_par[1], decomp[1]):
         rhs_nonts.append(
-            induce_grammar_rec(lcfrs, dsg, child_rec_par, child_decomp, labeling, terminal_labeling, normalize, enforce_outputs))
+            induce_grammar_rec(lcfrs, dsg, child_rec_par, child_decomp, labeling, terminal_labeling, terminal_labeling_lcfrs, normalize, enforce_outputs))
 
     # create rule
     lcfrs.add_rule(lcfrs_lhs, rhs_nonts, weight=1.0, dcp=[dog, sync])
