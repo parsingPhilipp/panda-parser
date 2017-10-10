@@ -1,25 +1,12 @@
 from __future__ import print_function
-from corpora.sdc_parse import parse_file, export_corpus, build_dummy_dsg
-from grammar.lcfrs import LCFRS
+from corpora.sdc_parse import parse_file, export_corpus, build_dummy_dsg, export_sentence
 from parser.gf_parser.gf_interface import GFParser
 from graphs.graph_decomposition import induce_grammar_from, compute_decomposition, dog_evaluation, consecutive_spans
 from graphs.dog import DeepSyntaxGraph
 from graphs.util import extract_recursive_partitioning
 from decomposition import left_branching_partitioning, fanout_limited_partitioning_left_to_right
 from subprocess import call
-import multiprocessing
-import time
-
-train_limit = 5000
-train_dev_corpus_path = '../res/osdp-12/sdp/2015/en.dm.sdp'
-training_last = 21999042
-training_corpus = parse_file(train_dev_corpus_path, last_id=training_last, max_n=train_limit)
-
-dev_start = 22000001
-dev_limit = 50
-dev_corpus = parse_file(train_dev_corpus_path, start_id=dev_start, max_n=dev_limit)
-
-parsing_timeout = 20  # in seconds
+from experiment_helpers import Experiment, RESULT, CorpusFile
 
 
 def worker(parser, graph, return_dict):
@@ -32,8 +19,85 @@ def worker(parser, graph, return_dict):
         return_dict[0] = result
 
 
+class InductionSettings:
+    def __init__(self):
+        self.rec_part_strat = None
+        self.terminal_labeling = None
+        self.terminal_labeling_lcfrs = None
+        self.nt_sub_labeling = None
+        self.nonterminal_labeling = None
+
+
+class SDPExperiment(Experiment):
+    def __init__(self, induction_settings):
+        Experiment.__init__(self)
+        self.induction_settings = induction_settings
+        self.resources[RESULT] = CorpusFile(header="#SDP 2015\n")
+
+    def initialize_parser(self):
+        self.parser = GFParser(self.base_grammar)
+
+    def preprocess_before_induction(self, obj):
+        pass
+
+    def induce_from(self, graph):
+        rec_part = self.induction_settings.rec_part_strat(graph)
+
+        decomposition = compute_decomposition(graph, rec_part)
+
+        graph_grammar = induce_grammar_from(graph, rec_part, decomposition,
+                                            terminal_labeling=self.induction_settings.terminal_labeling,
+                                            terminal_labeling_lcfrs=self.induction_settings.terminal_labeling_lcfrs,
+                                            labeling=self.induction_settings.nonterminal_labeling,
+                                            enforce_outputs=False, normalize=True)
+        return graph_grammar, None
+
+    def parsing_preprocess(self, graph):
+        return map(self.induction_settings.terminal_labeling_lcfrs, graph.sentence)
+
+    def parsing_postprocess(self, sentence, derivation, label=None):
+        assert derivation is not None
+        dog, sync_list = dog_evaluation(derivation)
+        return DeepSyntaxGraph(sentence, dog, sync_list, label=label)
+
+    def obtain_sentence(self, obj):
+        return obj.sentence
+
+    def obtain_label(self, obj):
+        return obj.label
+
+    def compute_fallback(self, sentence, label=None):
+        return build_dummy_dsg(sentence, label)
+
+    def read_corpus(self, resource):
+        return parse_file(resource.path, start_id=resource.start, last_id=resource.end, max_n=resource.limit)
+
+    def serialize(self, obj):
+        lines = export_sentence(obj) + ['', '']
+        return '\n'.join(lines)
+
+    def evaluate(self, result_resource, gold_resource):
+        if gold_resource.end is not None \
+                or gold_resource.limit is not None\
+                or gold_resource.length_limit is not None:
+            corpus_gold_selection = self.read_corpus(gold_resource)
+            gold_selection_resource = CorpusFile()
+            gold_selection_resource.init()
+            gold_selection_resource.finalize()
+            export_corpus(corpus_gold_selection, gold_selection_resource.path)
+            gold_resource = gold_selection_resource
+
+        call(["sh", "../util/semeval-run.sh", "Scorer", gold_resource.path, result_resource.path, "representation=DM"])
+
+
 def main():
-    grammar = LCFRS("START")
+    # path to corpus and ids of first/last sentences of sections
+    train_dev_corpus_path = '../res/osdp-12/sdp/2015/en.dm.sdp'
+    training_last = 21999042
+    dev_start = 22000001
+    # limit corpus sizes for testing purpose
+    train_limit = 50
+    dev_limit = 50
 
     def terminal_labeling(x):
         return '_', '_', x[2], x[3]
@@ -50,77 +114,31 @@ def main():
     def nt_sub_labeling(edge):
         return edge.label[2]
 
-    # grammar induction
-    for graph in training_corpus:
-        rec_part = rec_part_strat(graph)
+    def nonterminal_labeling(x, graph):
+        bot = graph.dog.bottom(x)
+        top = graph.dog.top(x)
 
-        decomp = compute_decomposition(graph, rec_part)
-        # print(decomp)
+        def labels(nodes):
+            return [induction_settings.nt_sub_labeling(graph.dog.incoming_edge(node)) for node in nodes]
 
-        def nonterminal_labeling(x, graph):
-            bot = graph.dog.bottom(x)
-            top = graph.dog.top(x)
+        fanout = consecutive_spans(graph.covered_sentence_positions(x))
 
-            def labels(nodes):
-                return [nt_sub_labeling(graph.dog.incoming_edge(node)) for node in nodes]
+        return '[' + ','.join(labels(bot)) + ';' + ','.join(labels(top)) + ';' + str(fanout) + ']'
 
-            fanout = consecutive_spans(graph.covered_sentence_positions(x))
+    induction_settings = InductionSettings()
+    induction_settings.terminal_labeling = terminal_labeling
+    induction_settings.terminal_labeling_lcfrs = terminal_labeling_lcfrs
+    induction_settings.rec_part_strat = rec_part_strat
+    induction_settings.nt_sub_labeling = nt_sub_labeling
+    induction_settings.nonterminal_labeling = nonterminal_labeling
 
-            return '[' + ','.join(labels(bot)) + ';' + ','.join(labels(top)) + ';' + str(fanout) + ']'
+    experiment = SDPExperiment(induction_settings)
+    experiment.resources['TRAIN'] = CorpusFile(train_dev_corpus_path, end=training_last, limit=train_limit)
+    experiment.resources['TEST'] = CorpusFile(train_dev_corpus_path, start=dev_start, limit=dev_limit)
 
-        graph_grammar = induce_grammar_from(graph, rec_part, decomp,
-                                      terminal_labeling=terminal_labeling,
-                                      terminal_labeling_lcfrs=terminal_labeling_lcfrs,
-                                            labeling=nonterminal_labeling, enforce_outputs=False, normalize=True)
-        grammar.add_gram(graph_grammar)
+    experiment.parsing_timeout = 150  # seconds
 
-    # testing (on dev set)
-    print("Nonterminals:", len(grammar.nonts()), "Rules:", len(grammar.rules()))
-    print(grammar, file=open('/tmp/the_grammar.txt', 'w'))
-    manager = multiprocessing.Manager()
-    return_dict = manager.dict()
-    parser = GFParser(grammar)
-    print("parsing, ", end='')
-    recognized = 0
-    results = []
-    for graph in dev_corpus:
-        parser.set_input(map(terminal_labeling_lcfrs, graph.sentence))
-
-        # parse with timeout
-        start = time.time()
-        timeout = False
-        p = multiprocessing.Process(target=worker, args=(parser, graph, return_dict))
-        p.start()
-        p.join(timeout=parsing_timeout)
-        if p.is_alive():
-            p.terminate()
-            # print("Timeout after", time.time() - start, "seconds.")
-            p.join()
-            timeout = True
-
-        if 0 in return_dict and return_dict[0] is not None:
-            recognized += 1
-            print(".", end='')
-            results.append(return_dict[0])
-        else:
-            if timeout:
-                print("t", end='')
-            else:
-                print("-", end='')
-            results.append(build_dummy_dsg(graph.sentence, graph.label))
-
-        parser.clear()
-        return_dict[0] = None
-
-    print()
-    print("From {} sentences, {} were recognized.".format(len(dev_corpus), recognized))
-    print()
-    gold_file = '/tmp/dev_corpus_gold.dm.sdp'
-    system_file = '/tmp/dev_corpus_system.dm.sdp'
-    export_corpus(dev_corpus, gold_file)
-    export_corpus(results, system_file)
-
-    call(["sh", "../util/semeval-run.sh", "Scorer", gold_file, system_file, "representation=DM"])
+    experiment.run_experiment()
 
 
 if __name__ == "__main__":
