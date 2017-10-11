@@ -77,7 +77,7 @@ def induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, termina
         #     rec_part = rec_part_strategy(dsg)
         #     assert False
         decomp = compute_decomposition(dsg, rec_part)
-        dsg_grammar = induce_grammar_from(dsg, rec_part, decomp, nonterminal_labeling, terminal_labeling, start,
+        dsg_grammar = induce_grammar_from(dsg, rec_part, decomp, nonterminal_labeling, terminal_labeling, terminal_labeling, start,
                                           normalize)
         grammar.add_gram(dsg_grammar)
     return grammar
@@ -103,7 +103,9 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), te
     if terminal_labeling_lcfrs is None:
         terminal_labeling_lcfrs = terminal_labeling
     lcfrs = LCFRS(start=start)
-    rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, terminal_labeling_lcfrs, normalize, enforce_outputs)
+    ordered_nodes = dsg.dog.ordered_nodes()
+    rhs_nont = induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, terminal_labeling_lcfrs
+                                  , normalize, enforce_outputs, ordered_nodes=ordered_nodes)
     rhs_top = dsg.dog.top(decomp[0])
 
     # construct a chain rule from START to initial nonterminal of decomposition
@@ -128,7 +130,8 @@ def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), te
     return lcfrs
 
 
-def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, terminal_labeling_lcfrs, normalize, enforce_outputs=True):
+def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling, terminal_labeling_lcfrs, normalize,
+                       enforce_outputs=True, ordered_nodes=None):
     lhs_nont = labeling(decomp[0], dsg)
 
     # build lcfrs part
@@ -138,7 +141,7 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling,
 
     # build dog part
     rhs_nodes = map(lambda x: x[0], decomp[1])
-    dog = dsg.dog.extract_dog(decomp[0], rhs_nodes, enforce_outputs)
+    dog = dsg.dog.extract_dog(decomp[0], rhs_nodes, enforce_outputs, ordered_nodes=ordered_nodes)
     for edge in dog.terminal_edges:
         edge.label = terminal_labeling(edge.label)
     if normalize:
@@ -154,7 +157,8 @@ def induce_grammar_rec(lcfrs, dsg, rec_par, decomp, labeling, terminal_labeling,
     rhs_nonts = []
     for child_rec_par, child_decomp in zip(rec_par[1], decomp[1]):
         rhs_nonts.append(
-            induce_grammar_rec(lcfrs, dsg, child_rec_par, child_decomp, labeling, terminal_labeling, terminal_labeling_lcfrs, normalize, enforce_outputs))
+            induce_grammar_rec(lcfrs, dsg, child_rec_par, child_decomp, labeling, terminal_labeling,
+                               terminal_labeling_lcfrs, normalize, enforce_outputs, ordered_nodes=ordered_nodes))
 
     # create rule
     lcfrs.add_rule(lcfrs_lhs, rhs_nonts, weight=1.0, dcp=[dog, sync])
@@ -206,15 +210,16 @@ def fill_lcfrs_lhs(lhs, sent_positions, children, sentence, terminal_labeling):
     return generated_sentence_positions
 
 
-def dog_evaluation(derivation):
+def dog_evaluation(derivation, compress=True):
     assert isinstance(derivation, AbstractDerivation)
     dog, sync = dog_evaluation_rec(derivation, derivation.root_id())
-    renaming = dog.compress_node_names()
 
-    sync2 = {}
-    for sent_pos in sync:
-        sync2[sent_pos] = [renaming.get(node, node) for node in sync[sent_pos]]
-    sync_list = map(lambda x: x[1], sorted([(key, sync2[key]) for key in sync2], key=lambda x: x[0]))
+    if compress:
+        renaming = dog.compress_node_names()
+        for sent_pos in sync:
+            sync[sent_pos] = [renaming.get(node, node) for node in sync[sent_pos]]
+
+    sync_list = map(lambda x: x[1], sorted([(key, sync[key]) for key in sync], key=lambda x: x[0]))
 
     return dog, sync_list
 
@@ -247,16 +252,18 @@ def simple_labeling(nodes, dsg, edge_label=lambda e: e.label):
 
 def top_bot_labeling(nodes, dsg, top_label=lambda e: e.label, bot_label=lambda e: e.label):
     assert isinstance(dsg, DeepSyntaxGraph)
-    top_label = [top_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes)]
-    bot_label = [bot_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.bottom(nodes)]
+    ordered_nodes = dsg.dog.ordered_nodes()
+    top_label = [top_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes, ordered_nodes)]
+    bot_label = [bot_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.bottom(nodes, ordered_nodes)]
     fanout = consecutive_spans(dsg.covered_sentence_positions(nodes))
     return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + '; f' + str(fanout) + ']'
 
 
 def missing_child_labeling(nodes, dsg, edge_label=lambda e: e.label, child_label=lambda e, i: e.label):
     assert isinstance(dsg, DeepSyntaxGraph)
-    top_label = [edge_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes)]
+    ordered_nodes = dsg.dog.ordered_nodes()
+    top_label = [edge_label(dsg.dog.incoming_edge(node)) for node in dsg.dog.top(nodes, ordered_nodes)]
     bot_label = ['-'.join([child_label(dsg.dog.incoming_edge(node), i) for node, i in nodes2])
-                 for nodes2 in dsg.dog.missing_children(nodes)]
+                 for nodes2 in dsg.dog.missing_children(nodes, ordered_nodes)]
     fanout = consecutive_spans(dsg.covered_sentence_positions(nodes))
     return '[' + ','.join(bot_label) + ';' + ','.join(top_label) + '; f' + str(fanout) + ']'

@@ -207,6 +207,13 @@ class DirectedOrderedGraph:
             if elem == old:
                 the_list[i] = new
 
+    @staticmethod
+    def replace_inplace_many(the_list, translation):
+        for i, elem in enumerate(the_list):
+            new = translation.get(elem, elem)
+            if elem != new:
+                the_list[i] = new
+
     def rename_node(self, node, node_new, trace=None):
         if node == node_new:
             return
@@ -233,6 +240,27 @@ class DirectedOrderedGraph:
                 self.__replace_inplace(edge.inputs, node, node_new)
                 self.__replace_inplace(edge.outputs, node, node_new)
 
+    def rename_nodes(self, translation):
+        assert set(translation.keys()).isdisjoint(translation.values())
+        self.replace_inplace_many(self._nodes, translation)
+        self.replace_inplace_many(self._inputs, translation)
+        self.replace_inplace_many(self._outputs, translation)
+
+        self._incoming_edge.update({translation[old]: self._incoming_edge[old] for old in translation})
+        for old in translation:
+            del self._incoming_edge[old]
+
+        self._parents.update({translation[old]: self._parents[old] for old in translation})
+        for old in translation:
+            del self._parents[old]
+        for node in self._parents:
+            self.replace_inplace_many(self._parents[node], translation)
+
+        for edge in self._nonterminal_edges + self._terminal_edges:
+            if edge is not None:
+                self.replace_inplace_many(edge.inputs, translation)
+                self.replace_inplace_many(edge.outputs, translation)
+
     def replace_by(self, i, dog):
         """
         :param i:
@@ -253,16 +281,29 @@ class DirectedOrderedGraph:
         # print(len(dog._nonterminal_edges), all([edge is None for edge in dog._nonterminal_edges]))
         assert (len(dog._nonterminal_edges) == 0) or all([edge is None for edge in dog._nonterminal_edges])
 
-        dog_node_renaming = {}
-        max_node = max(self._nodes + dog._nodes)
-        for j, node in enumerate(dog._nodes):
-            dog.rename_node(node, max_node + 1 + j, dog_node_renaming)
+        if False:
+            dog_node_renaming = {}
+            # if not set(self._nodes).isdisjoint(dog._nodes):
+            max_node = max(self._nodes + dog._nodes)
+            for j, node in enumerate(dog._nodes):
+                dog.rename_node(node, max_node + 1 + j, dog_node_renaming)
 
-        dog_node_renaming2 = {}
-        for host_node, replace_node in zip(nt_edge.inputs, dog._inputs):
-            dog.rename_node(replace_node, host_node, dog_node_renaming2)
-        for host_node, replace_node in zip(nt_edge.outputs, dog._outputs):
-            dog.rename_node(replace_node, host_node, dog_node_renaming2)
+            dog_node_renaming2 = {}
+            for host_node, replace_node in zip(nt_edge.inputs, dog._inputs):
+                dog.rename_node(replace_node, host_node, dog_node_renaming2)
+            for host_node, replace_node in zip(nt_edge.outputs, dog._outputs):
+                dog.rename_node(replace_node, host_node, dog_node_renaming2)
+        else:
+            if not set(self._nodes).isdisjoint(dog._nodes):
+                max_node = max(self._nodes + dog._nodes)
+                dog_node_renaming = {node: max_node + 1 + j for j, node in enumerate(dog._nodes)}
+                dog.rename_nodes(dog_node_renaming)
+            else:
+                dog_node_renaming = {}
+            dog_node_renaming2 = {replace_node: host_node
+                                  for host_node, replace_node
+                                  in zip(nt_edge.inputs + nt_edge.outputs, dog._inputs + dog._outputs)}
+            dog.rename_nodes(dog_node_renaming2)
 
         # clean up old parent/ child database entries
         for node in nt_edge.inputs:
@@ -272,7 +313,8 @@ class DirectedOrderedGraph:
 
         # add all new nodes
         for node in dog._nodes:
-            if node > max_node:
+            # if node > max_node:
+            if node not in self._nodes:
                 self.add_node(node)
 
         # add new edges
@@ -299,7 +341,10 @@ class DirectedOrderedGraph:
             for v_2 in self.children(v):
                 self.__ordered_nodes_rec(ordered, v_2)
 
-    def compose_node_renaming(self, renaming1, renaming2):
+    @staticmethod
+    def compose_node_renaming(renaming1, renaming2):
+        if len(renaming1) == 0:
+            return renaming2
         renaming = {}
         for node in renaming1:
             if renaming1[node] in renaming2:
@@ -325,25 +370,31 @@ class DirectedOrderedGraph:
             self.rename_node(node, i, renaming2)
         return self.compose_node_renaming(renaming1, renaming2)
 
-    def top(self, nodes):
+    def top(self, nodes, ordered_nodes=None):
+        if ordered_nodes is None:
+            ordered_nodes = self.ordered_nodes()
         tops = [node for node in nodes
                 if node in self._outputs
                 or any([node2 not in nodes for node2 in self._parents[node]])]
-        return [node for node in self.ordered_nodes() if node in tops]
+        return [node for node in ordered_nodes if node in tops]
 
-    def bottom(self, nodes):
+    def bottom(self, nodes, ordered_nodes=None):
+        if ordered_nodes is None:
+            ordered_nodes = self.ordered_nodes()
         bottoms = [node for node in self._nodes
                    if node not in nodes
                    and any([node2 in nodes for node2 in self._parents[node]])]
-        return [node for node in self.ordered_nodes() if node in bottoms]
+        return [node for node in ordered_nodes if node in bottoms]
 
-    def missing_children(self, nodes):
+    def missing_children(self, nodes, ordered_nodes=None):
+        if ordered_nodes is None:
+            ordered_nodes = self.ordered_nodes()
         relevant_parents = {node: [(parent, self.children(parent).index(node))
                                    for parent in self._parents[node] if parent in nodes]
                             for node in self._nodes
                             if node not in nodes
                             and any([node2 in nodes for node2 in self._parents[node]])}
-        return [relevant_parents[node] for node in self.ordered_nodes() if node in relevant_parents]
+        return [relevant_parents[node] for node in ordered_nodes if node in relevant_parents]
 
     def __ne__(self, other):
         return not self.__eq__(other)
@@ -466,18 +517,20 @@ class DirectedOrderedGraph:
                 return None
         return morphism, inverse_morphism
 
-    def extract_dog(self, lhs, rhs, enforce_outputs=True):
+    def extract_dog(self, lhs, rhs, enforce_outputs=True, ordered_nodes=None):
         assert all([pairwise_disjoint_elem(list) for list in [lhs] + rhs])
         assert all([elem in lhs for list in rhs for elem in list])
         assert pairwise_disjoint(rhs)
         assert all([elem in self._nodes for elem in lhs])
         dog = DirectedOrderedGraph()
 
-        top_lhs = self.top(lhs)
-        bot_lhs = self.bottom(lhs)
+        if ordered_nodes is None:
+            ordered_nodes = self.ordered_nodes()
+        top_lhs = self.top(lhs, ordered_nodes)
+        bot_lhs = self.bottom(lhs, ordered_nodes)
 
-        bot_rhs = [self.bottom(rhs_i) for rhs_i in rhs]
-        top_rhs = [self.top(rhs_i) for rhs_i in rhs]
+        bot_rhs = [self.bottom(rhs_i, ordered_nodes) for rhs_i in rhs]
+        top_rhs = [self.top(rhs_i, ordered_nodes) for rhs_i in rhs]
 
         # lhs
         for node in top_lhs:
