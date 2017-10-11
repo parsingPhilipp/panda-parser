@@ -39,6 +39,7 @@ class CorpusFile(Resource):
         self.length_limit = length_limit
         self.file = None
         self.header = header
+        self.exclude = []
 
     def init(self):
         if self.path is None:

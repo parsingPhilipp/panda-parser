@@ -15,7 +15,7 @@ from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 # grammar induction
 from grammar.induction.recursive_partitioning import fanout_limited_partitioning, fanout_limited_partitioning_left_to_right
 from grammar.induction.terminal_labeling import PosTerminals
-from graphs.graph_decomposition import simple_labeling, top_bot_labeling, missing_child_labeling, induction_on_a_corpus, dog_evaluation
+from graphs.graph_decomposition import simple_labeling, top_bot_labeling, missing_child_labeling, induction_on_a_corpus, dog_evaluation, compute_decomposition, induce_grammar_from
 # reduct computation
 from graphs.graph_bimorphism_json_export import export_corpus_to_json, export_dog_grammar_to_json
 from graphs.schick_parser_rtg_import import read_rtg
@@ -30,10 +30,192 @@ from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from graphs.parse_accuracy import PredicateArgumentScoring
 from graphs.util import render_and_view_dog
+from experiment_helpers import Experiment, Resource, TRAINING, TESTING, RESULT, CorpusFile
 
 
 schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 threads = 1
+
+
+class ScorerResource(Resource):
+    def __init__(self, path=None, start=None, end=None):
+        Resource.__init__(self, path, start, end)
+        self.scorer = PredicateArgumentScoring()
+
+    def score(self, system, gold):
+        found = self.get_labeled_frames(system)
+        correct = self.get_labeled_frames(gold)
+        self.scorer.add_accuracy_frames(found, correct)
+
+    def get_labeled_frames(self, obj):
+        return obj.labeled_frames(guard=lambda x: len(x[1]) > 0)
+
+    def failure(self, gold):
+        self.scorer.add_failure(self.get_labeled_frames(gold))
+
+
+class InductionSettings:
+    def __init__(self):
+        self.rec_part_strategy = None
+        self.nonterminal_labeling = None
+        self.terminal_labeling = None
+        self.terminal_labeling_token = None
+        self.start = None
+        self.normalize = True  # normalize node indices in graph fragments (True) xor keep names of origin (False)
+        self.reorder_children = False  # reorder children alphabetically
+        self.binarize = True
+        self.direction = None
+        self.subgrouping = False
+        self.fanout = 1
+
+    @staticmethod
+    def modify_token(token):
+        if isinstance(token, ConstituentCategory):
+            token_new = deepcopy(token)
+            token_new.set_category(token.category() + '-BAR')
+            return token_new
+        elif isinstance(token, str):
+            return token + '-BAR'
+        else:
+            assert False
+
+    @staticmethod
+    def is_bin(token):
+        if isinstance(token, ConstituentCategory):
+            if token.category().endswith('-BAR'):
+                return True
+        elif isinstance(token, str):
+            if token.endswith('-BAR'):
+                return True
+        return False
+
+
+class Statistics:
+    def __init__(self):
+        self.not_output_connected = 0
+
+
+class DOG_Experiment(Experiment):
+    def __init__(self, induction_settings):
+        Experiment.__init__(self)
+        self.induction_settings = induction_settings
+        self.statistics = Statistics()
+        self.interactive = False
+        self.resources[RESULT] = ScorerResource()
+        self.k_best = 50
+        self.max_score = 1.0
+
+    def induce_from(self, dsg):
+        rec_part = self.induction_settings.rec_part_strategy(dsg)
+        # if calc_fanout(rec_part) > 1 or calc_rank(rec_part) > 2:
+        #     rec_part = rec_part_strategy(dsg)
+        #     assert False
+        decomposition = compute_decomposition(dsg, rec_part)
+        dsg_grammar = induce_grammar_from(dsg, rec_part, decomposition, self.induction_settings.nonterminal_labeling,
+                                          self.induction_settings.terminal_labeling, self.induction_settings.terminal_labeling, self.induction_settings.start,
+                                          self.induction_settings.normalize)
+        return dsg_grammar, None
+
+    def postprocess_grammar(self, grammar):
+        if self.purge_rule_freq is not None:
+            grammar.purge_rules(self.purge_rule_freq)
+
+        max_node = 0
+        for rule in grammar.rules():
+            dog = rule.dcp()[0]
+            sync = rule.dcp()[1]
+            translation = {node: max_node + 1 + j for j, node in enumerate(dog.nodes)}
+            if not set(translation.keys()).isdisjoint(translation.values()):
+                tmp_max = max(dog.nodes + [max_node + len(dog.nodes)])
+                t1 = {node: tmp_max + 1 + j for j, node in enumerate(dog.nodes)}
+                t2 = {tmp_max + 1 + j: max_node + 1 + j for j in range(len(dog.nodes))}
+                dog.rename_nodes(t1)
+                dog.rename_nodes(t2)
+            else:
+                dog.rename_nodes(translation)
+            for sync_sub in sync:
+                dog.replace_inplace_many(sync_sub, translation)
+            max_node += len(dog.nodes)
+
+        grammar.make_proper()
+
+    def read_corpus(self, resource):
+        return sentence_names_to_deep_syntax_graphs(
+            ['s' + str(i) for i in range(resource.start, resource.end + 1) if i not in resource.exclude]
+            , resource.path
+            , hold=False
+            , reorder_children=self.induction_settings.reorder_children)
+
+    def preprocess_before_induction(self, dsg):
+        if self.induction_settings.binarize:
+            return dsg.binarize(bin_modifier=self.induction_settings.modify_token)
+        else:
+            return dsg
+
+    def parsing_postprocess(self, sentence, derivation, label=None):
+        dog, sync = dog_evaluation(derivation, compress=False)
+
+        if self.induction_settings.binarize:
+            dog = dog.debinarize(is_bin=self.induction_settings.is_bin)
+
+        if not dog.output_connected():
+            self.statistics.not_output_connected += 1
+            if self.interactive:
+                z2 = render_and_view_dog(dog, "parsed_" + str(label))
+                # z2.communicate()
+
+        return DeepSyntaxGraph(sentence, dog, sync)
+
+    def obtain_label(self, obj):
+        return obj.label
+
+    def obtain_sentence(self, obj):
+        return obj.sentence
+
+    def parsing_preprocess(self, obj):
+        return self.induction_settings.terminal_labeling_token.prepare_parser_input(self.obtain_sentence(obj))
+
+    def process_parse(self, gold, result_resource):
+        sentence = self.obtain_sentence(gold)
+
+        if self.parser.recognized():
+            if self.oracle_parsing:
+                derivations = [der for _, der in self.parser.k_best_derivation_trees()]
+                best_derivation = self.compute_oracle_derivation(derivations, gold)
+            else:
+                best_derivation = self.parser.best_derivation_tree()
+            result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
+                                              label=self.obtain_label(gold))
+            result_resource.score(result, gold)
+        else:
+            result_resource.failure(gold)
+
+    def initialize_parser(self):
+        self.parser = GFParser_k_best(self.base_grammar, k=self.k_best)
+
+    def evaluate(self, result_resource, gold_resource):
+        scorer = result_resource.scorer
+        print("Parse failures:", scorer.labeled_frame_scorer.n_failures())
+        print("Not output connected", self.statistics.not_output_connected)
+        print("Labeled frames:")
+        print("P", scorer.labeled_frame_scorer.precision(), "R", scorer.labeled_frame_scorer.recall(),
+              "F1", scorer.labeled_frame_scorer.fmeasure(), "EM", scorer.labeled_frame_scorer.exact_match())
+        print("Unlabeled frames:")
+        print("P", scorer.unlabeled_frame_scorer.precision(), "R", scorer.unlabeled_frame_scorer.recall(),
+              "F1", scorer.unlabeled_frame_scorer.fmeasure(), "EM", scorer.unlabeled_frame_scorer.exact_match())
+        print("Labeled dependencies:")
+        print("P", scorer.labeled_dependency_scorer.precision(), "R", scorer.labeled_dependency_scorer.recall(),
+              "F1", scorer.labeled_dependency_scorer.fmeasure(), "EM", scorer.labeled_dependency_scorer.exact_match())
+        print("Unlabeled dependencies:")
+        print("P", scorer.unlabeled_dependency_scorer.precision(), "R", scorer.unlabeled_dependency_scorer.recall(),
+              "F1", scorer.unlabeled_dependency_scorer.fmeasure(), "EM",
+              scorer.unlabeled_dependency_scorer.exact_match())
+
+    def score_object(self, obj, gold):
+        relevant = gold.labeled_frames(guard=lambda x: len(x[1]) > 0)
+        retrieved = obj.labeled_frames(guard=lambda x: len(x[1]) > 0)
+        _, _, f1 = self.precision_recall_f1(relevant, retrieved)
+        return f1
 
 
 def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_children, binarize=True):
@@ -374,5 +556,84 @@ def main():
     print("Best labeled frame F1 of", best_scorer.labeled_frame_scorer.fmeasure()
           , "in experiment", scorers.index(best_scorer) + start_exp)
 
+
+def main2():
+    induction_settings = InductionSettings()
+
+    # terminal labeling
+    induction_settings.terminal_labeling_token = PosTerminals()
+    def term_labeling(token):
+        if isinstance(token, ConstituentTerminal):
+            return induction_settings.terminal_labeling_token.token_label(token)
+        else:
+            return token
+
+    induction_settings.terminal_labeling = term_labeling
+
+    # recursive partitioning
+    def rec_part_strategy(direction, subgrouping, fanout, binarize):
+        if direction == "right-to-left":
+            return lambda dsg: fanout_limited_partitioning(dsg.recursive_partitioning(subgrouping, weak=binarize), fanout)
+        else:
+            return lambda dsg: fanout_limited_partitioning_left_to_right(dsg.recursive_partitioning(subgrouping
+                                                                                                    , weak=binarize),
+                                                                         fanout)
+
+    induction_settings.binarize = True
+    induction_settings.direction = "left-to-right"
+    induction_settings.subgrouping = False
+    induction_settings.fanout = 1
+    induction_settings.rec_part_strategy = rec_part_strategy(induction_settings.direction
+                                                             , induction_settings.subgrouping
+                                                             , induction_settings.fanout
+                                                             , induction_settings.binarize)
+
+    # Nonterminal Labeling
+    induction_settings.start = "START"
+    def label_edge(edge):
+        if isinstance(edge.label, ConstituentTerminal):
+            return edge.label.pos()
+        else:
+            return edge.label
+
+    def stupid_edge(edge):
+        return "X"
+
+    def label_child(edge, j):
+        return edge.get_function(j)
+
+    def simple_nonterminal_labeling(nodes, dsg):
+        return simple_labeling(nodes, dsg, label_edge)
+
+    def bot_stupid_nonterminal_labeling(nodes, dsg):
+        return top_bot_labeling(nodes, dsg, label_edge, stupid_edge)
+
+    def missing_child_nonterminal_labeling(nodes, dsg):
+        return missing_child_labeling(nodes, dsg, label_edge, label_child)
+
+    induction_settings.nonterminal_labeling = simple_nonterminal_labeling
+    induction_settings.normalize = True
+
+    experiment = DOG_Experiment(induction_settings)
+
+    # Corpora
+    start = 1
+    stop = 7000
+
+    test_start = 7001
+    test_stop = 7200
+
+    # path = "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml"
+    corpus_path = "res/tiger/tiger_8000.xml"
+    exclude = []
+
+    experiment.resources[TRAINING] = CorpusFile(corpus_path, start, stop)
+    experiment.resources[TESTING] = CorpusFile(corpus_path, test_start, test_stop)
+    experiment.oracle_parsing = True
+    experiment.purge_rule_freq = None  # 1.0
+    experiment.k_best = 100
+    experiment.run_experiment()
+
+
 if __name__ == "__main__":
-    main()
+    main2()
