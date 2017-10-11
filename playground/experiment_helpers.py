@@ -253,3 +253,19 @@ class Experiment:
                 break
         # print('max', best_score)
         return best_der
+
+    def precision_recall_f1(self, relevant, retrieved):
+        inters = retrieved & relevant
+
+        # in case of parse failure there are two options here:
+        #   - parse failure -> no spans at all, thus precision = 1
+        #   - parse failure -> a dummy tree with all spans wrong, thus precision = 0
+
+        precision = 1.0 * len(inters) / len(retrieved) \
+            if len(retrieved) > 0 else 0
+        recall = 1.0 * len(inters) / len(relevant) \
+            if len(relevant) > 0 else 0
+        fmeasure = 2.0 * precision * recall / (precision + recall) \
+            if precision + recall > 0 else 0
+
+        return precision, recall, fmeasure
