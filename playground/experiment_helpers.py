@@ -66,6 +66,8 @@ class Experiment:
         self.result_file = None
         self.resources = {}
         self.parsing_timeout = None
+        self.oracle_parsing = False
+        self.max_score = None
         self.purge_rule_freq = None
 
     def induce_grammar(self, corpus, start="START"):
@@ -233,3 +235,20 @@ class Experiment:
             derivation = parser.best_derivation_tree()
             return_dict[0] = self.parsing_postprocess(sentence=self.obtain_sentence(obj), derivation=derivation
                                                       , label=self.obtain_label(obj))
+
+    def compute_oracle_derivation(self, derivations, gold):
+        best_der = None
+        best_score = -1.0
+        sentence = self.obtain_sentence(gold)
+        label = self.obtain_label(gold)
+
+        for derivation in derivations:
+            system = self.parsing_postprocess(sentence, derivation, label)
+            score = self.score_object(system, gold)
+            # print(score, end=' ')
+            if score > best_score:
+                best_der, best_score = derivation, score
+            if self.max_score is not None and best_score >= self.max_score:
+                break
+        # print('max', best_score)
+        return best_der
