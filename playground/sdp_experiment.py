@@ -37,9 +37,6 @@ class SDPExperiment(Experiment):
     def initialize_parser(self):
         self.parser = GFParser(self.base_grammar)
 
-    def preprocess_before_induction(self, obj):
-        pass
-
     def induce_from(self, graph):
         rec_part = self.induction_settings.rec_part_strat(graph)
 

@@ -73,7 +73,7 @@ class Experiment:
     def induce_grammar(self, corpus, start="START"):
         grammar = LCFRS(start=start)
         for obj in corpus:
-            self.preprocess_before_induction(obj)
+            obj = self.preprocess_before_induction(obj)
             obj_grammar, features = self.induce_from(obj)
             grammar.add_gram(obj_grammar, features)
         self.postprocess_grammar(grammar)
@@ -83,23 +83,24 @@ class Experiment:
         if self.purge_rule_freq is not None:
             grammar.purge_rules(self.purge_rule_freq)
         grammar.make_proper()
+
     def initialize_parser(self):
-        pass
+        assert False
 
     def preprocess_before_induction(self, obj):
-        pass
+        return obj
 
     def induce_from(self, obj):
-        pass
+        assert False
 
     def parsing_preprocess(self, obj):
-        pass
+        assert False
 
     def parsing_postprocess(self, sentence, derivation, label=None):
-        pass
+        assert False
 
     def obtain_sentence(self, obj):
-        pass
+        assert False
 
     def obtain_label(self, obj):
         return None
@@ -108,7 +109,7 @@ class Experiment:
         return 0.0
 
     def mk_obj(self, args):
-        pass
+        assert False
 
     def build_score_validator(self, corpus_validation):
         self.validator = PyCandidateScoreValidator(self.__organizer.grammarInfo, self.__organizer.storageManager,
@@ -165,7 +166,7 @@ class Experiment:
         result_resource.write(self.serialize(result))
 
     def serialize(self, obj):
-        pass
+        assert False
 
     def run_experiment(self):
         # induction
@@ -184,13 +185,13 @@ class Experiment:
         self.evaluate(self.resources[RESULT], self.resources[TESTING])
 
     def compute_fallback(self, sentence, label=None):
-        pass
+        assert False
 
     def read_corpus(self, resource):
-        pass
+        assert False
 
     def evaluate(self, result_resource, gold_resource):
-        pass
+        assert False
 
     def do_parse_with_timeout(self, corpus, result_resource):
         manager = multiprocessing.Manager()
