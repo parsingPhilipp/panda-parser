@@ -66,6 +66,7 @@ class Experiment:
         self.result_file = None
         self.resources = {}
         self.parsing_timeout = None
+        self.purge_rule_freq = None
 
     def induce_grammar(self, corpus, start="START"):
         grammar = LCFRS(start=start)
@@ -73,8 +74,13 @@ class Experiment:
             self.preprocess_before_induction(obj)
             obj_grammar, features = self.induce_from(obj)
             grammar.add_gram(obj_grammar, features)
+        self.postprocess_grammar(grammar)
         self.base_grammar = grammar
 
+    def postprocess_grammar(self, grammar):
+        if self.purge_rule_freq is not None:
+            grammar.purge_rules(self.purge_rule_freq)
+        grammar.make_proper()
     def initialize_parser(self):
         pass
 
