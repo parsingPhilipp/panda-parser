@@ -459,6 +459,31 @@ class LCFRS:
     def epsilon_rules(self):
         return self.__epsilon_rules
 
+    def purge_rules(self, threshold):
+        """
+        :param threshold: remove rules with probability <= threshold from grammar
+        :type threshold: float
+        """
+        to_remove = []
+        i = 0
+        while i < len(self.__rules):
+            rule = self.__rules[i]
+            if rule.weight() <= threshold:
+                to_remove.append(rule)
+                self.__rules = self.__rules[:i] + self.__rules[i+1:]
+            else:
+                i += 1
+
+        for rule in to_remove:
+            del self.__idx_to_rule[rule.get_idx()]
+            self.__lhs_nont_to_rules[rule.lhs().nont()].remove(rule)
+            if rule.rank() > 0:
+                self.__nont_corner_of[rule.rhs_nont(0)].remove(rule)
+            elif rule.rank() == 0:
+                terms = rule.terms()
+                if terms:
+                    self.__first_term_of[terms[0]].remove(rule)
+
     # Adjust weights to make grammar proper.
     def make_proper(self):
         for nont in self.__lhs_nont_to_rules:

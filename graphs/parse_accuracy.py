@@ -22,11 +22,9 @@ class ParseAccuracy(object):
         self.__exact_match = 0
 
     # Compare two sets of lists. Process accuracy.
-    # found: list of objects convertable to tuple
-    # correct: list of objects convertable to tuple
-    def add_accuracy(self, found, correct):
-        retrieved = set([tuple(o) for o in found])
-        relevant = set([tuple(o) for o in correct])
+    # retrieved: set of comparable objects
+    # correct: set of comparable objects
+    def add_accuracy(self, retrieved, relevant):
         inters = retrieved & relevant
 
         # happens in case of parse failure
@@ -53,7 +51,7 @@ class ParseAccuracy(object):
             self.__exact_match += 1
 
     # Count one more failure.
-    def add_failure(self, correct=[]):
+    def add_failure(self, correct=set()):
         self.__n_failures += 1
 
     # Get number of instances.
@@ -98,10 +96,11 @@ class ParseAccuracy(object):
 class ParseAccuracyPenalizeFailures(ParseAccuracy):
     def __init__(self):
         super(ParseAccuracyPenalizeFailures, self).__init__()
+
     # Count one more failure.
-    def add_failure(self, correct=[]):
+    def add_failure(self, correct=set()):
         super(ParseAccuracyPenalizeFailures, self).add_failure()
-        self.add_accuracy([], correct)
+        self.add_accuracy(set(), correct)
 
 
 class PredicateArgumentScoring:
@@ -111,7 +110,7 @@ class PredicateArgumentScoring:
         self.__labeled_frame_scorer = ParseAccuracyPenalizeFailures()
         self.__unlabeled_frame_scorer = ParseAccuracyPenalizeFailures()
 
-    def add_failure(self, correct_frames=[]):
+    def add_failure(self, correct_frames=set()):
         self.__labeled_dependency_scorer.add_failure(
             self.extract_dependencies_from_frames(correct_frames, include_label=True)
         )
@@ -135,19 +134,19 @@ class PredicateArgumentScoring:
 
     @staticmethod
     def extract_dependencies_from_frames(frames, include_label):
-        dependencies = []
+        dependencies = set()
         for predicate, arg_role_pairs in frames:
             for argument, role in arg_role_pairs:
                 if include_label:
-                    dependencies.append((predicate, argument, role))
+                    dependencies.add((predicate, argument, role))
                 else:
-                    dependencies.append((predicate, argument))
+                    dependencies.add((predicate, argument))
         return dependencies
 
     @staticmethod
     def extract_unlabeled_frames(frames):
-        return [(predicate, tuple([argument for argument, _ in arg_role_pairs]))
-                for predicate, arg_role_pairs in frames]
+        return {(predicate, frozenset({argument for argument, _ in arg_role_pairs}))
+                for predicate, arg_role_pairs in frames}
 
     @property
     def labeled_dependency_scorer(self):
