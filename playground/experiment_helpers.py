@@ -19,7 +19,7 @@ class SplitMergeOrganizer:
         self.nonterminal_map = None
 
 
-class Resource:
+class Resource(object):
     def __init__(self, path, start=1, end=None):
         self.start = start
         self.end = end
@@ -33,13 +33,13 @@ class Resource:
 
 
 class CorpusFile(Resource):
-    def __init__(self, path=None, start=None, end=None, limit=None, length_limit=None, header=None):
-        Resource.__init__(self, path, start, end)
+    def __init__(self, path=None, start=None, end=None, limit=None, length_limit=None, header=None, exclude=[]):
+        super(CorpusFile, self).__init__(path, start, end)
         self.limit = limit
         self.length_limit = length_limit
         self.file = None
         self.header = header
-        self.exclude = []
+        self.exclude = exclude
 
     def init(self):
         if self.path is None:
@@ -57,12 +57,11 @@ class CorpusFile(Resource):
         self.file.write(content)
 
 
-class Experiment:
+class Experiment(object):
     def __init__(self):
         self.base_grammar = None
         self.validator = None
         self.__score_name = "score"
-        self.__organizer = None
         self.parser = None
         self.result_file = None
         self.resources = {}
@@ -112,34 +111,6 @@ class Experiment:
     def mk_obj(self, args):
         assert False
 
-    def build_score_validator(self, corpus_validation):
-        self.validator = PyCandidateScoreValidator(self.__organizer.grammarInfo, self.__organizer.storageManager,
-                                                   self.__score_name)
-
-        obj_count = 0
-        der_count = 0
-        for gold in corpus_validation.get_trees():
-            obj_count += 1
-            self.parser.set_input(self.parsing_preprocess(gold))
-            self.parser.parse()
-            derivations = map(lambda x: x[1], self.parser.k_best_derivation_trees())
-            manager = PyDerivationManager(self.base_grammar, self.__organizer.nonterminal_map)
-            manager.convert_derivations_to_hypergraphs(derivations)
-            scores = []
-
-            derivations = self.parser.k_best_derivation_trees()
-            for _, der in derivations:
-                der_count += 1
-                result = self.parsing_postprocess(self.obtain_sentence(gold), der)
-                score = self.score_object(result, gold)
-                scores.append(score)
-
-            max_score = len(gold.id_yield())
-            self.validator.add_scored_candidates(manager, scores, max_score)
-            # print(obj_count, max_score, scores)
-            self.parser.clear()
-        # print("trees used for validation ", obj_count, "with", der_count * 1.0 / obj_count, "derivations on average")
-
     def do_parse(self, corpus, result_resource):
         print("parsing, ", end='')
         result_resource.init()
@@ -158,10 +129,12 @@ class Experiment:
         sentence = self.obtain_sentence(obj)
 
         if self.parser.recognized():
+            print(".", end='')
             best_derivation = self.parser.best_derivation_tree()
             result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(obj))
         else:
+            print("-", end='')
             result = self.compute_fallback(sentence=sentence)
 
         result_resource.write(self.serialize(result))
@@ -243,6 +216,7 @@ class Experiment:
         best_score = -1.0
         sentence = self.obtain_sentence(gold)
         label = self.obtain_label(gold)
+        min_score = 1.0
 
         for derivation in derivations:
             system = self.parsing_postprocess(sentence, derivation, label)
@@ -252,10 +226,13 @@ class Experiment:
                 best_der, best_score = derivation, score
             if self.max_score is not None and best_score >= self.max_score:
                 break
-        # print('max', best_score)
+            if score < min_score:
+                min_score = score
+        print('max', best_score, 'min', min_score)
         return best_der
 
-    def precision_recall_f1(self, relevant, retrieved):
+    @staticmethod
+    def precision_recall_f1(relevant, retrieved):
         inters = retrieved & relevant
 
         # in case of parse failure there are two options here:
@@ -270,3 +247,70 @@ class Experiment:
             if precision + recall > 0 else 0
 
         return precision, recall, fmeasure
+
+
+class ScoringExperiment(Experiment):
+    def __init__(self):
+        super(ScoringExperiment, self).__init__()
+        self.__organizer = None
+
+    def process_parse(self, gold, result_resource):
+        sentence = self.obtain_sentence(gold)
+
+        if self.parser.recognized():
+            print('.', end='')
+            if self.oracle_parsing:
+                derivations = [der for _, der in self.parser.k_best_derivation_trees()]
+                best_derivation = self.compute_oracle_derivation(derivations, gold)
+            else:
+                best_derivation = self.parser.best_derivation_tree()
+            result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
+                                              label=self.obtain_label(gold))
+            result_resource.score(result, gold)
+        else:
+            print('-', end='')
+            result_resource.failure(gold)
+
+
+class SplitMergeExperiment(Experiment):
+    def __init__(self):
+        self.__organizer = SplitMergeOrganizer()
+
+    def build_score_validator(self, corpus_validation):
+        self.validator = PyCandidateScoreValidator(self.__organizer.grammarInfo, self.__organizer.storageManager,
+                                                   self.__score_name)
+
+        obj_count = 0
+        der_count = 0
+        for gold in corpus_validation.get_trees():
+            obj_count += 1
+            self.parser.set_input(self.parsing_preprocess(gold))
+            self.parser.parse()
+            derivations = map(lambda x: x[1], self.parser.k_best_derivation_trees())
+            manager = PyDerivationManager(self.base_grammar, self.__organizer.nonterminal_map)
+            manager.convert_derivations_to_hypergraphs(derivations)
+            scores = []
+
+            derivations = self.parser.k_best_derivation_trees()
+            for _, der in derivations:
+                der_count += 1
+                result = self.parsing_postprocess(self.obtain_sentence(gold), der)
+                score = self.score_object(result, gold)
+                scores.append(score)
+
+            max_score = len(gold.id_yield())
+            self.validator.add_scored_candidates(manager, scores, max_score)
+            # print(obj_count, max_score, scores)
+            self.parser.clear()
+        # print("trees used for validation ", obj_count, "with", der_count * 1.0 / obj_count, "derivations on average")
+
+
+class ScorerResource(Resource):
+    def __init__(self, path=None, start=None, end=None):
+        super(ScorerResource, self).__init__(path, start, end)
+
+    def score(self, system, gold):
+        assert False
+
+    def failure(self, gold):
+        assert False

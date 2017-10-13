@@ -1,7 +1,7 @@
 from __future__ import print_function
 from corpora.tiger_parse import sentence_names_to_hybridtrees
 from corpora.negra_parse import hybridtrees_to_sentence_names
-from grammar.induction.terminal_labeling import FormPosTerminalsUnk
+from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from grammar.lcfrs import LCFRS
 from constituent.induction import fringe_extract_lcfrs
@@ -12,6 +12,7 @@ import time
 import copy
 import os
 import pickle
+import subprocess
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
@@ -20,6 +21,9 @@ from parser.trace_manager.sm_trainer_util import PyStorageManager, PyGrammarInfo
 from parser.trace_manager.sm_trainer import PyEMTrainer, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING
+import tempfile
+
 
 def build_corpus(path, start, stop, exclude):
     return sentence_names_to_hybridtrees(
@@ -43,22 +47,24 @@ def get_train_corpus():
         train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
     return train_corpus
 validation_start = 40475
-validation_size = validation_start + 4999
+validation_size = validation_start + 100 #4999
 validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
 
 test_start = 40475
-test_limit = test_start + 4999
+test_limit = test_start + 200 # 4999
 test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
-if not os.path.isfile(terminal_labeling_path):
-    terminal_labeling = FormPosTerminalsUnk(get_train_corpus(), 20)
-    pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
-else:
-    terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
-recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1-left-to-right')[0]
+# if not os.path.isfile(terminal_labeling_path):
+#     terminal_labeling = FormPosTerminalsUnk(get_train_corpus(), 10)
+#     pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
+# else:
+#     terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
+terminal_labeling = PosTerminals()
+fanout = 1
+recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + '-left-to-right')[0]
 
 max_length = 2000
 em_epochs = 30
@@ -79,27 +85,195 @@ parsing_method = "filter-ctf"
 parse_results_prefix = "/tmp"
 parse_results = "results"
 parse_results_suffix = ".export"
+NEGRA = "NEGRA"
 
 
-def dummy_constituent_tree(token_yield, full_yield, dummy_label, dummy_root):
+class InductionSettings:
+    def __init__(self):
+        self.recursive_partitioning = None
+        self.terminal_labeling = None
+        self.isolate_pos = False
+        self.naming_scheme = 'child'
+
+
+class ConstituentScorer(ScorerResource):
+    def __init__(self):
+        super(ConstituentScorer, self).__init__()
+        self.scorer = ParseAccuracyPenalizeFailures()
+
+    def score(self, system, gold):
+        self.scorer.add_accuracy(system.labelled_spans(), gold.labelled_spans())
+
+    def failure(self, gold):
+        self.scorer.add_failure(gold.labelled_spans())
+
+
+class ScorerAndWriter(ConstituentScorer, CorpusFile):
+    def __init__(self, experiment, path=None):
+        ConstituentScorer.__init__(self)
+        path = tempfile.mktemp() if path is None else path
+        CorpusFile.__init__(self, path=path)
+        self.experiment = experiment
+        self.reference = CorpusFile()
+
+    def init(self):
+        CorpusFile.init(self)
+        self.reference.init()
+
+    def finalize(self):
+        CorpusFile.finalize(self)
+        self.reference.finalize()
+        print('Wrote results to', self.path)
+        print('Wrote reference to', self.reference.path)
+
+    def score(self, system, gold):
+        ConstituentScorer.score(self, system, gold)
+        self.file.writelines(self.experiment.serialize(system))
+        self.reference.file.writelines(self.experiment.serialize(gold))
+
+    def failure(self, gold):
+        ConstituentScorer.failure(self, gold)
+        sentence = self.experiment.obtain_sentence(gold)
+        label = self.experiment.obtain_label(gold)
+        fallback = self.experiment.compute_fallback(sentence, label)
+        self.file.writelines(self.experiment.serialize(fallback))
+        self.reference.file.writelines(self.experiment.serialize(gold))
+
+
+class ConstituentExperiment(ScoringExperiment):
+    def __init__(self, induction_settings):
+        """
+        :type induction_settings: InductionSettings
+        """
+        super(self.__class__, self).__init__()
+        self.induction_settings = induction_settings
+        self.resources[RESULT] = ScorerAndWriter(self)
+        self.k_best = 50
+        self.serialization_type = NEGRA
+        self.use_output_counter = True
+        self.output_counter = 0
+        self.strip_vroot = True
+
+    def induce_from(self, tree):
+        part = self.induction_settings.recursive_partitioning(tree)
+        tree_grammar = fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
+                                            term_labeling=self.induction_settings.terminal_labeling,
+                                            isolate_pos=self.induction_settings.isolate_pos)
+        return tree_grammar, None
+
+    def parsing_postprocess(self, sentence, derivation, label=None):
+        full_yield, id_yield, full_token_yield, token_yield = sentence
+
+        dcp_tree = ConstituentTree(label)
+        punctuation_positions = [i + 1 for i, idx in enumerate(full_yield)
+                                 if idx not in id_yield]
+
+        cleaned_tokens = copy.deepcopy(full_token_yield)
+        dcp = The_DCP_evaluator(derivation).getEvaluation()
+        dcp_to_hybridtree(dcp_tree, dcp, cleaned_tokens, False, construct_constituent_token,
+                          punct_positions=punctuation_positions)
+
+        if self.strip_vroot:
+            dcp_tree.strip_vroot()
+
+        return dcp_tree
+
+    def obtain_sentence(self, hybrid_tree):
+        sentence = hybrid_tree.full_yield(), hybrid_tree.id_yield(), \
+                   hybrid_tree.full_token_yield(), hybrid_tree.token_yield()
+        return sentence
+
+    def obtain_label(self, hybrid_tree):
+        return hybrid_tree.sent_label()
+
+    def compute_fallback(self, sentence, label=None):
+        full_yield, id_yield, full_token_yield, token_yield = sentence
+        return dummy_constituent_tree(token_yield, full_token_yield, 'NP', 'S', label)
+
+    def read_corpus(self, resource):
+        return sentence_names_to_hybridtrees(
+            ['s' + str(i) for i in range(resource.start, resource.end + 1) if i not in resource.exclude]
+            , resource.path
+            , hold=False)
+
+    def initialize_parser(self):
+        self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best)
+
+    def parsing_preprocess(self, hybrid_tree):
+        if self.strip_vroot:
+            hybrid_tree.strip_vroot()
+        return terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
+
+    def evaluate(self, result_resource, gold_resource):
+        accuracy = result_resource.scorer
+        print('')
+        # print('Parsed:', n)
+        if accuracy.n() > 0:
+            print('Recall:   ', accuracy.recall())
+            print('Precision:', accuracy.precision())
+            print('F-measure:', accuracy.fmeasure())
+            print('Parse failures:', accuracy.n_failures())
+        else:
+            print('No successful parsing')
+        # print('time:', end_at - start_at)
+        print('')
+
+        print('normalize results with treetools and discodop')
+
+        def normalize(path):
+            intermediate_path =  tempfile.mktemp(suffix=".export")
+            subprocess.call(["treetools", "transform", path, intermediate_path, "--trans", "root_attach"])
+            output_path = tempfile.mktemp(suffix=".export")
+            subprocess.call(["discodop", "treetransforms", "--renumber", "--punct=move", intermediate_path, output_path])
+            return output_path
+
+        ref_rn = normalize(result_resource.reference.path)
+        sys_rn = normalize(result_resource.path)
+
+        print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_rn)
+        subprocess.call(["discodop", "eval", ref_rn, sys_rn])
+
+    @staticmethod
+    def __obtain_labelled_spans(obj):
+        spans = obj.labelled_spans()
+        spans = map(tuple, spans)
+        spans = set(spans)
+        return spans
+
+    def score_object(self, obj, gold):
+        _, _, f1 = self.precision_recall_f1(self.__obtain_labelled_spans(gold), self.__obtain_labelled_spans(obj))
+        return f1
+
+    def serialize(self, obj):
+        if self.serialization_type == NEGRA:
+            if self.use_output_counter:
+                self.output_counter += 1
+                number = self.output_counter
+            else:
+                number = int(self.obtain_label(obj)[1:])
+            return hybridtrees_to_sentence_names([obj], number, max_length)
+        else:
+            assert False
+
+
+def dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dummy_root, label=None):
     """
     generates a dummy tree for a given yield using 'S' as inner node symbol
     :param token_yield: connected yield of a parse tree
     :type: list of ConstituentTerminal
-    :param full_yield: full yield of the parse tree
+    :param full_token_yield: full yield of the parse tree
     :type: list of ConstituentTerminal
     :return: parse tree
     :rtype: ConstituentTree
     """
-    tree = ConstituentTree()
-
+    tree = ConstituentTree(label)
 
     # create all leaves and punctuation
-    for token in full_yield:
+    for token in full_token_yield:
         if token not in token_yield:
-            tree.add_punct(full_yield.index(token), token.pos(), token.form())
+            tree.add_punct(full_token_yield.index(token), token.pos(), token.form())
         else:
-            tree.add_leaf(full_yield.index(token), token.pos(), token.form())
+            tree.add_leaf(full_token_yield.index(token), token.pos(), token.form())
 
     # generate root node
     root_id = 'n0'
@@ -115,16 +289,16 @@ def dummy_constituent_tree(token_yield, full_yield, dummy_label, dummy_root):
             node = ConstituentCategory(str(dummy_label))
             tree.add_node('n' + str(i), node)
             tree.add_child(parent, 'n' + str(i))
-            tree.add_child(parent, full_yield.index(token))
+            tree.add_child(parent, full_token_yield.index(token))
             parent = 'n' + str(i)
             i+=1
 
         token = token_yield[len(token_yield) - 2]
-        tree.add_child(parent, full_yield.index(token))
+        tree.add_child(parent, full_token_yield.index(token))
         token = token_yield[len(token_yield) - 1]
-        tree.add_child(parent, full_yield.index(token))
+        tree.add_child(parent, full_token_yield.index(token))
     elif len(token_yield) == 1:
-        tree.add_child(parent, full_yield.index(token_yield[0]))
+        tree.add_child(parent, full_token_yield.index(token_yield[0]))
 
     return tree
 
@@ -361,5 +535,20 @@ def main2():
          result_file.writelines(hybridtrees_to_sentence_names(corpus, test_start, max_length))
 
 
+def main3():
+    induction_settings = InductionSettings()
+    induction_settings.recursive_partitioning = recursive_partitioning
+    induction_settings.terminal_labeling = terminal_labeling
+    experiment = ConstituentExperiment(induction_settings)
+
+    experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
+    experiment.resources[TESTING] = CorpusFile(path=validation_path, start=test_start,
+                                               end=test_limit, exclude=train_exclude)
+    experiment.oracle_parsing = True
+    experiment.max_score = 1.0
+    experiment.k_best = 1000
+    experiment.purge_rule_freq = 1.0
+    experiment.run_experiment()
+
 if __name__ == '__main__':
-    main()
+    main3()
