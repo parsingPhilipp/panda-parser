@@ -115,7 +115,7 @@ class ConstituentTree(HybridTree):
                                            [y[1]] + [-y[2]] + y[3:] + [y[0]]))
 
     def strip_vroot(self):
-        if (len(self.root) == 1) and self.label(self.root[0]) == "VROOT":
+        if (len(self.root) == 1) and self.node_token(self.root[0]).type() == "CONSTITUENT-CATEGORY" and self.node_token(self.root[0]).category() == "VROOT":
             old_root = self.root[0]
             new_roots = self.children(old_root)
             self._id_to_child_ids[self.virtual_root] = new_roots
