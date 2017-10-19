@@ -13,6 +13,7 @@ import copy
 import os
 import pickle
 import subprocess
+from sys import stdout
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
@@ -95,6 +96,13 @@ class InductionSettings:
         self.isolate_pos = False
         self.naming_scheme = 'child'
 
+    def __str__(self):
+        attributes = [("recursive partitioning", self.recursive_partitioning.__name__)
+                      , ("terminal labeling", self.terminal_labeling)
+                      , ("isolate POS", self.isolate_pos)
+                      , ("naming scheme", self.naming_scheme)]
+        return '\n'.join([a[0] + ' : ' + str(a[1]) for a in attributes])
+
 
 class ConstituentScorer(ScorerResource):
     def __init__(self):
@@ -138,6 +146,9 @@ class ScorerAndWriter(ConstituentScorer, CorpusFile):
         fallback = self.experiment.compute_fallback(sentence, label)
         self.file.writelines(self.experiment.serialize(fallback))
         self.reference.file.writelines(self.experiment.serialize(gold))
+
+    def __str__(self):
+        return CorpusFile.__str__(self)
 
 
 class ConstituentExperiment(ScoringExperiment):
@@ -254,6 +265,15 @@ class ConstituentExperiment(ScoringExperiment):
             return hybridtrees_to_sentence_names([obj], number, max_length)
         else:
             assert False
+
+    def print_config(self, file=stdout):
+        super(ConstituentExperiment, self).print_config(file=file)
+        print("Induction Settings {", file=file)
+        print(self.induction_settings, "\n}", file=file)
+        print("k-best", self.k_best)
+        print("Serialization type", self.serialization_type)
+        print("Output counter", self.use_output_counter, "start", self.output_counter)
+        print("VROOT stripping", self.strip_vroot)
 
 
 def dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dummy_root, label=None):

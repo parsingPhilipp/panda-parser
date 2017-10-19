@@ -4,6 +4,7 @@ from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.supervised_trainer.trainer import PyDerivationManager
 import tempfile
 import multiprocessing
+from sys import stdout
 
 
 TRAINING = "TRAIN"
@@ -33,13 +34,16 @@ class Resource(object):
 
 
 class CorpusFile(Resource):
-    def __init__(self, path=None, start=None, end=None, limit=None, length_limit=None, header=None, exclude=[]):
+    def __init__(self, path=None, start=None, end=None, limit=None, length_limit=None, header=None, exclude=None):
         super(CorpusFile, self).__init__(path, start, end)
         self.limit = limit
         self.length_limit = length_limit
         self.file = None
         self.header = header
-        self.exclude = exclude
+        if exclude is None:
+            self.exclude = []
+        else:
+            self.exclude = exclude
 
     def init(self):
         if self.path is None:
@@ -55,6 +59,11 @@ class CorpusFile(Resource):
 
     def write(self, content):
         self.file.write(content)
+
+    def __str__(self):
+        attributes = [('path', self.path), ('length limit', self.length_limit), ('start', self.start),
+                      ('end', self.end), ('limit', self.limit), ('exclude', self.exclude)]
+        return '{' + ', '.join(map(lambda x: x[0] + ' : ' + str(x[1]), attributes)) + '}'
 
 
 class Experiment(object):
@@ -143,6 +152,8 @@ class Experiment(object):
         assert False
 
     def run_experiment(self):
+        self.print_config()
+
         # induction
         training_corpus = self.read_corpus(self.resources[TRAINING])
         self.induce_grammar(training_corpus)
@@ -247,6 +258,15 @@ class Experiment(object):
             if precision + recall > 0 else 0
 
         return precision, recall, fmeasure
+
+    def print_config(self, file=stdout):
+        print("Experiment infos for", self.__class__.__name__, file=file)
+        print("Purge rule freq:", self.purge_rule_freq, file=file)
+        print("Max score", self.max_score, file=file)
+        print("Score", self.__score_name, file=file)
+        print("Resources", '{\n' + '\n'.join([str(k) + ' : ' + str(self.resources[k]) for k in self.resources]) + '\n}', file=file)
+        print("Parsing Timeout: ", self.parsing_timeout, file=file)
+        print("Oracle parsing: ", self.oracle_parsing, file=file)
 
 
 class ScoringExperiment(Experiment):

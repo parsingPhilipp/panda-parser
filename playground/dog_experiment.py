@@ -30,16 +30,16 @@ from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from graphs.parse_accuracy import PredicateArgumentScoring
 from graphs.util import render_and_view_dog
-from experiment_helpers import Experiment, Resource, TRAINING, TESTING, RESULT, CorpusFile
+from experiment_helpers import ScoringExperiment, TRAINING, TESTING, RESULT, CorpusFile, ScorerResource, stdout
 
 
 schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 threads = 1
 
 
-class ScorerResource(Resource):
+class DOGScorerResource(ScorerResource):
     def __init__(self, path=None, start=None, end=None):
-        Resource.__init__(self, path, start, end)
+        super(self.__class__, self).__init__(path, start, end)
         self.scorer = PredicateArgumentScoring()
 
     def score(self, system, gold):
@@ -62,6 +62,8 @@ class InductionSettings:
         self.terminal_labeling_token = None
         self.start = None
         self.normalize = True  # normalize node indices in graph fragments (True) xor keep names of origin (False)
+        # No normalization will cause rules to be syntactically different, when added to a grammar, resulting in
+        # spurious duplicates.
         self.reorder_children = False  # reorder children alphabetically
         self.binarize = True
         self.direction = None
@@ -89,19 +91,34 @@ class InductionSettings:
                 return True
         return False
 
+    def __str__(self):
+        attributes = [('recursive partitioning', self.rec_part_strategy),
+                      ('nonterminal labeling', self.nonterminal_labeling),
+                      ('terminal labeling', self.terminal_labeling),
+                      ('terminal labeling token', self.terminal_labeling_token),
+                      ('start symbol', self.start),
+                      ('normalize graph vertices', self.normalize),
+                      ('recorder children alphabetically', self.reorder_children),
+                      ('binarize DOG before induction', self.binarize),
+                      ('direction', self.direction),
+                      ('subgrouping', self.subgrouping),
+                      ('fanout', self.fanout)
+                      ]
+        return '\n'.join([x[0] + ' : ' + str(x[1]) for x in attributes])
+
 
 class Statistics:
     def __init__(self):
         self.not_output_connected = 0
 
 
-class DOG_Experiment(Experiment):
+class DOG_Experiment(ScoringExperiment):
     def __init__(self, induction_settings):
-        Experiment.__init__(self)
+        super(self.__class__, self).__init__()
         self.induction_settings = induction_settings
         self.statistics = Statistics()
         self.interactive = False
-        self.resources[RESULT] = ScorerResource()
+        self.resources[RESULT] = DOGScorerResource()
         self.k_best = 50
         self.max_score = 1.0
 
@@ -175,21 +192,6 @@ class DOG_Experiment(Experiment):
     def parsing_preprocess(self, obj):
         return self.induction_settings.terminal_labeling_token.prepare_parser_input(self.obtain_sentence(obj))
 
-    def process_parse(self, gold, result_resource):
-        sentence = self.obtain_sentence(gold)
-
-        if self.parser.recognized():
-            if self.oracle_parsing:
-                derivations = [der for _, der in self.parser.k_best_derivation_trees()]
-                best_derivation = self.compute_oracle_derivation(derivations, gold)
-            else:
-                best_derivation = self.parser.best_derivation_tree()
-            result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
-                                              label=self.obtain_label(gold))
-            result_resource.score(result, gold)
-        else:
-            result_resource.failure(gold)
-
     def initialize_parser(self):
         self.parser = GFParser_k_best(self.base_grammar, k=self.k_best)
 
@@ -216,6 +218,12 @@ class DOG_Experiment(Experiment):
         retrieved = obj.labeled_frames(guard=lambda x: len(x[1]) > 0)
         _, _, f1 = self.precision_recall_f1(relevant, retrieved)
         return f1
+
+    def print_config(self, file=stdout):
+        super(DOG_Experiment, self).print_config(file)
+        print("k-best", self.k_best)
+        print("Induction Settings {", file=file)
+        print(self.induction_settings, "\n}", file=file)
 
 
 def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_children, binarize=True):

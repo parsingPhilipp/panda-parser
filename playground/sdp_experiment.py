@@ -6,7 +6,7 @@ from graphs.dog import DeepSyntaxGraph
 from graphs.util import extract_recursive_partitioning
 from decomposition import left_branching_partitioning, fanout_limited_partitioning_left_to_right
 from subprocess import call
-from experiment_helpers import Experiment, RESULT, CorpusFile
+from experiment_helpers import Experiment, RESULT, CorpusFile, stdout
 
 
 def worker(parser, graph, return_dict):
@@ -26,6 +26,14 @@ class InductionSettings:
         self.terminal_labeling_lcfrs = None
         self.nt_sub_labeling = None
         self.nonterminal_labeling = None
+
+    def __str__(self):
+        assignments = [('recursive partitioning', self.rec_part_strat), ('terminal labeling', self.terminal_labeling),
+                       ('terminal labeling lcfrs', self.terminal_labeling_lcfrs),
+                       ('nonterminal sub labeling', self.nt_sub_labeling),
+                       ('nonterminal labeling', self.nonterminal_labeling)
+                        ]
+        return '\n'.join([x[0] + ' : ' + str(x[1]) for x in assignments])
 
 
 class SDPExperiment(Experiment):
@@ -85,6 +93,11 @@ class SDPExperiment(Experiment):
             gold_resource = gold_selection_resource
 
         call(["sh", "../util/semeval-run.sh", "Scorer", gold_resource.path, result_resource.path, "representation=DM"])
+
+    def print_config(self, file=stdout):
+        super(SDPExperiment, self).print_config(file)
+        print("Induction Settings {", file=file)
+        print(self.induction_settings, "\n}", file=file)
 
 
 def main():
