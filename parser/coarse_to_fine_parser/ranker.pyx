@@ -39,7 +39,7 @@ cdef class PyHypergraphRanker:
 
 def build_ranker(derivations, grammar, PyGrammarInfo grammarInfo, Enumerator nonterminal_map):
     manager = PyDerivationManager(grammar, nonterminal_map)
-    manager.convert_hypergraphs(derivations)
+    manager.convert_derivations_to_hypergraphs(derivations)
     ranker = PyHypergraphRanker(manager, grammarInfo, PyStorageManager())
     return ranker
 
