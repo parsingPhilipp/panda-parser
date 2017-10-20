@@ -22,7 +22,7 @@ from parser.trace_manager.sm_trainer_util import PyStorageManager, PyGrammarInfo
 from parser.trace_manager.sm_trainer import PyEMTrainer, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
-from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING
+from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, SplitMergeExperiment
 import tempfile
 
 
@@ -151,12 +151,13 @@ class ScorerAndWriter(ConstituentScorer, CorpusFile):
         return CorpusFile.__str__(self)
 
 
-class ConstituentExperiment(ScoringExperiment):
+class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
     def __init__(self, induction_settings):
         """
         :type induction_settings: InductionSettings
         """
-        super(self.__class__, self).__init__()
+        ScoringExperiment.__init__(self)
+        SplitMergeExperiment.__init__(self)
         self.induction_settings = induction_settings
         self.resources[RESULT] = ScorerAndWriter(self)
         self.k_best = 50
@@ -267,7 +268,8 @@ class ConstituentExperiment(ScoringExperiment):
             assert False
 
     def print_config(self, file=stdout):
-        super(ConstituentExperiment, self).print_config(file=file)
+        ScoringExperiment.print_config(self, file=file)
+        SplitMergeExperiment.print_config(self, file=file)
         print("Induction Settings {", file=file)
         print(self.induction_settings, "\n}", file=file)
         print("k-best", self.k_best)
@@ -275,6 +277,9 @@ class ConstituentExperiment(ScoringExperiment):
         print("Output counter", self.use_output_counter, "start", self.output_counter)
         print("VROOT stripping", self.strip_vroot)
 
+    def compute_reducts(self, resource):
+        training_corpus = self.read_corpus(resource)
+        return compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling)
 
 def dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dummy_root, label=None):
     """
@@ -311,7 +316,7 @@ def dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dummy_roo
             tree.add_child(parent, 'n' + str(i))
             tree.add_child(parent, full_token_yield.index(token))
             parent = 'n' + str(i)
-            i+=1
+            i += 1
 
         token = token_yield[len(token_yield) - 2]
         tree.add_child(parent, full_token_yield.index(token))
@@ -564,10 +569,10 @@ def main3():
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[TESTING] = CorpusFile(path=validation_path, start=test_start,
                                                end=test_limit, exclude=train_exclude)
-    experiment.oracle_parsing = True
+    experiment.oracle_parsing = False
     experiment.max_score = 1.0
     experiment.k_best = 1000
-    experiment.purge_rule_freq = 1.0
+    experiment.purge_rule_freq = None
     experiment.run_experiment()
 
 if __name__ == '__main__':
