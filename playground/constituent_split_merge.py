@@ -22,8 +22,14 @@ from parser.trace_manager.sm_trainer_util import PyStorageManager, PyGrammarInfo
 from parser.trace_manager.sm_trainer import PyEMTrainer, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
-from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, SplitMergeExperiment
+from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, VALIDATION, \
+    SplitMergeExperiment
+from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
 import tempfile
+import codecs
+import sys
+reload(sys)
+sys.setdefaultencoding('utf8')
 
 
 def build_corpus(path, start, stop, exclude):
@@ -95,12 +101,16 @@ class InductionSettings:
         self.terminal_labeling = None
         self.isolate_pos = False
         self.naming_scheme = 'child'
+        self.disconnect_punctuation = True
+        self.normalize = False
 
     def __str__(self):
         attributes = [("recursive partitioning", self.recursive_partitioning.__name__)
                       , ("terminal labeling", self.terminal_labeling)
                       , ("isolate POS", self.isolate_pos)
-                      , ("naming scheme", self.naming_scheme)]
+                      , ("naming scheme", self.naming_scheme)
+                      , ("disconnect punctuation", self.disconnect_punctuation)
+                      , ("normalize corpus", self.normalize)]
         return '\n'.join([a[0] + ' : ' + str(a[1]) for a in attributes])
 
 
@@ -166,6 +176,8 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         self.output_counter = 0
         self.strip_vroot = True
 
+        self.discodop_scorer = DiscoDopScorer()
+        self.max_score = 100.0
     def induce_from(self, tree):
         part = self.induction_settings.recursive_partitioning(tree)
         tree_grammar = fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
@@ -203,10 +215,17 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         return dummy_constituent_tree(token_yield, full_token_yield, 'NP', 'S', label)
 
     def read_corpus(self, resource):
+        path = resource.path
+        prefix = 's'
+        if self.induction_settings.normalize:
+            path = self.normalize_corpus(path, src='tigerxml', dest='tigerxml', renumber=False)
+            prefix = ''
+
         return sentence_names_to_hybridtrees(
-            ['s' + str(i) for i in range(resource.start, resource.end + 1) if i not in resource.exclude]
-            , resource.path
-            , hold=False)
+            [prefix + str(i) for i in range(resource.start, resource.end + 1) if i not in resource.exclude]
+            , path
+            , hold=False
+            , disconnect_punctuation=self.induction_settings.disconnect_punctuation)
 
     def initialize_parser(self):
         self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best)
@@ -215,6 +234,24 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         if self.strip_vroot:
             hybrid_tree.strip_vroot()
         return terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
+
+    def normalize_corpus(self, path, src='export', dest='export', renumber=True):
+        first_stage = tempfile.mktemp(suffix=".export")
+        subprocess.call(["treetools", "transform", path, first_stage, "--trans", "root_attach",
+                         "--src-format", src, "--dest-format", "export"])
+        second_stage = tempfile.mktemp(suffix=".export")
+        second_call = ["discodop", "treetransforms"]
+        if renumber:
+            second_call.append("--renumber")
+        subprocess.call(second_call + ["--punct=move", first_stage, second_stage,
+                         "--inputfmt=export", "--outputfmt=export"])
+        if dest == 'export':
+            return second_stage
+        elif dest == 'tigerxml':
+            third_stage = tempfile.mktemp(suffix=".xml")
+            subprocess.call(["treetools", "transform", second_stage, third_stage,
+                             "--src-format", "export", "--dest-format", dest])
+            return third_stage
 
     def evaluate(self, result_resource, gold_resource):
         accuracy = result_resource.scorer
@@ -232,18 +269,12 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
         print('normalize results with treetools and discodop')
 
-        def normalize(path):
-            intermediate_path =  tempfile.mktemp(suffix=".export")
-            subprocess.call(["treetools", "transform", path, intermediate_path, "--trans", "root_attach"])
-            output_path = tempfile.mktemp(suffix=".export")
-            subprocess.call(["discodop", "treetransforms", "--renumber", "--punct=move", intermediate_path, output_path])
-            return output_path
+        ref_rn = self.normalize_corpus(result_resource.reference.path)
+        sys_rn = self.normalize_corpus(result_resource.path)
+        prm = "../util/proper.prm"
 
-        ref_rn = normalize(result_resource.reference.path)
-        sys_rn = normalize(result_resource.path)
-
-        print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_rn)
-        subprocess.call(["discodop", "eval", ref_rn, sys_rn])
+        print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_rn, "with proper.prm")
+        subprocess.call(["discodop", "eval", ref_rn, sys_rn, prm])
 
     @staticmethod
     def __obtain_labelled_spans(obj):
@@ -253,7 +284,8 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         return spans
 
     def score_object(self, obj, gold):
-        _, _, f1 = self.precision_recall_f1(self.__obtain_labelled_spans(gold), self.__obtain_labelled_spans(obj))
+        # _, _, f1 = self.precision_recall_f1(self.__obtain_labelled_spans(gold), self.__obtain_labelled_spans(obj))
+        f1 = self.discodop_scorer.compare_hybridtrees(gold, obj)
         return f1
 
     def serialize(self, obj):
@@ -564,14 +596,17 @@ def main3():
     induction_settings = InductionSettings()
     induction_settings.recursive_partitioning = recursive_partitioning
     induction_settings.terminal_labeling = terminal_labeling
+    induction_settings.normalize = True
+    induction_settings.disconnect_punctuation = False
     experiment = ConstituentExperiment(induction_settings)
-
+    experiment.organizer.em_epochs = em_epochs
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
-    experiment.resources[TESTING] = CorpusFile(path=validation_path, start=test_start,
+    experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
+                                                  , exclude=train_exclude)
+    experiment.resources[TESTING] = CorpusFile(path=test_path, start=test_start,
                                                end=test_limit, exclude=train_exclude)
     experiment.oracle_parsing = False
-    experiment.max_score = 1.0
-    experiment.k_best = 1000
+    experiment.k_best = k_best
     experiment.purge_rule_freq = None
     experiment.run_experiment()
 
