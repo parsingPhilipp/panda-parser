@@ -2,7 +2,6 @@
 from __future__ import print_function
 import re
 from os.path import expanduser
-from operator import itemgetter
 
 try:
     import xml.etree.cElementTree as cET
@@ -54,10 +53,10 @@ def num_to_name(num):
 # file_name: string
 # hold: boolean
 # return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name, hold=True):
+def sentence_names_to_hybridtrees(names, file_name, hold=True, disconnect_punctuation=True):
     trees = []
     for name in names:
-        tree = sentence_name_to_hybridtree(name, file_name)
+        tree = sentence_name_to_hybridtree(name, file_name, disconnect_punctuation)
         if tree is not None:
             trees += [tree]
         else:
@@ -72,7 +71,7 @@ def sentence_names_to_hybridtrees(names, file_name, hold=True):
 # name: string 
 # file_name: string
 # return: ConstituentTree
-def sentence_name_to_hybridtree(name, file_name):
+def sentence_name_to_hybridtree(name, file_name, disconnect_punctuation=True):
     initialize(expanduser(file_name))
     sent = xml_file.find('.//body/s[@id="%s"]' % name)
     if sent is not None:
@@ -93,23 +92,23 @@ def sentence_name_to_hybridtree(name, file_name):
             mood = term.get('mood')
             morph_feats = [("case", case), ("number", number), ("gender", gender), ("person", person), ("tense", tense),
                            ("degree", degree), ("mood", mood)]
-            if is_word(pos, word):
-                tree.add_leaf(ident, pos, word.encode('utf_8'), morph=morph_feats)
+            if is_word(pos, word) or not disconnect_punctuation:
+                tree.add_leaf(ident, pos, word, morph=morph_feats)
             else:
-                tree.add_punct(ident, pos, word.encode('utf_8'))
+                tree.add_punct(ident, pos, word)
         for nont in graph.iterfind('nonterminals/nt'):
             ident = nont.get('id')
             cat = nont.get('cat')
             tree.set_label(ident, cat)
             for child in nont.iterfind('edge'):
                 child_id = child.get('idref')
-                if not is_punct(graph, child_id):
+                if not is_punct(graph, child_id) or not disconnect_punctuation:
                     tree.add_child(ident, child_id)
         for nont in graph.iterfind('nonterminals/nt'):
             for child in nont.iterfind('edge'):
                 child_id = child.get('idref')
                 edge_label = child.get('label')
-                if not is_punct(graph, child_id) and edge_label is not None:
+                if (not is_punct(graph, child_id) or not disconnect_punctuation) and edge_label is not None:
                     tree.node_token(child_id).set_edge_label(edge_label)
         return tree
     else:
@@ -167,7 +166,8 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
             if is_word(pos, word):
                 output_idx = node_enum.object_index(ident)
                 dog.add_node(output_idx)
-                terminal = ConstituentTerminal(word.encode('utf_8'), pos, morph=morph_feats)
+                terminal = ConstituentTerminal(word,  # .encode('utf_8'),
+                                               pos, morph=morph_feats)
                 dog.add_terminal_edge([], ConstituentTerminal(word, pos, morph=morph_feats), output_idx)
                 sentence.append(terminal)
                 sync.append([output_idx])
