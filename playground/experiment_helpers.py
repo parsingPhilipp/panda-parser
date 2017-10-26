@@ -42,6 +42,13 @@ class SplitMergeOrganizer:
         self.latent_annotations = {}
         self.last_sm_cycle = None
 
+    def __str__(self):
+        s = ""
+        for key in self.__dict__:
+            if not key.startswith("__") and key not in ["grammarInfo", "storageManager", "nonterminal_map"]:
+                s += key + ": " + str(self.__dict__[key]) + "\n"
+        return s
+
 class Resource(object):
     def __init__(self, path, start=1, end=None):
         self.start = start
@@ -447,7 +454,7 @@ class SplitMergeExperiment(Experiment):
         self.evaluate(self.resources[RESULT], self.resources[TESTING])
 
     def print_config(self, file=stdout):
-        print("Split/Merge Settings: ", self.organizer, file=file)
+        print("Split/Merge Settings: \n", self.organizer, file=file)
         print("Split/Merge Parsing mode: ", self.parsing_mode, file=file)
 
 
