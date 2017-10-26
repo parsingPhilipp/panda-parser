@@ -351,9 +351,8 @@ class SplitMergeExperiment(Experiment):
                 score = self.score_object(result, gold)
                 scores.append(score)
 
-            max_score = len(gold.id_yield())
-            self.organizer.validator.add_scored_candidates(manager, scores, max_score)
-            # print(obj_count, max_score, scores)
+            self.organizer.validator.add_scored_candidates(manager, scores, self.max_score)
+            print(obj_count, self.max_score, scores)
             self.parser.clear()
             print('.', end='')
         # print("trees used for validation ", obj_count, "with", der_count * 1.0 / obj_count, "derivations on average")
