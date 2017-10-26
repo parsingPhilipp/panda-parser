@@ -9,6 +9,7 @@ from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 import tempfile
 import multiprocessing
 from sys import stdout
+import codecs
 
 
 TRAINING = "TRAIN"
@@ -78,7 +79,7 @@ class CorpusFile(Resource):
         if self.path is None:
             self.path = tempfile.mktemp()
 
-        self.file = open(self.path, mode='w')
+        self.file = codecs.open(self.path, mode='w', encoding="utf-8")
         if self.header is not None:
             self.file.write(self.header)
         print('Opened', self.path)
