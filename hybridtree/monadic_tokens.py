@@ -131,7 +131,7 @@ class ConstituentTerminal(ConstituencyToken):
         return hash((self.__form, self.__pos))
 
     def type(self):
-        return "CONSTITUTENT-TERMINAL"
+        return "CONSTITUENT-TERMINAL"
 
 
 class ConstituentCategory(ConstituencyToken):
