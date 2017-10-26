@@ -2,8 +2,8 @@
 __author__ = 'kilian'
 
 from collections import defaultdict
-from decomposition import *
-from monadic_tokens import MonadicToken
+from decomposition import join_spans
+from hybridtree.monadic_tokens import MonadicToken
 
 
 class HybridTree:
