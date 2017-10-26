@@ -438,9 +438,9 @@ class SplitMergeExperiment(Experiment):
 
         if True:
             if self.organizer.validator_type == "SCORE":
-                self.build_score_validator(self.resources[TESTING])
+                self.build_score_validator(self.resources[VALIDATION])
             elif self.organizer.validator_type == "SIMPLE":
-                self.organizer.validation_reducts = self.compute_reducts(self.resources[TESTING])
+                self.organizer.validation_reducts = self.compute_reducts(self.resources[VALIDATION])
             self.prepare_split_merge_trainer()
 
             while self.organizer.last_sm_cycle is None or self.organizer.last_sm_cycle < self.organizer.max_sm_cycles:
