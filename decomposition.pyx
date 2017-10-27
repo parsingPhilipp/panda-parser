@@ -1,3 +1,4 @@
+from __future__ import print_function
 import random
 from dependency.top_bottom_max import top_max, bottom_max
 
@@ -453,6 +454,6 @@ def sort_part(part1, part2):
 # level: int
 def print_partitioning(part, level=0):
     (root, children) = part
-    print ' ' * level, root
+    print(' ' * level, root)
     for child in children:
         print_partitioning(child, level + 1)

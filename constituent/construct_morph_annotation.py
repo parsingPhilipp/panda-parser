@@ -5,14 +5,16 @@ from grammar.lcfrs import LCFRS
 from operator import mul
 from functools import reduce
 
-def extract_feat(the_input, features=["number", "person", "tense", "mood", "case", "degree"]
-                           , empties=["", "--"]):
+
+def extract_feat(the_input, features=["number", "person", "tense", "mood", "case", "degree"],
+                 empties=["", "--"]):
     feats = []
     for feat in [feat for feat in the_input if feat[0] in features and feat[1] not in empties]:
         feats.append(feat)
     if len(feats) > 0:
         sorted(feats, key=lambda x: x[0])
     return tuple(feats)
+
 
 def build_nont_splits_dict(grammar
                            , morph_log
