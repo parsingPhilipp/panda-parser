@@ -20,6 +20,7 @@ from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RE
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
 import tempfile
 import sys
+from functools32 import lru_cache
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
@@ -234,6 +235,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             hybrid_tree.strip_vroot()
         return terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
 
+    @lru_cache(maxsize=500)
     def normalize_corpus(self, path, src='export', dest='export', renumber=True):
         first_stage = tempfile.mktemp(suffix=".export")
         subprocess.call(["treetools", "transform", path, first_stage, "--trans", "root_attach",
