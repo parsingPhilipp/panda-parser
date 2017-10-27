@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __author__ = 'kilian'
 
 import unittest
@@ -11,44 +13,44 @@ from util.enumerator import Enumerator
 class ConstituentTreeTest(unittest.TestCase):
     def test_something(self):
         tree = self.tree
-        print "rooted", tree.root
+        print("rooted", tree.root)
         tree.add_to_root("VP1")
-        print "rooted", tree.root
+        print("rooted", tree.root)
 
-        print tree
+        print(tree)
 
-        print "sent label", tree.sent_label()
+        print("sent label", tree.sent_label())
 
-        print "leaves", tree.leaves()
+        print("leaves", tree.leaves())
 
-        print "is leaf (leaves)", [(x, tree.is_leaf(x)) for (x, _, _) in tree.leaves()]
-        print "is leaf (internal)", [(x, tree.is_leaf(x)) for x in tree.ids()]
-        print "leaf index", [(x, tree.leaf_index(x)) for x in ["f1", "f2", "f3"]]
+        print("is leaf (leaves)", [(x, tree.is_leaf(x)) for (x, _, _) in tree.leaves()])
+        print("is leaf (internal)", [(x, tree.is_leaf(x)) for x in tree.ids()])
+        print("leaf index", [(x, tree.leaf_index(x)) for x in ["f1", "f2", "f3"]])
 
-        print "pos yield", tree.pos_yield()
-        print "word yield", tree.word_yield()
+        print("pos yield", tree.pos_yield())
+        print("word yield", tree.word_yield())
 
         # reentrant
         # parent
 
-        print "ids", tree.ids()
+        print("ids", tree.ids())
 
         # reorder
-        print "n nodes", tree.n_nodes()
-        print "n gaps", tree.n_gaps()
+        print("n nodes", tree.n_nodes())
+        print("n gaps", tree.n_gaps())
 
-        print "fringe VP", tree.fringe("VP")
-        print "fringe V", tree.fringe("V")
+        print("fringe VP", tree.fringe("VP"))
+        print("fringe V", tree.fringe("V"))
 
-        print "empty fringe", tree.empty_fringe()
+        print("empty fringe", tree.empty_fringe())
 
-        print "complete?", tree.complete()
+        print("complete?", tree.complete())
 
-        print "max n spans", tree.max_n_spans()
+        print("max n spans", tree.max_n_spans())
 
-        print "unlabelled structure", tree.unlabelled_structure()
+        print("unlabelled structure", tree.unlabelled_structure())
 
-        print "labelled spans", tree.labelled_spans()
+        print("labelled spans", tree.labelled_spans())
 
     def test_induction(self):
         tree = self.tree
@@ -59,7 +61,7 @@ class ConstituentTreeTest(unittest.TestCase):
         grammar = fringe_extract_lcfrs(tree, tree.unlabelled_structure(), feature_logging=feature_log1)
 
         for key in feature_log1:
-            print key, feature_log1[key]
+            print(key, feature_log1[key])
 
         print(grammar)
 
@@ -69,32 +71,30 @@ class ConstituentTreeTest(unittest.TestCase):
         print(grammar_)
 
         for key in feats:
-            print key, feats[key]
+            print(key, feats[key])
 
-        print "Adding 2nd grammar to first"
+        print("Adding 2nd grammar to first")
 
         grammar.add_gram(grammar_, feature_logging=(feature_log1, feats))
 
-        print "Adding 3rd grammar to first"
+        print("Adding 3rd grammar to first")
         feats3 = defaultdict(lambda: 0)
         grammar3 = fringe_extract_lcfrs(self.tree2, tree.unlabelled_structure(), isolate_pos=True, feature_logging=feats3)
         grammar.add_gram(grammar3, feature_logging=(feature_log1, feats3))
 
-        print
-        print grammar
-        print
-        print "New feature log"
-        print
+        print()
+        print(grammar)
+        print()
+        print("New feature log")
+        print()
         for key in feature_log1:
-            print key, feature_log1[key]
+            print(key, feature_log1[key])
         grammar.make_proper()
 
         build_nont_splits_dict(grammar, feature_log1, nonterminals=Enumerator())
 
-        print grammar.rule_index(0)
-        print grammar.rule_index(2)
-
-
+        print(grammar.rule_index(0))
+        print(grammar.rule_index(2))
 
     def setUp(self):
         tree = ConstituentTree("s1")
