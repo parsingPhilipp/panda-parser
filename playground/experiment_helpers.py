@@ -26,6 +26,7 @@ class SplitMergeOrganizer:
         self.nonterminal_map = None
 
         # settings and training ingredients
+        self.disable_split_merge = False
         self.training_reducts = None
         self.em_epochs = 20
         self.max_sm_cycles = 2
@@ -437,7 +438,7 @@ class SplitMergeExperiment(Experiment):
 
         self.initialize_parser()
 
-        if True:
+        if not self.organizer.disable_split_merge:
             if self.organizer.validator_type == "SCORE":
                 self.build_score_validator(self.resources[VALIDATION])
             elif self.organizer.validator_type == "SIMPLE":
@@ -446,9 +447,15 @@ class SplitMergeExperiment(Experiment):
 
             while self.organizer.last_sm_cycle is None or self.organizer.last_sm_cycle < self.organizer.max_sm_cycles:
                 self.run_split_merge_cyclc()
+                if self.organizer.last_sm_cycle < self.organizer.max_sm_cycles \
+                        and self.organizer.validator_type == "SCORE" \
+                        and self.organizer.refresh_score_validator:
+                    self.project_weights()
+                    self.initialize_parser()
+                    self.build_score_validator(self.resources[VALIDATION])
+            self.prepare_sm_parser()
 
         # testing
-        self.prepare_sm_parser()
         test_corpus = self.read_corpus(self.resources[TESTING])
         self.do_parse(test_corpus, self.resources[RESULT])
 

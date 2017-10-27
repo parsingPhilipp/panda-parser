@@ -340,6 +340,7 @@ def main3():
     experiment = ConstituentExperiment(induction_settings)
     experiment.organizer.em_epochs = em_epochs
     experiment.organizer.max_sm_cycles = sm_cycles
+    experiment.organizer.disable_split_merge = True
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
                                                   , exclude=train_exclude)
