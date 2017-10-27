@@ -397,7 +397,8 @@ class SplitMergeExperiment(Experiment):
         # builder.set_percent_merger(merge_percentage)
         self.organizer.splitMergeTrainer = builder.build()
 
-        self.organizer.splitMergeTrainer.setMaxDrops(self.organizer.validationDropIterations, mode="smoothing")
+        if self.organizer.validator_type in ["SCORE", "SIMPLE"]:
+            self.organizer.splitMergeTrainer.setMaxDrops(self.organizer.validationDropIterations, mode="smoothing")
         self.organizer.splitMergeTrainer.setEMepochs(self.organizer.em_epochs, mode="smoothing")
 
     def run_split_merge_cyclc(self):
