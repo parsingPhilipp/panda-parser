@@ -126,6 +126,9 @@ class LCFRS_rule:
     def get_idx(self):
         return self.__idx
 
+    def set_idx(self, idx):
+        self.__idx = idx
+
     # Constructor.
     # lhs: LCFRS_lhs
     # weight: real
@@ -474,6 +477,7 @@ class LCFRS:
             else:
                 i += 1
 
+        # remove rule from auxiliary structures
         for rule in to_remove:
             del self.__idx_to_rule[rule.get_idx()]
             self.__lhs_nont_to_rules[rule.lhs().nont()].remove(rule)
@@ -483,6 +487,17 @@ class LCFRS:
                 terms = rule.terms()
                 if terms:
                     self.__first_term_of[terms[0]].remove(rule)
+
+        # rebuild rule index
+        new_index = {}
+        next_idx = 0
+        for idx in self.__idx_to_rule:
+            new_index[next_idx] = self.__idx_to_rule[idx]
+            new_index[next_idx].set_idx(next_idx)
+            next_idx += 1
+        self.__idx_to_rule = new_index
+        # TODO: handle features by building a translation dict: old idx -> new idx
+
 
     # Adjust weights to make grammar proper.
     def make_proper(self):
