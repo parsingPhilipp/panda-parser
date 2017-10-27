@@ -114,7 +114,8 @@ class Experiment(object):
         for obj in corpus:
             obj = self.preprocess_before_induction(obj)
             obj_grammar, features = self.induce_from(obj)
-            grammar.add_gram(obj_grammar, features)
+            if obj_grammar is not None:
+                grammar.add_gram(obj_grammar, features)
         self.postprocess_grammar(grammar)
         self.base_grammar = grammar
 

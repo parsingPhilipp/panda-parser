@@ -3,33 +3,29 @@ from corpora.tiger_parse import sentence_names_to_hybridtrees
 from corpora.negra_parse import hybridtrees_to_sentence_names
 from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
-from grammar.lcfrs import LCFRS
 from constituent.induction import fringe_extract_lcfrs
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
+from constituent.dummy_tree import dummy_constituent_tree
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
-from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
-import time
 import copy
 import os
-import pickle
 import subprocess
 from sys import stdout
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
-from parser.supervised_trainer.trainer import PyDerivationManager
-from parser.trace_manager.sm_trainer_util import PyStorageManager, PyGrammarInfo
-from parser.trace_manager.sm_trainer import PyEMTrainer, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
-from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, VALIDATION, \
     SplitMergeExperiment
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
 import tempfile
-import codecs
 import sys
-reload(sys)
-sys.setdefaultencoding('utf8')
+if sys.version_info < (3,):
+    reload(sys)
+    sys.setdefaultencoding('utf8')
+# import codecs
+# sys.stdout = codecs.getwriter('utf8')(sys.stdout)
+# sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
 
 def build_corpus(path, start, stop, exclude):
@@ -178,7 +174,10 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
         self.discodop_scorer = DiscoDopScorer()
         self.max_score = 100.0
+
     def induce_from(self, tree):
+        if not tree.complete() or tree.empty_fringe():
+            return None, None
         part = self.induction_settings.recursive_partitioning(tree)
         tree_grammar = fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
                                             term_labeling=self.induction_settings.terminal_labeling,
@@ -313,108 +312,8 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         training_corpus = self.read_corpus(resource)
         return compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling)
 
-def dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dummy_root, label=None):
-    """
-    generates a dummy tree for a given yield using 'S' as inner node symbol
-    :param token_yield: connected yield of a parse tree
-    :type: list of ConstituentTerminal
-    :param full_token_yield: full yield of the parse tree
-    :type: list of ConstituentTerminal
-    :return: parse tree
-    :rtype: ConstituentTree
-    """
-    tree = ConstituentTree(label)
 
-    # create all leaves and punctuation
-    for token in full_token_yield:
-        if token not in token_yield:
-            tree.add_punct(full_token_yield.index(token), token.pos(), token.form())
-        else:
-            tree.add_leaf(full_token_yield.index(token), token.pos(), token.form())
-
-    # generate root node
-    root_id = 'n0'
-    tree.add_node(root_id, ConstituentCategory(dummy_root))
-    tree.add_to_root(root_id)
-
-    parent = root_id
-
-    if len(token_yield) > 1:
-        i = 1
-        # generate inner nodes of branching tree
-        for token in token_yield[:-2]:
-            node = ConstituentCategory(str(dummy_label))
-            tree.add_node('n' + str(i), node)
-            tree.add_child(parent, 'n' + str(i))
-            tree.add_child(parent, full_token_yield.index(token))
-            parent = 'n' + str(i)
-            i += 1
-
-        token = token_yield[len(token_yield) - 2]
-        tree.add_child(parent, full_token_yield.index(token))
-        token = token_yield[len(token_yield) - 1]
-        tree.add_child(parent, full_token_yield.index(token))
-    elif len(token_yield) == 1:
-        tree.add_child(parent, full_token_yield.index(token_yield[0]))
-
-    return tree
-
-
-def do_parsing(parser):
-    accuracy = ParseAccuracyPenalizeFailures()
-    system_trees = []
-
-    start_at = time.time()
-
-    n = 0
-
-    for tree in test_corpus:
-
-        if not tree.complete() \
-                or tree.empty_fringe() \
-                or not 0 < len(tree.word_yield()) <= max_length:
-            continue
-
-        parser.set_input(terminal_labeling.prepare_parser_input(tree.token_yield()))
-        parser.parse()
-        if not parser.recognized():
-            relevant = tree.labelled_spans()
-            accuracy.add_failure(relevant)
-
-            system_trees.append(dummy_constituent_tree(tree.token_yield(), tree.full_token_yield(), "NP", "S"))
-            # print('failure', tree.sent_label()) # for testing
-        else:
-            n += 1
-            dcp_tree = ConstituentTree()
-            punctuation_positions = [i + 1 for i, idx in enumerate(tree.full_yield()) if idx not in tree.id_yield()]
-            dcp_tree = parser.dcp_hybrid_tree_best_derivation(
-                dcp_tree
-                , tree.full_token_yield()
-                , False
-                , construct_constituent_token
-                , punctuation_positions=punctuation_positions)
-
-            retrieved = dcp_tree.labelled_spans()
-            relevant = tree.labelled_spans()
-            accuracy.add_accuracy(retrieved, relevant)
-
-            system_trees.append(dcp_tree)
-
-        parser.clear()
-
-    end_at = time.time()
-
-    print('Parsed:', n)
-    if accuracy.n() > 0:
-        print('Recall:', accuracy.recall())
-        print('Precision:', accuracy.precision())
-        print('F-measure:', accuracy.fmeasure())
-        print('Parse failures:', accuracy.n_failures())
-    else:
-        print('No successful parsing')
-    print('time:', end_at - start_at)
-    print('')
-
+def main2():
     name = parse_results
     # do not overwrite existing result files
     i = 1
@@ -424,172 +323,12 @@ def do_parsing(parser):
 
     path = os.path.join(parse_results_prefix, name + parse_results_suffix)
 
+    corpus = copy.deepcopy(test_corpus)
+    map(lambda x: x.strip_vroot(), corpus)
+
     with open(path, 'w') as result_file:
         print('Exporting parse trees of length <=', max_length, 'to', str(path))
-        map(lambda x: x.strip_vroot(), system_trees)
-        result_file.writelines(hybridtrees_to_sentence_names(system_trees, test_start, max_length))
-
-def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManager, term_labelling, parser, corpus_validation, validationMethod):
-    validator = PyCandidateScoreValidator(grammarInfo, storageManager, validationMethod)
-
-    # parser = GFParser(baseline_grammar)
-    tree_count = 0
-    der_count = 0
-    for gold_tree in corpus_validation:
-        tree_count += 1
-        parser.set_input(term_labelling.prepare_parser_input(gold_tree.token_yield()))
-        parser.parse()
-        derivations = [der for _, der in parser.k_best_derivation_trees()]
-        manager = PyDerivationManager(baseline_grammar, nont_map)
-        manager.convert_derivations_to_hypergraphs(derivations)
-        scores = []
-
-        relevant = set([tuple(t) for t in gold_tree.labelled_spans()])
-
-        for der in derivations:
-            der_count += 1
-
-            h_tree = ConstituentTree()
-            cleaned_tokens = copy.deepcopy(gold_tree.full_token_yield())
-            dcp = The_DCP_evaluator(der).getEvaluation()
-            dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_constituent_token)
-
-            retrieved = set([tuple(t) for t in h_tree.labelled_spans()])
-            inters = retrieved & relevant
-
-            # in case of parse failure there are two options here:
-            #   - parse failure -> no spans at all, thus precision = 1
-            #   - parse failure -> a dummy tree with all spans wrong, thus precision = 0
-
-            precision = 1.0 * len(inters) / len(retrieved) \
-                if len(retrieved) > 0 else 0
-            recall = 1.0 * len(inters) / len(relevant) \
-                if len(relevant) > 0 else 0
-            fmeasure = 2.0 * precision * recall / (precision + recall) \
-                if precision + recall > 0 else 0
-
-            if validationMethod == "F1":
-                scores.append(fmeasure)
-            elif validationMethod == "Precision":
-                scores.append(precision)
-            elif validationMethod == "Recall":
-                scores.append(recall)
-            else:
-                raise()
-
-        validator.add_scored_candidates(manager, scores, 1.0 if len(relevant) > 0 else 0.0)
-        print(tree_count, scores)
-        parser.clear()
-
-    print("trees used for validation ", tree_count, "with", der_count * 1.0 / tree_count, "derivations on average")
-
-    return validator
-
-def main():
-    # induce or load grammar
-    if not os.path.isfile(grammar_path):
-        grammar = LCFRS('START')
-        for tree in get_train_corpus():
-            if not tree.complete() or tree.empty_fringe():
-                continue
-            part = recursive_partitioning(tree)
-            tree_grammar = fringe_extract_lcfrs(tree, part, naming='child', term_labeling=terminal_labeling)
-            grammar.add_gram(tree_grammar)
-        grammar.make_proper()
-        pickle.dump(grammar, open(grammar_path, 'wb'))
-    else:
-        grammar = pickle.load(open(grammar_path, 'rb'))
-
-    # compute or load reducts
-    if not os.path.isfile(reduct_path):
-        trace = compute_reducts(grammar, get_train_corpus(), terminal_labeling)
-        trace.serialize(reduct_path)
-    else:
-        trace = PySDCPTraceManager(grammar, terminal_labeling)
-        trace.load_traces_from_file(reduct_path)
-
-    global train_corpus
-    if train_corpus is not None:
-        del train_corpus
-    # prepare EM training
-    grammarInfo = PyGrammarInfo(grammar, trace.get_nonterminal_map())
-    storageManager = PyStorageManager()
-
-    em_builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
-    em_builder.set_em_epochs(em_epochs)
-    em_builder.set_simple_expector(threads=threads)
-    emTrainer = em_builder.build()
-
-    # randomize initial weights and do em training
-    la_no_splits = build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)
-    la_no_splits.add_random_noise(grammarInfo, seed=seed)
-    emTrainer.em_train(la_no_splits)
-    la_no_splits.project_weights(grammar, grammarInfo)
-
-    # emTrainerOld = PyEMTrainer(trace)
-    # emTrainerOld.em_training(grammar, 30, "rfe", tie_breaking=True)
-
-    global validation_corpus
-    # compute parses for validation set
-    baseline_parser = GFParser_k_best(grammar, k=k_best)
-    validator = build_score_validator(grammar, grammarInfo, trace.get_nonterminal_map(), storageManager,
-                                       terminal_labeling, baseline_parser, validation_corpus, validationMethod)
-    del baseline_parser
-    del validation_corpus
-
-    # prepare SM training
-    builder = PySplitMergeTrainerBuilder(trace, grammarInfo)
-    builder.set_em_epochs(em_epochs)
-    builder.set_split_randomization(1.0, seed + 1)
-    builder.set_simple_expector(threads=threads)
-    builder.set_score_validator(validator, validationDropIterations)
-    builder.set_smoothing_factor(smoothingFactor=smoothing_factor)
-    builder.set_split_randomization(percent=split_randomization)
-    splitMergeTrainer = builder.set_percent_merger(merge_percentage).build()
-
-    splitMergeTrainer.setMaxDrops(validationDropIterations, mode="smoothing")
-    splitMergeTrainer.setEMepochs(em_epochs, mode="smoothing")
-
-    # set initial latent annotation
-    latentAnnotation = [la_no_splits]
-
-    # do SM training
-    for i in range(1, sm_cycles + 1):
-        splitMergeTrainer.reset_random_seed(seed + i + 1)
-        latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
-        print("Cycle: ", i)
-        if parsing_method == "single-best-annotation":
-            smGrammar = latentAnnotation[i].build_sm_grammar(grammar
-                                                         , grammarInfo
-                                                         , rule_pruning=0.0001
-                                                         , rule_smoothing=0.1)
-            print("Rules in smoothed grammar: ", len(smGrammar.rules()))
-            parser = GFParser(smGrammar)
-        elif parsing_method == "filter-ctf":
-            latentAnnotation[-1].project_weights(grammar, grammarInfo)
-            parser = Coarse_to_fine_parser(grammar, GFParser_k_best, latentAnnotation[-1], grammarInfo, trace.get_nonterminal_map(), k=k_best)
-        else:
-            raise(Exception())
-        do_parsing(parser)
-        del parser
-
-
-def main2():
-     name = parse_results
-     # do not overwrite existing result files
-     i = 1
-     while os.path.isfile(os.path.join(parse_results_prefix, name + parse_results_suffix)):
-         i += 1
-         name = parse_results + '_' + str(i)
-
-     path = os.path.join(parse_results_prefix, name + parse_results_suffix)
-
-     corpus = copy.deepcopy(test_corpus)
-     map(lambda x: x.strip_vroot(), corpus)
-
-     with open(path, 'w') as result_file:
-         print('Exporting parse trees of length <=', max_length, 'to', str(path))
-         result_file.writelines(hybridtrees_to_sentence_names(corpus, test_start, max_length))
+        result_file.writelines(hybridtrees_to_sentence_names(corpus, test_start, max_length))
 
 
 def main3():
@@ -600,6 +339,7 @@ def main3():
     induction_settings.disconnect_punctuation = False
     experiment = ConstituentExperiment(induction_settings)
     experiment.organizer.em_epochs = em_epochs
+    experiment.organizer.max_sm_cycles = sm_cycles
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
                                                   , exclude=train_exclude)
