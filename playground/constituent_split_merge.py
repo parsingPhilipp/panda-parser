@@ -28,38 +28,25 @@ if sys.version_info < (3,):
 # sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 # sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
-
-def build_corpus(path, start, stop, exclude):
-    return sentence_names_to_hybridtrees(
-        ['s' + str(i) for i in range(start, stop + 1) if i not in exclude]
-        , path
-        , hold=False)
-
 grammar_path = '/tmp/constituent_grammar.pkl'
 reduct_path = '/tmp/constituent_grammar_reduct.pkl'
 terminal_labeling_path = '/tmp/constituent_labeling.pkl'
-# train_limit = 5000
-# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
-train_limit = 40474
-train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
-train_exclude = [7561,17632,46234,50224]
+train_limit = 5000  # 2000
+train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+# train_limit = 40474
+# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
+train_exclude = [7561, 17632, 46234, 50224]
 train_corpus = None
 
-def get_train_corpus():
-    global train_corpus
-    if train_corpus is None:
-        train_corpus = build_corpus(train_path, 1, train_limit, train_exclude)
-    return train_corpus
-validation_start = 40475
-validation_size = validation_start + 100 #4999
-validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-validation_corpus = build_corpus(validation_path, validation_start, validation_size, train_exclude)
 
-test_start = 40475
+validation_start = 40475
+validation_size = validation_start + 200 #4999
+validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+
+test_start = validation_size # 40475
 test_limit = test_start + 200 # 4999
 test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
 # if not os.path.isfile(terminal_labeling_path):
 #     terminal_labeling = FormPosTerminalsUnk(get_train_corpus(), 10)
@@ -314,23 +301,6 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         training_corpus = self.read_corpus(resource)
         return compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling)
 
-
-def main2():
-    name = parse_results
-    # do not overwrite existing result files
-    i = 1
-    while os.path.isfile(os.path.join(parse_results_prefix, name + parse_results_suffix)):
-        i += 1
-        name = parse_results + '_' + str(i)
-
-    path = os.path.join(parse_results_prefix, name + parse_results_suffix)
-
-    corpus = copy.deepcopy(test_corpus)
-    map(lambda x: x.strip_vroot(), corpus)
-
-    with open(path, 'w') as result_file:
-        print('Exporting parse trees of length <=', max_length, 'to', str(path))
-        result_file.writelines(hybridtrees_to_sentence_names(corpus, test_start, max_length))
 
 
 def main3():
