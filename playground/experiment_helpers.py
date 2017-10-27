@@ -37,6 +37,7 @@ class SplitMergeOrganizer:
         self.split_randomization = 1.0  # in percent
         self.validator_type = "SCORE"  # SCORE or SIMPLE
         self.validator = None  # required for SCORE validation
+        self.refresh_score_validator = False  # rebuild the k-best candidate list after each split/merge cycle
         self.validation_reducts = None  # required for SIMPLE validation
 
         # the trainer state
@@ -354,7 +355,11 @@ class SplitMergeExperiment(Experiment):
                 scores.append(score)
 
             self.organizer.validator.add_scored_candidates(manager, scores, self.max_score)
-            print(obj_count, self.max_score, scores)
+            # print(obj_count, self.max_score, scores)
+            if scores:
+                print(obj_count, 'max', max(scores), 'firsts', scores[0:10])
+            else:
+                print(obj_count, 'max 00.00', '[]')
             self.parser.clear()
             print('.', end='')
         # print("trees used for validation ", obj_count, "with", der_count * 1.0 / obj_count, "derivations on average")
@@ -420,9 +425,13 @@ class SplitMergeExperiment(Experiment):
                                                rule_smoothing=0.1)
             self.parser = GFParser_k_best(grammar=grammar, k=1)
         elif self.parsing_mode == "k-best-rerank":
-            last_la.project_weights(self.base_grammar, self.organizer.grammarInfo)
+            self.project_weights()
             self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo,
                                            self.organizer.nonterminal_map, k=self.k_best)
+
+    def project_weights(self):
+        last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
+        last_la.project_weights(self.base_grammar, self.organizer.grammarInfo)
 
     def run_experiment(self):
         self.print_config()
