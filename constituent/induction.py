@@ -183,8 +183,10 @@ def feats(id_seqs, tree):
             token = tree.node_token(id)
             id_feat = [("function", token.edge())]
             if tree.is_leaf(id):
-                id_feat += token.morph_feats()
-            seq_feats.append(tuple(sorted(id_feat, key=lambda x: x[0])))
+                id_feat += [('form', token.form()), ('pos', token.pos())] + token.morph_feats()
+            else:
+                id_feat += [('category', token.category())]
+            seq_feats.append(frozenset(id_feat))
         seqs_feats.append(tuple(seq_feats))
     return tuple(seqs_feats)
 
