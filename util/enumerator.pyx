@@ -29,6 +29,12 @@ cdef class Enumerator:
             result += [self.object_index(obj)]
         return result
 
+    def get_first_index(self):
+        return self.first_index
+
+    def get_counter(self):
+        return self.counter
+
 # cdef class Enumerator:
 #     cdef int first_index
 #     cdef int counter
