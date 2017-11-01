@@ -450,7 +450,7 @@ class SplitMergeExperiment(Experiment):
         self.organizer.storageManager = PyStorageManager()
 
     def prepare_sm_parser(self):
-        last_la = self.organizer.latent_annotations[self.organizer.max_sm_cycles]
+        last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
         if self.parsing_mode == "best-latent-derivation":
             grammar = last_la.build_sm_grammar(self.base_grammar, self.organizer.grammarInfo, rule_pruning=0.0001,
                                                rule_smoothing=0.1)
@@ -493,7 +493,8 @@ class SplitMergeExperiment(Experiment):
                     self.project_weights()
                     self.initialize_parser()
                     self.build_score_validator(self.resources[VALIDATION])
-            self.prepare_sm_parser()
+
+        self.prepare_sm_parser()
 
         # testing
         test_corpus = self.read_corpus(self.resources[TESTING])
