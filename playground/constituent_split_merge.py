@@ -314,6 +314,8 @@ def main3():
     experiment.organizer.max_sm_cycles = sm_cycles
     experiment.organizer.refresh_score_validator = True
     experiment.organizer.disable_split_merge = True
+    experiment.organizer.merge_percentage = 60.0
+    experiment.organizer.merge_type = "SCC"
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
                                                   , exclude=train_exclude)

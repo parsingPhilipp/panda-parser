@@ -39,6 +39,9 @@ class SplitMergeOrganizer:
         self.validator = None  # required for SCORE validation
         self.refresh_score_validator = False  # rebuild the k-best candidate list after each split/merge cycle
         self.validation_reducts = None  # required for SIMPLE validation
+        self.merge_percentage = 50.0
+        self.merge_type = "PERCENT" # or SCC or THRESHOLD
+        self.merge_threshold = -0.2
 
         # the trainer state
         self.splitMergeTrainer = None
@@ -409,8 +412,15 @@ class SplitMergeExperiment(Experiment):
             builder.set_simple_validator(self.organizer.validation_reducts, self.organizer.validationDropIterations)
         builder.set_smoothing_factor(smoothingFactor=self.organizer.smoothing_factor)
         builder.set_split_randomization(percent=self.organizer.split_randomization)
-        # builder.set_scc_merger(-0.2)
-        # builder.set_percent_merger(merge_percentage)
+
+        # set merger
+        if self.organizer.merge_type == "SCC":
+            builder.set_scc_merger(self.organizer.merge_threshold)
+        elif self.organizer.merge_type == "THRESHOLD":
+            builder.set_threshold_merger(self.organizer.merge_threshold)
+        else:
+            builder.set_percent_merger(self.organizer.merge_percentage)
+
         self.organizer.splitMergeTrainer = builder.build()
 
         if self.organizer.validator_type in ["SCORE", "SIMPLE"]:
