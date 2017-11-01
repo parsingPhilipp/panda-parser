@@ -268,8 +268,8 @@ cdef class PyLatentAnnotation:
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la):
         self.latentAnnotation = la
 
-    cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent = 1.0, size_t seed=0):
-        deref(self.latentAnnotation).add_random_noise(grammarInfo.grammarInfo, randPercent, seed)
+    cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent = 1.0, size_t seed=0, double bias=0.01):
+        deref(self.latentAnnotation).add_random_noise(grammarInfo.grammarInfo, randPercent, seed, bias)
 
     def project_weights(self, grammar, PyGrammarInfo grammarInfo):
         trivial_split = True
