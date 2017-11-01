@@ -7,7 +7,7 @@ from hybridtree.constituent_tree import ConstituentTree
 from constituent.induction import fringe_extract_lcfrs
 from grammar.induction.recursive_partitioning import fanout_k_left_to_right, left_branching_partitioning
 from collections import defaultdict
-from constituent.construct_morph_annotation import build_nont_splits_dict
+from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats
 from util.enumerator import Enumerator
 
 
@@ -125,7 +125,7 @@ class ConstituentTreeTest(unittest.TestCase):
                     continue
                 print(key, features[key])
 
-        nont_splits, root_weights, rule_weights = build_nont_splits_dict(grammar, features, nonterminals=Enumerator())
+        nont_splits, root_weights, rule_weights, _ = build_nont_splits_dict(grammar, features, nonterminals=Enumerator(), feat_function=pos_cat_feats, debug=True)
         print(nont_splits)
         print(root_weights)
         print(rule_weights)

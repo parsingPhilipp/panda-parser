@@ -16,11 +16,19 @@ def extract_feat(the_input, features=["number", "person", "tense", "mood", "case
     return tuple(feats)
 
 
+def pos_cat_feats(the_input, hmarkov=2, left=False):
+    if left:
+        markov_input = the_input[:2]
+    else:
+        markov_input = the_input[-hmarkov:]
+
+    return tuple(map(lambda x: extract_feat(x, features=["pos", "category"]), markov_input))
+
+
 def build_nont_splits_dict(grammar
                            , morph_log
                            , nonterminals
-                           , features=["number", "person", "tense", "mood", "case", "degree", "category", "pos", "function"]
-                           , empties=["", "--"]
+                           , feat_function=lambda xs: tuple(map(extract_feat, xs))
                            , debug=False):
     """
     :type grammar: LCFRS
@@ -40,7 +48,7 @@ def build_nont_splits_dict(grammar
             if True or len(entry[1:]) == 1:
                 if debug:
                     print(entry)
-                feats = tuple(map(lambda x: extract_feat(x, features, empties), entry[1][0]))
+                feats = feat_function(entry[1][0])
                 if debug:
                     print(feats)
                 if len(feats) > 0:
@@ -72,14 +80,14 @@ def build_nont_splits_dict(grammar
         rhs_splits = reduce(mul, splits_array[1:], 1)
         splits = splits_array[0] * rhs_splits
 
-        if False and splits == 1:
+        if splits == 1:
             rule_weights.append([rule.weight()])
         else:
             weights = [0.0] * splits
             for entry in morph_log:
                 if entry[0] == rule.get_idx():
                     lhs_nont = rule.lhs().nont()
-                    lhs_feat = tuple(map(lambda x: extract_feat(x, features, empties), entry[1][0]))
+                    lhs_feat = feat_function(entry[1][0])
                     lhs_split = split_id[lhs_nont][lhs_feat] - 1
                     baseweight = 1.0 * morph_log[entry] / split_id_count[lhs_nont][lhs_feat]
                     weight_idx = lhs_split * reduce(mul, splits_array[1:], 1)
@@ -88,7 +96,7 @@ def build_nont_splits_dict(grammar
                     # print(entry[2])
                     for idx, rhs_nont in enumerate(rule.rhs()):
                         # rhs_feat = extract_feat(entry[2][0 + idx][0][0])
-                        rhs_feat = tuple(map(lambda x: extract_feat(x, features, empties), entry[2][0 + idx][0]))
+                        rhs_feat = feat_function(entry[2][0 + idx][0])
                         # rhs_feat = feats = map(lambda x: extract_feat(x, features, empties), entry[2][0 + idx])
                         rhs_split = split_id[rhs_nont][rhs_feat] - 1
                         rhs_split_selection.append(rhs_split)
@@ -112,4 +120,4 @@ def build_nont_splits_dict(grammar
         count_sum = sum([split_id_count[grammar.start()][key] for key in split_id_count[grammar.start()]])
         for key in split_id_count[grammar.start()]:
             root_weights[split_id[grammar.start()][key] - 1] = split_id_count[grammar.start()][key] * 1.0 / count_sum
-    return nonterminal_splits, root_weights, rule_weights
+    return nonterminal_splits, root_weights, rule_weights, split_id
