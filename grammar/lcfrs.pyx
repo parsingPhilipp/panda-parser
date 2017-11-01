@@ -462,11 +462,13 @@ class LCFRS:
     def epsilon_rules(self):
         return self.__epsilon_rules
 
-    def purge_rules(self, threshold):
+    def purge_rules(self, threshold, feature_log=None):
         """
         :param threshold: remove rules with probability <= threshold from grammar
         :type threshold: float
         """
+        if feature_log is not None:
+            assert False
         to_remove = []
         i = 0
         while i < len(self.__rules):

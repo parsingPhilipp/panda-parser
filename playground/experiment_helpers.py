@@ -113,20 +113,25 @@ class Experiment(object):
         self.oracle_parsing = False
         self.max_score = None
         self.purge_rule_freq = None
+        self.feature_log = None
 
     def induce_grammar(self, corpus, start="START"):
         grammar = LCFRS(start=start)
         for obj in corpus:
             obj = self.preprocess_before_induction(obj)
             obj_grammar, features = self.induce_from(obj)
-            if obj_grammar is not None:
-                grammar.add_gram(obj_grammar, features)
+            if obj_grammar is None:
+                continue
+            if features is None:
+                grammar.add_gram(obj_grammar, None)
+            else:
+                grammar.add_gram(obj_grammar, (self.feature_log, features))
         self.postprocess_grammar(grammar)
         self.base_grammar = grammar
 
     def postprocess_grammar(self, grammar):
         if self.purge_rule_freq is not None:
-            grammar.purge_rules(self.purge_rule_freq)
+            grammar.purge_rules(self.purge_rule_freq, self.feature_log)
         grammar.make_proper()
 
     def initialize_parser(self):
