@@ -301,8 +301,8 @@ cdef class PyLatentAnnotation:
                         assert weight >= 0.0 and weight <= 1.0001
                         split_total_probs[la[0]] += weight
                 if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
-                    output_helper(str(split_total_probs))
-                    raise
+                    output_helper(str(nont) + " " + str(split_total_probs))
+                    raise Exception(nont, split_total_probs)
 
             la_proj = make_shared[LatentAnnotation](project_annotation[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo)))
 

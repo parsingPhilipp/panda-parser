@@ -373,13 +373,29 @@ class SplitMergeExperiment(Experiment):
         em_builder.set_simple_expector(threads=self.organizer.threads)
         emTrainer = em_builder.build()
 
+        la_no_splits = self.create_initial_la()
+
+        emTrainer.em_train(la_no_splits)
+        try:
+            la_no_splits.project_weights(self.base_grammar, self.organizer.grammarInfo)
+        except Exception as exc:
+            nont_idx = exc.args[0]
+            splits, root_weights, rule_weights = la_no_splits.serialize()
+            nont = self.organizer.nonterminal_map.index_object(nont_idx)
+            print(nont, nont_idx, splits[nont_idx])
+            for rule in self.base_grammar.lhs_nont_to_rules(nont):
+                print(rule, rule_weights[rule.get_idx()])
+            raise
+
+        self.organizer.latent_annotations[0] = la_no_splits
+        self.organizer.last_sm_cycle = 0
+
+    def create_initial_la(self):
         # randomize initial weights and do em training
         la_no_splits = build_PyLatentAnnotation_initial(self.base_grammar, self.organizer.grammarInfo,
                                                         self.organizer.storageManager)
         la_no_splits.add_random_noise(self.organizer.grammarInfo, seed=self.organizer.seed)
-        emTrainer.em_train(la_no_splits)
-        la_no_splits.project_weights(self.base_grammar, self.organizer.grammarInfo)
-        self.organizer.latent_annotations[0] = la_no_splits
+        return la_no_splits
 
     def prepare_split_merge_trainer(self):
         # prepare SM training
@@ -403,8 +419,7 @@ class SplitMergeExperiment(Experiment):
 
     def run_split_merge_cyclc(self):
         if self.organizer.last_sm_cycle is None:
-            la_no_splits = build_PyLatentAnnotation_initial(self.base_grammar, self.organizer.grammarInfo,
-                                                            self.organizer.storageManager)
+            la_no_splits = self.create_initial_la()
             self.organizer.last_sm_cycle = 0
             self.organizer.latent_annotations[0] = la_no_splits
 
