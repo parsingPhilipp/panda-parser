@@ -4,6 +4,7 @@ from corpora.negra_parse import hybridtrees_to_sentence_names
 from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs
+from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from constituent.dummy_tree import dummy_constituent_tree
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
@@ -11,10 +12,12 @@ import copy
 import os
 import subprocess
 from sys import stdout
+from collections import defaultdict
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
 from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, VALIDATION, \
     SplitMergeExperiment
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
@@ -87,6 +90,7 @@ class InductionSettings:
         self.naming_scheme = 'child'
         self.disconnect_punctuation = True
         self.normalize = False
+        self.feature_la = False
 
     def __str__(self):
         attributes = [("recursive partitioning", self.recursive_partitioning.__name__)
@@ -162,15 +166,22 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
         self.discodop_scorer = DiscoDopScorer()
         self.max_score = 100.0
+        if self.induction_settings.feature_la:
+            self.feature_log = defaultdict(lambda: 0)
 
     def induce_from(self, tree):
         if not tree.complete() or tree.empty_fringe():
             return None, None
         part = self.induction_settings.recursive_partitioning(tree)
+        if self.induction_settings.feature_la:
+            features = defaultdict(lambda: 0)
+        else:
+            features = None
         tree_grammar = fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
                                             term_labeling=self.induction_settings.terminal_labeling,
-                                            isolate_pos=self.induction_settings.isolate_pos)
-        return tree_grammar, None
+                                            isolate_pos=self.induction_settings.isolate_pos,
+                                            feature_logging=features)
+        return tree_grammar, features
 
     def parsing_postprocess(self, sentence, derivation, label=None):
         full_yield, id_yield, full_token_yield, token_yield = sentence
@@ -301,6 +312,28 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         training_corpus = self.read_corpus(resource)
         return compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling)
 
+    def create_initial_la(self):
+        if self.induction_settings.feature_la:
+            print("building initial LA from features")
+            nonterminal_splits, rootWeights, ruleWeights, split_id = build_nont_splits_dict(self.base_grammar, self.feature_log, self.organizer.nonterminal_map, feat_function=pos_cat_feats)
+            print("number of nonterminals:", len(nonterminal_splits))
+            print("total splits", sum(nonterminal_splits))
+            max_splits = max(nonterminal_splits)
+            max_splits_index = nonterminal_splits.index(max_splits)
+            max_splits_nont = self.organizer.nonterminal_map.index_object(max_splits_index)
+            print("max. nonterminal splits", max_splits, "at index ", max_splits_index, "i.e.,", max_splits_nont)
+            for key in split_id[max_splits_nont]:
+                print(key)
+            print("number of rules", len(ruleWeights))
+            print("total split rules", sum(map(len, ruleWeights)))
+            print("number of split rules with 0 prob.", sum(map(sum, map(lambda xs: map(lambda x: 1 if x == 0.0 else 0, xs), ruleWeights))))
+
+            la = build_PyLatentAnnotation(nonterminal_splits, rootWeights, ruleWeights, self.organizer.grammarInfo,
+                                          self.organizer.storageManager)
+            la.add_random_noise(self.organizer.grammarInfo, seed=self.organizer.seed)
+            return la
+        else:
+            return super(ConstituentExperiment, self).create_initial_la()
 
 
 def main3():
@@ -309,6 +342,7 @@ def main3():
     induction_settings.terminal_labeling = terminal_labeling
     induction_settings.normalize = True
     induction_settings.disconnect_punctuation = False
+    induction_settings.feature_la = True
     experiment = ConstituentExperiment(induction_settings)
     experiment.organizer.em_epochs = em_epochs
     experiment.organizer.max_sm_cycles = sm_cycles
