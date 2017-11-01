@@ -472,14 +472,17 @@ class SplitMergeExperiment(Experiment):
         self.induce_grammar(training_corpus)
 
         # prepare reducts
-        self.organizer.training_reducts = self.compute_reducts(self.resources[TRAINING])
-        self.initialize_training_environment()
-        self.do_em_training()
+        if not self.organizer.disable_split_merge or not self.organizer.disable_em:
+            self.organizer.training_reducts = self.compute_reducts(self.resources[TRAINING])
+            self.initialize_training_environment()
 
-        self.initialize_parser()
+        # create initial LA and do EM training
+        if not self.organizer.disable_em:
+            self.do_em_training()
 
         if not self.organizer.disable_split_merge:
             if self.organizer.validator_type == "SCORE":
+                self.initialize_parser()
                 self.build_score_validator(self.resources[VALIDATION])
             elif self.organizer.validator_type == "SIMPLE":
                 self.organizer.validation_reducts = self.compute_reducts(self.resources[VALIDATION])
@@ -494,7 +497,10 @@ class SplitMergeExperiment(Experiment):
                     self.initialize_parser()
                     self.build_score_validator(self.resources[VALIDATION])
 
-        self.prepare_sm_parser()
+        if self.organizer.disable_split_merge and self.organizer.disable_em:
+            self.initialize_parser()
+        else:
+            self.prepare_sm_parser()
 
         # testing
         test_corpus = self.read_corpus(self.resources[TESTING])
