@@ -45,7 +45,9 @@ class SplitMergeOrganizer:
 
         # the trainer state
         self.splitMergeTrainer = None
+        self.emTrainer = None
         self.latent_annotations = {}
+        self.merge_sources = {}
         self.last_sm_cycle = None
 
     def __str__(self):
@@ -379,23 +381,24 @@ class SplitMergeExperiment(Experiment):
         em_builder = PySplitMergeTrainerBuilder(self.organizer.training_reducts, self.organizer.grammarInfo)
         em_builder.set_em_epochs(self.organizer.em_epochs)
         em_builder.set_simple_expector(threads=self.organizer.threads)
-        emTrainer = em_builder.build()
+        em_builder.set_scc_merger(self.organizer.merge_threshold)
+        self.organizer.emTrainer = emTrainer = em_builder.build()
 
-        la_no_splits = self.create_initial_la()
+        initial_la = self.create_initial_la()
 
-        emTrainer.em_train(la_no_splits)
+        emTrainer.em_train(initial_la)
         try:
-            la_no_splits.project_weights(self.base_grammar, self.organizer.grammarInfo)
+            initial_la.project_weights(self.base_grammar, self.organizer.grammarInfo)
         except Exception as exc:
             nont_idx = exc.args[0]
-            splits, root_weights, rule_weights = la_no_splits.serialize()
+            splits, root_weights, rule_weights = initial_la.serialize()
             nont = self.organizer.nonterminal_map.index_object(nont_idx)
             print(nont, nont_idx, splits[nont_idx])
             for rule in self.base_grammar.lhs_nont_to_rules(nont):
                 print(rule, rule_weights[rule.get_idx()])
             raise
 
-        self.organizer.latent_annotations[0] = la_no_splits
+        self.organizer.latent_annotations[0] = initial_la
         self.organizer.last_sm_cycle = 0
 
     def create_initial_la(self):
@@ -432,7 +435,7 @@ class SplitMergeExperiment(Experiment):
             self.organizer.splitMergeTrainer.setMaxDrops(self.organizer.validationDropIterations, mode="smoothing")
         self.organizer.splitMergeTrainer.setEMepochs(self.organizer.em_epochs, mode="smoothing")
 
-    def run_split_merge_cyclc(self):
+    def run_split_merge_cycle(self):
         if self.organizer.last_sm_cycle is None:
             la_no_splits = self.create_initial_la()
             self.organizer.last_sm_cycle = 0
@@ -443,6 +446,7 @@ class SplitMergeExperiment(Experiment):
         next_cycle = self.organizer.last_sm_cycle + 1
         self.organizer.last_sm_cycle = next_cycle
         self.organizer.latent_annotations[next_cycle] = next_la
+        self.organizer.merge_sources[next_cycle] = self.organizer.splitMergeTrainer.get_current_merge_sources()
 
     def initialize_training_environment(self):
         self.organizer.nonterminal_map = self.organizer.training_reducts.get_nonterminal_map()
@@ -489,7 +493,7 @@ class SplitMergeExperiment(Experiment):
             self.prepare_split_merge_trainer()
 
             while self.organizer.last_sm_cycle is None or self.organizer.last_sm_cycle < self.organizer.max_sm_cycles:
-                self.run_split_merge_cyclc()
+                self.run_split_merge_cycle()
                 if self.organizer.last_sm_cycle < self.organizer.max_sm_cycles \
                         and self.organizer.validator_type == "SCORE" \
                         and self.organizer.refresh_score_validator:

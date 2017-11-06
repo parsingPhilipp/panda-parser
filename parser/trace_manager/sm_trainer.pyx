@@ -23,7 +23,9 @@ cdef extern from "Trainer/SplitMergeTrainer.h" namespace "Trainer":
     cdef cppclass SplitMergeTrainer[Nonterminal, TraceID]:
         shared_ptr[Splitter] splitter
         LatentAnnotation split_merge_cycle(LatentAnnotation)
+        LatentAnnotation merge(LatentAnnotation)
         void em_train(LatentAnnotation)
+        vector[vector[vector[size_t]]] get_current_merge_sources()
 
 cdef extern from "Trainer/EMTrainerLA.h" namespace "Trainer":
     ctypedef enum TrainingMode:
@@ -452,6 +454,12 @@ cdef class PySplitMergeTrainer:
         output_helper("Completed split/merge cycles in " + str(time.time() - timeStart) + " seconds")
         return pyLaTrained
 
+    cpdef PyLatentAnnotation merge(self, PyLatentAnnotation la):
+        cdef shared_ptr[LatentAnnotation] la_merged \
+            = make_shared[LatentAnnotation](deref(self.splitMergeTrainer).merge(deref(la.latentAnnotation)))
+        cdef PyLatentAnnotation pyLaMerged = PyLatentAnnotation()
+        pyLaMerged.latentAnnotation = la_merged
+        return pyLaMerged
     cpdef void em_train(self, PyLatentAnnotation la):
         deref(self.splitMergeTrainer).em_train(deref(la.latentAnnotation))
 
@@ -463,3 +471,6 @@ cdef class PySplitMergeTrainer:
 
     cpdef setMaxDrops(self, unsigned maxDrops, mode="default"):
         (<EMTrainerLAValidation &> deref(self.emTrainer)).setMaxDrops(maxDrops, self.modes[mode])
+
+    cpdef get_current_merge_sources(self):
+        return deref(self.splitMergeTrainer).get_current_merge_sources()

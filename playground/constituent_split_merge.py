@@ -335,6 +335,15 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         else:
             return super(ConstituentExperiment, self).create_initial_la()
 
+    def do_em_training(self):
+        super(ConstituentExperiment, self).do_em_training()
+        if self.induction_settings.feature_la:
+            print("Merging feature splits with SCC merger and threshold", str(self.organizer.merge_threshold) + ".")
+            mergedLa = self.organizer.emTrainer.merge(self.organizer.latent_annotations[0])
+            self.organizer.latent_annotations[0] = mergedLa
+            self.organizer.merge_sources[0] = self.organizer.emTrainer.get_current_merge_sources()
+            print(self.organizer.merge_sources[0])
+
 
 def main3():
     induction_settings = InductionSettings()
@@ -349,7 +358,7 @@ def main3():
     experiment.organizer.refresh_score_validator = True
     experiment.organizer.disable_split_merge = True
     experiment.organizer.merge_percentage = 60.0
-    experiment.organizer.merge_type = "SCC"
+    experiment.organizer.merge_type = "PERCENT"
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
                                                   , exclude=train_exclude)
