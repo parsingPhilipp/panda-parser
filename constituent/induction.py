@@ -175,17 +175,22 @@ def id_nont(id_seq, tree, naming):
         raise Exception('unknown naming ' + naming)
 
 
+def token_to_features(token, isleaf=True):
+    id_feat = [("function", token.edge())]
+    if isleaf:
+        id_feat += [('form', token.form()), ('pos', token.pos())] + token.morph_feats()
+    else:
+        id_feat += [('category', token.category())]
+    return id_feat
+
+
 def feats(id_seqs, tree):
     seqs_feats = []
     for id_seq in id_seqs:
         seq_feats = []
         for id in id_seq:
             token = tree.node_token(id)
-            id_feat = [("function", token.edge())]
-            if tree.is_leaf(id):
-                id_feat += [('form', token.form()), ('pos', token.pos())] + token.morph_feats()
-            else:
-                id_feat += [('category', token.category())]
+            id_feat = token_to_features(token, isleaf=tree.is_leaf(id))
             seq_feats.append(frozenset(id_feat))
         seqs_feats.append(tuple(seq_feats))
     return tuple(seqs_feats)

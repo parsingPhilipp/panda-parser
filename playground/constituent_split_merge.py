@@ -4,7 +4,7 @@ from corpora.negra_parse import hybridtrees_to_sentence_names
 from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs
-from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats
+from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from constituent.dummy_tree import dummy_constituent_tree
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
@@ -91,6 +91,7 @@ class InductionSettings:
         self.disconnect_punctuation = True
         self.normalize = False
         self.feature_la = False
+        self.feat_function = pos_cat_and_lex_in_unary
 
     def __str__(self):
         attributes = [("recursive partitioning", self.recursive_partitioning.__name__)
@@ -163,6 +164,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         self.use_output_counter = True
         self.output_counter = 0
         self.strip_vroot = True
+        self.terminal_labeling = induction_settings.terminal_labeling
 
         self.discodop_scorer = DiscoDopScorer()
         self.max_score = 100.0
@@ -231,7 +233,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
     def parsing_preprocess(self, hybrid_tree):
         if self.strip_vroot:
             hybrid_tree.strip_vroot()
-        return terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
+        return self.terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
 
     @lru_cache(maxsize=500)
     def normalize_corpus(self, path, src='export', dest='export', renumber=True):
@@ -315,7 +317,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
     def create_initial_la(self):
         if self.induction_settings.feature_la:
             print("building initial LA from features")
-            nonterminal_splits, rootWeights, ruleWeights, split_id = build_nont_splits_dict(self.base_grammar, self.feature_log, self.organizer.nonterminal_map, feat_function=pos_cat_feats)
+            nonterminal_splits, rootWeights, ruleWeights, split_id = build_nont_splits_dict(self.base_grammar, self.feature_log, self.organizer.nonterminal_map, feat_function=self.induction_settings.feat_function)
             print("number of nonterminals:", len(nonterminal_splits))
             print("total splits", sum(nonterminal_splits))
             max_splits = max(nonterminal_splits)

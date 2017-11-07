@@ -25,6 +25,18 @@ def pos_cat_feats(the_input, hmarkov=2, left=False):
     return tuple(map(lambda x: extract_feat(x, features=["pos", "category"]), markov_input))
 
 
+def pos_cat_and_lex_in_unary(the_input, hmarkov=2, left=False):
+    if left:
+        markov_input = the_input[:2]
+    else:
+        markov_input = the_input[-hmarkov:]
+
+    if len(markov_input) > 1:
+        return tuple(map(lambda x: extract_feat(x, features=["pos", "category"]), markov_input))
+    else:
+        return tuple(map(extract_feat, markov_input))
+
+
 def build_nont_splits_dict(grammar
                            , morph_log
                            , nonterminals
