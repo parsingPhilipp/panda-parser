@@ -1,9 +1,9 @@
 from __future__ import print_function
 from corpora.tiger_parse import sentence_names_to_hybridtrees
 from corpora.negra_parse import hybridtrees_to_sentence_names
-from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals
+from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals, TerminalLabeling
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
-from constituent.induction import fringe_extract_lcfrs
+from constituent.induction import fringe_extract_lcfrs, token_to_features
 from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from constituent.dummy_tree import dummy_constituent_tree
@@ -333,6 +333,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             la = build_PyLatentAnnotation(nonterminal_splits, rootWeights, ruleWeights, self.organizer.grammarInfo,
                                           self.organizer.storageManager)
             la.add_random_noise(self.organizer.grammarInfo, seed=self.organizer.seed)
+            self.split_id = split_id
             return la
         else:
             return super(ConstituentExperiment, self).create_initial_la()
@@ -340,25 +341,124 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
     def do_em_training(self):
         super(ConstituentExperiment, self).do_em_training()
         if self.induction_settings.feature_la:
-            print("Merging feature splits with SCC merger and threshold", str(self.organizer.merge_threshold) + ".")
-            mergedLa = self.organizer.emTrainer.merge(self.organizer.latent_annotations[0])
+            self.patch_initial_grammar()
+
+    def patch_initial_grammar(self):
+        print("Merging feature splits with SCC merger and threshold", str(self.organizer.merge_threshold) + ".")
+        mergedLa = self.organizer.emTrainer.merge(self.organizer.latent_annotations[0])
+        if False:
             self.organizer.latent_annotations[0] = mergedLa
             self.organizer.merge_sources[0] = self.organizer.emTrainer.get_current_merge_sources()
             print(self.organizer.merge_sources[0])
+
+        else:
+            splits, _, _ = mergedLa.serialize()
+            merge_sources = self.organizer.emTrainer.get_current_merge_sources()
+
+            lookup = self.print_funky_listing(merge_sources)
+
+            fine_grammar_merge_sources = []
+            for nont_idx in range(0, self.organizer.nonterminal_map.get_counter()):
+                nont = self.organizer.nonterminal_map.index_object(nont_idx)
+                if any([rule.rhs() == [] for rule in self.base_grammar.lhs_nont_to_rules(nont)]):
+                    fine_grammar_merge_sources.append([[split] for split in range(0, splits[nont_idx])])
+                else:
+                    fine_grammar_merge_sources.append([[split for split in range(0, splits[nont_idx])]])
+
+            print("Projecting to fine grammar LA")
+            fine_grammar_LA = mergedLa.project_annotation_by_merging(self.organizer.grammarInfo, fine_grammar_merge_sources)
+
+            def arg_transform(arg, la):
+                arg_mod = []
+                for elem in arg:
+                    if isinstance(elem, str):
+                        arg_mod.append(elem + "-group-" + str(la[0]))
+                    else:
+                        arg_mod.append(elem)
+                return arg_mod
+
+            print("Constructing fine grammar")
+            grammar_fine = fine_grammar_LA.construct_fine_grammar(self.base_grammar, self.organizer.grammarInfo, arg_transform)
+            print(grammar_fine)
+
+            self.patch_terminal_labeling(lookup)
+            raise Exception("No text")
+            #TODO: recompute reducts, rebuild grammarInfo, various infrastructur things
+
+    def print_funky_listing(self, merge_sources):
+        lookup = {}
+
+        for nont_idx in range(0, self.organizer.nonterminal_map.get_counter()):
+            nont = self.organizer.nonterminal_map.index_object(nont_idx)
+            term = None
+            if any([rule.rhs() == [] for rule in self.base_grammar.lhs_nont_to_rules(nont)]):
+                print(nont)
+                for rule in self.base_grammar.lhs_nont_to_rules(nont):
+                    print(rule)
+                    assert len(rule.lhs().args()) == 1 and len(rule.lhs().args()[0]) == 1
+                    rule_term = rule.lhs().args()[0][0]
+                    assert rule_term is not None
+                    if term is None:
+                        term = rule_term
+                    else:
+                        if term != rule_term:
+                            print(term, rule_term)
+                        assert term == rule_term
+                    if rule.rhs() != []:
+                        raise Exception("this is bad!")
+                lookup[nont] = {}
+                print(merge_sources[nont_idx])
+                print(self.split_id[nont])
+                for group, sources in enumerate(merge_sources[nont_idx]):
+                    print("group", group)
+                    for source in sources:
+                        for key in self.split_id[nont]:
+                            if self.split_id[nont][key] - 1 == source:
+                                print("\t", key)
+                                lookup[nont][frozenset(key[0])] = group
+                                continue
+                print("lookup")
+                for key in lookup[nont]:
+                    print(key, lookup[nont][key])
+        return lookup
+
+    def patch_terminal_labeling(self, lookup):
+        this_class = self
+
+        class PatchedTerminalLabeling(TerminalLabeling):
+            def __init__(self, other, lookup):
+                self.other = other
+                self.lookup = lookup
+
+            def token_label(self, token):
+                other_label = self.other.token_label(token)
+                feat_list = token_to_features(token)
+                features = this_class.induction_settings.feat_function([feat_list])
+                feature_set = frozenset(features[0])
+                group_idx = self.lookup.get(feature_set, 0)
+
+                return other_label + "-group-" + group_idx
+
+        self.terminal_labeling = PatchedTerminalLabeling(self.induction_settings.terminal_labeling, lookup)
 
 
 def main3():
     induction_settings = InductionSettings()
     induction_settings.recursive_partitioning = recursive_partitioning
     induction_settings.terminal_labeling = terminal_labeling
-    induction_settings.normalize = True
-    induction_settings.disconnect_punctuation = False
+    induction_settings.normalize = False
+    induction_settings.disconnect_punctuation = True
+    induction_settings.naming_scheme = 'child'
+    induction_settings.isolate_pos = True
     induction_settings.feature_la = True
     experiment = ConstituentExperiment(induction_settings)
+    experiment.organizer.seed = 2
     experiment.organizer.em_epochs = em_epochs
+    experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.max_sm_cycles = sm_cycles
     experiment.organizer.refresh_score_validator = True
-    experiment.organizer.disable_split_merge = True
+    experiment.organizer.disable_split_merge = False
+    experiment.organizer.disable_em = False
     experiment.organizer.merge_percentage = 60.0
     experiment.organizer.merge_type = "PERCENT"
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
