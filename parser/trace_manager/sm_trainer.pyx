@@ -83,6 +83,8 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
 
 cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
     cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo)
+    cdef LatentAnnotation project_annotation_by_merging[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo,
+                                                                     const vector[vector[vector[size_t]]] & merge_sources)
 
 cdef extern from "util.h":
     cdef cppclass Double
@@ -363,6 +365,15 @@ cdef class PyLatentAnnotation:
             rule.set_weight(weight)
 
 
+    cpdef PyLatentAnnotation project_annotation_by_merging(self, PyGrammarInfo grammarInfo,
+                                                      vector[vector[vector[size_t]]] merge_sources):
+        cdef shared_ptr[LatentAnnotation] la_projected\
+            = make_shared[LatentAnnotation](project_annotation_by_merging[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo), merge_sources))
+        cdef PyLatentAnnotation pyLaProjected = PyLatentAnnotation()
+        pyLaProjected.latentAnnotation = la_projected
+        return pyLaProjected
+
+
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
         for i in range(0, len(grammar.rule_index())):
@@ -394,6 +405,48 @@ cdef class PyLatentAnnotation:
                     nonts = [rhs_nont + "[" + str(la[1 + j]) + "]" for j, rhs_nont in enumerate(rule.rhs())]
                     new_grammar.add_rule(lhs_la, nonts, weight, rule.dcp())
 
+        return new_grammar
+
+    def construct_fine_grammar(self, grammar, PyGrammarInfo grammarInfo, arg_transform):
+        """
+        :param grammar:
+        :type grammar: gl.LCFRS
+        :type grammarInfo: PyGrammarInfo
+        :return:
+        :rtype:
+        """
+        def rename(nont, split_id, nont_id):
+            if deref(self.latentAnnotation).nonterminalSplits[nont_id] == 1:
+                return nont
+            else:
+                return str(nont) + "[" + str(split_id) + str("]")
+
+        new_grammar = gl.LCFRS(grammar.start())
+
+        for i in range(0, len(grammar.rule_index())):
+            rule = grammar.rule_index(i)
+            nonts = [rule.lhs().nont()] + rule.rhs()
+            nont_ids = deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]
+            rule_dimensions = []
+
+            for nont_id, nont in zip(nont_ids, nonts):
+                rule_dimensions.append(deref(self.latentAnnotation).nonterminalSplits[nont_id])
+
+            rule_dimensions_product = itertools.product(*[range(dim) for dim in rule_dimensions])
+
+            lhs_dims = deref(self.latentAnnotation).nonterminalSplits[
+                deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+            ]
+
+            for la in rule_dimensions_product:
+                index = list(la)
+                weight = deref(self.latentAnnotation).get_weight(i, index)
+                if weight > 0.0:
+                    lhs_la = gl.LCFRS_lhs(rename(rule.lhs().nont(), la[0], nont_ids[0]))
+                    for arg in rule.lhs().args():
+                        lhs_la.add_arg(arg_transform(arg, la, ))
+                    nonts = [rename(rhs_nont, la[1 + j], nont_ids[1 + j]) for j, rhs_nont in enumerate(rule.rhs())]
+                    new_grammar.add_rule(lhs_la, nonts, weight, rule.dcp())
         return new_grammar
 
     cpdef tuple serialize(self):
