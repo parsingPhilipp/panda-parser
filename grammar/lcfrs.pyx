@@ -413,7 +413,7 @@ class LCFRS:
     # Get all nonterminals in grammar (LHS of rules).
     # return: list of LCFRS_rule
     def nonts(self):
-        return self.__nont_to_fanout.keys()
+        return self.__nont_to_fanout  # .keys()
 
     # Get total size of grammar.
     # return: int
