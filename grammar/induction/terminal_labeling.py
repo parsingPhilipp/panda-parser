@@ -35,6 +35,21 @@ class TerminalLabeling:
 #             assert False
 
 
+class FeatureTerminals(TerminalLabeling):
+    def __init__(self, token_to_features, feature_filter):
+        self.token_to_features = token_to_features
+        self.feature_filter = feature_filter
+
+    def token_label(self, token):
+        isleaf = token.type() == "CONSTITUENT-TERMINAL" or token.type()
+        feat_list = self.token_to_features(token, isleaf)
+        features = self.feature_filter([feat_list])
+        return str(features)
+
+    def __str__(self):
+        return "feature-terminals"
+
+
 class FormTerminals(TerminalLabeling):
     def token_label(self, token):
         return token.form()
