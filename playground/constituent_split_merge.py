@@ -312,7 +312,10 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
     def compute_reducts(self, resource):
         training_corpus = self.read_corpus(resource)
-        return compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling)
+        parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
+        nonterminal_map = self.organizer.nonterminal_map
+        return compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling,
+                               parser=parser, nont_map=nonterminal_map)
 
     def create_initial_la(self):
         if self.induction_settings.feature_la:

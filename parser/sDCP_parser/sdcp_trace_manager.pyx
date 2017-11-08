@@ -23,7 +23,7 @@ cdef extern from "util.h":
 cdef class PySDCPTraceManager(PyTraceManager):
     cdef PySDCPParser parser
 
-    def __init__(self, grammar, term_labelling, lcfrs_parsing=True, debug=False):
+    def __init__(self, grammar, term_labelling, PySDCPParser parser=None, Enumerator nont_map=None, lcfrs_parsing=True, debug=False):
         """
         :param grammar:
         :type grammar: gl.LCFRS
@@ -34,15 +34,19 @@ cdef class PySDCPTraceManager(PyTraceManager):
         """
         output_helper("initializing PyTraceManager")
 
-        cdef Enumerator nonterminal_map = Enumerator()
+        cdef Enumerator nonterminal_map = nont_map if nont_map is not None else Enumerator()
         cdef Enumerator terminal_map = Enumerator()
-        nonterminal_encoder = (lambda s: nonterminal_map.object_index(s)) if ENCODE_NONTERMINALS else lambda s: str(s)
-        terminal_encoder = (lambda s: terminal_map.object_index(s)) if ENCODE_TERMINALS else lambda s: str(s)
 
-        self.parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing, debug)
-        self.parser.set_sdcp(grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_parsing))
-        self.parser.set_terminal_map(terminal_map)
-        self.parser.set_nonterminal_map(nonterminal_map)
+        if parser is None:
+            nonterminal_encoder = (lambda s: nonterminal_map.object_index(s)) if ENCODE_NONTERMINALS else lambda s: str(s)
+            terminal_encoder = (lambda s: terminal_map.object_index(s)) if ENCODE_TERMINALS else lambda s: str(s)
+
+            self.parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing, debug)
+            self.parser.set_sdcp(grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_parsing))
+            self.parser.set_terminal_map(terminal_map)
+            self.parser.set_nonterminal_map(nonterminal_map)
+        else:
+            self.parser = parser
 
         cdef vector[NONTERMINAL] node_labels = range(0, self.parser.nonterminal_map.counter)
         cdef vector[size_t] edge_labels = range(0, len(grammar.rule_index()))
@@ -59,7 +63,7 @@ cdef class PySDCPTraceManager(PyTraceManager):
             self.parser.set_input(tree)
             self.parser.do_parse()
             if self.parser.recognized():
-                add_trace_to_manager[NONTERMINAL,TERMINAL,int,size_t](self.parser.parser[0],self.trace_manager)
+                add_trace_to_manager[NONTERMINAL,TERMINAL,int,size_t](self.parser.parser[0], self.trace_manager)
                 # self.parser.print_trace()
 
             if i % 100 == 0:
@@ -68,9 +72,12 @@ cdef class PySDCPTraceManager(PyTraceManager):
     cpdef Enumerator get_nonterminal_map(self):
         return self.parser.nonterminal_map
 
-def compute_reducts(grammar, corpus, term_labelling, debug=False):
+    cpdef PySDCPParser get_parser(self):
+        return self.parser
+
+def compute_reducts(grammar, corpus, term_labelling, PySDCPParser parser=None, Enumerator nont_map=None, debug=False):
     output_helper("creating trace")
-    trace = PySDCPTraceManager(grammar, term_labelling, debug=debug)
+    trace = PySDCPTraceManager(grammar, term_labelling, parser=parser, nont_map=nont_map, debug=debug)
     output_helper("computing reducts")
     trace.compute_reducts(corpus)
     return trace
