@@ -14,6 +14,7 @@ cdef extern from "Trainer/LatentAnnotation.h" namespace "Trainer":
         vector[vector[double]] get_rule_weights()
         vector[double] get_root_weights()
         void add_random_noise(shared_ptr[GrammarInfo2], double randPercent, size_t seed, double bias)
+        void make_proper(shared_ptr[GrammarInfo2] grammarInfo)
 
 cdef class PyLatentAnnotation:
     cdef shared_ptr[LatentAnnotation] latentAnnotation
@@ -22,3 +23,4 @@ cdef class PyLatentAnnotation:
     cpdef tuple serialize(self)
     cpdef PyLatentAnnotation project_annotation_by_merging(self, PyGrammarInfo grammarInfo,
                                                       vector[vector[vector[size_t]]] merge_sources)
+    cpdef void make_proper(self, PyGrammarInfo)

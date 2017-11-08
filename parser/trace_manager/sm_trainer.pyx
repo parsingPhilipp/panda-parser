@@ -308,7 +308,8 @@ cdef class PyLatentAnnotation:
                     output_helper(str(nont) + " " + str(split_total_probs))
                     raise Exception(nont, split_total_probs)
 
-            la_proj = make_shared[LatentAnnotation](project_annotation[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo)))
+            la_proj = make_shared[LatentAnnotation](project_annotation[NONTERMINAL](deref(self.latentAnnotation),
+                                                                                    deref(grammarInfo.grammarInfo)))
 
             # guarantee properness:
             for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
@@ -371,6 +372,46 @@ cdef class PyLatentAnnotation:
             = make_shared[LatentAnnotation](project_annotation_by_merging[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo), merge_sources))
         cdef PyLatentAnnotation pyLaProjected = PyLatentAnnotation()
         pyLaProjected.latentAnnotation = la_projected
+
+
+        # guarantee properness:
+        for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
+            group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
+            split_total_probs = [0.0] * (deref(la_projected).nonterminalSplits[nont])
+            for i in group:
+                rule_dimensions = [deref(la_projected).nonterminalSplits[_nont]
+                                   for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+                rule_dimensions_product = itertools.product(*[range(dim) for dim in rule_dimensions])
+
+                lhs_dims = deref(la_projected).nonterminalSplits[
+                    deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+                ]
+
+                for la in rule_dimensions_product:
+                    index = list(la)
+                    weight = deref(la_projected).get_weight(i, index)
+                    if not weight >= 0.0 and weight <= 1.0001:
+                        output_helper(str(weight))
+                        assert weight >= 0.0 and weight <= 1.0001
+                    split_total_probs[la[0]] += weight
+            if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
+                output_helper(str(split_total_probs))
+                if not all([ abs(x - 1.0) <= 0.1 for x in split_total_probs]):
+                    for i in group:
+                        rule_dimensions = [deref(la_projected).nonterminalSplits[_nont]
+                                       for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+                        rule_dimensions_product = itertools.product(*[range(dim) for dim in rule_dimensions])
+
+                        lhs_dims = deref(la_projected).nonterminalSplits[
+                            deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+                        ]
+
+                        for la in rule_dimensions_product:
+                            index = list(la)
+                            weight = deref(la_projected).get_weight(i, index)
+                            output_helper(str(i) + " " + str(index) + " " + str(weight))
+                    raise
+
         return pyLaProjected
 
 
@@ -454,6 +495,10 @@ cdef class PyLatentAnnotation:
         cdef vector[double] rootWeights = deref(self.latentAnnotation).get_root_weights()
         cdef vector[vector[double]] ruleWeights = deref(self.latentAnnotation).get_rule_weights()
         return splits, rootWeights, ruleWeights
+
+    cpdef void make_proper(self, PyGrammarInfo grammarInfo):
+        deref(self.latentAnnotation).make_proper(grammarInfo.grammarInfo)
+
 
 cpdef PyLatentAnnotation build_PyLatentAnnotation(vector[size_t] nonterminalSplits
                                                   , vector[double] rootWeights
