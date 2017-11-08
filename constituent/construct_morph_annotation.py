@@ -6,13 +6,13 @@ from operator import mul
 from functools import reduce
 
 
-def extract_feat(the_input, features=["number", "person", "tense", "mood", "case", "degree", "category", "pos", "function"],
+def extract_feat(the_input, features=["number", "person", "tense", "mood", "case", "degree", "category", "pos", "function", "gender"],
                  empties=["", "--"]):
     feats = []
     for feat in [feat for feat in the_input if feat[0] in features and feat[1] not in empties]:
         feats.append(feat)
     if len(feats) > 0:
-        sorted(feats, key=lambda x: x[0])
+        feats = sorted(feats, key=lambda x: x[0])
     return tuple(feats)
 
 
@@ -25,7 +25,7 @@ def pos_cat_feats(the_input, hmarkov=2, left=False):
     return tuple(map(lambda x: extract_feat(x, features=["pos", "category"]), markov_input))
 
 
-def pos_cat_and_lex_in_unary(the_input, hmarkov=2, left=False):
+def pos_cat_and_lex_in_unary(the_input, hmarkov=2, left=False, no_function=False):
     if left:
         markov_input = the_input[:2]
     else:
@@ -34,7 +34,10 @@ def pos_cat_and_lex_in_unary(the_input, hmarkov=2, left=False):
     if len(markov_input) > 1:
         return tuple(map(lambda x: extract_feat(x, features=["pos", "category"]), markov_input))
     else:
-        return tuple(map(extract_feat, markov_input))
+        if no_function:
+            return tuple(map(lambda x: extract_feat(x, features=["number", "person", "tense", "mood", "case", "degree", "category", "pos", "gender"]), markov_input))
+        else:
+            return tuple(map(extract_feat, markov_input))
 
 
 def build_nont_splits_dict(grammar
