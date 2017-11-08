@@ -1,7 +1,7 @@
 from __future__ import print_function
 from corpora.tiger_parse import sentence_names_to_hybridtrees
 from corpora.negra_parse import hybridtrees_to_sentence_names
-from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals, TerminalLabeling
+from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals, TerminalLabeling, FeatureTerminals
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs, token_to_features
 from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary
@@ -24,6 +24,7 @@ from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
 import tempfile
 import sys
 from functools32 import lru_cache
+from ast import literal_eval
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
@@ -58,6 +59,7 @@ test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.Ge
 #     terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
 terminal_labeling = PosTerminals()
 fanout = 1
+terminal_labeling = FeatureTerminals(token_to_features, feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + '-left-to-right')[0]
 
 max_length = 2000
@@ -380,13 +382,46 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                         arg_mod.append(elem)
                 return arg_mod
 
+            def smooth_transform(arg):
+                arg_mod = []
+                for elem in arg:
+                    if isinstance(elem, str):
+                        term = literal_eval(elem)
+                        pos = dict(term[0]).get("pos", "UNK")
+                        # print(term, pos)
+                        arg_mod.append(pos)
+                    else:
+                        arg_mod.append(elem)
+                return arg_mod
+
+            def id_arg(arg, la):
+                return arg
+
             print("Constructing fine grammar")
-            grammar_fine = fine_grammar_LA.construct_fine_grammar(self.base_grammar, self.organizer.grammarInfo, arg_transform)
+            grammar_fine, grammar_fine_LA_full, grammar_fine_info, grammar_fine_nonterminal_map \
+                = fine_grammar_LA.construct_fine_grammar(self.base_grammar, self.organizer.grammarInfo, id_arg,
+                                                                  mergedLa, smooth_transform=smooth_transform)
+            grammar_fine.make_proper()
+            grammar_fine_LA_full.make_proper(grammar_fine_info)
             print(grammar_fine)
 
             self.patch_terminal_labeling(lookup)
-            raise Exception("No text")
-            #TODO: recompute reducts, rebuild grammarInfo, various infrastructur things
+            self.base_grammar_backup = self.base_grammar
+            self.base_grammar = grammar_fine
+
+            self.organizer.grammarInfo = grammar_fine_info
+            self.organizer.last_sm_cycle = 0
+            self.organizer.latent_annotations[0] = grammar_fine_LA_full
+            self.organizer.nonterminal_map = grammar_fine_nonterminal_map
+            self.organizer.training_reducts = None
+
+            print("Recomputing reducts")
+            self.organizer.training_reducts = self.compute_reducts(self.resources[TRAINING])
+            # self.initialize_training_environment()
+            # self.organizer.last_sm_cycle = 0
+            # self.organizer.latent_annotations[0] = super(ConstituentExperiment, self).create_initial_la()
+
+            # raise Exception("No text")
 
     def print_funky_listing(self, merge_sources):
         lookup = {}
@@ -399,14 +434,14 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                 for rule in self.base_grammar.lhs_nont_to_rules(nont):
                     print(rule)
                     assert len(rule.lhs().args()) == 1 and len(rule.lhs().args()[0]) == 1
-                    rule_term = rule.lhs().args()[0][0]
-                    assert rule_term is not None
-                    if term is None:
-                        term = rule_term
-                    else:
-                        if term != rule_term:
-                            print(term, rule_term)
-                        assert term == rule_term
+                    # rule_term = rule.lhs().args()[0][0]
+                    # assert rule_term is not None
+                    # if term is None:
+                    #     term = rule_term
+                    # else:
+                    #     if term != rule_term:
+                    #         print(term, rule_term)
+                    #     assert term == rule_term
                     if rule.rhs() != []:
                         raise Exception("this is bad!")
                 lookup[nont] = {}
@@ -440,9 +475,30 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                 feature_set = frozenset(features[0])
                 group_idx = self.lookup.get(feature_set, 0)
 
-                return other_label + "-group-" + group_idx
+                return other_label + "-group-" + str(group_idx)
 
-        self.terminal_labeling = PatchedTerminalLabeling(self.induction_settings.terminal_labeling, lookup)
+        class PatchedTerminalLabeling2(TerminalLabeling):
+            def __init__(self, other, lookup):
+                self.other = other
+                self.lookup = lookup
+
+            def token_label(self, token):
+                other_label = self.other.token_label(token)
+                feat_list = token_to_features(token)
+                features = this_class.induction_settings.feat_function([feat_list])
+                feature_set = frozenset(features[0])
+                if token.pos() + "/1" not in self.lookup:
+                    return token.pos()
+                if feature_set in self.lookup[token.pos() + "/1"]:
+                    return other_label
+                else:
+                    return token.pos()
+
+        self.terminal_labeling = PatchedTerminalLabeling2(self.induction_settings.terminal_labeling, lookup)
+
+
+
+
 
 
 def main3():
