@@ -26,6 +26,7 @@ class SplitMergeOrganizer:
         self.nonterminal_map = None
 
         # settings and training ingredients
+        self.disable_em = False
         self.disable_split_merge = False
         self.training_reducts = None
         self.em_epochs = 20
