@@ -404,7 +404,16 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             grammar_fine.make_proper()
             grammar_fine_LA_full.make_proper(grammar_fine_info)
             print(grammar_fine)
+            nonterminal_splits, rootWeights, ruleWeights = grammar_fine_LA_full.serialize()
 
+            for rule in grammar_fine.rules():
+                print(rule, ruleWeights[rule.get_idx()])
+            print("number of nonterminals:", len(nonterminal_splits))
+            print("total splits", sum(nonterminal_splits))
+            print("number of rules", len(ruleWeights))
+            print("total split rules", sum(map(len, ruleWeights)))
+            print("number of split rules with 0 prob.",
+                  sum(map(sum, map(lambda xs: map(lambda x: 1 if x == 0.0 else 0, xs), ruleWeights))))
             self.patch_terminal_labeling(lookup)
             self.base_grammar_backup = self.base_grammar
             self.base_grammar = grammar_fine
