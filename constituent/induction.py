@@ -103,7 +103,44 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
     Get LCFRS for tree.
     """
     gram = LCFRS(start=start)
-    (first, _, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging)
+    first = None
+    if len(tree.id_yield()) == 1 and isolate_pos:
+        idx = tree.id_yield()[0]
+        if tree.root[0] != idx:
+            c_nont, c_spans, c_id_seq, c_nont_feat \
+                = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging,
+                                             yield_one_check=False)
+
+            fringe = fringes[0]
+            spans = join_spans(fringe)
+            args = []
+            term_to_pos = {}  # maps input position to position in LCFRS rule
+            for span in spans:
+                args += [span_to_arg(span, [c_spans], tree, term_to_pos, term_labeling)]
+
+            id_seq = make_id_seq(tree, tree.root[0], fringe)
+
+            dcp_rules = []
+            for (i, seq) in enumerate(id_seq):
+                dcp_rhs = make_fringe_terms(tree, seq, [c_id_seq], term_to_pos, term_labeling)
+                dcp_lhs = DCP_var(-1, i)
+                dcp_rule = DCP_rule(dcp_lhs, dcp_rhs)
+                dcp_rules += [dcp_rule]
+
+            nont = id_nont(id_seq, tree, naming) + '/' + str(len(spans))
+            nont_feat = feats(id_seq, tree)
+            lhs = LCFRS_lhs(nont)
+            for arg in args:
+                lhs.add_arg(arg)
+            rule = gram.add_rule(lhs, [c_nont], dcp=dcp_rules)
+            if feature_logging is not None:
+                feature_logging[(nont, nont_feat)] += 1
+                feature_logging[(rule.get_idx(), nont_feat, tuple([c_nont_feat]))] += 1
+
+            first = nont
+
+    if first is None:
+        (first, _, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging)
     lhs = LCFRS_lhs(start)
     lhs.add_arg([LCFRS_var(0, 0)])
     dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
@@ -111,7 +148,8 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
     return gram
 
 
-def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging):
+def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging,
+                               yield_one_check=True):
     """
     :type tree: ConstituentTree
     :param fringes: recursive partitioning
@@ -139,7 +177,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isola
     for span in spans:
         args += [span_to_arg(span, child_spans, tree, term_to_pos, term_labeling)]
     # root[0] is legacy for single-rooted constituent trees
-    id_seq = make_id_seq_single_pos(tree, tree.root[0], fringe) if isolate_pos \
+    id_seq = make_id_seq_single_pos(tree, tree.root[0], fringe, yield_one_check) if isolate_pos \
         else make_id_seq(tree, tree.root[0], fringe)
     dcp_rules = []
     for (i, seq) in enumerate(id_seq):
@@ -275,11 +313,11 @@ def make_id_seq(tree, id, fringe):
         return seqs
 
 
-def make_id_seq_single_pos(tree, id, fringe):
+def make_id_seq_single_pos(tree, id, fringe, yield_one_check=True):
     """
     :type tree: ConstituentTree
     """
-    if len(tree.id_yield()) == 1:
+    if yield_one_check and len(tree.id_yield()) == 1:
         assert set(tree.fringe(id)) - fringe == set()
         return [[id]]
     else:
