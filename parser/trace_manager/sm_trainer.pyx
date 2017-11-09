@@ -566,6 +566,8 @@ cdef class PyLatentAnnotation:
     cpdef void make_proper(self, PyGrammarInfo grammarInfo):
         deref(self.latentAnnotation).make_proper(grammarInfo.grammarInfo)
 
+    cpdef bint is_proper(self, PyGrammarInfo grammarInfo):
+        return deref(self.latentAnnotation).is_proper(grammarInfo.grammarInfo)
 
 cpdef PyLatentAnnotation build_PyLatentAnnotation(vector[size_t] nonterminalSplits
                                                   , vector[double] rootWeights
