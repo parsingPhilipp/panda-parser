@@ -541,7 +541,7 @@ cdef class PyLatentAnnotation:
                 nonterminal_splits.push_back(1)
 
             else:
-                nonterminal_splits.push_back(deref(self.latentAnnotation).nonterminalSplits[old_idx])
+                nonterminal_splits.push_back(deref(la_full.latentAnnotation).nonterminalSplits[old_idx])
 
         cdef vector[vector[double]] rule_weights = []
 
