@@ -170,6 +170,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
         self.discodop_scorer = DiscoDopScorer()
         self.max_score = 100.0
+        self.rule_smooth_list = None
         if self.induction_settings.feature_la:
             self.feature_log = defaultdict(lambda: 0)
 
@@ -348,6 +349,10 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         if self.induction_settings.feature_la:
             self.patch_initial_grammar()
 
+    def custom_sm_options(self, builder):
+        if self.rule_smooth_list is not None:
+            builder.set_count_smoothing(self.rule_smooth_list, 0.5)
+
     def patch_initial_grammar(self):
         print("Merging feature splits with SCC merger and threshold", str(self.organizer.merge_threshold) + ".")
         mergedLa = self.organizer.emTrainer.merge(self.organizer.latent_annotations[0])
@@ -398,9 +403,12 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                 return arg
 
             print("Constructing fine grammar")
-            grammar_fine, grammar_fine_LA_full, grammar_fine_info, grammar_fine_nonterminal_map \
+            grammar_fine, grammar_fine_LA_full, grammar_fine_info, grammar_fine_nonterminal_map, nont_translation, smooth_rules \
                 = fine_grammar_LA.construct_fine_grammar(self.base_grammar, self.organizer.grammarInfo, id_arg,
-                                                                  mergedLa, smooth_transform=smooth_transform)
+                                                         mergedLa, smooth_transform=smooth_transform)
+
+            self.rule_smooth_list = smooth_rules
+
             grammar_fine.make_proper()
             grammar_fine_LA_full.make_proper(grammar_fine_info)
             print(grammar_fine)

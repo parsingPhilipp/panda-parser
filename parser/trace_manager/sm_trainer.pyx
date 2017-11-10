@@ -485,6 +485,7 @@ cdef class PyLatentAnnotation:
         new_grammar = gl.LCFRS(grammar.start())
 
         cdef vector[double] root_weights = deref(la_full.latentAnnotation).get_root_weights()
+        cdef vector[size_t] smooth_rules = []
         latent_rule_weights = defaultdict(lambda: defaultdict(lambda: 0.0))
 
         for i in range(0, len(grammar.rule_index())):
@@ -537,6 +538,7 @@ cdef class PyLatentAnnotation:
                         for arg in rule.lhs().args():
                             lhs_smooth.add_arg(smooth_transform(arg))
                         new_rule = new_grammar.add_rule(lhs_smooth, [], smooth_weight, rule.dcp())
+                        smooth_rules.push_back(new_rule.get_idx())
 
                         for laf in itertools.product(*product_range):
                             laf_masked = tuple([0 if mb else laf[mi] for mi, mb in enumerate(mask)])
@@ -565,7 +567,7 @@ cdef class PyLatentAnnotation:
         cdef PyStorageManager storage_manager = PyStorageManager()
         la_new_grammar = build_PyLatentAnnotation(nonterminal_splits, root_weights, rule_weights, new_grammar_info,
                                                   storage_manager)
-        return new_grammar, la_new_grammar, new_grammar_info, nonterminals
+        return new_grammar, la_new_grammar, new_grammar_info, nonterminals, nont_translation, smooth_rules
 
     cpdef tuple serialize(self):
         cdef vector[size_t] splits = deref(self.latentAnnotation).nonterminalSplits
