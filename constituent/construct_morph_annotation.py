@@ -26,18 +26,23 @@ def pos_cat_feats(the_input, hmarkov=2, left=False):
 
 
 def pos_cat_and_lex_in_unary(the_input, hmarkov=2, left=False, no_function=False):
-    if left:
-        markov_input = the_input[:2]
-    else:
-        markov_input = the_input[-hmarkov:]
-
-    if len(markov_input) > 1:
+    if len(the_input) > 1:
+        if hmarkov == 0:
+            markov_input = []
+        else:
+            if left:
+                markov_input = the_input[:hmarkov]
+            else:
+                markov_input = the_input[-hmarkov:]
         return tuple(map(lambda x: extract_feat(x, features=["pos", "category"]), markov_input))
     else:
         if no_function:
-            return tuple(map(lambda x: extract_feat(x, features=["number", "person", "tense", "mood", "case", "degree", "category", "pos", "gender"]), markov_input))
+            return tuple(map(lambda x: extract_feat(x, features=["number", "person", "tense", "mood", "case", "degree", "category", "pos", "gender"]), the_input))
         else:
-            return tuple(map(extract_feat, markov_input))
+            return tuple(map(extract_feat, the_input))
+
+
+
 
 
 def build_nont_splits_dict(grammar
@@ -66,7 +71,7 @@ def build_nont_splits_dict(grammar
                 feats = feat_function(entry[1][0])
                 if debug:
                     print(feats)
-                if len(feats) > 0:
+                if True or len(feats) > 0:
                     if feats not in split_id[entry[0]]:
                         nont_splits[entry[0]] += 1
                         feat_id = nont_splits[entry[0]]
