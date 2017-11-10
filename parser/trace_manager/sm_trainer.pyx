@@ -62,6 +62,8 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_simple_maximizer()
         SplitMergeTrainerBuilder& set_simple_maximizer(unsigned_int)
         SplitMergeTrainerBuilder& set_em_epochs(unsigned_int)
+        SplitMergeTrainerBuilder& set_no_count_modification()
+        SplitMergeTrainerBuilder& set_count_smoothing(vector[size_t] ruleIDs, double smoothValue)
         SplitMergeTrainerBuilder& set_simple_validator(
                 TraceManagerPtr[Nonterminal, TraceID] discriminativeTraceManager
                 , unsigned_int maxDrops)
@@ -206,6 +208,14 @@ cdef class PySplitMergeTrainerBuilder:
 
     cpdef PySplitMergeTrainerBuilder set_em_epochs(self, size_t epochs):
         deref(self.splitMergeTrainerBuilder).set_em_epochs(epochs)
+        return self
+
+    cpdef PySplitMergeTrainerBuilder set_no_count_modification(self):
+        deref(self.splitMergeTrainerBuilder).set_no_count_modification()
+        return self
+
+    cpdef PySplitMergeTrainerBuilder set_count_smoothing(self, vector[size_t] ruleIDs, double smoothValue):
+        deref(self.splitMergeTrainerBuilder).set_count_smoothing(ruleIDs, smoothValue)
         return self
 
     cpdef PySplitMergeTrainerBuilder set_simple_validator(
