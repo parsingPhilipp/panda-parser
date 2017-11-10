@@ -58,16 +58,22 @@ cdef class PySDCPTraceManager(PyTraceManager):
 
     def compute_reducts(self, corpus):
         start_time = time.time()
+        cdef int successful = 0
+        cdef int fails = 0
         for i, tree in enumerate(corpus):
             self.parser.clear()
             self.parser.set_input(tree)
             self.parser.do_parse()
             if self.parser.recognized():
                 add_trace_to_manager[NONTERMINAL,TERMINAL,int,size_t](self.parser.parser[0], self.trace_manager)
+                successful += 1
                 # self.parser.print_trace()
+            else:
+                fails += 1
 
-            if i % 100 == 0:
-                output_helper(str(i) + ' ' + str(time.time() - start_time))
+            if (i + 1) % 100 == 0:
+                output_helper(str(i + 1) + ' ' + str(time.time() - start_time))
+        output_helper("Computed reducts for " + str(successful) + " out of " + str(successful + fails))
 
     cpdef Enumerator get_nonterminal_map(self):
         return self.parser.nonterminal_map
