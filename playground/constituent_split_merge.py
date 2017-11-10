@@ -1,7 +1,7 @@
 from __future__ import print_function
 from corpora.tiger_parse import sentence_names_to_hybridtrees
 from corpora.negra_parse import hybridtrees_to_sentence_names
-from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals, TerminalLabeling, FeatureTerminals
+from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals, TerminalLabeling, FeatureTerminals, FrequencyBiasedTerminalLabeling
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs, token_to_features
 from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary
@@ -57,9 +57,19 @@ test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.Ge
 #     pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
 # else:
 #     terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
-terminal_labeling = PosTerminals()
 fanout = 1
-terminal_labeling = FeatureTerminals(token_to_features, feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
+
+# terminal_labeling = PosTerminals()
+
+# terminal_labeling = FeatureTerminals(token_to_features, feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
+
+fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
+fallback_terminal_labeling = PosTerminals()
+
+
+def terminal_labeling(corpus):
+    return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, 5.0)
+
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + '-left-to-right')[0]
 
 max_length = 2000
@@ -391,10 +401,16 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                 arg_mod = []
                 for elem in arg:
                     if isinstance(elem, str):
-                        term = literal_eval(elem)
-                        pos = dict(term[0]).get("pos", "UNK")
-                        # print(term, pos)
-                        arg_mod.append(pos)
+                        try:
+                            term = literal_eval(elem)
+                            if isinstance(term, tuple):
+                                pos = dict(term[0]).get("pos", "UNK")
+                                arg_mod.append(pos)
+                                # print(term, pos)
+                            else:
+                                arg_mod.append(elem)
+                        except ValueError:
+                            arg_mod.append(elem)
                     else:
                         arg_mod.append(elem)
                 return arg_mod
@@ -422,7 +438,6 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             print("total split rules", sum(map(len, ruleWeights)))
             print("number of split rules with 0 prob.",
                   sum(map(sum, map(lambda xs: map(lambda x: 1 if x == 0.0 else 0, xs), ruleWeights))))
-            self.patch_terminal_labeling(lookup)
             self.base_grammar_backup = self.base_grammar
             self.base_grammar = grammar_fine
 
@@ -521,7 +536,6 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 def main3():
     induction_settings = InductionSettings()
     induction_settings.recursive_partitioning = recursive_partitioning
-    induction_settings.terminal_labeling = terminal_labeling
     induction_settings.normalize = False
     induction_settings.disconnect_punctuation = True
     induction_settings.naming_scheme = 'child'
@@ -545,6 +559,8 @@ def main3():
     experiment.oracle_parsing = False
     experiment.k_best = k_best
     experiment.purge_rule_freq = None
+    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]))
+    experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.run_experiment()
 
 if __name__ == '__main__':
