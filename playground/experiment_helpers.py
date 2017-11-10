@@ -30,6 +30,7 @@ class SplitMergeOrganizer:
         self.disable_split_merge = False
         self.training_reducts = None
         self.em_epochs = 20
+        self.em_epochs_sm = 20
         self.max_sm_cycles = 2
         self.threads = 1
         self.seed = 0
@@ -412,7 +413,7 @@ class SplitMergeExperiment(Experiment):
     def prepare_split_merge_trainer(self):
         # prepare SM training
         builder = PySplitMergeTrainerBuilder(self.organizer.training_reducts, self.organizer.grammarInfo)
-        builder.set_em_epochs(self.organizer.em_epochs)
+        builder.set_em_epochs(self.organizer.em_epochs_sm)
         builder.set_split_randomization(1.0, self.organizer.seed + 1)
         builder.set_simple_expector(threads=self.organizer.threads)
         if self.organizer.validator_type == "SCORE":
@@ -435,7 +436,7 @@ class SplitMergeExperiment(Experiment):
 
         if self.organizer.validator_type in ["SCORE", "SIMPLE"]:
             self.organizer.splitMergeTrainer.setMaxDrops(self.organizer.validationDropIterations, mode="smoothing")
-        self.organizer.splitMergeTrainer.setEMepochs(self.organizer.em_epochs, mode="smoothing")
+        self.organizer.splitMergeTrainer.setEMepochs(self.organizer.em_epochs_sm, mode="smoothing")
 
     def custom_sm_options(self, builder):
         pass

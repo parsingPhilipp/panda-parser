@@ -35,7 +35,7 @@ if sys.version_info < (3,):
 grammar_path = '/tmp/constituent_grammar.pkl'
 reduct_path = '/tmp/constituent_grammar_reduct.pkl'
 terminal_labeling_path = '/tmp/constituent_labeling.pkl'
-train_limit = 5000  # 2000
+train_limit = 1000  # 2000
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 # train_limit = 40474
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
@@ -57,7 +57,6 @@ test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.Ge
 #     pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
 # else:
 #     terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
-fanout = 1
 
 # terminal_labeling = PosTerminals()
 
@@ -70,21 +69,23 @@ fallback_terminal_labeling = PosTerminals()
 def terminal_labeling(corpus):
     return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, 5.0)
 
+fanout = 2
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + '-left-to-right')[0]
 
-max_length = 2000
-em_epochs = 30
-seed = 0
+max_length = 5000
+em_epochs = 6
+em_epochs_sm = 20
+seed = 1
 merge_percentage = 50.0
-sm_cycles = 4
-threads = 10
-smoothing_factor = 0.05
-split_randomization = 5.0
+sm_cycles = 3
+threads = 1  # 0
+smoothing_factor = 0.01
+split_randomization = 2.0
 
 validationMethod = "F1"
 validationDropIterations = 6
 
-k_best = 200
+k_best = 500
 
 # parsing_method = "single-best-annotation"
 parsing_method = "filter-ctf"
@@ -103,7 +104,7 @@ class InductionSettings:
         self.disconnect_punctuation = True
         self.normalize = False
         self.feature_la = False
-        self.feat_function = pos_cat_and_lex_in_unary
+        self.feat_function = lambda x: pos_cat_and_lex_in_unary(x, hmarkov=1)
 
     def __str__(self):
         attributes = [("recursive partitioning", self.recursive_partitioning.__name__)
@@ -111,7 +112,8 @@ class InductionSettings:
                       , ("isolate POS", self.isolate_pos)
                       , ("naming scheme", self.naming_scheme)
                       , ("disconnect punctuation", self.disconnect_punctuation)
-                      , ("normalize corpus", self.normalize)]
+                      , ("normalize corpus", self.normalize)
+                      , ("feat_function", self.feat_function)]
         return '\n'.join([a[0] + ' : ' + str(a[1]) for a in attributes])
 
 
@@ -427,11 +429,11 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
             grammar_fine.make_proper()
             grammar_fine_LA_full.make_proper(grammar_fine_info)
-            print(grammar_fine)
+            print(grammar_fine_LA_full.is_proper(grammar_fine_info))
             nonterminal_splits, rootWeights, ruleWeights = grammar_fine_LA_full.serialize()
 
-            for rule in grammar_fine.rules():
-                print(rule, ruleWeights[rule.get_idx()])
+            # for rule in grammar_fine.rules():
+            #     print(rule, ruleWeights[rule.get_idx()])
             print("number of nonterminals:", len(nonterminal_splits))
             print("total splits", sum(nonterminal_splits))
             print("number of rules", len(ruleWeights))
@@ -442,9 +444,13 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             self.base_grammar = grammar_fine
 
             self.organizer.grammarInfo = grammar_fine_info
-            self.organizer.last_sm_cycle = 0
-            self.organizer.latent_annotations[0] = grammar_fine_LA_full
             self.organizer.nonterminal_map = grammar_fine_nonterminal_map
+
+            self.organizer.last_sm_cycle = 0
+            if True:
+                self.organizer.latent_annotations[0] = grammar_fine_LA_full
+            else:
+                self.organizer.latent_annotations[0] = super(ConstituentExperiment, self).create_initial_la()
             self.organizer.training_reducts = None
 
             print("Recomputing reducts")
@@ -477,8 +483,8 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                     if rule.rhs() != []:
                         raise Exception("this is bad!")
                 lookup[nont] = {}
-                print(merge_sources[nont_idx])
-                print(self.split_id[nont])
+                # print(merge_sources[nont_idx])
+                # print(self.split_id[nont])
                 for group, sources in enumerate(merge_sources[nont_idx]):
                     print("group", group)
                     for source in sources:
@@ -487,9 +493,9 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                                 print("\t", key)
                                 lookup[nont][frozenset(key[0])] = group
                                 continue
-                print("lookup")
-                for key in lookup[nont]:
-                    print(key, lookup[nont][key])
+                # print("lookup")
+                # for key in lookup[nont]:
+                #     print(key, lookup[nont][key])
         return lookup
 
     def patch_terminal_labeling(self, lookup):
@@ -544,6 +550,7 @@ def main3():
     experiment = ConstituentExperiment(induction_settings)
     experiment.organizer.seed = 2
     experiment.organizer.em_epochs = em_epochs
+    experiment.organizer.em_epochs_sm = em_epochs_sm
     experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.max_sm_cycles = sm_cycles
     experiment.organizer.refresh_score_validator = True
@@ -551,6 +558,7 @@ def main3():
     experiment.organizer.disable_em = False
     experiment.organizer.merge_percentage = 60.0
     experiment.organizer.merge_type = "PERCENT"
+    experiment.organizer.merge_threshold = -3.0
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
                                                   , exclude=train_exclude)
