@@ -520,7 +520,7 @@ cdef class PyLatentAnnotation:
                     mask = []
                     for i2, j2, la_idx in zip(rule_dimensions, rule_dimensions_full, index):
                         if i2 < j2:
-                            product_range.append([x for x in range(j)])
+                            product_range.append([x for x in range(j2)])
                             mask.append(False)
                         else:
                             product_range.append([la_idx])
@@ -529,7 +529,7 @@ cdef class PyLatentAnnotation:
                     for laf in itertools.product(*product_range):
                         laf_masked = tuple([0 if mb else laf[mi] for mi, mb in enumerate(mask)])
                         latent_rule_weights[new_rule.get_idx()][laf_masked] \
-                            = deref(la_full.latentAnnotation).get_weight(rule.get_idx(), list(laf))
+                            = deref(la_full.latentAnnotation).get_weight(i, list(laf))
 
                     if nonts == [] and smooth_transform is not None:
                         # smoothing part
