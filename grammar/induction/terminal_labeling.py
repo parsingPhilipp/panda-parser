@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from hybridtree.monadic_tokens import MonadicToken
+import string
 
 
 class TerminalLabeling:
@@ -44,7 +45,7 @@ class FeatureTerminals(TerminalLabeling):
         isleaf = token.type() == "CONSTITUENT-TERMINAL"
         feat_list = self.token_to_features(token, isleaf)
         features = self.feature_filter([feat_list])
-        return str(features)
+        return str(features).translate(string.maketrans('', ''), ' ')
 
     def __str__(self):
         return "feature-terminals"
