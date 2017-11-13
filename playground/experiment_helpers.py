@@ -252,7 +252,7 @@ class Experiment(object):
                     print("-", end='')
                 result = self.compute_fallback(self.obtain_sentence(obj), self.obtain_label(obj))
 
-            result_resource.write(self.serialize(result))
+            self.post_parsing_action(obj, result, result_resource)
 
             return_dict[0] = None
             self.parser.clear()
@@ -260,6 +260,8 @@ class Experiment(object):
         print()
         print("From {} sentences, {} were recognized.".format(len(corpus), recognized))
 
+    def post_parsing_action(self, gold, system, result_resource):
+        result_resource.write(self.serialize(system))
     def timeout_worker(self, parser, obj, return_dict):
         parser.parse()
         if parser.recognized():
@@ -330,11 +332,27 @@ class ScoringExperiment(Experiment):
                 best_derivation = self.parser.best_derivation_tree()
             result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(gold))
-            result_resource.score(result, gold)
+            self.post_parsing_action(gold, result, result_resource)
         else:
             print('-', end='')
             result_resource.failure(gold)
 
+    def timeout_worker(self, parser, obj, return_dict):
+        parser.parse()
+        sentence = self.obtain_sentence(obj)
+
+        if parser.recognized():
+            if self.oracle_parsing:
+                derivations = [der for _, der in self.parser.k_best_derivation_trees()]
+                best_derivation = self.compute_oracle_derivation(derivations, obj)
+            else:
+                best_derivation = self.parser.best_derivation_tree()
+            result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
+                                              label=self.obtain_label(obj))
+            return_dict[0] = result
+
+    def post_parsing_action(self, gold, system, result_resource):
+        result_resource.score(system, gold)
 
 class SplitMergeExperiment(Experiment):
     def __init__(self):
