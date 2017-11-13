@@ -422,7 +422,7 @@ cdef class PyLatentAnnotation:
                             index = list(la)
                             weight = deref(la_projected).get_weight(i, index)
                             output_helper(str(i) + " " + str(index) + " " + str(weight))
-                    raise
+                    raise Exception()
 
         return pyLaProjected
 
