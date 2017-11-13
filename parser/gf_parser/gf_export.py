@@ -66,6 +66,8 @@ def export(grammar, prefix, name, override=False):
 
         # iterate over rules
         for rule in grammar.rules():
+            if rule.weight() == 0.0:
+                continue
             id = rule.get_idx() # rules.object_index(rule)
 
             def transform_def(lhs, i):
