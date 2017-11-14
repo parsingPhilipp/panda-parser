@@ -1,6 +1,7 @@
 from libcpp.map cimport map
 from libcpp.memory cimport make_shared
 from cython.operator cimport dereference as deref
+from libcpp.functional cimport function
 from parser.commons.commons cimport *
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2, PyStorageManager
@@ -79,11 +80,14 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
         SplitMergeTrainerBuilder& set_scc_merger(double threshold)
         SplitMergeTrainerBuilder& set_scc_merger(double threshold, unsigned threads)
         SplitMergeTrainerBuilder& set_scc_merger(double threshold, vector[size_t] relevantNonterminals, unsigned threads)
+        SplitMergeTrainerBuilder& set_scc_merge_threshold_function(function[double(vector[double])])
         SplitMergeTrainerBuilder& set_split_randomization(double, unsigned)
         SplitMergeTrainerBuilder& set_smoothing_factor(double smoothingFactor)
         SplitMergeTrainerBuilder& set_threads(unsigned_int)
         SplitMergeTrainer[Nonterminal, TraceID] build()
         shared_ptr[EMTrainerLA] getEmTrainer()
+
+    function[double(vector[double])] interpolate3rdQuartileMax(double factor)
 
 cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
     cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo)
@@ -264,6 +268,10 @@ cdef class PySplitMergeTrainerBuilder:
                 deref(self.splitMergeTrainerBuilder).set_scc_merger(threshold, relevantNonterminals, 1)
             else:
                 deref(self.splitMergeTrainerBuilder).set_scc_merger(threshold)
+        return self
+
+    cpdef PySplitMergeTrainerBuilder set_scc_merge_threshold_function(self, double factor):
+        deref(self.splitMergeTrainerBuilder).set_scc_merge_threshold_function(interpolate3rdQuartileMax(factor))
         return self
 
     cpdef PySplitMergeTrainerBuilder set_split_randomization(self, double percent=1.0, unsigned seed=0):

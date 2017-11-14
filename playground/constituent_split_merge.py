@@ -366,7 +366,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             builder.set_count_smoothing(self.rule_smooth_list, 0.5)
 
     def patch_initial_grammar(self):
-        print("Merging feature splits with SCC merger and threshold", str(self.organizer.merge_threshold) + ".")
+        print("Merging feature splits with SCC merger.")
         mergedLa = self.organizer.emTrainer.merge(self.organizer.latent_annotations[0])
         if False:
             self.organizer.latent_annotations[0] = mergedLa

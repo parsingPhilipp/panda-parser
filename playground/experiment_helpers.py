@@ -44,6 +44,7 @@ class SplitMergeOrganizer:
         self.merge_percentage = 50.0
         self.merge_type = "PERCENT" # or SCC or THRESHOLD
         self.merge_threshold = -0.2
+        self.merge_interpolation_factor = 0.9
 
         # the trainer state
         self.splitMergeTrainer = None
@@ -402,6 +403,7 @@ class SplitMergeExperiment(Experiment):
         em_builder.set_em_epochs(self.organizer.em_epochs)
         em_builder.set_simple_expector(threads=self.organizer.threads)
         em_builder.set_scc_merger(self.organizer.merge_threshold)
+        em_builder.set_scc_merge_threshold_function(self.organizer.merge_interpolation_factor)
         self.organizer.emTrainer = emTrainer = em_builder.build()
 
         initial_la = self.create_initial_la()
