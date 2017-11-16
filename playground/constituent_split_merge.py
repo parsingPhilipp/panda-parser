@@ -554,6 +554,7 @@ def main3():
     experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.max_sm_cycles = sm_cycles
     experiment.organizer.refresh_score_validator = True
+    experiment.organizer.project_weights_before_parsing = False
     experiment.organizer.disable_split_merge = False
     experiment.organizer.disable_em = False
     experiment.organizer.merge_percentage = 60.0

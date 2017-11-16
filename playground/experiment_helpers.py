@@ -40,6 +40,7 @@ class SplitMergeOrganizer:
         self.validator_type = "SCORE"  # SCORE or SIMPLE
         self.validator = None  # required for SCORE validation
         self.refresh_score_validator = False  # rebuild the k-best candidate list after each split/merge cycle
+        self.project_weights_before_parsing = True
         self.validation_reducts = None  # required for SIMPLE validation
         self.merge_percentage = 50.0
         self.merge_type = "PERCENT" # or SCC or THRESHOLD
@@ -486,7 +487,8 @@ class SplitMergeExperiment(Experiment):
                                                rule_smoothing=0.1)
             self.parser = GFParser_k_best(grammar=grammar, k=1)
         elif self.parsing_mode == "k-best-rerank":
-            self.project_weights()
+            if self.organizer.project_weights_before_parsing: 
+	        self.project_weights()
             self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo,
                                            self.organizer.nonterminal_map, k=self.k_best)
 
