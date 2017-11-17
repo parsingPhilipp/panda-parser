@@ -19,7 +19,7 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals()):
     Extract LCFRS directly from hybrid tree.
     """
     gram = LCFRS(start=start)
-    root = tree.root
+    root = tree.root[0]
     if tree.is_leaf(root):
         lhs = LCFRS_lhs(start)
         label = term_labeling.token_label(tree.node_token(root))
@@ -48,13 +48,14 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
     fringe = tree.fringe(id)
     spans = join_spans(fringe)
     nont_fanout = len(spans)
-    label = tree.label(id)
+    label = tree.node_token(id).category()
     nont = label + '/' + str(nont_fanout)
     lhs = LCFRS_lhs(nont)
     children = [(child, join_spans(tree.fringe(child))) \
                 for child in tree.children(id)]
     rhs = []
     n_terms = 0
+    edge_labels = []
     for (low, high) in spans:
         arg = []
         pos = low
@@ -66,6 +67,7 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
                         if tree.is_leaf(child):
                             arg += [term_labeling.token_label(tree.node_token(child))]
                             n_terms += 1
+                            edge_labels += [tree.node_token(child).edge()]
                         else:
                             arg += [LCFRS_var(child_num, j)]
                         pos = child_high + 1
@@ -75,16 +77,16 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
     for (child, child_spans) in children:
         if not tree.is_leaf(child):
             rhs_nont_fanout = len(child_spans)
-            rhs += [tree.label(child) + '/' + str(rhs_nont_fanout)]
+            rhs += [tree.node_token(child).category() + '/' + str(rhs_nont_fanout)]
     dcp_lhs = DCP_var(-1, 0)
-    dcp_indices = [DCP_index(i) for i in range(n_terms)]
+    dcp_indices = [DCP_term(DCP_index(i, edge_label=edge), []) for i, edge in enumerate(edge_labels)]
     dcp_vars = [DCP_var(i, 0) for i in range(len(rhs))]
-    dcp_term = DCP_term(DCP_string(label), dcp_indices + dcp_vars)
+    dcp_term = DCP_term(DCP_string(label, edge_label=tree.node_token(id).edge()), dcp_indices + dcp_vars)
     dcp_rule = DCP_rule(dcp_lhs, [dcp_term])
     gram.add_rule(lhs, rhs, dcp=[dcp_rule])
     for (child, _) in children:
         if not tree.is_leaf(child):
-            direct_extract_lcfrs_from(tree, child, gram)
+            direct_extract_lcfrs_from(tree, child, gram, term_labeling)
     return nont
 
 
