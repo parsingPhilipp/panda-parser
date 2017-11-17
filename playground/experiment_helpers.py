@@ -2,14 +2,19 @@ from __future__ import print_function
 from grammar.lcfrs import LCFRS
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.supervised_trainer.trainer import PyDerivationManager
-from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
+from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, \
+    build_PyLatentAnnotation
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from parser.gf_parser.gf_interface import GFParser_k_best
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
+from collections import defaultdict
 import tempfile
 import multiprocessing
-from sys import stdout
+import sys
 import codecs
+import os
+import json
+import pickle
 
 
 TRAINING = "TRAIN"
@@ -75,12 +80,15 @@ class Resource(object):
 
 
 class CorpusFile(Resource):
-    def __init__(self, path=None, start=None, end=None, limit=None, length_limit=None, header=None, exclude=None):
+    def __init__(self, path=None, start=None, end=None, limit=None, length_limit=None, header=None, exclude=None,
+                 directory=None, logger=None):
         super(CorpusFile, self).__init__(path, start, end)
         self.limit = limit
         self.length_limit = length_limit
         self.file = None
         self.header = header
+        self.directory = directory
+        self.logger = logger if logger is not None else sys.stdout
         if exclude is None:
             self.exclude = []
         else:
@@ -88,12 +96,12 @@ class CorpusFile(Resource):
 
     def init(self):
         if self.path is None:
-            self.path = tempfile.mktemp()
+            _, self.path = tempfile.mkstemp(dir=self.directory)
 
         self.file = codecs.open(self.path, mode='w', encoding="utf-8")
         if self.header is not None:
             self.file.write(self.header)
-        print('Opened', self.path)
+        print('Opened', self.path, file=self.logger)
 
     def finalize(self):
         self.file.close()
@@ -107,8 +115,34 @@ class CorpusFile(Resource):
         return '{' + ', '.join(map(lambda x: x[0] + ' : ' + str(x[1]), attributes)) + '}'
 
 
+class Logger(object):
+    def __init__(self, path=None):
+        self.stdout = sys.stdout
+        self.stderr = sys.stderr
+        if path is None:
+            self.log, path = tempfile.mkstemp()
+        else:
+            self.log = open(path, "a")
+
+    def write(self, message):
+        self.stdout.write(message)
+        self.log.write(message)
+
+    def flush(self):
+        #this flush method is needed for python 3 compatibility.
+        #this handles the flush command by doing nothing.
+        #you might want to specify some extra behavior here.
+        pass
+
+
 class Experiment(object):
-    def __init__(self):
+    def __init__(self, directory=None):
+        print("Inititialize Experiment")
+        self.directory = tempfile.mkdtemp() if directory is None else directory
+        if not os.path.isdir(directory):
+            os.makedirs(directory)
+        self.logger = Logger(tempfile.mkstemp(dir=self.directory, suffix='.log')[1])
+        self.stage_dict = {"stage": (0, )}
         self.base_grammar = None
         self.validator = None
         self.score_name = "score"
@@ -120,6 +154,23 @@ class Experiment(object):
         self.max_score = None
         self.purge_rule_freq = None
         self.feature_log = None
+        self.__stage_path = os.path.join(self.directory, "STAGEFILE")
+
+    @property
+    def stage(self):
+        return self.stage_dict["stage"]
+
+    def read_stage_file(self):
+        if os.path.exists(self.__stage_path):
+            with open(self.__stage_path) as f:
+                self.stage_dict = json.load(f)
+
+                if "base_grammar" in self.stage_dict:
+                    self.base_grammar = pickle.load(open(self.stage_dict["base_grammar"]))
+
+    def write_stage_file(self):
+        with open(self.__stage_path, "w") as f:
+            json.dump(self.stage_dict, f)
 
     def induce_grammar(self, corpus, start="START"):
         grammar = LCFRS(start=start)
@@ -134,6 +185,10 @@ class Experiment(object):
                 grammar.add_gram(obj_grammar, (self.feature_log, features))
         self.postprocess_grammar(grammar)
         self.base_grammar = grammar
+        _, path = tempfile.mkstemp(suffix=".base.grammar", dir=self.directory)
+        with open(path, 'wb') as f:
+            pickle.dump(self.base_grammar, f)
+            self.stage_dict["base_grammar"] = path
 
     def postprocess_grammar(self, grammar):
         if self.purge_rule_freq is not None:
@@ -168,7 +223,7 @@ class Experiment(object):
         assert False
 
     def do_parse(self, corpus, result_resource):
-        print("parsing, ", end='')
+        print("parsing, ", end='', file=self.logger)
         result_resource.init()
         if self.parsing_timeout is None:
             for obj in corpus:
@@ -185,12 +240,12 @@ class Experiment(object):
         sentence = self.obtain_sentence(obj)
 
         if self.parser.recognized():
-            print(".", end='')
+            print(".", end='', file=self.logger)
             best_derivation = self.parser.best_derivation_tree()
             result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(obj))
         else:
-            print("-", end='')
+            print("-", end='', file=self.logger)
             result = self.compute_fallback(sentence=sentence)
 
         result_resource.write(self.serialize(result))
@@ -202,19 +257,23 @@ class Experiment(object):
         self.print_config()
 
         # induction
-        training_corpus = self.read_corpus(self.resources[TRAINING])
-        self.induce_grammar(training_corpus)
+        if self.stage[0] <= 1:
+            training_corpus = self.read_corpus(self.resources[TRAINING])
+            self.induce_grammar(training_corpus)
 
         # weight training
         # omitted
         #
-        self.initialize_parser()
 
-        # testing
-        test_corpus = self.read_corpus(self.resources[TESTING])
-        self.do_parse(test_corpus, self.resources[RESULT])
+        if self.stage[0] <= 4:
+            self.initialize_parser()
 
-        self.evaluate(self.resources[RESULT], self.resources[TESTING])
+            # testing
+            test_corpus = self.read_corpus(self.resources[TESTING])
+            self.do_parse(test_corpus, self.resources[RESULT])
+
+        if self.stage[0] <= 5:
+            self.evaluate(self.resources[RESULT], self.resources[TESTING])
 
     def compute_fallback(self, sentence, label=None):
         assert False
@@ -245,13 +304,13 @@ class Experiment(object):
 
             if 0 in return_dict and return_dict[0] is not None:
                 recognized += 1
-                print(".", end='')
+                print(".", end='', file=self.logger)
                 result = return_dict[0]
             else:
                 if timeout:
-                    print("t", end='')
+                    print("t", end='', file=self.logger)
                 else:
-                    print("-", end='')
+                    print("-", end='', file=self.logger)
                 result = self.compute_fallback(self.obtain_sentence(obj), self.obtain_label(obj))
 
             self.post_parsing_action(obj, result, result_resource)
@@ -259,8 +318,8 @@ class Experiment(object):
             return_dict[0] = None
             self.parser.clear()
 
-        print()
-        print("From {} sentences, {} were recognized.".format(len(corpus), recognized))
+        print(file=self.logger)
+        print("From {} sentences, {} were recognized.".format(len(corpus), recognized), file=self.logger)
 
     def post_parsing_action(self, gold, system, result_resource):
         result_resource.write(self.serialize(system))
@@ -288,7 +347,7 @@ class Experiment(object):
                 break
             if score < min_score:
                 min_score = score
-        print('max', best_score, 'min', min_score)
+        print('max', best_score, 'min', min_score, file=self.logger)
         return best_der
 
     @staticmethod
@@ -308,8 +367,11 @@ class Experiment(object):
 
         return precision, recall, fmeasure
 
-    def print_config(self, file=stdout):
+    def print_config(self, file=None):
+        if file is None:
+            file = self.logger
         print("Experiment infos for", self.__class__.__name__, file=file)
+        print("Experiment base directory", self.directory, file=file)
         print("Purge rule freq:", self.purge_rule_freq, file=file)
         print("Max score", self.max_score, file=file)
         print("Score", self.score_name, file=file)
@@ -319,14 +381,16 @@ class Experiment(object):
 
 
 class ScoringExperiment(Experiment):
-    def __init__(self):
-        Experiment.__init__(self)
+    def __init__(self, directory=None):
+        print("Initialize Scoring experiment")
+        # super(ScoringExperiment, self).__init__()
+        Experiment.__init__(self, directory=directory)
 
     def process_parse(self, gold, result_resource):
         sentence = self.obtain_sentence(gold)
 
         if self.parser.recognized():
-            print('.', end='')
+            print('.', end='', file=self.logger)
             if self.oracle_parsing:
                 derivations = [der for _, der in self.parser.k_best_derivation_trees()]
                 best_derivation = self.compute_oracle_derivation(derivations, gold)
@@ -336,7 +400,7 @@ class ScoringExperiment(Experiment):
                                               label=self.obtain_label(gold))
             self.post_parsing_action(gold, result, result_resource)
         else:
-            print('-', end='')
+            print('-', end='', file=self.logger)
             result_resource.failure(gold)
 
     def timeout_worker(self, parser, obj, return_dict):
@@ -358,9 +422,27 @@ class ScoringExperiment(Experiment):
 
 class SplitMergeExperiment(Experiment):
     def __init__(self):
+        print("Initialize Split Merge Experiment", file=self.logger)
         self.organizer = SplitMergeOrganizer()
         self.parsing_mode = "k-best-rerank"  # or "best-latent-derivation"
         self.k_best = 50
+
+    def read_stage_file(self):
+        # super(SplitMergeExperiment, self).read_stage_file()
+        if "latent_annotations" in self.stage_dict:
+            self.initialize_training_environment()
+
+            las = self.stage_dict["latent_annotations"]
+            for key in las:
+                with open(las[key]) as f:
+                    splits, rootWeights, ruleWeights = pickle.load(f)
+                    # print(key)
+                    # print(len(splits), len(rootWeights), len(ruleWeights))
+                    # print(len(self.base_grammar.nonts()))
+                    la = build_PyLatentAnnotation(splits, rootWeights, ruleWeights, self.organizer.grammarInfo, self.organizer.storageManager)
+                    self.organizer.latent_annotations[int(key)] = la
+        if "last_sm_cycle" in self.stage_dict:
+            self.organizer.last_sm_cycle = int(self.stage_dict["last_sm_cycle"])
 
     def build_score_validator(self, resource):
         self.organizer.validator = PyCandidateScoreValidator(self.organizer.grammarInfo
@@ -389,15 +471,26 @@ class SplitMergeExperiment(Experiment):
             self.organizer.validator.add_scored_candidates(manager, scores, self.max_score)
             # print(obj_count, self.max_score, scores)
             if scores:
-                print(obj_count, 'max', max(scores), 'firsts', scores[0:10])
+                print(obj_count, 'max', max(scores), 'firsts', scores[0:10], file=self.logger)
             else:
-                print(obj_count, 'max 00.00', '[]')
+                print(obj_count, 'max 00.00', '[]', file=self.logger)
             self.parser.clear()
-            print('.', end='')
+            print('.', end='', file=self.logger)
         # print("trees used for validation ", obj_count, "with", der_count * 1.0 / obj_count, "derivations on average")
 
     def compute_reducts(self, resource):
         assert False
+
+    def update_reducts(self, trace, type=TRAINING):
+        _, trace_path = tempfile.mkstemp("." + type + ".reduct", dir=self.directory)
+        trace.serialize(trace_path)
+        print("Serialized " + type + " reducts to " + trace_path, file=self.logger)
+        if type is TRAINING:
+            self.organizer.training_reducts = trace
+            self.stage_dict["training_reducts"] = trace_path
+        elif type is VALIDATION:
+            self.organizer.validation_reducts = trace
+            self.stage_dict["validation_reducts"] = trace_path
 
     def do_em_training(self):
         em_builder = PySplitMergeTrainerBuilder(self.organizer.training_reducts, self.organizer.grammarInfo)
@@ -416,13 +509,23 @@ class SplitMergeExperiment(Experiment):
             nont_idx = exc.args[0]
             splits, root_weights, rule_weights = initial_la.serialize()
             nont = self.organizer.nonterminal_map.index_object(nont_idx)
-            print(nont, nont_idx, splits[nont_idx])
+            print(nont, nont_idx, splits[nont_idx], file=self.logger)
             for rule in self.base_grammar.lhs_nont_to_rules(nont):
-                print(rule, rule_weights[rule.get_idx()])
+                print(rule, rule_weights[rule.get_idx()], file=self.logger)
             raise
 
         self.organizer.latent_annotations[0] = initial_la
         self.organizer.last_sm_cycle = 0
+        self.save_current_la()
+
+    def save_current_la(self):
+        cycle = self.stage_dict["last_sm_cycle"] = self.organizer.last_sm_cycle
+        _, la_path = tempfile.mkstemp(suffix=".la" + str(cycle) + ".pkl", dir=self.directory)
+        with open(la_path, 'wb') as f:
+            pickle.dump(self.organizer.latent_annotations[cycle].serialize(), f)
+            if "latent_annotations" not in self.stage_dict:
+                self.stage_dict["latent_annotations"] = {}
+            self.stage_dict["latent_annotations"][cycle] = la_path
 
     def create_initial_la(self):
         # randomize initial weights and do em training
@@ -467,6 +570,7 @@ class SplitMergeExperiment(Experiment):
             la_no_splits = self.create_initial_la()
             self.organizer.last_sm_cycle = 0
             self.organizer.latent_annotations[0] = la_no_splits
+            self.save_current_la()
 
         current_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
         next_la = self.organizer.splitMergeTrainer.split_merge_cycle(current_la)
@@ -474,6 +578,7 @@ class SplitMergeExperiment(Experiment):
         self.organizer.last_sm_cycle = next_cycle
         self.organizer.latent_annotations[next_cycle] = next_la
         self.organizer.merge_sources[next_cycle] = self.organizer.splitMergeTrainer.get_current_merge_sources()
+        self.save_current_la()
 
     def initialize_training_environment(self):
         self.organizer.nonterminal_map = self.organizer.training_reducts.get_nonterminal_map()
@@ -485,12 +590,12 @@ class SplitMergeExperiment(Experiment):
         if self.parsing_mode == "best-latent-derivation":
             grammar = last_la.build_sm_grammar(self.base_grammar, self.organizer.grammarInfo, rule_pruning=0.0001,
                                                rule_smoothing=0.1)
-            self.parser = GFParser_k_best(grammar=grammar, k=1)
+            self.parser = GFParser_k_best(grammar=grammar, k=1, save_preprocess=(self.directory, "gfgrammar"))
         elif self.parsing_mode == "k-best-rerank":
             if self.organizer.project_weights_before_parsing: 
-	        self.project_weights()
+                self.project_weights()
             self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo,
-                                           self.organizer.nonterminal_map, k=self.k_best)
+                                           self.organizer.nonterminal_map, k=self.k_best, save_preprocess=(self.directory, "gfgrammar"))
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
@@ -500,47 +605,56 @@ class SplitMergeExperiment(Experiment):
         self.print_config()
 
         # induction
-        training_corpus = self.read_corpus(self.resources[TRAINING])
-        self.induce_grammar(training_corpus)
+        if self.stage[0] <= 1:
+            training_corpus = self.read_corpus(self.resources[TRAINING])
+            self.induce_grammar(training_corpus)
 
-        # prepare reducts
-        if not self.organizer.disable_split_merge or not self.organizer.disable_em:
-            self.organizer.training_reducts = self.compute_reducts(self.resources[TRAINING])
-            self.initialize_training_environment()
+        if self.stage[0] <= 2:
+            # prepare reducts
+            if not self.organizer.disable_split_merge or not self.organizer.disable_em:
+                self.organizer.training_reducts = self.compute_reducts(self.resources[TRAINING])
+                self.initialize_training_environment()
 
-        # create initial LA and do EM training
-        if not self.organizer.disable_em:
-            self.do_em_training()
+            # create initial LA and do EM training
+            if not self.organizer.disable_em:
+                self.do_em_training()
 
-        if not self.organizer.disable_split_merge:
-            if self.organizer.validator_type == "SCORE":
-                self.initialize_parser()
-                self.build_score_validator(self.resources[VALIDATION])
-            elif self.organizer.validator_type == "SIMPLE":
-                self.organizer.validation_reducts = self.compute_reducts(self.resources[VALIDATION])
-            self.prepare_split_merge_trainer()
-
-            while self.organizer.last_sm_cycle is None or self.organizer.last_sm_cycle < self.organizer.max_sm_cycles:
-                self.run_split_merge_cycle()
-                if self.organizer.last_sm_cycle < self.organizer.max_sm_cycles \
-                        and self.organizer.validator_type == "SCORE" \
-                        and self.organizer.refresh_score_validator:
-                    self.project_weights()
+        if self.stage[0] <= 3:
+            if not self.organizer.disable_split_merge:
+                if self.organizer.validator_type == "SCORE" and self.organizer.validator is None:
                     self.initialize_parser()
                     self.build_score_validator(self.resources[VALIDATION])
+                elif self.organizer.validator_type == "SIMPLE" and self.organizer.validation_reducts is None:
+                    self.update_reducts(self.compute_reducts(self.resources[VALIDATION]), type=VALIDATION)
+                self.prepare_split_merge_trainer()
 
-        if self.organizer.disable_split_merge and self.organizer.disable_em:
-            self.initialize_parser()
-        else:
-            self.prepare_sm_parser()
+                while self.organizer.last_sm_cycle is None \
+                        or self.organizer.last_sm_cycle < self.organizer.max_sm_cycles:
+                    self.run_split_merge_cycle()
+                    if self.organizer.last_sm_cycle < self.organizer.max_sm_cycles \
+                            and self.organizer.validator_type == "SCORE" \
+                            and self.organizer.refresh_score_validator:
+                        self.project_weights()
+                        self.initialize_parser()
+                        self.build_score_validator(self.resources[VALIDATION])
+                    self.write_stage_file()
 
-        # testing
-        test_corpus = self.read_corpus(self.resources[TESTING])
-        self.do_parse(test_corpus, self.resources[RESULT])
+        if self.stage[0] <= 4:
+            if self.organizer.disable_split_merge and self.organizer.disable_em:
+                self.initialize_parser()
+            else:
+                self.prepare_sm_parser()
 
-        self.evaluate(self.resources[RESULT], self.resources[TESTING])
+            # testing
+            test_corpus = self.read_corpus(self.resources[TESTING])
+            self.do_parse(test_corpus, self.resources[RESULT])
 
-    def print_config(self, file=stdout):
+        if self.stage[0] <= 5:
+            self.evaluate(self.resources[RESULT], self.resources[TESTING])
+
+    def print_config(self, file=None):
+        if file is None:
+            file = self.logger
         print("Split/Merge Settings: \n", self.organizer, file=file)
         print("Split/Merge Parsing mode: ", self.parsing_mode, file=file)
 

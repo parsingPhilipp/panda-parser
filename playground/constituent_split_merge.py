@@ -11,7 +11,6 @@ from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 import copy
 import os
 import subprocess
-from sys import stdout
 from collections import defaultdict
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
@@ -23,8 +22,10 @@ from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RE
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
 import tempfile
 import sys
+import pickle
 from functools32 import lru_cache
 from ast import literal_eval
+import plac
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
@@ -95,6 +96,22 @@ parse_results_suffix = ".export"
 NEGRA = "NEGRA"
 
 
+class FeatureFunction:
+    def __init__(self):
+        self.function = pos_cat_and_lex_in_unary
+        self.default_args = {'hmarkov': 1}
+
+    def __call__(self, *args):
+        return self.function(*args, **self.default_args)
+
+    def __str__(self):
+        s = "Feature Function {"
+        s += "func: " + str(self.function)
+        s += "kwargs: " + str(self.default_args)
+        s += "}"
+        return s
+
+
 class InductionSettings:
     def __init__(self):
         self.recursive_partitioning = None
@@ -104,7 +121,7 @@ class InductionSettings:
         self.disconnect_punctuation = True
         self.normalize = False
         self.feature_la = False
-        self.feat_function = lambda x: pos_cat_and_lex_in_unary(x, hmarkov=1)
+        self.feat_function = FeatureFunction()
 
     def __str__(self):
         attributes = [("recursive partitioning", self.recursive_partitioning.__name__)
@@ -130,12 +147,13 @@ class ConstituentScorer(ScorerResource):
 
 
 class ScorerAndWriter(ConstituentScorer, CorpusFile):
-    def __init__(self, experiment, path=None):
+    def __init__(self, experiment, path=None, directory=None, logger=None):
         ConstituentScorer.__init__(self)
-        path = tempfile.mktemp() if path is None else path
-        CorpusFile.__init__(self, path=path)
+        _, path = tempfile.mkstemp(dir=directory) if path is None else path
+        CorpusFile.__init__(self, path=path, directory=directory, logger=logger)
         self.experiment = experiment
-        self.reference = CorpusFile()
+        self.reference = CorpusFile(directory=directory, logger=logger)
+        self.logger = logger if logger is not None else sys.stdout
 
     def init(self):
         CorpusFile.init(self)
@@ -144,8 +162,8 @@ class ScorerAndWriter(ConstituentScorer, CorpusFile):
     def finalize(self):
         CorpusFile.finalize(self)
         self.reference.finalize()
-        print('Wrote results to', self.path)
-        print('Wrote reference to', self.reference.path)
+        print('Wrote results to', self.path, file=self.logger)
+        print('Wrote reference to', self.reference.path, file=self.logger)
 
     def score(self, system, gold):
         ConstituentScorer.score(self, system, gold)
@@ -165,14 +183,14 @@ class ScorerAndWriter(ConstituentScorer, CorpusFile):
 
 
 class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
-    def __init__(self, induction_settings):
+    def __init__(self, induction_settings, directory=None):
         """
         :type induction_settings: InductionSettings
         """
-        ScoringExperiment.__init__(self)
+        ScoringExperiment.__init__(self, directory=directory)
         SplitMergeExperiment.__init__(self)
         self.induction_settings = induction_settings
-        self.resources[RESULT] = ScorerAndWriter(self)
+        self.resources[RESULT] = ScorerAndWriter(self, directory=self.directory, logger=self.logger)
         self.k_best = 50
         self.serialization_type = NEGRA
         self.use_output_counter = True
@@ -186,6 +204,23 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         if self.induction_settings.feature_la:
             self.feature_log = defaultdict(lambda: 0)
 
+    def read_stage_file(self):
+        ScoringExperiment.read_stage_file(self)
+
+        if "training_reducts" in self.stage_dict:
+            self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
+            self.organizer.training_reducts.load_traces_from_file(self.stage_dict["training_reducts"])
+
+        if "validation_reducts" in self.stage_dict:
+            self.organizer.validation_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
+            self.organizer.validation_reducts.load_traces_from_file(self.stage_dict["validation_reducts"])
+
+        if "rule_smooth_list" in self.stage_dict:
+            with open(self.stage_dict["rule_smooth_list"]) as fd:
+                self.rule_smooth_list = pickle.load(fd)
+
+        SplitMergeExperiment.read_stage_file(self)
+
     def induce_from(self, tree):
         if not tree.complete() or tree.empty_fringe():
             return None, None
@@ -198,6 +233,11 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                                             term_labeling=self.induction_settings.terminal_labeling,
                                             isolate_pos=self.induction_settings.isolate_pos,
                                             feature_logging=features)
+
+        if False and len(tree.token_yield()) == 1:
+            print(tree, map(str, tree.token_yield()), file=self.logger)
+            print(tree_grammar, file=self.logger)
+
         return tree_grammar, features
 
     def parsing_postprocess(self, sentence, derivation, label=None):
@@ -243,19 +283,22 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             , disconnect_punctuation=self.induction_settings.disconnect_punctuation)
 
     def initialize_parser(self):
-        self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best)
+        self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best,
+                                      save_preprocess=(self.directory, "gfgrammar"))
 
     def parsing_preprocess(self, hybrid_tree):
         if self.strip_vroot:
             hybrid_tree.strip_vroot()
-        return self.terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
+        parser_input = self.terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
+        # print(parser_input)
+        return parser_input
 
     @lru_cache(maxsize=500)
     def normalize_corpus(self, path, src='export', dest='export', renumber=True):
-        first_stage = tempfile.mktemp(suffix=".export")
+        _, first_stage = tempfile.mkstemp(suffix=".export", dir=self.directory)
         subprocess.call(["treetools", "transform", path, first_stage, "--trans", "root_attach",
                          "--src-format", src, "--dest-format", "export"])
-        second_stage = tempfile.mktemp(suffix=".export")
+        _, second_stage = tempfile.mkstemp(suffix=".export", dir=self.directory)
         second_call = ["discodop", "treetransforms"]
         if renumber:
             second_call.append("--renumber")
@@ -264,33 +307,35 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         if dest == 'export':
             return second_stage
         elif dest == 'tigerxml':
-            third_stage = tempfile.mktemp(suffix=".xml")
+            _, third_stage = tempfile.mkstemp(suffix=".xml", dir=self.directory)
             subprocess.call(["treetools", "transform", second_stage, third_stage,
                              "--src-format", "export", "--dest-format", dest])
             return third_stage
 
     def evaluate(self, result_resource, gold_resource):
         accuracy = result_resource.scorer
-        print('')
+        print('', file=self.logger)
         # print('Parsed:', n)
         if accuracy.n() > 0:
-            print('Recall:   ', accuracy.recall())
-            print('Precision:', accuracy.precision())
-            print('F-measure:', accuracy.fmeasure())
-            print('Parse failures:', accuracy.n_failures())
+            print('Recall:   ', accuracy.recall(), file=self.logger)
+            print('Precision:', accuracy.precision(), file=self.logger)
+            print('F-measure:', accuracy.fmeasure(), file=self.logger)
+            print('Parse failures:', accuracy.n_failures(), file=self.logger)
         else:
-            print('No successful parsing')
+            print('No successful parsing', file=self.logger)
         # print('time:', end_at - start_at)
         print('')
 
-        print('normalize results with treetools and discodop')
+        print('normalize results with treetools and discodop', file=self.logger)
 
         ref_rn = self.normalize_corpus(result_resource.reference.path)
         sys_rn = self.normalize_corpus(result_resource.path)
         prm = "../util/proper.prm"
 
-        print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_rn, "with proper.prm")
-        subprocess.call(["discodop", "eval", ref_rn, sys_rn, prm])
+        print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_rn, "with proper.prm", file=self.logger)
+        output = subprocess.Popen(["discodop", "eval", ref_rn, sys_rn, prm],
+                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
+        print(output[0], file=self.logger)
 
     @staticmethod
     def __obtain_labelled_spans(obj):
@@ -315,38 +360,46 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         else:
             assert False
 
-    def print_config(self, file=stdout):
+    def print_config(self, file=None):
+        if file is None:
+            file = self.logger
         ScoringExperiment.print_config(self, file=file)
         SplitMergeExperiment.print_config(self, file=file)
         print("Induction Settings {", file=file)
         print(self.induction_settings, "\n}", file=file)
-        print("k-best", self.k_best)
-        print("Serialization type", self.serialization_type)
-        print("Output counter", self.use_output_counter, "start", self.output_counter)
-        print("VROOT stripping", self.strip_vroot)
+        print("k-best", self.k_best, file=file)
+        print("Serialization type", self.serialization_type, file=file)
+        print("Output counter", self.use_output_counter, "start", self.output_counter, file=file)
+        print("VROOT stripping", self.strip_vroot, file=file)
 
     def compute_reducts(self, resource):
         training_corpus = self.read_corpus(resource)
         parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
         nonterminal_map = self.organizer.nonterminal_map
-        return compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling,
+        trace = compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling,
                                parser=parser, nont_map=nonterminal_map)
+        return trace
 
     def create_initial_la(self):
         if self.induction_settings.feature_la:
-            print("building initial LA from features")
+            print("building initial LA from features", file=self.logger)
             nonterminal_splits, rootWeights, ruleWeights, split_id = build_nont_splits_dict(self.base_grammar, self.feature_log, self.organizer.nonterminal_map, feat_function=self.induction_settings.feat_function)
-            print("number of nonterminals:", len(nonterminal_splits))
-            print("total splits", sum(nonterminal_splits))
+            print("number of nonterminals:", len(nonterminal_splits), file=self.logger)
+            print("total splits", sum(nonterminal_splits), file=self.logger)
             max_splits = max(nonterminal_splits)
             max_splits_index = nonterminal_splits.index(max_splits)
             max_splits_nont = self.organizer.nonterminal_map.index_object(max_splits_index)
-            print("max. nonterminal splits", max_splits, "at index ", max_splits_index, "i.e.,", max_splits_nont)
+            print("max. nonterminal splits", max_splits, "at index ", max_splits_index, "i.e.,", max_splits_nont, file=self.logger)
             for key in split_id[max_splits_nont]:
-                print(key)
-            print("number of rules", len(ruleWeights))
-            print("total split rules", sum(map(len, ruleWeights)))
-            print("number of split rules with 0 prob.", sum(map(sum, map(lambda xs: map(lambda x: 1 if x == 0.0 else 0, xs), ruleWeights))))
+                print(key, file=self.logger)
+            print("splits for NE/1", file=self.logger)
+            for key in split_id["NE/1"]:
+                print(key, file=self.logger)
+            for rule in self.base_grammar.lhs_nont_to_rules("NE/1"):
+                print(rule, ruleWeights[rule.get_idx()], file=self.logger)
+            print("number of rules", len(ruleWeights), file=self.logger)
+            print("total split rules", sum(map(len, ruleWeights)), file=self.logger)
+            print("number of split rules with 0 prob.", sum(map(sum, map(lambda xs: map(lambda x: 1 if x == 0.0 else 0, xs), ruleWeights))), file=self.logger)
 
             la = build_PyLatentAnnotation(nonterminal_splits, rootWeights, ruleWeights, self.organizer.grammarInfo,
                                           self.organizer.storageManager)
@@ -366,12 +419,12 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             builder.set_count_smoothing(self.rule_smooth_list, 0.5)
 
     def patch_initial_grammar(self):
-        print("Merging feature splits with SCC merger.")
+        print("Merging feature splits with SCC merger.", file=self.logger)
         mergedLa = self.organizer.emTrainer.merge(self.organizer.latent_annotations[0])
         if False:
             self.organizer.latent_annotations[0] = mergedLa
             self.organizer.merge_sources[0] = self.organizer.emTrainer.get_current_merge_sources()
-            print(self.organizer.merge_sources[0])
+            print(self.organizer.merge_sources[0], file=self.logger)
 
         else:
             splits, _, _ = mergedLa.serialize()
@@ -387,7 +440,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                 else:
                     fine_grammar_merge_sources.append([[split for split in range(0, splits[nont_idx])]])
 
-            print("Projecting to fine grammar LA")
+            print("Projecting to fine grammar LA", file=self.logger)
             fine_grammar_LA = mergedLa.project_annotation_by_merging(self.organizer.grammarInfo, fine_grammar_merge_sources)
 
             def arg_transform(arg, la):
@@ -408,7 +461,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                             if isinstance(term, tuple):
                                 pos = dict(term[0]).get("pos", "UNK")
                                 arg_mod.append(pos)
-                                # print(term, pos)
+                                # print(term, pos, file=self.logger)
                             else:
                                 arg_mod.append(elem)
                         except ValueError:
@@ -420,28 +473,38 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             def id_arg(arg, la):
                 return arg
 
-            print("Constructing fine grammar")
+            print("Constructing fine grammar", file=self.logger)
             grammar_fine, grammar_fine_LA_full, grammar_fine_info, grammar_fine_nonterminal_map, nont_translation, smooth_rules \
                 = fine_grammar_LA.construct_fine_grammar(self.base_grammar, self.organizer.grammarInfo, id_arg,
                                                          mergedLa, smooth_transform=smooth_transform)
 
             self.rule_smooth_list = smooth_rules
+            _, path = tempfile.mkstemp(".rule_smooth_list.pkl", dir=self.directory)
+            with open(path, 'wb') as f:
+                pickle.dump(smooth_rules, f)
+                self.stage_dict["rule_smooth_list"] = path
 
             grammar_fine.make_proper()
             grammar_fine_LA_full.make_proper(grammar_fine_info)
-            print(grammar_fine_LA_full.is_proper(grammar_fine_info))
+            print(grammar_fine_LA_full.is_proper(grammar_fine_info), file=self.logger)
             nonterminal_splits, rootWeights, ruleWeights = grammar_fine_LA_full.serialize()
 
             # for rule in grammar_fine.rules():
             #     print(rule, ruleWeights[rule.get_idx()])
-            print("number of nonterminals:", len(nonterminal_splits))
-            print("total splits", sum(nonterminal_splits))
-            print("number of rules", len(ruleWeights))
-            print("total split rules", sum(map(len, ruleWeights)))
+            print("number of nonterminals:", len(nonterminal_splits), file=self.logger)
+            print("total splits", sum(nonterminal_splits), file=self.logger)
+            print("number of rules", len(ruleWeights), file=self.logger)
+            print("total split rules", sum(map(len, ruleWeights)), file=self.logger)
             print("number of split rules with 0 prob.",
-                  sum(map(sum, map(lambda xs: map(lambda x: 1 if x == 0.0 else 0, xs), ruleWeights))))
-            self.base_grammar_backup = self.base_grammar
+                  sum(map(sum, map(lambda xs: map(lambda x: 1 if x == 0.0 else 0, xs), ruleWeights))),
+                  file=self.logger)
+            # self.base_grammar_backup = self.base_grammar
+            self.stage_dict["backup_grammar"] = self.stage_dict["base_grammar"]
             self.base_grammar = grammar_fine
+            _, path = tempfile.mkstemp(suffix="basegram.pkl", dir=self.directory)
+            with open(path, 'wb') as f:
+                pickle.dump(self.base_grammar, f)
+                self.stage_dict["base_grammar"] = path
 
             self.organizer.grammarInfo = grammar_fine_info
             self.organizer.nonterminal_map = grammar_fine_nonterminal_map
@@ -451,10 +514,12 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                 self.organizer.latent_annotations[0] = grammar_fine_LA_full
             else:
                 self.organizer.latent_annotations[0] = super(ConstituentExperiment, self).create_initial_la()
+            self.save_current_la()
             self.organizer.training_reducts = None
 
-            print("Recomputing reducts")
-            self.organizer.training_reducts = self.compute_reducts(self.resources[TRAINING])
+            print("Recomputing reducts", file=self.logger)
+            self.update_reducts(self.compute_reducts(self.resources[TRAINING]))
+            self.stage_dict["stage"] = (3, 3, 2)
             # self.initialize_training_environment()
             # self.organizer.last_sm_cycle = 0
             # self.organizer.latent_annotations[0] = super(ConstituentExperiment, self).create_initial_la()
@@ -468,9 +533,9 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             nont = self.organizer.nonterminal_map.index_object(nont_idx)
             term = None
             if any([rule.rhs() == [] for rule in self.base_grammar.lhs_nont_to_rules(nont)]):
-                print(nont)
+                print(nont, file=self.logger)
                 for rule in self.base_grammar.lhs_nont_to_rules(nont):
-                    print(rule)
+                    print(rule, file=self.logger)
                     assert len(rule.lhs().args()) == 1 and len(rule.lhs().args()[0]) == 1
                     # rule_term = rule.lhs().args()[0][0]
                     # assert rule_term is not None
@@ -486,11 +551,11 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
                 # print(merge_sources[nont_idx])
                 # print(self.split_id[nont])
                 for group, sources in enumerate(merge_sources[nont_idx]):
-                    print("group", group)
+                    print("group", group, file=self.logger)
                     for source in sources:
                         for key in self.split_id[nont]:
                             if self.split_id[nont][key] - 1 == source:
-                                print("\t", key)
+                                print("\t", key, file=self.logger)
                                 lookup[nont][frozenset(key[0])] = group
                                 continue
                 # print("lookup")
@@ -539,7 +604,10 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
 
 
-def main3():
+@plac.annotations(
+    directory=('directory in which experiment is run', 'option', None, str)
+    )
+def main3(directory=None):
     induction_settings = InductionSettings()
     induction_settings.recursive_partitioning = recursive_partitioning
     induction_settings.normalize = False
@@ -547,7 +615,7 @@ def main3():
     induction_settings.naming_scheme = 'child'
     induction_settings.isolate_pos = True
     induction_settings.feature_la = True
-    experiment = ConstituentExperiment(induction_settings)
+    experiment = ConstituentExperiment(induction_settings, directory=directory)
     experiment.organizer.seed = 2
     experiment.organizer.em_epochs = em_epochs
     experiment.organizer.em_epochs_sm = em_epochs_sm
@@ -570,7 +638,8 @@ def main3():
     experiment.purge_rule_freq = None
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]))
     experiment.terminal_labeling = induction_settings.terminal_labeling
+    experiment.read_stage_file()
     experiment.run_experiment()
 
 if __name__ == '__main__':
-    main3()
+    plac.call(main3)
