@@ -33,8 +33,6 @@ if sys.version_info < (3,):
 # sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 # sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
-grammar_path = '/tmp/constituent_grammar.pkl'
-reduct_path = '/tmp/constituent_grammar_reduct.pkl'
 terminal_labeling_path = '/tmp/constituent_labeling.pkl'
 train_limit = 1000  # 2000
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
@@ -182,16 +180,11 @@ class ScorerAndWriter(ConstituentScorer, CorpusFile):
         return CorpusFile.__str__(self)
 
 
-class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
+class ConstituentExperiment(ScoringExperiment):
     def __init__(self, induction_settings, directory=None):
-        """
-        :type induction_settings: InductionSettings
-        """
-        ScoringExperiment.__init__(self, directory=directory)
-        SplitMergeExperiment.__init__(self)
+        super(ScoringExperiment, self).__init__(directory=directory)
         self.induction_settings = induction_settings
         self.resources[RESULT] = ScorerAndWriter(self, directory=self.directory, logger=self.logger)
-        self.k_best = 50
         self.serialization_type = NEGRA
         self.use_output_counter = True
         self.output_counter = 0
@@ -200,62 +193,6 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
 
         self.discodop_scorer = DiscoDopScorer()
         self.max_score = 100.0
-        self.rule_smooth_list = None
-        if self.induction_settings.feature_la:
-            self.feature_log = defaultdict(lambda: 0)
-
-    def read_stage_file(self):
-        ScoringExperiment.read_stage_file(self)
-
-        if "training_reducts" in self.stage_dict:
-            self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
-            self.organizer.training_reducts.load_traces_from_file(self.stage_dict["training_reducts"])
-
-        if "validation_reducts" in self.stage_dict:
-            self.organizer.validation_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
-            self.organizer.validation_reducts.load_traces_from_file(self.stage_dict["validation_reducts"])
-
-        if "rule_smooth_list" in self.stage_dict:
-            with open(self.stage_dict["rule_smooth_list"]) as fd:
-                self.rule_smooth_list = pickle.load(fd)
-
-        SplitMergeExperiment.read_stage_file(self)
-
-    def induce_from(self, tree):
-        if not tree.complete() or tree.empty_fringe():
-            return None, None
-        part = self.induction_settings.recursive_partitioning(tree)
-        if self.induction_settings.feature_la:
-            features = defaultdict(lambda: 0)
-        else:
-            features = None
-        tree_grammar = fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
-                                            term_labeling=self.induction_settings.terminal_labeling,
-                                            isolate_pos=self.induction_settings.isolate_pos,
-                                            feature_logging=features)
-
-        if False and len(tree.token_yield()) == 1:
-            print(tree, map(str, tree.token_yield()), file=self.logger)
-            print(tree_grammar, file=self.logger)
-
-        return tree_grammar, features
-
-    def parsing_postprocess(self, sentence, derivation, label=None):
-        full_yield, id_yield, full_token_yield, token_yield = sentence
-
-        dcp_tree = ConstituentTree(label)
-        punctuation_positions = [i + 1 for i, idx in enumerate(full_yield)
-                                 if idx not in id_yield]
-
-        cleaned_tokens = copy.deepcopy(full_token_yield)
-        dcp = The_DCP_evaluator(derivation).getEvaluation()
-        dcp_to_hybridtree(dcp_tree, dcp, cleaned_tokens, False, construct_constituent_token,
-                          punct_positions=punctuation_positions)
-
-        if self.strip_vroot:
-            dcp_tree.strip_vroot()
-
-        return dcp_tree
 
     def obtain_sentence(self, hybrid_tree):
         sentence = hybrid_tree.full_yield(), hybrid_tree.id_yield(), \
@@ -282,16 +219,29 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             , hold=False
             , disconnect_punctuation=self.induction_settings.disconnect_punctuation)
 
-    def initialize_parser(self):
-        self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best,
-                                      save_preprocess=(self.directory, "gfgrammar"))
-
     def parsing_preprocess(self, hybrid_tree):
         if self.strip_vroot:
             hybrid_tree.strip_vroot()
         parser_input = self.terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
         # print(parser_input)
         return parser_input
+
+    def parsing_postprocess(self, sentence, derivation, label=None):
+        full_yield, id_yield, full_token_yield, token_yield = sentence
+
+        dcp_tree = ConstituentTree(label)
+        punctuation_positions = [i + 1 for i, idx in enumerate(full_yield)
+                                 if idx not in id_yield]
+
+        cleaned_tokens = copy.deepcopy(full_token_yield)
+        dcp = The_DCP_evaluator(derivation).getEvaluation()
+        dcp_to_hybridtree(dcp_tree, dcp, cleaned_tokens, False, construct_constituent_token,
+                          punct_positions=punctuation_positions)
+
+        if self.strip_vroot:
+            dcp_tree.strip_vroot()
+
+        return dcp_tree
 
     @lru_cache(maxsize=500)
     def normalize_corpus(self, path, src='export', dest='export', renumber=True):
@@ -360,6 +310,60 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
         else:
             assert False
 
+
+class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
+    def __init__(self, induction_settings, directory=None):
+        """
+        :type induction_settings: InductionSettings
+        """
+        ConstituentExperiment.__init__(self, induction_settings, directory=directory)
+        SplitMergeExperiment.__init__(self)
+        self.k_best = 50
+        self.rule_smooth_list = None
+        if self.induction_settings.feature_la:
+            self.feature_log = defaultdict(lambda: 0)
+
+    def initialize_parser(self):
+        self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best,
+                                      save_preprocess=(self.directory, "gfgrammar"))
+
+    def read_stage_file(self):
+        ScoringExperiment.read_stage_file(self)
+
+        if "training_reducts" in self.stage_dict:
+            self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
+            self.organizer.training_reducts.load_traces_from_file(self.stage_dict["training_reducts"])
+
+        if "validation_reducts" in self.stage_dict:
+            self.organizer.validation_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
+            self.organizer.validation_reducts.load_traces_from_file(self.stage_dict["validation_reducts"])
+
+        if "rule_smooth_list" in self.stage_dict:
+            with open(self.stage_dict["rule_smooth_list"]) as fd:
+                self.rule_smooth_list = pickle.load(fd)
+
+        SplitMergeExperiment.read_stage_file(self)
+
+    def induce_from(self, tree):
+        if not tree.complete() or tree.empty_fringe():
+            return None, None
+        part = self.induction_settings.recursive_partitioning(tree)
+
+        if self.induction_settings.feature_la:
+            features = defaultdict(lambda: 0)
+        else:
+            features = None
+        tree_grammar = fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
+                                            term_labeling=self.induction_settings.terminal_labeling,
+                                            isolate_pos=self.induction_settings.isolate_pos,
+                                            feature_logging=features)
+
+        if False and len(tree.token_yield()) == 1:
+            print(tree, map(str, tree.token_yield()), file=self.logger)
+            print(tree_grammar, file=self.logger)
+
+        return tree_grammar, features
+
     def print_config(self, file=None):
         if file is None:
             file = self.logger
@@ -407,10 +411,10 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             self.split_id = split_id
             return la
         else:
-            return super(ConstituentExperiment, self).create_initial_la()
+            return super(ConstituentSMExperiment, self).create_initial_la()
 
     def do_em_training(self):
-        super(ConstituentExperiment, self).do_em_training()
+        super(ConstituentSMExperiment, self).do_em_training()
         if self.induction_settings.feature_la:
             self.patch_initial_grammar()
 
@@ -513,7 +517,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             if True:
                 self.organizer.latent_annotations[0] = grammar_fine_LA_full
             else:
-                self.organizer.latent_annotations[0] = super(ConstituentExperiment, self).create_initial_la()
+                self.organizer.latent_annotations[0] = super(ConstituentSMExperiment, self).create_initial_la()
             self.save_current_la()
             self.organizer.training_reducts = None
 
@@ -522,7 +526,7 @@ class ConstituentExperiment(ScoringExperiment, SplitMergeExperiment):
             self.stage_dict["stage"] = (3, 3, 2)
             # self.initialize_training_environment()
             # self.organizer.last_sm_cycle = 0
-            # self.organizer.latent_annotations[0] = super(ConstituentExperiment, self).create_initial_la()
+            # self.organizer.latent_annotations[0] = super(ConstituentSMExperiment, self).create_initial_la()
 
             # raise Exception("No text")
 
@@ -615,7 +619,7 @@ def main3(directory=None):
     induction_settings.naming_scheme = 'child'
     induction_settings.isolate_pos = True
     induction_settings.feature_la = True
-    experiment = ConstituentExperiment(induction_settings, directory=directory)
+    experiment = ConstituentSMExperiment(induction_settings, directory=directory)
     experiment.organizer.seed = 2
     experiment.organizer.em_epochs = em_epochs
     experiment.organizer.em_epochs_sm = em_epochs_sm
