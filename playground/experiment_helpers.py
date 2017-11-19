@@ -139,8 +139,8 @@ class Experiment(object):
     def __init__(self, directory=None):
         print("Inititialize Experiment")
         self.directory = tempfile.mkdtemp() if directory is None else directory
-        if not os.path.isdir(directory):
-            os.makedirs(directory)
+        if not os.path.isdir(self.directory):
+            os.makedirs(self.directory)
         self.logger = Logger(tempfile.mkstemp(dir=self.directory, suffix='.log')[1])
         self.stage_dict = {"stage": (0, )}
         self.base_grammar = None
