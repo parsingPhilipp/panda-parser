@@ -1,3 +1,4 @@
+from __future__ import print_function
 # Extracting grammars out of hybrid trees.
 
 # from hybridtree import *
@@ -6,12 +7,30 @@ from grammar.lcfrs import *
 from grammar.dcp import *
 from grammar.induction.terminal_labeling import PosTerminals
 from hybridtree.constituent_tree import ConstituentTree
-
+import copy
 # The root symbol.
 start = 'START'
 
 
-def direct_extract_lcfrs(tree, term_labeling=PosTerminals()):
+class BasicNonterminalLabeling:
+    def label_nont(self, tree, id):
+        token = tree.node_token(id)
+        if token.type() == "CONSTITUENT-CATEGORY":
+            return token.category()
+        elif token.type() == "CONSTITUENT-TERMINAL":
+            return token.pos()
+
+
+class NonterminalsWithFunctions:
+    def label_nont(self, tree, id):
+        token = tree.node_token(id)
+        if token.type() == "CONSTITUENT-CATEGORY":
+            return token.category() + "/" + token.edge()
+        elif token.type() == "CONSTITUENT-TERMINAL":
+            return token.pos() + "/" + token.edge()
+
+
+def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=BasicNonterminalLabeling(), binarize=False):
     """
     :type tree: ConstituentTree
     :type term_labeling: ConstituentTerminalLabeling
@@ -27,7 +46,7 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals()):
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0), [])])
         gram.add_rule(lhs, [], dcp=[dcp_rule])
     else:
-        first = direct_extract_lcfrs_from(tree, root, gram, term_labeling)
+        first = direct_extract_lcfrs_from(tree, root, gram, term_labeling, nont_labeling, binarize)
         lhs = LCFRS_lhs(start)
         lhs.add_arg([LCFRS_var(0, 0)])
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
@@ -35,7 +54,7 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals()):
     return gram
 
 
-def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
+def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, binarization):
     """
     :type tree: ConstituentTree
     :type id: str
@@ -49,7 +68,7 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
     spans = join_spans(fringe)
     nont_fanout = len(spans)
     label = tree.node_token(id).category()
-    nont = label + '/' + str(nont_fanout)
+    nont = nont_labeling.label_nont(tree, id) + '/' + str(nont_fanout)
     lhs = LCFRS_lhs(nont)
     children = [(child, join_spans(tree.fringe(child))) \
                 for child in tree.children(id)]
@@ -77,17 +96,121 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling):
     for (child, child_spans) in children:
         if not tree.is_leaf(child):
             rhs_nont_fanout = len(child_spans)
-            rhs += [tree.node_token(child).category() + '/' + str(rhs_nont_fanout)]
+            rhs += [nont_labeling.label_nont(tree, child) + '/' + str(rhs_nont_fanout)]
     dcp_lhs = DCP_var(-1, 0)
     dcp_indices = [DCP_term(DCP_index(i, edge_label=edge), []) for i, edge in enumerate(edge_labels)]
     dcp_vars = [DCP_var(i, 0) for i in range(len(rhs))]
     dcp_term = DCP_term(DCP_string(label, edge_label=tree.node_token(id).edge()), dcp_indices + dcp_vars)
     dcp_rule = DCP_rule(dcp_lhs, [dcp_term])
-    gram.add_rule(lhs, rhs, dcp=[dcp_rule])
+    if binarization:
+        for lhs_, rhs_, dcp_ in binarize(lhs, rhs, [dcp_rule]):
+            gram.add_rule(lhs_, rhs_, dcp=dcp_)
+    else:
+        gram.add_rule(lhs, rhs, dcp=[dcp_rule])
     for (child, _) in children:
         if not tree.is_leaf(child):
-            direct_extract_lcfrs_from(tree, child, gram, term_labeling)
+            direct_extract_lcfrs_from(tree, child, gram, term_labeling, nont_labeling, binarization)
     return nont
+
+
+def shift_var(elem):
+    if isinstance(elem, LCFRS_var):
+        return LCFRS_var(elem.mem - 1, elem.arg)
+    else:
+        return elem
+
+
+def binarize(lhs, rhs, dcp_rule):
+    if len(rhs) < 3:
+        return [(lhs,rhs,dcp_rule)]
+
+    rules = []
+    args = copy.deepcopy(lhs.args())
+    rhs_remain = copy.deepcopy(rhs)
+    origin_counter = 0
+    rule_head = dcp_rule[0].rhs()[0].head()
+    dcp_args = [elem.head() for elem in dcp_rule[0].rhs()[0].arg() if isinstance(elem, DCP_term)]
+    # print(dcp_rule[0], dcp_args)
+    dcp_vars = [DCP_var(0, 0), DCP_var(1, 0)]
+
+    def bar_nont(fanout):
+        return "/".join(["BAR"] + lhs.nont().split("/")[:-1] + [str(fanout)])
+
+    while len(rhs_remain) > 2:
+        lhs_args = []
+        bar_args = []
+        dcp_indices = []
+        bar_indices = []
+        for arg in args:
+            new_arg = []
+            bar_arg = []
+            tmp_arg = []
+            tmp_dcp_indices = []
+            for elem in arg:
+                if isinstance(elem, LCFRS_var):
+                    if elem.mem < 1:
+                        if bar_arg:
+                            new_arg.append(LCFRS_var(1, len(bar_args)))
+                            bar_args.append(bar_arg)
+                            bar_arg = []
+                        new_arg += tmp_arg
+                        dcp_indices += tmp_dcp_indices
+                        tmp_arg = []
+                        tmp_dcp_indices = []
+                        new_arg.append(elem)
+                    else:
+                        bar_arg += tmp_arg
+                        bar_indices += tmp_dcp_indices
+                        tmp_arg = []
+                        tmp_dcp_indices = []
+                        bar_arg.append(elem)
+                else:
+                    tmp_arg.append(elem)
+                    tmp_dcp_indices.append(dcp_args[0])
+                    dcp_args = dcp_args[1:]
+            if bar_arg:
+                new_arg.append(LCFRS_var(1, len(bar_args)))
+                bar_args.append(bar_arg)
+                # new_arg += tmp_arg
+                # bar_indices += tmp_dcp_indices
+                # tmp_arg = []
+                # tmp_dcp_indices = []
+            new_arg += tmp_arg
+            dcp_indices += tmp_dcp_indices
+            lhs_args.append(new_arg)
+        bar_args = map(lambda xs: map(shift_var, xs), bar_args)
+        lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(lhs_args))
+        lhs_new = LCFRS_lhs(lhs_nont)
+        for arg in lhs_args:
+            lhs_new.add_arg(arg)
+
+        dcp_lhs = DCP_var(-1, 0)
+        dcp_indices = [DCP_term(DCP_index(i, idx.edge_label()), arg=[]) for i, idx in enumerate(dcp_indices)]
+        if origin_counter == 0:
+            dcp_term = [DCP_term(head=rule_head, arg=dcp_indices + dcp_vars)]
+        else:
+            dcp_term = dcp_indices + dcp_vars
+        dcp_rule = DCP_rule(dcp_lhs, dcp_term)
+
+        rules.append((lhs_new, rhs_remain[0:1] + [bar_nont(len(bar_args))], [dcp_rule]))
+        args = bar_args
+        dcp_args = bar_indices
+        rhs_remain = rhs_remain[1:]
+        origin_counter += 1
+
+    lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(args))
+    lhs_new = LCFRS_lhs(lhs_nont)
+    for arg in args:
+        lhs_new.add_arg(arg)
+    dcp_lhs = DCP_var(-1, 0)
+    dcp_indices = [DCP_term(DCP_index(i, idx.edge_label()), []) for i, idx in enumerate(dcp_args)]
+    if origin_counter == 0:
+        dcp_term = [DCP_term(head=rule_head, arg=dcp_indices + dcp_vars)]
+    else:
+        dcp_term = dcp_indices + dcp_vars
+    dcp_rule = DCP_rule(dcp_lhs, dcp_term)
+    rules.append((lhs_new, rhs_remain, [dcp_rule]))
+    return rules
 
 
 ############################################################

@@ -1,7 +1,7 @@
 from __future__ import print_function
 from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT
-from constituent.induction import direct_extract_lcfrs
-from parser.gf_parser.gf_interface import GFParser
+from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, LCFRS_rule
+from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from grammar.induction.terminal_labeling import PosTerminals
 from playground.constituent_split_merge import ConstituentExperiment
 import sys
@@ -9,10 +9,10 @@ if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
 
-train_limit = 5000 # 2000
-train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+train_limit = 10000 # 2000
+# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 # train_limit = 40474
-# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
+train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
 train_exclude = [7561, 17632, 46234, 50224]
 train_corpus = None
 
@@ -32,20 +32,40 @@ class InductionSettings:
         self.normalize = False
         self.disconnect_punctuation = True
         self.terminal_labeling = PosTerminals()
+        # self.nont_labeling = NonterminalsWithFunctions()
+        self.nont_labeling = BasicNonterminalLabeling()
+        self.binarize = True
 
 
 class LCFRSExperiment(ConstituentExperiment):
     def __init__(self, induction_settings, directory=None):
         super(LCFRSExperiment, self).__init__(induction_settings, directory=directory)
         self.strip_vroot = True
+        self.k_best = 500
 
     def induce_from(self, obj):
-        grammar = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling)
+        if not obj.complete() or obj.empty_fringe():
+            return None, None
+        grammar = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
+                                       nont_labeling=self.induction_settings.nont_labeling,
+                                       binarize=self.induction_settings.binarize)
         # print(grammar)
+        # for rule in grammar.rules():
+        #     print(rule)
+        #     for lhs, rhs, dcp in binarize(rule.lhs(), rule.rhs(), rule.dcp()):
+        #         bin_rule = LCFRS_rule(lhs=lhs, dcp=dcp)
+        #         for rhs_nont in rhs:
+        #             bin_rule.add_rhs_nont(rhs_nont)
+        #         print("\t", bin_rule)
+        # print()
         return grammar, None
 
     def initialize_parser(self):
-        self.parser = GFParser(self.base_grammar, save_preprocess=(self.directory, "mygrammar"))
+        save_preprocess=(self.directory, "mygrammar")
+        if self.oracle_parsing:
+            self.parser = GFParser_k_best(self.base_grammar, save_preprocess=save_preprocess, k=self.k_best)
+        else:
+            self.parser = GFParser(self.base_grammar, save_preprocess=save_preprocess)
 
 
 def main():
@@ -58,6 +78,7 @@ def main():
                                                end=test_limit, exclude=train_exclude)
     # experiment.resources[TESTING] = CorpusFile(path=train_path, start=1, end=10, exclude=train_exclude)
 
+    experiment.oracle_parsing = True
     experiment.run_experiment()
 
 
