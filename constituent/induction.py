@@ -72,8 +72,6 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, bina
     lhs = LCFRS_lhs(nont)
     children = [(child, join_spans(tree.fringe(child))) \
                 for child in tree.children(id)]
-    rhs = []
-    n_terms = 0
     edge_labels = []
     for (low, high) in spans:
         arg = []
@@ -85,7 +83,6 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, bina
                     if pos == child_low:
                         if tree.is_leaf(child):
                             arg += [term_labeling.token_label(tree.node_token(child))]
-                            n_terms += 1
                             edge_labels += [tree.node_token(child).edge()]
                         else:
                             arg += [LCFRS_var(child_num, j)]
@@ -93,20 +90,32 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, bina
                 if not tree.is_leaf(child):
                     child_num += 1
         lhs.add_arg(arg)
+
+    dcp_term_args = []
+    rhs = []
+    nont_counter = 0
+    term_counter = 0
     for (child, child_spans) in children:
         if not tree.is_leaf(child):
             rhs_nont_fanout = len(child_spans)
             rhs += [nont_labeling.label_nont(tree, child) + '/' + str(rhs_nont_fanout)]
+            dcp_term_args.append(DCP_var(nont_counter, 0))
+            nont_counter += 1
+        else:
+            dcp_term_args.append(DCP_term(DCP_index(term_counter, edge_label=edge_labels[term_counter]), []))
+            term_counter += 1
+
     dcp_lhs = DCP_var(-1, 0)
-    dcp_indices = [DCP_term(DCP_index(i, edge_label=edge), []) for i, edge in enumerate(edge_labels)]
-    dcp_vars = [DCP_var(i, 0) for i in range(len(rhs))]
-    dcp_term = DCP_term(DCP_string(label, edge_label=tree.node_token(id).edge()), dcp_indices + dcp_vars)
-    dcp_rule = DCP_rule(dcp_lhs, [dcp_term])
+    # dcp_indices = [DCP_term(DCP_index(i, edge_label=edge), []) for i, edge in enumerate(edge_labels)]
+    # dcp_vars = [DCP_var(i, 0) for i in range(len(rhs))]
+    # dcp_term_args = dcp_indices + dcp_vars
+    dcp_term = DCP_term(DCP_string(label, edge_label=tree.node_token(id).edge()), dcp_term_args)
+    dcp_rule = [DCP_rule(dcp_lhs, [dcp_term])]
     if binarization:
-        for lhs_, rhs_, dcp_ in binarize(lhs, rhs, [dcp_rule]):
+        for lhs_, rhs_, dcp_ in binarize(lhs, rhs, dcp_rule):
             gram.add_rule(lhs_, rhs_, dcp=dcp_)
     else:
-        gram.add_rule(lhs, rhs, dcp=[dcp_rule])
+        gram.add_rule(lhs, rhs, dcp=dcp_rule)
     for (child, _) in children:
         if not tree.is_leaf(child):
             direct_extract_lcfrs_from(tree, child, gram, term_labeling, nont_labeling, binarization)
@@ -120,6 +129,19 @@ def shift_var(elem):
         return elem
 
 
+def shift_dcp_vars(elems):
+    counter = 0
+    elems_shifted = []
+    for elem in elems:
+        if isinstance(elem, DCP_index):
+            elems_shifted.append(DCP_term(DCP_index(counter, elem.edge_label()), arg=[]))
+            counter += 1
+        elif isinstance(elem, DCP_var):
+            elems_shifted.append(elem)
+        else:
+            assert False
+    return elems_shifted
+
 def binarize(lhs, rhs, dcp_rule):
     if len(rhs) < 3:
         return [(lhs,rhs,dcp_rule)]
@@ -131,7 +153,7 @@ def binarize(lhs, rhs, dcp_rule):
     rule_head = dcp_rule[0].rhs()[0].head()
     dcp_args = [elem.head() for elem in dcp_rule[0].rhs()[0].arg() if isinstance(elem, DCP_term)]
     # print(dcp_rule[0], dcp_args)
-    dcp_vars = [DCP_var(0, 0), DCP_var(1, 0)]
+    # dcp_vars = [DCP_var(0, 0), DCP_var(1, 0)]
 
     def bar_nont(fanout):
         return "/".join(["BAR"] + lhs.nont().split("/")[:-1] + [str(fanout)])
@@ -139,7 +161,7 @@ def binarize(lhs, rhs, dcp_rule):
     while len(rhs_remain) > 2:
         lhs_args = []
         bar_args = []
-        dcp_indices = []
+        dcp_term_args = []
         bar_indices = []
         for arg in args:
             new_arg = []
@@ -151,13 +173,17 @@ def binarize(lhs, rhs, dcp_rule):
                     if elem.mem < 1:
                         if bar_arg:
                             new_arg.append(LCFRS_var(1, len(bar_args)))
+                            if DCP_var(1, 0) not in dcp_term_args:
+                                dcp_term_args.append(DCP_var(1, 0))
                             bar_args.append(bar_arg)
                             bar_arg = []
                         new_arg += tmp_arg
-                        dcp_indices += tmp_dcp_indices
+                        dcp_term_args += tmp_dcp_indices
                         tmp_arg = []
                         tmp_dcp_indices = []
                         new_arg.append(elem)
+                        if DCP_var(0, 0) not in dcp_term_args:
+                            dcp_term_args.append(DCP_var(0, 0))
                     else:
                         bar_arg += tmp_arg
                         bar_indices += tmp_dcp_indices
@@ -171,12 +197,10 @@ def binarize(lhs, rhs, dcp_rule):
             if bar_arg:
                 new_arg.append(LCFRS_var(1, len(bar_args)))
                 bar_args.append(bar_arg)
-                # new_arg += tmp_arg
-                # bar_indices += tmp_dcp_indices
-                # tmp_arg = []
-                # tmp_dcp_indices = []
+                if DCP_var(1, 0) not in dcp_term_args:
+                    dcp_term_args.append(DCP_var(1, 0))
             new_arg += tmp_arg
-            dcp_indices += tmp_dcp_indices
+            dcp_term_args += tmp_dcp_indices
             lhs_args.append(new_arg)
         bar_args = map(lambda xs: map(shift_var, xs), bar_args)
         lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(lhs_args))
@@ -185,11 +209,12 @@ def binarize(lhs, rhs, dcp_rule):
             lhs_new.add_arg(arg)
 
         dcp_lhs = DCP_var(-1, 0)
-        dcp_indices = [DCP_term(DCP_index(i, idx.edge_label()), arg=[]) for i, idx in enumerate(dcp_indices)]
+        # dcp_indices = [DCP_term(DCP_index(i, idx.edge_label()), arg=[]) for i, idx in enumerate(dcp_indices)]
+        dcp_term_args = shift_dcp_vars(dcp_term_args)
         if origin_counter == 0:
-            dcp_term = [DCP_term(head=rule_head, arg=dcp_indices + dcp_vars)]
+            dcp_term = [DCP_term(head=rule_head, arg=dcp_term_args)]
         else:
-            dcp_term = dcp_indices + dcp_vars
+            dcp_term = dcp_term_args
         dcp_rule = DCP_rule(dcp_lhs, dcp_term)
 
         rules.append((lhs_new, rhs_remain[0:1] + [bar_nont(len(bar_args))], [dcp_rule]))
@@ -200,14 +225,25 @@ def binarize(lhs, rhs, dcp_rule):
 
     lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(args))
     lhs_new = LCFRS_lhs(lhs_nont)
+    dcp_term_args = []
+    term_counter = 0
     for arg in args:
         lhs_new.add_arg(arg)
+        for elem in arg:
+            if isinstance(elem, LCFRS_var):
+                if DCP_var(elem.mem, 0) not in dcp_term_args:
+                    dcp_term_args.append(DCP_var(elem.mem, 0))
+            else:
+                dcp_term_args.append(DCP_term(DCP_index(term_counter, dcp_args[term_counter].edge_label()), []))
+                term_counter += 1
+
     dcp_lhs = DCP_var(-1, 0)
-    dcp_indices = [DCP_term(DCP_index(i, idx.edge_label()), []) for i, idx in enumerate(dcp_args)]
+    # dcp_indices = [DCP_term(DCP_index(i, idx.edge_label()), []) for i, idx in enumerate(dcp_args)]
+
     if origin_counter == 0:
-        dcp_term = [DCP_term(head=rule_head, arg=dcp_indices + dcp_vars)]
+        dcp_term = [DCP_term(head=rule_head, arg=dcp_term_args)]
     else:
-        dcp_term = dcp_indices + dcp_vars
+        dcp_term = dcp_term_args
     dcp_rule = DCP_rule(dcp_lhs, dcp_term)
     rules.append((lhs_new, rhs_remain, [dcp_rule]))
     return rules
