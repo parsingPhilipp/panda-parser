@@ -43,7 +43,7 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=Basic
         lhs = LCFRS_lhs(start)
         label = term_labeling.token_label(tree.node_token(root))
         lhs.add_arg([label])
-        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0), [])])
+        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0, edge_label=tree.node_token(root).edge()), [])])
         gram.add_rule(lhs, [], dcp=[dcp_rule])
     else:
         first = direct_extract_lcfrs_from(tree, root, gram, term_labeling, nont_labeling, binarize)
