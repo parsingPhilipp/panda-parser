@@ -60,11 +60,11 @@ class SplitMergeOrganizer:
         self.last_sm_cycle = None
 
     def __str__(self):
-        s = ""
+        s = "Split/Merge Settings {\n"
         for key in self.__dict__:
             if not key.startswith("__") and key not in ["grammarInfo", "storageManager", "nonterminal_map"]:
-                s += key + ": " + str(self.__dict__[key]) + "\n"
-        return s
+                s += "\t" + key + ": " + str(self.__dict__[key]) + "\n"
+        return s + "}\n"
 
 class Resource(object):
     def __init__(self, path, start=1, end=None):
@@ -655,7 +655,7 @@ class SplitMergeExperiment(Experiment):
     def print_config(self, file=None):
         if file is None:
             file = self.logger
-        print("Split/Merge Settings: \n", self.organizer, file=file)
+        print(self.organizer, file=file)
         print("Split/Merge Parsing mode: ", self.parsing_mode, file=file)
 
 
