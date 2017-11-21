@@ -105,6 +105,10 @@ class DCP_var(DCP_rhs_object):
     def evaluateMe(self, evaluator, id=None):
         return evaluator.evaluateVariable(self, id)
 
+    def __eq__(self, other):
+        if not isinstance(other, DCP_var):
+            return False
+        return self.mem() == other.mem() and self.arg() == other.arg()
 
 
 # Index, pointing to terminal in left (LCFRS) component of hybrid grammar.

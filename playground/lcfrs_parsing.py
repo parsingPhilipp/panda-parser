@@ -35,6 +35,7 @@ class InductionSettings:
         # self.nont_labeling = NonterminalsWithFunctions()
         self.nont_labeling = BasicNonterminalLabeling()
         self.binarize = True
+        self.isolate_pos = False # True
 
 
 class LCFRSExperiment(ConstituentExperiment):
@@ -48,7 +49,8 @@ class LCFRSExperiment(ConstituentExperiment):
             return None, None
         grammar = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
                                        nont_labeling=self.induction_settings.nont_labeling,
-                                       binarize=self.induction_settings.binarize)
+                                       binarize=self.induction_settings.binarize,
+                                       isolate_pos=self.induction_settings.isolate_pos)
         # print(grammar)
         # for rule in grammar.rules():
         #     print(rule)
