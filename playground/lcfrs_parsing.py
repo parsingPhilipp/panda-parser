@@ -1,9 +1,11 @@
 from __future__ import print_function
-from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT
+from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT, SplitMergeExperiment
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, LCFRS_rule
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from grammar.induction.terminal_labeling import PosTerminals
 from playground.constituent_split_merge import ConstituentExperiment
+from parser.sDCP_parser.sdcp_trace_manager import compute_reducts
+from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
 import sys
 if sys.version_info < (3,):
     reload(sys)
@@ -44,9 +46,12 @@ class InductionSettings:
                 s += "\t" + key + ": " + str(self.__dict__[key]) + "\n"
         return s + "}"
 
-class LCFRSExperiment(ConstituentExperiment):
+
+class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
     def __init__(self, induction_settings, directory=None):
-        super(LCFRSExperiment, self).__init__(induction_settings, directory=directory)
+        ConstituentExperiment.__init__(self, induction_settings, directory=directory)
+        SplitMergeExperiment.__init__(self)
+
         self.strip_vroot = True
         self.k_best = 500
 
@@ -70,15 +75,31 @@ class LCFRSExperiment(ConstituentExperiment):
 
     def initialize_parser(self):
         save_preprocess=(self.directory, "mygrammar")
-        if self.oracle_parsing:
+        if not self.organizer.disable_split_merge \
+                or self.oracle_parsing:
             self.parser = GFParser_k_best(self.base_grammar, save_preprocess=save_preprocess, k=self.k_best)
         else:
             self.parser = GFParser(self.base_grammar, save_preprocess=save_preprocess)
 
+    def compute_reducts(self, resource):
+
+        # print_grammar(self.base_grammar)
+        # for rule in self.base_grammar.rules():
+        #     print(rule.get_idx(), rule)
+        # sys.stdout.flush()
+
+        training_corpus = self.read_corpus(resource)
+        parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
+        nonterminal_map = self.organizer.nonterminal_map
+        trace = compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling,
+                               parser=parser, nont_map=nonterminal_map, debug=False)
+        print("computed trace")
+        return trace
     def print_config(self, file=None):
         if file is None:
             file = self.logger
         ConstituentExperiment.print_config(self, file=file)
+        SplitMergeExperiment.print_config(self, file=file)
         print(self.induction_settings, file=file)
         print("k-best", self.k_best, file=file)
         print("VROOT stripping", self.strip_vroot, file=file)
@@ -93,6 +114,7 @@ def main():
                                                end=test_limit, exclude=train_exclude)
     # experiment.resources[TESTING] = CorpusFile(path=train_path, start=1, end=10, exclude=train_exclude)
 
+    experiment.organizer.validator_type = "SCORE"
     experiment.oracle_parsing = True
     experiment.run_experiment()
 
