@@ -97,7 +97,6 @@ cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, t
                     else:
                         c_rule[0].add_terminal_to_word_function(terminal_encoder(str(obj)))
 
-
         if not sdcp.add_rule(c_rule[0]):
             output_helper(str(rule))
             raise Exception("rule does not satisfy parser restrictions")
@@ -115,7 +114,7 @@ def print_grammar(grammar):
     nonterminal_encoder = lambda s: nonterminal_map.object_index(s) if ENCODE_NONTERMINALS else str
     terminal_encoder = lambda s: terminal_map.object_index(s) if ENCODE_TERMINALS else str
 
-    cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder)
+    cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=True)
     sdcp.output()
 
 def print_grammar_and_parse_tree(grammar, tree, term_labelling):
@@ -435,7 +434,7 @@ class SDCPDerivation(di.AbstractDerivation):
 
 
 class PysDCPParser(pi.AbstractParser):
-    def __init__(self, grammar, input=None):
+    def __init__(self, grammar, input=None, debug=False):
         self.grammar = grammar
         self.input = input
         if input is not None:
@@ -443,7 +442,7 @@ class PysDCPParser(pi.AbstractParser):
             self.clear()
             self.parse()
         else:
-            self.parser = self.__preprocess(grammar)
+            self.parser = self.__preprocess(grammar, debug=debug)
 
     def parse(self):
         self.parser.set_input(self.input)
