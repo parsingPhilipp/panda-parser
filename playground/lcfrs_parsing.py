@@ -37,6 +37,12 @@ class InductionSettings:
         self.binarize = True
         self.isolate_pos = False # True
 
+    def __str__(self):
+        s = "Induction Settings {\n"
+        for key in self.__dict__:
+            if not key.startswith("__") and key not in []:
+                s += "\t" + key + ": " + str(self.__dict__[key]) + "\n"
+        return s + "}"
 
 class LCFRSExperiment(ConstituentExperiment):
     def __init__(self, induction_settings, directory=None):
@@ -69,6 +75,13 @@ class LCFRSExperiment(ConstituentExperiment):
         else:
             self.parser = GFParser(self.base_grammar, save_preprocess=save_preprocess)
 
+    def print_config(self, file=None):
+        if file is None:
+            file = self.logger
+        ConstituentExperiment.print_config(self, file=file)
+        print(self.induction_settings, file=file)
+        print("k-best", self.k_best, file=file)
+        print("VROOT stripping", self.strip_vroot, file=file)
 
 def main():
     induction_settings = InductionSettings()
