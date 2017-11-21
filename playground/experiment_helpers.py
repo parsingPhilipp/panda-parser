@@ -1,5 +1,5 @@
 from __future__ import print_function
-from grammar.lcfrs import LCFRS
+from grammar.lcfrs import LCFRS, LCFRS_var
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, \
