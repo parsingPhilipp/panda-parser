@@ -110,6 +110,7 @@ def sentence_name_to_hybridtree(name, file_name, disconnect_punctuation=True):
                 edge_label = child.get('label')
                 if (not is_punct(graph, child_id) or not disconnect_punctuation) and edge_label is not None:
                     tree.node_token(child_id).set_edge_label(edge_label)
+        tree.reorder()
         return tree
     else:
         return None
