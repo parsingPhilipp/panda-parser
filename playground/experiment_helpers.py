@@ -449,20 +449,31 @@ class SplitMergeExperiment(Experiment):
                                                              , self.organizer.storageManager, self.score_name)
 
         corpus_validation = self.read_corpus(resource)
-
         obj_count = 0
         der_count = 0
+        timeout = False
+
+        if self.parsing_timeout:
+            timeout_manager = multiprocessing.Manager()
+            return_dict = timeout_manager.dict()
+
         for gold in corpus_validation:
             obj_count += 1
             self.parser.set_input(self.parsing_preprocess(gold))
-            self.parser.parse()
-            derivations = map(lambda x: x[1], self.parser.k_best_derivation_trees())
+
+            if self.parsing_timeout:
+                timeout, derivations_ = self._compute_derivations_with_timeout(return_dict)
+                derivations = map(lambda x: x[1], derivations_)
+            else:
+                self.parser.parse()
+                derivations = list(map(lambda x: x[1], self.parser.k_best_derivation_trees()))
+
             manager = PyDerivationManager(self.base_grammar, self.organizer.nonterminal_map)
             manager.convert_derivations_to_hypergraphs(derivations)
             scores = []
 
-            derivations = self.parser.k_best_derivation_trees()
-            for _, der in derivations:
+            # derivations = self.parser.k_best_derivation_trees()
+            for der in derivations:
                 der_count += 1
                 result = self.parsing_postprocess(self.obtain_sentence(gold), der)
                 score = self.score_object(result, gold)
@@ -470,13 +481,33 @@ class SplitMergeExperiment(Experiment):
 
             self.organizer.validator.add_scored_candidates(manager, scores, self.max_score)
             # print(obj_count, self.max_score, scores)
+            token = 't' if timeout else ('.' if scores else '-')
+            print(token, end='', file=self.logger)
             if scores:
                 print(obj_count, 'max', max(scores), 'firsts', scores[0:10], file=self.logger)
             else:
                 print(obj_count, 'max 00.00', '[]', file=self.logger)
             self.parser.clear()
-            print('.', end='', file=self.logger)
         # print("trees used for validation ", obj_count, "with", der_count * 1.0 / obj_count, "derivations on average")
+
+    def _compute_derivations_with_timeout(self, return_dict):
+        p = multiprocessing.Process(target=self._derivations_timeout_worker, args=(self.parser, return_dict))
+        p.start()
+        p.join(timeout=self.parsing_timeout)
+        if p.is_alive():
+            p.terminate()
+            p.join()
+        if 0 in return_dict and return_dict[0] is not None:
+            result = return_dict[0]
+            # return_dict[0] = None
+            return False, result
+        return True, []
+
+    def _derivations_timeout_worker(self, parser, return_dict):
+        return_dict[0] = None
+        parser.parse()
+        if parser.recognized():
+            return_dict[0] = list(parser.k_best_derivation_trees())
 
     def compute_reducts(self, resource):
         assert False
