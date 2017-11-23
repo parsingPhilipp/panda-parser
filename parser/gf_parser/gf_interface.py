@@ -22,10 +22,12 @@ class GFDerivation(AbstractDerivation):
         """
         self.grammar = grammar
         self.nodes = {}
+        self.children = {}
 
         def populate(expr, gorn):
-            self.nodes[tuple(gorn)] = expr
-            _, children = expr.unpack()
+            rule_string, children = expr.unpack()
+            self.nodes[tuple(gorn)] = int(rule_string[4:])
+            self.children[tuple(gorn)] = len(children)
             for i, child in enumerate(children):
                 populate(child, gorn + [i])
 
@@ -34,14 +36,11 @@ class GFDerivation(AbstractDerivation):
         self._compute_spans()
 
     def child_ids(self, id):
-        exp = self.nodes[id]
-        child_count = len(exp.unpack()[1])
+        child_count = self.children[id]
         return [tuple(list(id) + [c]) for c in range(child_count)]
 
     def getRule(self, id):
-        exp = self.nodes[id]
-        rule_id = int(exp.unpack()[0][4:])
-        return self.grammar.rule_index(rule_id)
+        return self.grammar.rule_index(self.nodes[id])
 
     def root_id(self):
         return tuple([])
