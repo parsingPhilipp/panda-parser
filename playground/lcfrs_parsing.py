@@ -3,13 +3,15 @@ from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusF
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, LCFRS_rule
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from grammar.induction.terminal_labeling import PosTerminals
-from playground.constituent_split_merge import ConstituentExperiment
-from parser.sDCP_parser.sdcp_trace_manager import compute_reducts
+from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment
+from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
 import sys
+import plac
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
+import pickle
 
 train_limit = 10000 # 2000
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
@@ -104,9 +106,26 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         print("k-best", self.k_best, file=file)
         print("VROOT stripping", self.strip_vroot, file=file)
 
-def main():
+    def read_stage_file(self):
+        ScoringExperiment.read_stage_file(self)
+
+        if "training_reducts" in self.stage_dict:
+            self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
+            self.organizer.training_reducts.load_traces_from_file(self.stage_dict["training_reducts"])
+
+        if "validation_reducts" in self.stage_dict:
+            self.organizer.validation_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
+            self.organizer.validation_reducts.load_traces_from_file(self.stage_dict["validation_reducts"])
+
+        SplitMergeExperiment.read_stage_file(self)
+
+
+@plac.annotations(
+    directory=('directory in which experiment is run', 'option', None, str)
+    )
+def main(directory=None):
     induction_settings = InductionSettings()
-    experiment = LCFRSExperiment(induction_settings)
+    experiment = LCFRSExperiment(induction_settings, directory=directory)
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
                                                   , exclude=train_exclude)
@@ -116,10 +135,9 @@ def main():
 
     experiment.organizer.validator_type = "SCORE"
     experiment.oracle_parsing = True
+    experiment.read_stage_file()
     experiment.run_experiment()
 
 
-
-
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    plac.call(main)
