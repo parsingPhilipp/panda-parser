@@ -3,7 +3,7 @@ from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusF
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, LCFRS_rule
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from grammar.induction.terminal_labeling import PosTerminals
-from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment
+from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, terminal_labeling
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
 import sys
@@ -135,6 +135,8 @@ def main(directory=None):
 
     experiment.organizer.validator_type = "SCORE"
     experiment.oracle_parsing = True
+    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]))
+    experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.read_stage_file()
     experiment.run_experiment()
 
