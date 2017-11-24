@@ -301,7 +301,7 @@ class GraphTests(unittest.TestCase):
             else:
                 return token
 
-        grammar = induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, term_labeling)
+        grammar = induction_on_a_corpus(dsgs, rec_part_strategy, nonterminal_labeling, term_labeling, normalize=True)
         grammar.make_proper()
 
         parser = CFGParser(grammar)
