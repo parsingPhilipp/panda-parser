@@ -98,6 +98,16 @@ def consecutive_spans(positions):
     return spans
 
 
+def calc_fanout(rec_part):
+    node, children = rec_part
+    return max([consecutive_spans(node)] + [f for f in map(calc_fanout, children)])
+
+
+def calc_rank(rec_part):
+    _, children = rec_part
+    return max([1, len(children)] + [r for r in map(calc_rank, children)])
+
+
 def induce_grammar_from(dsg, rec_par, decomp, labeling=(lambda x, y: str(x)), terminal_labeling=id, terminal_labeling_lcfrs=None, start="START",
                         normalize=True, enforce_outputs=True):
     if terminal_labeling_lcfrs is None:
