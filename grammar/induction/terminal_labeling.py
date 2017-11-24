@@ -45,7 +45,8 @@ class FeatureTerminals(TerminalLabeling):
         isleaf = token.type() == "CONSTITUENT-TERMINAL"
         feat_list = self.token_to_features(token, isleaf)
         features = self.feature_filter([feat_list])
-        return str(features).translate(string.maketrans('', ''), ' ')
+        return "[" + (",".join([str(key) + ':' + str(val) for key, val in features]))\
+            .translate(string.maketrans('', ''), ' ') + "]"
 
     def __str__(self):
         return "feature-terminals"
