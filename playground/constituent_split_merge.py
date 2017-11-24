@@ -4,7 +4,7 @@ from corpora.negra_parse import hybridtrees_to_sentence_names
 from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals, TerminalLabeling, FeatureTerminals, FrequencyBiasedTerminalLabeling
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs, token_to_features
-from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary
+from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary, extract_feat
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from constituent.dummy_tree import dummy_constituent_tree
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
@@ -61,7 +61,19 @@ test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.Ge
 
 # terminal_labeling = FeatureTerminals(token_to_features, feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
 
-fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
+# fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
+
+
+def my_feature_filter(elem):
+    base_feats = ["number", "person", "tense", "mood", "case", "degree", "category", "pos", "gender"]
+    feat_set = { feat: value for feat, value in elem[0] }
+    if "pos" in feat_set and feat_set["pos"] in {"APPR", "APPRART"}:
+        return extract_feat(elem[0], features=base_feats + ["lemma"])
+    else:
+        return extract_feat(elem[0], features=base_feats)
+
+
+fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 fallback_terminal_labeling = PosTerminals()
 
 
@@ -618,7 +630,7 @@ def main3(directory=None):
     induction_settings.disconnect_punctuation = True
     induction_settings.naming_scheme = 'child'
     induction_settings.isolate_pos = True
-    induction_settings.feature_la = True
+    induction_settings.feature_la = False
     experiment = ConstituentSMExperiment(induction_settings, directory=directory)
     experiment.organizer.seed = 2
     experiment.organizer.em_epochs = em_epochs
