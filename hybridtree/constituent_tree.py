@@ -18,8 +18,8 @@ class ConstituentTree(HybridTree):
     # id: string
     # pos: string (part of speech)
     # word: string
-    def add_leaf(self, id, pos, word, edge='--', morph=[]):
-        token = ConstituentTerminal(word, pos, edge, morph)
+    def add_leaf(self, id, pos, word, edge='--', morph=None, lemma='--'):
+        token = ConstituentTerminal(word, pos, edge, morph, lemma)
         self.add_node(id, token, True, True)
 
     # Add punctuation: has no parent

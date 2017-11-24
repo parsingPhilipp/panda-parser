@@ -105,15 +105,19 @@ class ConstituencyToken(MonadicToken):
 
 
 class ConstituentTerminal(ConstituencyToken):
-    def __init__(self, form, pos, edge='--', morph=[]):
+    def __init__(self, form, pos, edge='--', morph=None, lemma='--'):
         super(ConstituentTerminal, self).__init__()
         self._edge = edge
         self.__form = form
         self.__pos = pos
-        self._morph = morph
+        self._morph = [] if morph is None else morph
+        self.__lemma = lemma
 
     def rank(self):
         return 0
+
+    def lemma(self):
+        return self.__lemma
 
     def form(self):
         return self.__form
@@ -125,7 +129,11 @@ class ConstituentTerminal(ConstituencyToken):
         return self._morph
 
     def __str__(self):
-        return self.form() + ' : ' + self.pos() + '\t' + str(self.edge()) + '\t' + str(self._morph)
+        try:
+            return self.form().encode("utf_8") + "[" + self.__lemma + "]"+ ' : ' + self.pos() + '\t' + str(self.edge())\
+                   + '\t' + str(self._morph)
+        except UnicodeDecodeError:
+            return ' : ' + self.pos() + '\t' + str(self.edge()) + '\t' + str(self._morph)
 
     def __hash__(self):
         return hash((self.__form, self.__pos))

@@ -182,6 +182,7 @@ def shift_dcp_vars(elems):
             assert False
     return elems_shifted
 
+
 def binarize(lhs, rhs, dcp_rule):
     if len(rhs) < 3:
         return [(lhs,rhs,dcp_rule)]
@@ -192,6 +193,7 @@ def binarize(lhs, rhs, dcp_rule):
     origin_counter = 0
     rule_head = dcp_rule[0].rhs()[0].head()
     dcp_args = [elem.head() for elem in dcp_rule[0].rhs()[0].arg() if isinstance(elem, DCP_term)]
+    # print([str(elem) for elem in dcp_rule[0].rhs()[0].arg()])
     # print(dcp_rule[0], dcp_args)
     # dcp_vars = [DCP_var(0, 0), DCP_var(1, 0)]
 
@@ -417,7 +419,7 @@ def id_nont(id_seq, tree, naming):
 def token_to_features(token, isleaf=True):
     id_feat = [("function", token.edge())]
     if isleaf:
-        id_feat += [('form', token.form()), ('pos', token.pos())] + token.morph_feats()
+        id_feat += [('form', token.form()), ('lemma', token.lemma()), ('pos', token.pos())] + token.morph_feats()
     else:
         id_feat += [('category', token.category())]
     return id_feat

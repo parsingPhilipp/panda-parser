@@ -82,6 +82,7 @@ def sentence_name_to_hybridtree(name, file_name, disconnect_punctuation=True):
         for term in graph.iterfind('terminals/t'):
             ident = term.get('id')
             word = term.get('word')
+            lemma = term.get('lemma')
             pos = term.get('pos')
             case = term.get('case')
             number = term.get('number')
@@ -93,7 +94,7 @@ def sentence_name_to_hybridtree(name, file_name, disconnect_punctuation=True):
             morph_feats = [("case", case), ("number", number), ("gender", gender), ("person", person), ("tense", tense),
                            ("degree", degree), ("mood", mood)]
             if is_word(pos, word) or not disconnect_punctuation:
-                tree.add_leaf(ident, pos, word, morph=morph_feats)
+                tree.add_leaf(ident, pos, word, morph=morph_feats, lemma=lemma)
             else:
                 tree.add_punct(ident, pos, word)
         for nont in graph.iterfind('nonterminals/nt'):
