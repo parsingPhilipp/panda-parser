@@ -430,6 +430,11 @@ class SplitMergeExperiment(Experiment):
     def read_stage_file(self):
         # super(SplitMergeExperiment, self).read_stage_file()
         if "latent_annotations" in self.stage_dict:
+            # this is a workaround
+            if self.organizer.training_reducts is None:
+                self.update_reducts(self.compute_reducts(self.resources[TRAINING]), type=TRAINING)
+                self.write_stage_file()
+            # this was a workaround
             self.initialize_training_environment()
 
             las = self.stage_dict["latent_annotations"]
