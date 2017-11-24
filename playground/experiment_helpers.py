@@ -643,12 +643,15 @@ class SplitMergeExperiment(Experiment):
         if self.stage[0] <= 2:
             # prepare reducts
             if not self.organizer.disable_split_merge or not self.organizer.disable_em:
-                self.organizer.training_reducts = self.compute_reducts(self.resources[TRAINING])
+                self.update_reducts(self.compute_reducts(self.resources[TRAINING]), type=TRAINING)
                 self.initialize_training_environment()
 
             # create initial LA and do EM training
             if not self.organizer.disable_em:
                 self.do_em_training()
+                if self.stage < (3, 0):
+                    self.stage_dict["stage"] = (3, 0)
+                self.write_stage_file()
 
         if self.stage[0] <= 3:
             if not self.organizer.disable_split_merge:
