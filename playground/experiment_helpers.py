@@ -379,6 +379,10 @@ class Experiment(object):
         print("Parsing Timeout: ", self.parsing_timeout, file=file)
         print("Oracle parsing: ", self.oracle_parsing, file=file)
 
+    def update_stage(self, new_stage):
+        if new_stage > self.stage:
+            self.stage_dict["stage"] = new_stage
+
 
 class ScoringExperiment(Experiment):
     def __init__(self, directory=None, filters=None):
@@ -673,8 +677,7 @@ class SplitMergeExperiment(Experiment):
             # create initial LA and do EM training
             if not self.organizer.disable_em:
                 self.do_em_training()
-                if self.stage < (3, 0):
-                    self.stage_dict["stage"] = (3, 0)
+                self.update_stage((3,))
                 self.write_stage_file()
 
         if self.stage[0] <= 3:
