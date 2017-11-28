@@ -6,12 +6,12 @@ from grammar.induction.terminal_labeling import PosTerminals
 from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, terminal_labeling
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
+from constituent.filter import check_single_child_label
 import sys
 import plac
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
-import pickle
 
 train_limit = 10000 # 2000
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
@@ -39,7 +39,7 @@ class InductionSettings:
         # self.nont_labeling = NonterminalsWithFunctions()
         self.nont_labeling = BasicNonterminalLabeling()
         self.binarize = True
-        self.isolate_pos = False # True
+        self.isolate_pos = True
 
     def __str__(self):
         s = "Induction Settings {\n"
@@ -103,7 +103,6 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         ConstituentExperiment.print_config(self, file=file)
         SplitMergeExperiment.print_config(self, file=file)
         print(self.induction_settings, file=file)
-        print("k-best", self.k_best, file=file)
         print("VROOT stripping", self.strip_vroot, file=file)
 
     def read_stage_file(self):
@@ -133,10 +132,13 @@ def main(directory=None):
                                                end=test_limit, exclude=train_exclude)
     # experiment.resources[TESTING] = CorpusFile(path=train_path, start=1, end=10, exclude=train_exclude)
 
-    experiment.organizer.validator_type = "SCORE"
-    experiment.oracle_parsing = True
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]))
     experiment.terminal_labeling = induction_settings.terminal_labeling
+    experiment.organizer.validator_type = "SIMPLE"
+    experiment.organizer.project_weights_before_parsing = False
+    experiment.organizer.disable_em = True
+    experiment.organizer.max_sm_cycles = 4
+    experiment.oracle_parsing = False
     experiment.read_stage_file()
     experiment.run_experiment()
 
