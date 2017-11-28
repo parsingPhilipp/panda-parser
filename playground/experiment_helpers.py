@@ -381,10 +381,11 @@ class Experiment(object):
 
 
 class ScoringExperiment(Experiment):
-    def __init__(self, directory=None):
+    def __init__(self, directory=None, filters=None):
         print("Initialize Scoring experiment")
         # super(ScoringExperiment, self).__init__()
         Experiment.__init__(self, directory=directory)
+        self.filters = [] if filters is None else filters
 
     def process_parse(self, gold, result_resource):
         sentence = self.obtain_sentence(gold)
@@ -396,6 +397,14 @@ class ScoringExperiment(Experiment):
                 best_derivation = self.compute_oracle_derivation(derivations, gold)
             else:
                 best_derivation = self.parser.best_derivation_tree()
+                if self.filters:
+                    for _, der in self.parser.k_best_derivation_trees():
+                        tree = self.parsing_postprocess(sentence=sentence, derivation=der,
+                                                        label=self.obtain_label(gold))
+                        if all([predicate(tree) for predicate in self.filters]):
+                            best_derivation = der
+                            break
+
             result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(gold))
             self.post_parsing_action(gold, result, result_resource)
@@ -413,9 +422,17 @@ class ScoringExperiment(Experiment):
                 best_derivation = self.compute_oracle_derivation(derivations, obj)
             else:
                 best_derivation = self.parser.best_derivation_tree()
-            result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
+                if self.filters:
+                    for _, der in self.parser.k_best_derivation_trees():
+                        tree = self.parsing_postprocess(sentence=sentence, derivation=der,
+                                                        label=self.obtain_label(obj))
+                        if all([predicate(tree) for predicate in self.filters]):
+                            best_derivation = der
+                            break
+
+        result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(obj))
-            return_dict[0] = result
+        return_dict[0] = result
 
     def post_parsing_action(self, gold, system, result_resource):
         result_resource.score(system, gold)

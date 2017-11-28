@@ -193,8 +193,8 @@ class ScorerAndWriter(ConstituentScorer, CorpusFile):
 
 
 class ConstituentExperiment(ScoringExperiment):
-    def __init__(self, induction_settings, directory=None):
-        ScoringExperiment.__init__(self, directory=directory)
+    def __init__(self, induction_settings, directory=None, filters=None):
+        ScoringExperiment.__init__(self, directory=directory, filters=filters)
         self.induction_settings = induction_settings
         self.resources[RESULT] = ScorerAndWriter(self, directory=self.directory, logger=self.logger)
         self.serialization_type = NEGRA

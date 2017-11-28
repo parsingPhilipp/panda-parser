@@ -50,8 +50,8 @@ class InductionSettings:
 
 
 class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
-    def __init__(self, induction_settings, directory=None):
-        ConstituentExperiment.__init__(self, induction_settings, directory=directory)
+    def __init__(self, induction_settings, directory=None, filters=None):
+        ConstituentExperiment.__init__(self, induction_settings, directory=directory, filters=filters)
         SplitMergeExperiment.__init__(self)
 
         self.strip_vroot = True
