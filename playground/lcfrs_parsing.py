@@ -125,7 +125,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
     )
 def main(directory=None):
     induction_settings = InductionSettings()
-    experiment = LCFRSExperiment(induction_settings, directory=directory)
+    experiment = LCFRSExperiment(induction_settings, directory=directory, filters=[check_single_child_label, lambda x: check_single_child_label(x, label="SB")])
     experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
                                                   , exclude=train_exclude)
