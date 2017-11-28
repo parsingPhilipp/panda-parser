@@ -443,6 +443,7 @@ class SplitMergeExperiment(Experiment):
         self.organizer = SplitMergeOrganizer()
         self.parsing_mode = "k-best-rerank"  # or "best-latent-derivation"
         self.k_best = 50
+        self.heuristics = -1.0
 
     def read_stage_file(self):
         # super(SplitMergeExperiment, self).read_stage_file()
@@ -648,7 +649,8 @@ class SplitMergeExperiment(Experiment):
             if self.organizer.project_weights_before_parsing: 
                 self.project_weights()
             self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo,
-                                           self.organizer.nonterminal_map, k=self.k_best, save_preprocess=(self.directory, "gfgrammar"))
+                                                self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics,
+                                                save_preprocess=(self.directory, "gfgrammar"))
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
@@ -713,6 +715,8 @@ class SplitMergeExperiment(Experiment):
             file = self.logger
         print(self.organizer, file=file)
         print("Split/Merge Parsing mode: ", self.parsing_mode, file=file)
+        print("k-best", self.k_best)
+        print("heuristics", self.heuristics)
 
 
 class ScorerResource(Resource):

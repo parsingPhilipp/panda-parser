@@ -59,10 +59,11 @@ class GFParser(AbstractParser):
     def all_derivation_trees(self):
         pass
 
-    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None):
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, heuristics=-1.0):
         self.grammar = grammar
         self._goal = None
         self._best = None
+        self._heuristics = heuristics
         if input is not None:
             if grammar.tmp_gf is not None:
                 self.gf_grammar = grammar.tmp_gf
@@ -97,7 +98,7 @@ class GFParser(AbstractParser):
     def parse(self):
         # assert isinstance(self.rules, Enumerator)
         try:
-            i = self.gf_grammar.parse(' '.join(self.input), n=1)
+            i = self.gf_grammar.parse(' '.join(self.input), n=1, heuristics=self._heuristics)
             self._best, self._goal = i.next()
         except pgf.ParseError:
             self._best = None
@@ -137,10 +138,10 @@ class GFParser_k_best(GFParser):
     def recognized(self):
         return self._viterbi is not None
 
-    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, k=1):
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, k=1, heuristics=-1.0):
         self._derivations = []
         self.k = k
-        GFParser.__init__(self, grammar, input, save_preprocess, load_preprocess)
+        GFParser.__init__(self, grammar, input, save_preprocess, load_preprocess, heuristics=heuristics)
 
     def set_input(self, input):
         self.input = input
@@ -154,7 +155,7 @@ class GFParser_k_best(GFParser):
 
     def parse(self):
         try:
-            i = self.gf_grammar.parse(' '.join(self.input), n=self.k)
+            i = self.gf_grammar.parse(' '.join(self.input), n=self.k, heuristics=self._heuristics)
             for obj in i:
                 self._derivations.append(obj)
             self._viterbi_weigth, self._viterbi = self._derivations[0]
