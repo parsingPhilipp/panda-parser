@@ -1,5 +1,7 @@
 from libcpp.vector cimport vector
 from libcpp.memory cimport shared_ptr
+from libcpp cimport bool as c_bool
+from parser.commons.commons cimport unsigned_int
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2
 
 cdef extern from "Trainer/TrainingCommon.h":
@@ -15,14 +17,23 @@ cdef extern from "Trainer/LatentAnnotation.h" namespace "Trainer":
         vector[double] get_root_weights()
         void add_random_noise(shared_ptr[GrammarInfo2], double randPercent, size_t seed, double bias)
         void make_proper(shared_ptr[GrammarInfo2] grammarInfo)
-        bint is_proper(shared_ptr[GrammarInfo2] grammarInfo)
+        c_bool is_proper(shared_ptr[GrammarInfo2] info)
+        c_bool check_for_validity(double delta)
+
 
 cdef class PyLatentAnnotation:
     cdef shared_ptr[LatentAnnotation] latentAnnotation
     cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent=?, size_t seed=?, double bias=?)
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la)
+    cpdef genetic_recombination(self, PyLatentAnnotation otherAnnotation
+                        , PyGrammarInfo info
+                        , vector[c_bool] keepFromOne
+                        , double ioPrecision
+                        , unsigned_int ioCycleLimit)
     cpdef tuple serialize(self)
     cpdef PyLatentAnnotation project_annotation_by_merging(self, PyGrammarInfo grammarInfo,
                                                       vector[vector[vector[size_t]]] merge_sources)
     cpdef void make_proper(self, PyGrammarInfo)
     cpdef bint is_proper(self, PyGrammarInfo)
+    cpdef c_bool is_proper(self, PyGrammarInfo info)
+    cpdef c_bool check_for_validity(self, double delta = *)

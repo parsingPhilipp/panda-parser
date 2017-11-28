@@ -2,6 +2,7 @@ from libcpp.map cimport map
 from libcpp.memory cimport make_shared
 from cython.operator cimport dereference as deref
 from libcpp.functional cimport function
+from libcpp cimport bool as c_bool
 from parser.commons.commons cimport *
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2, PyStorageManager
@@ -15,6 +16,9 @@ from collections import defaultdict
 
 DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
+
+DEF IO_PRECISION_DEFAULT = 0.000001
+DEF IO_CYCLE_LIMIT_DEFAULT = 200
 
 cdef extern from "Trainer/EMTrainer.h" namespace "Trainer":
     cdef cppclass EMTrainer[Nonterminal, TraceID]:
@@ -93,6 +97,13 @@ cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
     cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo)
     cdef LatentAnnotation project_annotation_by_merging[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo,
                                                                      const vector[vector[vector[size_t]]] & merge_sources)
+    cdef LatentAnnotation mix_annotations[Nonterminal](const LatentAnnotation& la1
+            , const LatentAnnotation& la2
+            , const GrammarInfo2& info
+            , const vector[c_bool]& keepFromOne
+            , const double ioPrecision
+            , const unsigned_int ioCycleLimit
+    )
 
 cdef extern from "util.h":
     cdef cppclass Double
@@ -322,7 +333,9 @@ cdef class PyLatentAnnotation:
                     for la in rule_dimensions_product:
                         index = list(la)
                         weight = deref(self.latentAnnotation).get_weight(i, index)
-                        assert weight >= 0.0 and weight <= 1.0001
+                        if not weight >= 0.0 and weight <= 1.0001:
+                            output_helper("Weight not in range: " + str(weight))
+                            assert weight >= 0.0 and weight <= 1.0001
                         split_total_probs[la[0]] += weight
                 if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
                     output_helper(str(nont) + " " + str(split_total_probs))
@@ -354,6 +367,7 @@ cdef class PyLatentAnnotation:
                 if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
                     output_helper(str(split_total_probs))
                     if not all([ abs(x - 1.0) <= 0.1 for x in split_total_probs]):
+                        output_helper("Error: Grammar is not proper!")
                         for i in group:
                             rule_dimensions = [deref(la_proj).nonterminalSplits[_nont]
                                            for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
@@ -433,6 +447,34 @@ cdef class PyLatentAnnotation:
                     raise Exception()
 
         return pyLaProjected
+
+
+    cpdef genetic_recombination(self, PyLatentAnnotation otherAnnotation
+                        , PyGrammarInfo info
+                        , vector[c_bool] keepFromOne
+                        , double ioPrecision
+                        , unsigned_int ioCycleLimit
+                        ):
+        cdef shared_ptr[LatentAnnotation] la_trained \
+                    = make_shared[LatentAnnotation](
+                                  mix_annotations[NONTERMINAL](deref(self.latentAnnotation)
+                                                              , deref(otherAnnotation.latentAnnotation)
+                                                              , deref(info.grammarInfo)
+                                                              , keepFromOne
+                                                              , IO_PRECISION_DEFAULT
+                                                              , IO_CYCLE_LIMIT_DEFAULT
+                                                              )
+                              )
+        cdef PyLatentAnnotation pyLaTrained = PyLatentAnnotation()
+        pyLaTrained.latentAnnotation = la_trained
+
+        return pyLaTrained
+
+    cpdef c_bool check_for_validity(self, double delta = 0.0005):
+        return deref(self.latentAnnotation).check_for_validity(delta)
+
+    cpdef c_bool is_proper(self, PyGrammarInfo info):
+        return deref(self.latentAnnotation).is_proper(info.grammarInfo);
 
 
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):
@@ -586,8 +628,6 @@ cdef class PyLatentAnnotation:
     cpdef void make_proper(self, PyGrammarInfo grammarInfo):
         deref(self.latentAnnotation).make_proper(grammarInfo.grammarInfo)
 
-    cpdef bint is_proper(self, PyGrammarInfo grammarInfo):
-        return deref(self.latentAnnotation).is_proper(grammarInfo.grammarInfo)
 
 cpdef PyLatentAnnotation build_PyLatentAnnotation(vector[size_t] nonterminalSplits
                                                   , vector[double] rootWeights
