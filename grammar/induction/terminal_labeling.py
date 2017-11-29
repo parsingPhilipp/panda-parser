@@ -56,22 +56,27 @@ class FrequencyBiasedTerminalLabeling(TerminalLabeling):
     def __init__(self, fine_labeling, fall_back, corpus, threshold):
         self.fine_labeling = fine_labeling
         self.fall_back = fall_back
-        self.feature_count = defaultdict(lambda: 0)
+        self.fine_label_count = defaultdict(lambda: 0)
+        self.threshold = threshold
+        self.backoff_mode = False
         for tree in corpus:
             for token in tree.token_yield():
                 label = self.fine_labeling.token_label(token)
-                self.feature_count[label] += 1
-        self.feature_count = {label for label in self.feature_count if self.feature_count[label] >= threshold}
+                self.fine_label_count[label] += 1
+        self.fine_label_count = {label for label in self.fine_label_count if self.fine_label_count[label] >= threshold}
 
     def token_label(self, token):
         fine_label = self.fine_labeling.token_label(token)
-        if fine_label in self.feature_count:
+        if not self.backoff_mode and fine_label in self.fine_label_count:
             return fine_label
         else:
             return self.fall_back.token_label(token)
 
     def __str__(self):
-        return "frequency-biased[" + str(self.fine_labeling) + '|' + str(self.fall_back) + "]"
+        return "frequency-biased["\
+               + str(self.threshold) \
+               + '|' + str(self.fine_labeling) \
+               + '|' + str(self.fall_back) + "]"
 
 
 class FormTerminals(TerminalLabeling):
