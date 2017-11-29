@@ -56,6 +56,8 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 
         self.strip_vroot = True
         self.k_best = 500
+        self.backoff = False
+        self.backoff_factor = 10.0
 
     def induce_from(self, obj):
         if not obj.complete() or obj.empty_fringe():
@@ -64,6 +66,14 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
                                        nont_labeling=self.induction_settings.nont_labeling,
                                        binarize=self.induction_settings.binarize,
                                        isolate_pos=self.induction_settings.isolate_pos)
+        if self.backoff:
+            self.terminal_labeling.backoff_mode = True
+            grammar2 = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
+                                            nont_labeling=self.induction_settings.nont_labeling,
+                                            binarize=self.induction_settings.binarize,
+                                            isolate_pos=self.induction_settings.isolate_pos)
+            self.terminal_labeling.backoff_mode = False
+            grammar.add_gram(grammar2)
         # print(grammar)
         # for rule in grammar.rules():
         #     print(rule)
@@ -93,8 +103,13 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         training_corpus = self.read_corpus(resource)
         parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
         nonterminal_map = self.organizer.nonterminal_map
+        frequency = self.backoff_factor if self.backoff else 1.0
         trace = compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling,
-                               parser=parser, nont_map=nonterminal_map, debug=False)
+                               parser=parser, nont_map=nonterminal_map, debug=False, frequency=frequency)
+        if self.backoff:
+            self.terminal_labeling.backoff_mode = True
+            trace.compute_reducts(training_corpus, frequency=1.0)
+            self.terminal_labeling.backoff_mode = False
         print("computed trace")
         return trace
     def print_config(self, file=None):
@@ -138,6 +153,7 @@ def main(directory=None):
     experiment.organizer.project_weights_before_parsing = False
     experiment.organizer.disable_em = True
     experiment.organizer.max_sm_cycles = 4
+    experiment.backoff = True
     experiment.oracle_parsing = False
     experiment.read_stage_file()
     experiment.run_experiment()
