@@ -147,7 +147,9 @@ def main(directory=None):
                                                end=test_limit, exclude=train_exclude)
     # experiment.resources[TESTING] = CorpusFile(path=train_path, start=1, end=10, exclude=train_exclude)
 
-    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]))
+    backoff_threshold = 8
+    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
+                                                             backoff_threshold)
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.project_weights_before_parsing = False

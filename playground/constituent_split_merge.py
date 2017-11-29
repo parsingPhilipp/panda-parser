@@ -76,9 +76,12 @@ def my_feature_filter(elem):
 fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 fallback_terminal_labeling = PosTerminals()
 
+terminal_threshold = 10
 
-def terminal_labeling(corpus):
-    return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, 5.0)
+
+def terminal_labeling(corpus, threshold=terminal_threshold):
+    return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
+
 
 fanout = 2
 recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + '-left-to-right')[0]
