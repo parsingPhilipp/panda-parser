@@ -434,9 +434,9 @@ class ScoringExperiment(Experiment):
                             best_derivation = der
                             break
 
-        result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
-                                              label=self.obtain_label(obj))
-        return_dict[0] = result
+            result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
+                                                  label=self.obtain_label(obj))
+            return_dict[0] = result
 
     def post_parsing_action(self, gold, system, result_resource):
         result_resource.score(system, gold)
