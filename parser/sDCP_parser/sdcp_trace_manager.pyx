@@ -15,7 +15,8 @@ DEF ENCODE_TERMINALS = True
 cdef extern from "DCP/util.h" namespace "DCP":
     cdef void add_trace_to_manager[Nonterminal, Terminal, Position, TraceID]\
         (SDCPParser[Nonterminal, Terminal, Position]
-         , TraceManagerPtr[Nonterminal, TraceID])
+         , TraceManagerPtr[Nonterminal, TraceID],
+           double frequency)
 
 cdef extern from "util.h":
     cdef void output_helper(string)
@@ -56,7 +57,7 @@ cdef class PySDCPTraceManager(PyTraceManager):
             , make_shared[vector[size_t]](edge_labels)
             , False)
 
-    def compute_reducts(self, corpus):
+    def compute_reducts(self, corpus, frequency=1.0):
         start_time = time.time()
         cdef int successful = 0
         cdef int fails = 0
@@ -65,11 +66,13 @@ cdef class PySDCPTraceManager(PyTraceManager):
             self.parser.set_input(tree)
             self.parser.do_parse()
             if self.parser.recognized():
-                add_trace_to_manager[NONTERMINAL,TERMINAL,int,size_t](self.parser.parser[0], self.trace_manager)
+                add_trace_to_manager[NONTERMINAL,TERMINAL,int,size_t](self.parser.parser[0], self.trace_manager,
+                                                                      frequency)
                 successful += 1
                 # self.parser.print_trace()
             else:
                 fails += 1
+                output_helper(str(i) + " " + str(tree) + str(tree.token_yield()) + " " + str(tree.full_yield()) )
 
             if (i + 1) % 100 == 0:
                 output_helper(str(i + 1) + ' ' + str(time.time() - start_time))
@@ -81,9 +84,10 @@ cdef class PySDCPTraceManager(PyTraceManager):
     cpdef PySDCPParser get_parser(self):
         return self.parser
 
-def compute_reducts(grammar, corpus, term_labelling, PySDCPParser parser=None, Enumerator nont_map=None, debug=False):
+def compute_reducts(grammar, corpus, term_labelling, PySDCPParser parser=None, Enumerator nont_map=None, debug=False,
+                    frequency=1.0):
     output_helper("creating trace")
     trace = PySDCPTraceManager(grammar, term_labelling, parser=parser, nont_map=nont_map, debug=debug)
     output_helper("computing reducts")
-    trace.compute_reducts(corpus)
+    trace.compute_reducts(corpus, frequency=frequency)
     return trace

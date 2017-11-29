@@ -9,7 +9,8 @@ cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
     cdef void add_hypergraph_to_trace[Nonterminal, TraceID](
             TraceManagerPtr[Nonterminal, TraceID] manager
             , shared_ptr[Hypergraph[Nonterminal, size_t]] hypergraph
-            , Element[Node[Nonterminal]] root)
+            , Element[Node[Nonterminal]] root
+            , double frequency)
 
 
 cdef class PyElement:
@@ -71,7 +72,7 @@ cdef class PyDerivationManager(PyTraceManager):
 
             # root
             pyElement = nodeMap[derivation.root_id()]
-            add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element))
+            add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
             # nodeMap.clear()
 
     cpdef Enumerator get_nonterminal_map(self):
@@ -117,6 +118,6 @@ cdef class PyDerivationManager(PyTraceManager):
 
             # root
             pyElement = nodeMap[rtg.initial]
-            add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element))
+            add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
             # nodeMap.clear()
 

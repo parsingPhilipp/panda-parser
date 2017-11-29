@@ -3,6 +3,7 @@ from parser.coarse_to_fine_parser.ranker import rank_derivations, build_ranker
 from parser.trace_manager.sm_trainer import PyLatentAnnotation
 import math
 
+
 class Coarse_to_fine_parser(AbstractParser):
     def best_derivation_tree(self):
         for _, der in self.k_best_derivation_trees():

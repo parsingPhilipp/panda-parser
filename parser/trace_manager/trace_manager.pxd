@@ -40,6 +40,7 @@ cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
         const Element[Node[Nonterminal]]& get_goal()
         bint has_topological_order()
         shared_ptr[Hypergraph[Nonterminal, size_t]] get_hypergraph()
+        double get_frequency()
     cdef cppclass TraceManager2[Nonterminal, TraceID]:
         Trace[Nonterminal, TraceID] operator[](size_t)
     cdef cppclass TraceManagerPtr[Nonterminal, TraceID]:

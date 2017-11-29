@@ -97,6 +97,8 @@ cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
     cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo)
     cdef LatentAnnotation project_annotation_by_merging[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo,
                                                                      const vector[vector[vector[size_t]]] & merge_sources)
+
+cdef extern from "Trainer/GeneticCrosser.h" namespace "Trainer":
     cdef LatentAnnotation mix_annotations[Nonterminal](const LatentAnnotation& la1
             , const LatentAnnotation& la2
             , const GrammarInfo2& info
