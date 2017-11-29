@@ -6,6 +6,7 @@ from grammar.induction.recursive_partitioning import the_recursive_partitioning_
 from grammar.lcfrs import LCFRS
 from constituent.induction import fringe_extract_lcfrs
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
+from constituent.dummy_tree import dummy_constituent_tree
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 import time
@@ -114,54 +115,6 @@ parsing_method = "filter-ctf"
 parse_results_prefix = "/tmp"
 parse_results = "results"
 parse_results_suffix = ".export"
-
-
-def dummy_constituent_tree(token_yield, full_yield, dummy_label, dummy_root):
-    """
-    generates a dummy tree for a given yield using 'S' as inner node symbol
-    :param token_yield: connected yield of a parse tree
-    :type: list of ConstituentTerminal
-    :param full_yield: full yield of the parse tree
-    :type: list of ConstituentTerminal
-    :return: parse tree
-    :rtype: ConstituentTree
-    """
-    tree = ConstituentTree()
-
-
-    # create all leaves and punctuation
-    for token in full_yield:
-        if token not in token_yield:
-            tree.add_punct(full_yield.index(token), token.pos(), token.form())
-        else:
-            tree.add_leaf(full_yield.index(token), token.pos(), token.form())
-
-    # generate root node
-    root_id = 'n0'
-    tree.add_node(root_id, ConstituentCategory(dummy_root))
-    tree.add_to_root(root_id)
-
-    parent = root_id
-
-    if len(token_yield) > 1:
-        i = 1
-        # generate inner nodes of branching tree
-        for token in token_yield[:-2]:
-            node = ConstituentCategory(str(dummy_label))
-            tree.add_node('n' + str(i), node)
-            tree.add_child(parent, 'n' + str(i))
-            tree.add_child(parent, full_yield.index(token))
-            parent = 'n' + str(i)
-            i+=1
-
-        token = token_yield[len(token_yield) - 2]
-        tree.add_child(parent, full_yield.index(token))
-        token = token_yield[len(token_yield) - 1]
-        tree.add_child(parent, full_yield.index(token))
-    elif len(token_yield) == 1:
-        tree.add_child(parent, full_yield.index(token_yield[0]))
-
-    return tree
 
 
 def do_parsing(parser, corpus):
