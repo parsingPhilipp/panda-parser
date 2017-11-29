@@ -134,14 +134,11 @@ class InductionSettings:
         self.feat_function = FeatureFunction()
 
     def __str__(self):
-        attributes = [("recursive partitioning", self.recursive_partitioning.__name__)
-                      , ("terminal labeling", self.terminal_labeling)
-                      , ("isolate POS", self.isolate_pos)
-                      , ("naming scheme", self.naming_scheme)
-                      , ("disconnect punctuation", self.disconnect_punctuation)
-                      , ("normalize corpus", self.normalize)
-                      , ("feat_function", self.feat_function)]
-        return '\n'.join([a[0] + ' : ' + str(a[1]) for a in attributes])
+        s = "Induction Settings {\n"
+        for key in self.__dict__:
+            if not key.startswith("__") and key not in []:
+                s += "\t" + key + ": " + str(self.__dict__[key]) + "\n"
+        return s + "}"
 
 
 class ConstituentScorer(ScorerResource):
@@ -381,8 +378,7 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
             file = self.logger
         ScoringExperiment.print_config(self, file=file)
         SplitMergeExperiment.print_config(self, file=file)
-        print("Induction Settings {", file=file)
-        print(self.induction_settings, "\n}", file=file)
+        print(self.induction_settings, file=file)
         print("k-best", self.k_best, file=file)
         print("Serialization type", self.serialization_type, file=file)
         print("Output counter", self.use_output_counter, "start", self.output_counter, file=file)
