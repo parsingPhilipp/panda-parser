@@ -6,7 +6,7 @@ from grammar.induction.recursive_partitioning import the_recursive_partitioning_
 from constituent.induction import fringe_extract_lcfrs, token_to_features
 from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary, extract_feat
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
-from constituent.dummy_tree import dummy_constituent_tree
+from constituent.dummy_tree import dummy_constituent_tree, flat_dummy_constituent_tree
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 import copy
 import os
@@ -216,7 +216,7 @@ class ConstituentExperiment(ScoringExperiment):
 
     def compute_fallback(self, sentence, label=None):
         full_yield, id_yield, full_token_yield, token_yield = sentence
-        return dummy_constituent_tree(token_yield, full_token_yield, 'NP', 'S', label)
+        return flat_dummy_constituent_tree(token_yield, full_token_yield, 'NP', 'S', label)
 
     def read_corpus(self, resource):
         path = resource.path

@@ -46,3 +46,35 @@ def dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dummy_roo
         tree.add_child(parent, full_token_yield.index(token_yield[0]))
 
     return tree
+
+
+def flat_dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dummy_root, label=None):
+    """
+    :param token_yield: connected yield of a parse tree
+    :type token_yield: list[ConstituentTerminal]
+    :param full_token_yield: full yield of the parse tree
+    :type full_token_yield: list[ConstituentTerminal]
+    :return: dummy constituent tree
+    :rtype: ConstituentTree
+    generates a dummy tree for a given yield using dummy_label as inner node symbol
+    """
+    tree = ConstituentTree(label)
+
+    # generate root node
+    root_id = 'n_root'
+    tree.add_node(root_id, ConstituentCategory(dummy_root))
+    tree.add_to_root(root_id)
+
+    parent = root_id
+
+    # create all leaves and punctuation
+    for token in full_token_yield:
+        if token not in token_yield:
+            tree.add_punct(full_token_yield.index(token), token.pos(), token.form())
+        else:
+            idx = full_token_yield.index(token)
+            tree.add_leaf(idx, token.pos(), token.form(), morph=token.morph_feats(), lemma=token.lemma())
+
+            tree.add_child(parent, idx)
+
+    return tree
