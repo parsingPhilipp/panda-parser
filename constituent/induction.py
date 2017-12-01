@@ -32,10 +32,13 @@ class NonterminalsWithFunctions:
 
 
 def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=BasicNonterminalLabeling(), binarize=False,
-                         isolate_pos=False):
+                         isolate_pos=False, hmarkov=0):
     """
     :type tree: ConstituentTree
     :type term_labeling: ConstituentTerminalLabeling
+    :type binarize: bool
+    :type isolate_pos: bool
+    :type hmarkov: int
     :rtype: LCFRS
     Extract LCFRS directly from hybrid tree.
     """
@@ -78,7 +81,8 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=Basic
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0, edge_label=tree.node_token(root).edge()), [])])
         gram.add_rule(lhs, [], dcp=[dcp_rule])
     else:
-        first = direct_extract_lcfrs_from(tree, root, gram, term_labeling, nont_labeling, binarize, isolate_pos)
+        first = direct_extract_lcfrs_from(tree, root, gram, term_labeling, nont_labeling, binarize, isolate_pos,
+                                          hmarkov=hmarkov)
         lhs = LCFRS_lhs(start)
         lhs.add_arg([LCFRS_var(0, 0)])
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
@@ -86,12 +90,15 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=Basic
     return gram
 
 
-def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, binarization, isolate_pos=False):
+def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, binarization, isolate_pos=False, hmarkov=0):
     """
     :type tree: ConstituentTree
     :type id: str
     :type gram: LCFRS
     :type term_labeling: ConstituentTerminalLabeling
+    :type isolate_pos: bool
+    :type binarization: bool
+    :type hmarkov: int
     :rtype: str
 
     Traverse subtree at id and put extracted rules in grammar.
@@ -152,13 +159,14 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, bina
     dcp_term = DCP_term(DCP_string(label, edge_label=tree.node_token(id).edge()), dcp_term_args)
     dcp_rule = [DCP_rule(dcp_lhs, [dcp_term])]
     if binarization:
-        for lhs_, rhs_, dcp_ in binarize(lhs, rhs, dcp_rule):
+        for lhs_, rhs_, dcp_ in binarize(lhs, rhs, dcp_rule, hmarkov=hmarkov):
             gram.add_rule(lhs_, rhs_, dcp=dcp_)
     else:
         gram.add_rule(lhs, rhs, dcp=dcp_rule)
     for (child, _) in children:
         if not tree.is_leaf(child) or isolate_pos:
-            direct_extract_lcfrs_from(tree, child, gram, term_labeling, nont_labeling, binarization, isolate_pos)
+            direct_extract_lcfrs_from(tree, child, gram, term_labeling, nont_labeling, binarization, isolate_pos,
+                                      hmarkov=hmarkov)
     return nont
 
 
@@ -183,7 +191,7 @@ def shift_dcp_vars(elems):
     return elems_shifted
 
 
-def binarize(lhs, rhs, dcp_rule):
+def binarize(lhs, rhs, dcp_rule, hmarkov=0):
     if len(rhs) < 3:
         return [(lhs,rhs,dcp_rule)]
 
@@ -197,8 +205,15 @@ def binarize(lhs, rhs, dcp_rule):
     # print(dcp_rule[0], dcp_args)
     # dcp_vars = [DCP_var(0, 0), DCP_var(1, 0)]
 
-    def bar_nont(fanout):
-        return "/".join(["BAR"] + lhs.nont().split("/")[:-1] + [str(fanout)])
+    def strip_fanout(nont):
+        return nont.split("/")[:-1]
+
+    def bar_nont(fanout, nont_pos):
+        rhs_context = []
+        for prev_pos in range(nont_pos):
+            if prev_pos >= nont_pos - hmarkov:
+                rhs_context += strip_fanout(rhs[prev_pos])
+        return "/".join(["BAR"] + strip_fanout(lhs.nont()) + rhs_context + [str(fanout)])
 
     while len(rhs_remain) > 2:
         lhs_args = []
@@ -245,7 +260,7 @@ def binarize(lhs, rhs, dcp_rule):
             dcp_term_args += tmp_dcp_indices
             lhs_args.append(new_arg)
         bar_args = map(lambda xs: map(shift_var, xs), bar_args)
-        lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(lhs_args))
+        lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(lhs_args), origin_counter)
         lhs_new = LCFRS_lhs(lhs_nont)
         for arg in lhs_args:
             lhs_new.add_arg(arg)
@@ -259,13 +274,13 @@ def binarize(lhs, rhs, dcp_rule):
             dcp_term = dcp_term_args
         dcp_rule = DCP_rule(dcp_lhs, dcp_term)
 
-        rules.append((lhs_new, rhs_remain[0:1] + [bar_nont(len(bar_args))], [dcp_rule]))
+        rules.append((lhs_new, rhs_remain[0:1] + [bar_nont(len(bar_args), origin_counter + 1)], [dcp_rule]))
         args = bar_args
         dcp_args = bar_indices
         rhs_remain = rhs_remain[1:]
         origin_counter += 1
 
-    lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(args))
+    lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(args), origin_counter)
     lhs_new = LCFRS_lhs(lhs_nont)
     dcp_term_args = []
     term_counter = 0

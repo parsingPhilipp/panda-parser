@@ -1,6 +1,7 @@
 from __future__ import print_function
 from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT, SplitMergeExperiment
-from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, LCFRS_rule
+from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
+    LCFRS_rule
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from grammar.induction.terminal_labeling import PosTerminals
 from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, terminal_labeling
@@ -40,6 +41,7 @@ class InductionSettings:
         self.nont_labeling = BasicNonterminalLabeling()
         self.binarize = True
         self.isolate_pos = True
+        self.hmarkov = 0
 
     def __str__(self):
         s = "Induction Settings {\n"
@@ -65,13 +67,15 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         grammar = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
                                        nont_labeling=self.induction_settings.nont_labeling,
                                        binarize=self.induction_settings.binarize,
-                                       isolate_pos=self.induction_settings.isolate_pos)
+                                       isolate_pos=self.induction_settings.isolate_pos,
+                                       hmarkov=self.induction_settings.hmarkov)
         if self.backoff:
             self.terminal_labeling.backoff_mode = True
             grammar2 = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
                                             nont_labeling=self.induction_settings.nont_labeling,
                                             binarize=self.induction_settings.binarize,
-                                            isolate_pos=self.induction_settings.isolate_pos)
+                                            isolate_pos=self.induction_settings.isolate_pos,
+                                            hmarkov=self.induction_settings.hmarkov)
             self.terminal_labeling.backoff_mode = False
             grammar.add_gram(grammar2)
         # print(grammar)
@@ -139,6 +143,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
     )
 def main(directory=None):
     induction_settings = InductionSettings()
+    induction_settings.hmarkov = 1
     filters = []
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
     experiment = LCFRSExperiment(induction_settings, directory=directory, filters=filters)
