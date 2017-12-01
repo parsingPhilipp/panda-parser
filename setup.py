@@ -79,7 +79,14 @@ class CustomBuildExtCommand(build_ext):
             retval = p.wait()
         return retval
 
-
+extra_compile_args = ["-std=c++11", "-gdwarf-3", "-Wall", "-rdynamic"]
+# openmp = ["-fopenmp", "-lpthread"]
+openmp = []
+# optimizations = ["-O3"]
+optimizations = []
+# optimizations_tensors = ["-O3", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2", "-ftree-vectorize", "-march=native"]
+optimizations_tensors = []
+linker_args = ["-rdynamic"]
 
 ext_modules=[
     Extension("decomposition",       ["decomposition.pyx"]),
@@ -87,24 +94,19 @@ ext_modules=[
     Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++', extra_compile_args=['-std=c++14', '-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl'], include_dirs=add_include),
     Extension("util.enumerator", sources=["util/enumerator.pyx"], language='c++'),
     Extension("grammar.lcfrs",  ["grammar/lcfrs.pyx"]),
-    Extension("parser.cpp_cfg_parser.parser_wrapper", sources=["parser/cpp_cfg_parser/parser_wrapper.pyx", "parser/cpp_cfg_parser/cfg.cpp", "parser/cpp_cfg_parser/parser.cpp"], language='c++', extra_compile_args=["-std=c++11"], extra_link_args=["-std=c++11"]),
-    Extension("parser.sDCP_parser.sdcp_parser_wrapper", sources=["parser/sDCP_parser/sdcp_parser_wrapper.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3"], extra_link_args=["-std=c++14",  "-O3", "-gdwarf-3"], include_dirs=sterm_include),
+    Extension("parser.cpp_cfg_parser.parser_wrapper", sources=["parser/cpp_cfg_parser/parser_wrapper.pyx", "parser/cpp_cfg_parser/cfg.cpp", "parser/cpp_cfg_parser/parser.cpp"], language='c++', extra_compile_args=extra_compile_args, extra_link_args=linker_args),
+    Extension("parser.sDCP_parser.sdcp_parser_wrapper", sources=["parser/sDCP_parser/sdcp_parser_wrapper.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args, include_dirs=sterm_include),
     Extension("parser.LCFRS.LCFRS_Parser_Wrapper", sources=["parser/LCFRS/LCFRS_Parser_Wrapper.pyx"], language='c++',
-              extra_compile_args=["-std=c++14"], extra_link_args=["-std=c++14"], include_dirs=sterm_include),
-    Extension("parser.trace_manager.trace_manager", sources=["parser/trace_manager/trace_manager.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3"], include_dirs=eigen_include+sterm_include),
-    Extension("parser.supervised_trainer.trainer", sources=["parser/supervised_trainer/trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=eigen_include+sterm_include),
+              extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args, include_dirs=sterm_include),
+    Extension("parser.trace_manager.trace_manager", sources=["parser/trace_manager/trace_manager.pyx"], language='c++', extra_compile_args=linker_args + optimizations_tensors, include_dirs=eigen_include+sterm_include),
+    Extension("parser.supervised_trainer.trainer", sources=["parser/supervised_trainer/trainer.pyx"], language='c++', extra_compile_args=linker_args + optimizations, include_dirs=eigen_include+sterm_include),
     Extension("parser.LCFRS.LCFRS_trace_manager", sources=["parser/LCFRS/LCFRS_trace_manager.pyx"], language='c++',
-              extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=eigen_include+sterm_include),
-    Extension("parser.sDCP_parser.sdcp_trace_manager", sources=["parser/sDCP_parser/sdcp_trace_manager.pyx"], language='c++',
-              extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3", "-O3"], include_dirs=eigen_include+sterm_include),
-    Extension("parser.trace_manager.sm_trainer_util", sources=["parser/trace_manager/sm_trainer_util.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
-        , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include),
-    Extension("parser.coarse_to_fine_parser.ranker", sources=["parser/coarse_to_fine_parser/ranker.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
-        , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include),
-    Extension("parser.trace_manager.score_validator", sources=["parser/trace_manager/score_validator.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
-        , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include),
-    Extension("parser.trace_manager.sm_trainer", sources=["parser/trace_manager/sm_trainer.pyx"], language='c++', extra_compile_args=["-std=c++14", "-Wall", "-gdwarf-3" , "-O3", "-msse2", "-ftree-vectorizer-verbose=2", "-fdump-tree-optimized", "-ftree-vectorize", "-lpthread", "-fopenmp"
-        , "-rdynamic"], extra_link_args=["-std=c++14", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2",  "-O3", "-ftree-vectorize", "-gdwarf-3", "-lpthread", "-fopenmp"], include_dirs=eigen_include+sterm_include)
+              extra_compile_args=extra_compile_args + optimizations, include_dirs=eigen_include+sterm_include, extra_linker_args=link_args),
+    Extension("parser.sDCP_parser.sdcp_trace_manager", sources=["parser/sDCP_parser/sdcp_trace_manager.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations, include_dirs=eigen_include+sterm_include),
+    Extension("parser.trace_manager.sm_trainer_util", sources=["parser/trace_manager/sm_trainer_util.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations_tensors + openmp, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
+    Extension("parser.coarse_to_fine_parser.ranker", sources=["parser/coarse_to_fine_parser/ranker.pyx"], language='c++', extra_compile_args=extra_compile_args + openmp + optimizations_tensors, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
+    Extension("parser.trace_manager.score_validator", sources=["parser/trace_manager/score_validator.pyx"], language='c++', extra_compile_args=extra_compile_args + openmp + optimizations_tensors, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
+    Extension("parser.trace_manager.sm_trainer", sources=["parser/trace_manager/sm_trainer.pyx"], language='c++', extra_compile_args=extra_compile_args + openmp + optimizations_tensors, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include)
 ]
 
 if __name__ == '__main__':
