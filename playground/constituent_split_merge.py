@@ -325,6 +325,19 @@ class ConstituentExperiment(ScoringExperiment):
         else:
             assert False
 
+    def print_config(self, file=None):
+        if file is None:
+            file = self.logger
+        ScoringExperiment.print_config(self, file=file)
+        print(self.induction_settings, file=file)
+        print("k-best", self.k_best, file=file)
+        print("Serialization type", self.serialization_type, file=file)
+        print("Output counter", self.use_output_counter, "start", self.output_counter, file=file)
+        print("VROOT stripping", self.strip_vroot, file=file)
+        print("Max score", self.max_score, file=file)
+        print("Backoff", self.backoff, file=file)
+        print("Backoff-factor", self.backoff_factor, file=file)
+
 
 class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
     def __init__(self, induction_settings, directory=None):
@@ -391,13 +404,8 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
     def print_config(self, file=None):
         if file is None:
             file = self.logger
-        ScoringExperiment.print_config(self, file=file)
+        ConstituentExperiment.print_config(self, file=file)
         SplitMergeExperiment.print_config(self, file=file)
-        print(self.induction_settings, file=file)
-        print("k-best", self.k_best, file=file)
-        print("Serialization type", self.serialization_type, file=file)
-        print("Output counter", self.use_output_counter, "start", self.output_counter, file=file)
-        print("VROOT stripping", self.strip_vroot, file=file)
 
     def compute_reducts(self, resource):
         corpus = self.read_corpus(resource)

@@ -130,8 +130,6 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
             file = self.logger
         ConstituentExperiment.print_config(self, file=file)
         SplitMergeExperiment.print_config(self, file=file)
-        print(self.induction_settings, file=file)
-        print("VROOT stripping", self.strip_vroot, file=file)
 
     def read_stage_file(self):
         ScoringExperiment.read_stage_file(self)
