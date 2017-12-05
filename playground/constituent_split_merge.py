@@ -391,7 +391,8 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 
             features_backoff = defaultdict(lambda: 0) if self.induction_settings.feature_la else None
             tree_grammar_backoff = self.__grammar_induction(tree, part, features=features_backoff)
-            tree_grammar.add_gram(tree_grammar_backoff, feature_logging=(features, features_backoff))
+            tree_grammar.add_gram(tree_grammar_backoff,
+                                  feature_logging=(features, features_backoff) if features_backoff else None)
 
             self.terminal_labeling.backoff_mode = False
 
