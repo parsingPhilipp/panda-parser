@@ -3,8 +3,8 @@ from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusF
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
     LCFRS_rule
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
-from grammar.induction.terminal_labeling import PosTerminals
-from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, terminal_labeling
+from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, FormTerminals
+from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, my_feature_filter
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
 from constituent.filter import check_single_child_label
@@ -30,6 +30,17 @@ test_start = validation_size # 40475
 test_limit = test_start + 200 # 4999
 test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+
+
+# fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
+fine_terminal_labeling = FormTerminals()
+fallback_terminal_labeling = PosTerminals()
+
+terminal_threshold = 10
+
+
+def terminal_labeling(corpus, threshold=terminal_threshold):
+    return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
 
 
 class InductionSettings:
@@ -107,7 +118,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         nonterminal_map = self.organizer.nonterminal_map
         frequency = self.backoff_factor if self.backoff else 1.0
         trace = compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling,
-                               parser=parser, nont_map=nonterminal_map, debug=False, frequency=frequency)
+                                parser=parser, nont_map=nonterminal_map, debug=False, frequency=frequency)
         if self.backoff:
             self.terminal_labeling.backoff_mode = True
             trace.compute_reducts(training_corpus, frequency=1.0)
