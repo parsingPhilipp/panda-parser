@@ -79,7 +79,7 @@ class CustomBuildExtCommand(build_ext):
             retval = p.wait()
         return retval
 
-extra_compile_args = ["-std=c++11", "-gdwarf-3", "-Wall", "-rdynamic"]
+extra_compile_args = ["-std=c++14", "-gdwarf-3", "-Wall", "-rdynamic"]
 # openmp = ["-fopenmp", "-lpthread"]
 openmp = []
 # optimizations = ["-O3"]
@@ -101,7 +101,7 @@ ext_modules=[
     Extension("parser.trace_manager.trace_manager", sources=["parser/trace_manager/trace_manager.pyx"], language='c++', extra_compile_args=linker_args + optimizations_tensors, include_dirs=eigen_include+sterm_include),
     Extension("parser.supervised_trainer.trainer", sources=["parser/supervised_trainer/trainer.pyx"], language='c++', extra_compile_args=linker_args + optimizations, include_dirs=eigen_include+sterm_include),
     Extension("parser.LCFRS.LCFRS_trace_manager", sources=["parser/LCFRS/LCFRS_trace_manager.pyx"], language='c++',
-              extra_compile_args=extra_compile_args + optimizations, include_dirs=eigen_include+sterm_include, extra_linker_args=linker_args),
+              extra_compile_args=extra_compile_args + optimizations, include_dirs=eigen_include+sterm_include, extra_link_args=linker_args),
     Extension("parser.sDCP_parser.sdcp_trace_manager", sources=["parser/sDCP_parser/sdcp_trace_manager.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations, include_dirs=eigen_include+sterm_include),
     Extension("parser.trace_manager.sm_trainer_util", sources=["parser/trace_manager/sm_trainer_util.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations_tensors + openmp, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
     Extension("parser.coarse_to_fine_parser.ranker", sources=["parser/coarse_to_fine_parser/ranker.pyx"], language='c++', extra_compile_args=extra_compile_args + openmp + optimizations_tensors, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),

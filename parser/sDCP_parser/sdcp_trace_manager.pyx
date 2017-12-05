@@ -23,6 +23,7 @@ cdef extern from "util.h":
 
 cdef class PySDCPTraceManager(PyTraceManager):
     cdef PySDCPParser parser
+    cdef bint debug
 
     def __init__(self, grammar, term_labelling, PySDCPParser parser=None, Enumerator nont_map=None, lcfrs_parsing=True, debug=False):
         """
@@ -57,6 +58,8 @@ cdef class PySDCPTraceManager(PyTraceManager):
             , make_shared[vector[size_t]](edge_labels)
             , False)
 
+        self.debug = True if debug else False
+
     def compute_reducts(self, corpus, frequency=1.0):
         start_time = time.time()
         cdef int successful = 0
@@ -72,7 +75,8 @@ cdef class PySDCPTraceManager(PyTraceManager):
                 # self.parser.print_trace()
             else:
                 fails += 1
-                output_helper(str(i) + " " + str(tree) + str(tree.token_yield()) + " " + str(tree.full_yield()) )
+                if self.debug:
+                    output_helper(str(i) + " " + str(tree) + str(map(str, tree.token_yield())) + " " + str(tree.full_yield()) )
 
             if (i + 1) % 100 == 0:
                 output_helper(str(i + 1) + ' ' + str(time.time() - start_time))

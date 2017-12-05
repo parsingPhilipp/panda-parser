@@ -39,10 +39,10 @@ cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_t
     max_id += 1
 
     if p_tree.in_ordering(p_id):
-        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_tree_label(p_tree.node_token(p_id)))), terminal_encoding(str(term_labelling.token_label(p_tree.node_token(p_id)))), c_id)
+        c_tree[0].add_node(pred_id, terminal_encoding(term_labelling.token_tree_label(p_tree.node_token(p_id))), terminal_encoding(term_labelling.token_label(p_tree.node_token(p_id))), c_id)
         linearization[p_tree.node_index(p_id)] = c_id
     else:
-        c_tree[0].add_node(pred_id, terminal_encoding(str(term_labelling.token_tree_label(p_tree.node_token(p_id)))), c_id)
+        c_tree[0].add_node(pred_id, terminal_encoding(term_labelling.token_tree_label(p_tree.node_token(p_id))), c_id)
 
     if attach_parent:
         c_tree[0].add_child(parent_id, c_id)
@@ -95,7 +95,7 @@ cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, t
                     if isinstance(obj, gl.LCFRS_var):
                         c_rule[0].add_var_to_word_function(obj.mem + 1, obj.arg + 1)
                     else:
-                        c_rule[0].add_terminal_to_word_function(terminal_encoder(str(obj)))
+                        c_rule[0].add_terminal_to_word_function(terminal_encoder(obj))
 
         if not sdcp.add_rule(c_rule[0]):
             output_helper(str(rule))
@@ -167,25 +167,25 @@ class STermConverter(gd.DCP_evaluator):
         rule = self.rule
         assert isinstance(rule, gl.LCFRS_rule)
         cdef int j = 0
-        pos = None
+        terminal = None
         for arg in rule.lhs().args():
             for obj in arg:
                 if isinstance(obj, gl.LCFRS_var):
                     continue
-                if isinstance(obj, str):
+                if isinstance(obj, (str, unicode)):
                     if i == j:
-                        pos = obj
+                        terminal = obj
                         break
                     j += 1
-            if pos:
+            if terminal:
                break
 
         # Dependency tree or constituent tree with labeled edges
         if index.edge_label() is not None:
-            self.builder.add_linked_terminal(self.terminal_encoder(str(pos) + " : " + str(index.edge_label())), i)
+            self.builder.add_linked_terminal(self.terminal_encoder(terminal + " : " + index.edge_label()), i)
         # Constituent tree without labeled edges
         else:
-            self.builder.add_linked_terminal(self.terminal_encoder(str(pos)), i)
+            self.builder.add_linked_terminal(self.terminal_encoder(terminal), i)
 
     def evaluateString(self, s, id):
         # print s
