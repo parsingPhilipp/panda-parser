@@ -58,8 +58,6 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 
         self.strip_vroot = True
         self.k_best = 500
-        self.backoff = False
-        self.backoff_factor = 10.0
 
     def induce_from(self, obj):
         if not obj.complete() or obj.empty_fringe():

@@ -206,6 +206,9 @@ class ConstituentExperiment(ScoringExperiment):
         self.discodop_scorer = DiscoDopScorer()
         self.max_score = 100.0
 
+        self.backoff = False
+        self.backoff_factor = 10.0
+
     def obtain_sentence(self, hybrid_tree):
         sentence = hybrid_tree.full_yield(), hybrid_tree.id_yield(), \
                    hybrid_tree.full_token_yield(), hybrid_tree.token_yield()
@@ -356,19 +359,28 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 
         SplitMergeExperiment.read_stage_file(self)
 
+    def __grammar_induction(self, tree, part, features):
+        return fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
+                                    term_labeling=self.induction_settings.terminal_labeling,
+                                    isolate_pos=self.induction_settings.isolate_pos,
+                                    feature_logging=features)
     def induce_from(self, tree):
         if not tree.complete() or tree.empty_fringe():
             return None, None
         part = self.induction_settings.recursive_partitioning(tree)
 
-        if self.induction_settings.feature_la:
-            features = defaultdict(lambda: 0)
-        else:
-            features = None
-        tree_grammar = fringe_extract_lcfrs(tree, part, naming=self.induction_settings.naming_scheme,
-                                            term_labeling=self.induction_settings.terminal_labeling,
-                                            isolate_pos=self.induction_settings.isolate_pos,
-                                            feature_logging=features)
+        features = defaultdict(lambda: 0) if self.induction_settings.feature_la else None
+
+        tree_grammar = self.__grammar_induction(tree, part, features)
+
+        if self.backoff:
+            self.terminal_labeling.backoff_mode = True
+
+            features_backoff = defaultdict(lambda: 0) if self.induction_settings.feature_la else None
+            tree_grammar_backoff = self.__grammar_induction(tree, part, features=features_backoff)
+            tree_grammar.add_gram(tree_grammar_backoff, feature_logging=(features, features_backoff))
+
+            self.terminal_labeling.backoff_mode = False
 
         if False and len(tree.token_yield()) == 1:
             print(tree, map(str, tree.token_yield()), file=self.logger)
@@ -388,11 +400,16 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
         print("VROOT stripping", self.strip_vroot, file=file)
 
     def compute_reducts(self, resource):
-        training_corpus = self.read_corpus(resource)
+        corpus = self.read_corpus(resource)
         parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
         nonterminal_map = self.organizer.nonterminal_map
-        trace = compute_reducts(self.base_grammar, training_corpus, self.induction_settings.terminal_labeling,
-                               parser=parser, nont_map=nonterminal_map)
+        frequency = self.backoff_factor if self.backoff else 1.0
+        trace = compute_reducts(self.base_grammar, corpus, self.induction_settings.terminal_labeling,
+                               parser=parser, nont_map=nonterminal_map, frequency=frequency)
+        if self.backoff:
+            self.terminal_labeling.backoff_mode = True
+            trace.compute_reducts(corpus, frequency=1.0)
+            self.terminal_labeling.backoff_mode = False
         return trace
 
     def create_initial_la(self):
