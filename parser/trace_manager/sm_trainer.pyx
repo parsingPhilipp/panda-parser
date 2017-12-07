@@ -45,6 +45,7 @@ cdef extern from "Trainer/EMTrainerLA.h" namespace "Trainer":
         void setEMepochs(unsigned epochs, TrainingMode mode)
     cdef cppclass EMTrainerLAValidation(EMTrainerLA):
         void setMaxDrops(unsigned maxDrops, TrainingMode mode)
+        void setMinEpochs(unsigned minEpochs, TrainingMode mode)
 
 cdef extern from "Trainer/MergePreparator.h":
     pass
