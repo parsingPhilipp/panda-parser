@@ -41,6 +41,7 @@ class SplitMergeOrganizer:
         self.seed = 0
         self.validationDropIterations = 6
         self.smoothing_factor = 0.01
+        self.smoothing_factor_unary = 0.1
         self.split_randomization = 1.0  # in percent
         self.validator_type = "SCORE"  # SCORE or SIMPLE
         self.validator = None  # required for SCORE validation
@@ -596,14 +597,14 @@ class SplitMergeExperiment(Experiment):
         # prepare SM training
         builder = PySplitMergeTrainerBuilder(self.organizer.training_reducts, self.organizer.grammarInfo)
         builder.set_em_epochs(self.organizer.em_epochs_sm)
-        builder.set_split_randomization(1.0, self.organizer.seed + 1)
         builder.set_simple_expector(threads=self.organizer.threads)
         if self.organizer.validator_type == "SCORE":
             builder.set_score_validator(self.organizer.validator, self.organizer.validationDropIterations)
         elif self.organizer.validator_type == "SIMPLE":
             builder.set_simple_validator(self.organizer.validation_reducts, self.organizer.validationDropIterations)
-        builder.set_smoothing_factor(smoothingFactor=self.organizer.smoothing_factor)
-        builder.set_split_randomization(percent=self.organizer.split_randomization)
+        builder.set_smoothing_factor(smoothingFactor=self.organizer.smoothing_factor,
+                                     smoothingFactorUnary=self.organizer.smoothing_factor_unary)
+        builder.set_split_randomization(percent=self.organizer.split_randomization, seed=self.organizer.seed + 1)
 
         # set merger
         if self.organizer.merge_type == "SCC":
