@@ -166,11 +166,12 @@ def main(directory=None):
                                                              backoff_threshold)
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.organizer.validator_type = "SIMPLE"
-    experiment.organizer.project_weights_before_parsing = False
+    experiment.organizer.project_weights_before_parsing = True
     experiment.organizer.disable_em = True
     experiment.organizer.max_sm_cycles = 4
     experiment.backoff = True
     experiment.oracle_parsing = False
+    experiment.k_best = 1000
     experiment.read_stage_file()
     experiment.run_experiment()
 
