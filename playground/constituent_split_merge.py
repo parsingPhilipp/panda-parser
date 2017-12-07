@@ -665,7 +665,7 @@ def main3(directory=None):
     experiment.organizer.refresh_score_validator = True
     experiment.organizer.project_weights_before_parsing = False
     experiment.organizer.disable_split_merge = False
-    experiment.organizer.disable_em = False
+    experiment.organizer.disable_em = True
     experiment.organizer.merge_percentage = 60.0
     experiment.organizer.merge_type = "PERCENT"
     experiment.organizer.merge_threshold = -3.0
@@ -677,6 +677,7 @@ def main3(directory=None):
     experiment.oracle_parsing = False
     experiment.k_best = k_best
     experiment.purge_rule_freq = None
+    experiment.backoff = True
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]))
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.read_stage_file()
