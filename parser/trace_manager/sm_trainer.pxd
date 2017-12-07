@@ -31,8 +31,10 @@ cdef class PyLatentAnnotation:
                         , double ioPrecision
                         , unsigned_int ioCycleLimit)
     cpdef tuple serialize(self)
-    cpdef PyLatentAnnotation project_annotation_by_merging(self, PyGrammarInfo grammarInfo,
-                                                      vector[vector[vector[size_t]]] merge_sources)
+    # cpdef PyLatentAnnotation project_annotation_by_merging(self,
+    #                                                        PyGrammarInfo grammarInfo,
+    #                                                        vector[vector[vector[size_t]]] merge_sources,
+    #                                                        c_bool debug)
     cpdef void make_proper(self, PyGrammarInfo)
     cpdef bint is_proper(self, PyGrammarInfo)
     cpdef c_bool is_proper(self, PyGrammarInfo info)

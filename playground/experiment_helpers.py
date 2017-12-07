@@ -658,7 +658,17 @@ class SplitMergeExperiment(Experiment):
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
-        last_la.project_weights(self.base_grammar, self.organizer.grammarInfo)
+
+        if True:
+            last_la.project_weights(self.base_grammar, self.organizer.grammarInfo)
+        else:
+            splits, _, _ = last_la.serialize()
+            merge_sources = [[[split for split in range(0, splits[nont_idx])]]
+                             for nont_idx in range(0, self.organizer.nonterminal_map.get_counter())]
+
+            # print("Projecting to fine grammar LA", file=self.logger)
+            coarse_la = last_la.project_annotation_by_merging(self.organizer.grammarInfo, merge_sources)
+            coarse_la.project_weights(self.base_grammar, self.organizer.grammarInfo)
 
     def run_experiment(self):
         self.print_config()

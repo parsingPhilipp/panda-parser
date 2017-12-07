@@ -94,9 +94,19 @@ cdef extern from "Trainer/TrainerBuilder.h" namespace "Trainer":
     function[double(vector[double])] interpolate3rdQuartileMax(double factor)
 
 cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
-    cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo)
-    cdef LatentAnnotation project_annotation_by_merging[Nonterminal](const LatentAnnotation & annotation, const GrammarInfo2 & grammarInfo,
-                                                                     const vector[vector[vector[size_t]]] & merge_sources)
+    cdef const double IO_PRECISION_DEFAULT
+    cdef const double IO_CYCLE_LIMIT_DEFAULT
+    cdef LatentAnnotation project_annotation[Nonterminal](const LatentAnnotation & annotation,
+                                                          const GrammarInfo2 & grammarInfo,
+                                                          const double ioPrecision,
+                                                          const size_t ioCycleLimit,
+                                                          const c_bool debug)
+    cdef LatentAnnotation project_annotation_by_merging[Nonterminal](const LatentAnnotation & annotation,
+                                                                     const GrammarInfo2 & grammarInfo,
+                                                                     const vector[vector[vector[size_t]]] & merge_sources,
+                                                                     double ioPrecision,
+                                                                     double ioCycleLimit,
+                                                                     const bint debug)
 
 cdef extern from "Trainer/GeneticCrosser.h" namespace "Trainer":
     cdef LatentAnnotation mix_annotations[Nonterminal](const LatentAnnotation& la1
@@ -308,7 +318,7 @@ cdef class PyLatentAnnotation:
     cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent = 1.0, size_t seed=0, double bias=0.01):
         deref(self.latentAnnotation).add_random_noise(grammarInfo.grammarInfo, randPercent, seed, bias)
 
-    def project_weights(self, grammar, PyGrammarInfo grammarInfo):
+    def project_weights(self, grammar, PyGrammarInfo grammarInfo, debug=False):
         trivial_split = True
         for nont in range(len(deref(self.latentAnnotation).nonterminalSplits)):
             if deref(self.latentAnnotation).nonterminalSplits[nont] > 1:
@@ -344,7 +354,10 @@ cdef class PyLatentAnnotation:
                     raise Exception(nont, split_total_probs)
 
             la_proj = make_shared[LatentAnnotation](project_annotation[NONTERMINAL](deref(self.latentAnnotation),
-                                                                                    deref(grammarInfo.grammarInfo)))
+                                                                                    deref(grammarInfo.grammarInfo),
+                                                                                    IO_PRECISION_DEFAULT,
+                                                                                    IO_CYCLE_LIMIT_DEFAULT,
+                                                                                    debug))
 
             # guarantee properness:
             for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
@@ -402,10 +415,12 @@ cdef class PyLatentAnnotation:
             rule.set_weight(weight)
 
 
-    cpdef PyLatentAnnotation project_annotation_by_merging(self, PyGrammarInfo grammarInfo,
-                                                      vector[vector[vector[size_t]]] merge_sources):
+    def project_annotation_by_merging(self,
+                                                           PyGrammarInfo grammarInfo,
+                                                           vector[vector[vector[size_t]]] merge_sources,
+                                                           c_bool debug=False):
         cdef shared_ptr[LatentAnnotation] la_projected\
-            = make_shared[LatentAnnotation](project_annotation_by_merging[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo), merge_sources))
+            = make_shared[LatentAnnotation](project_annotation_by_merging[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo), merge_sources, IO_PRECISION_DEFAULT, IO_CYCLE_LIMIT_DEFAULT, debug))
         cdef PyLatentAnnotation pyLaProjected = PyLatentAnnotation()
         pyLaProjected.latentAnnotation = la_projected
 
@@ -631,6 +646,7 @@ cdef class PyLatentAnnotation:
         deref(self.latentAnnotation).make_proper(grammarInfo.grammarInfo)
 
 
+
 cpdef PyLatentAnnotation build_PyLatentAnnotation(vector[size_t] nonterminalSplits
                                                   , vector[double] rootWeights
                                                   , vector[vector[double]] ruleWeights
@@ -689,6 +705,7 @@ cdef class PySplitMergeTrainer:
         cdef PyLatentAnnotation pyLaMerged = PyLatentAnnotation()
         pyLaMerged.latentAnnotation = la_merged
         return pyLaMerged
+
     cpdef void em_train(self, PyLatentAnnotation la):
         deref(self.splitMergeTrainer).em_train(deref(la.latentAnnotation))
 
