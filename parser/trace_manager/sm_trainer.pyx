@@ -688,9 +688,9 @@ cdef class PySplitMergeTrainer:
 
     def __init__(self):
         modes_ = { "default": Default
-                , "splitting": Splitting
-                , "merging": Merging
-                , "smoothing": Smoothing}
+                 , "splitting": Splitting
+                 , "merging": Merging
+                 , "smoothing": Smoothing}
         self.modes = modes_
 
     cpdef PyLatentAnnotation split_merge_cycle (self, PyLatentAnnotation la):
@@ -720,6 +720,9 @@ cdef class PySplitMergeTrainer:
 
     cpdef setMaxDrops(self, unsigned maxDrops, mode="default"):
         (<EMTrainerLAValidation &> deref(self.emTrainer)).setMaxDrops(maxDrops, self.modes[mode])
+
+    cpdef setMinEpochs(self, unsigned epochs, mode="default"):
+        (<EMTrainerLAValidation &> deref(self.emTrainer)).setMinEpochs(epochs, self.modes[mode])
 
     cpdef get_current_merge_sources(self):
         return deref(self.splitMergeTrainer).get_current_merge_sources()
