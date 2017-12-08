@@ -70,8 +70,12 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         self.strip_vroot = True
         self.k_best = 500
 
+    def __valid_tree(self, obj):
+        return obj.complete() and not obj.empty_fringe()
+
     def induce_from(self, obj):
-        if not obj.complete() or obj.empty_fringe():
+        if not self.__valid_tree(obj):
+            print(obj, map(str, obj.token_yield()), obj.full_yield())
             return None, None
         grammar = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
                                        nont_labeling=self.induction_settings.nont_labeling,
@@ -113,7 +117,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         #     print(rule.get_idx(), rule)
         # sys.stdout.flush()
 
-        training_corpus = self.read_corpus(resource)
+        training_corpus = filter(self.__valid_tree, self.read_corpus(resource))
         parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
         nonterminal_map = self.organizer.nonterminal_map
         frequency = self.backoff_factor if self.backoff else 1.0
