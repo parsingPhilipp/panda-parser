@@ -15,7 +15,7 @@ from hybridtree.monadic_tokens import construct_conll_token
 from hybridtree.dependency_tree import disconnect_punctuation
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import *
-import subprocess32 as subprocess
+import subprocess
 import os
 
 test_file = 'res/tests/Dependency_Corpus.conll'
