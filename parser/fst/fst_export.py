@@ -1,3 +1,4 @@
+from __future__ import print_function, division
 from pynini import *
 from grammar.lcfrs import LCFRS
 from grammar.linearization import Enumerator
@@ -171,8 +172,8 @@ def retrieve_rules(linear_fst):
     for s in range(linear_fst.num_states()):
         for arc in linear_fst.arcs(s):
             lab = terminals.find(arc.olabel)
-            if isinstance(lab, str):
-                linear_rules += [int(rule_string) for rule_string in lab.split("-")]
+            if isinstance(lab, bytes):
+                linear_rules += [int(rule_string) for rule_string in lab.split(b"-")]
             else:
                 linear_rules += [lab]
     return linear_rules
@@ -181,21 +182,21 @@ def retrieve_rules_(ids, terminals):
     linear_rules = []
     for i in ids:
         lab = terminals.find(i)
-        if isinstance(lab, str):
-            linear_rules += [int(rule_string) for rule_string in lab.split("-")]
+        if isinstance(lab, bytes):
+            linear_rules += [int(rule_string) for rule_string in lab.split(b"-")]
         else:
             linear_rules += [lab]
     return linear_rules
 
 
-def local_rule_stats(fst, stats, lim=sys.maxint):
+def local_rule_stats(fst, stats, lim=sys.maxsize):
     i = 0
     for path in fst.paths(output_token_type="symbol"):
         if i >= lim:
             return stats
-        for lab in path[1].split(' '):
-            if isinstance(lab, str):
-                for rule in lab.split('-'):
+        for lab in path[1].split(b' '):
+            if isinstance(lab, bytes):
+                for rule in lab.split(b'-'):
                     stats[int(rule)] += 1
             else:
                 stats[int(lab)] += 1
@@ -207,9 +208,9 @@ def local_rule_stats(fst, stats, lim=sys.maxint):
 def paths(fst):
     for path in fst.paths(output_token_type="symbol"):
         path_ = []
-        for lab in path[1].split(' '):
-            if isinstance(lab, str):
-                for rule in lab.split('-'):
+        for lab in path[1].split(b' '):
+            if isinstance(lab, bytes):
+                for rule in lab.split(b'-'):
                     path_.append(int(rule))
             else:
                 path_.append(int(lab))
@@ -250,7 +251,7 @@ class PolishDerivation(AbstractDerivation):
 
     def terminal_positions(self, id):
         if id % 2 == 1 or id == self._len - 1:
-            return [id / 2 + 1]
+            return [id // 2 + 1]
         else:
             return []
 
@@ -297,7 +298,7 @@ class ReversePolishDerivation(AbstractDerivation):
 
     def terminal_positions(self, id):
         if id % 2 == 1 or id == 0:
-            return [(id + 3) / 2]
+            return [(id + 3) // 2]
         else:
             return []
 
@@ -475,7 +476,7 @@ class LeftBranchingFSTParser(AbstractParser):
     def best_derivation_tree(self):
         polish_rules = self._reverse_polish_rules
         if polish_rules:
-            polish_rules = map(self._rules.index_object, polish_rules)
+            polish_rules = list(map(self._rules.index_object, polish_rules))
             # remove dummy chain rule in case of dependency structures
             if len(polish_rules) % 2 == 0:
                 polish_rules = polish_rules[0:-1]

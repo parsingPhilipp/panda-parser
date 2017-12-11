@@ -19,8 +19,12 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from parser.derivation_interface import derivation_to_hybrid_tree
-from parser.fst.fst_export import compile_wfst_from_right_branching_grammar, fsa_from_list_of_symbols, compose, shortestpath, shortestdistance, retrieve_rules, PolishDerivation, ReversePolishDerivation, compile_wfst_from_left_branching_grammar, local_rule_stats, paths, \
-    LeftBranchingFSTParser
+try:
+    from parser.fst.fst_export import compile_wfst_from_right_branching_grammar, fsa_from_list_of_symbols, compose, shortestpath, shortestdistance, retrieve_rules, PolishDerivation, ReversePolishDerivation, compile_wfst_from_left_branching_grammar, local_rule_stats, paths, LeftBranchingFSTParser
+    test_pynini = True
+except ModuleNotFoundError:
+    test_pynini = False
+
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from parser.viterbi.viterbi import ViterbiParser as LCFRS_parser
 from tests.test_multiroot import multi_dep_tree
@@ -158,6 +162,8 @@ class InductionTest(unittest.TestCase):
                 self.assertEqual(tree, hybrid_tree)
 
     def test_fst_compilation_right(self):
+        if not test_pynini:
+            return
         tree = hybrid_tree_1()
         tree2 = hybrid_tree_2()
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
@@ -168,7 +174,7 @@ class InductionTest(unittest.TestCase):
 
         a, rules = compile_wfst_from_right_branching_grammar(grammar)
 
-        print(a)
+        print(repr(a))
 
         symboltable = a.input_symbols()
 
@@ -179,7 +185,7 @@ class InductionTest(unittest.TestCase):
 
 
         fsa = fsa_from_list_of_symbols(string, symboltable)
-        self.assertEqual(fsa.text(), '0\t1\tNP\tNP\n1\t2\tN\tN\n2\t3\tV\tV\n3\t4\tV\tV\n4\t5\tV\tV\n5\n')
+        self.assertEqual('0\t1\tNP\tNP\n1\t2\tN\tN\n2\t3\tV\tV\n3\t4\tV\tV\n4\t5\tV\tV\n5\n', fsa.text().decode('utf-8'))
 
         b = compose(fsa, a)
 
@@ -189,12 +195,12 @@ class InductionTest(unittest.TestCase):
 
 
         print("Input Composition")
-        print(b.text(symboltable, symboltable))
+        print(b.text(symboltable, symboltable).decode('utf-8'))
 
         i = 0
         for path in paths(b):
             print(i, "th path:", path, end=' ')
-            r = map(rules.index_object, path)
+            r = list(map(rules.index_object, path))
             d = PolishDerivation(r[1::])
             dcp = The_DCP_evaluator(d).getEvaluation()
             h = HybridTree()
@@ -220,7 +226,7 @@ class InductionTest(unittest.TestCase):
         polish_rules = retrieve_rules(best)
         self.assertSequenceEqual(polish_rules, [8, 7, 1, 6, 2, 5, 3, 10, 3, 3])
 
-        polish_rules = map(rules.index_object, polish_rules)
+        polish_rules = list(map(rules.index_object, polish_rules))
 
         print(polish_rules)
 
@@ -239,6 +245,8 @@ class InductionTest(unittest.TestCase):
         print(h_tree_2)
 
     def test_fst_compilation_left(self):
+        if not test_pynini:
+            return
         tree = hybrid_tree_1()
         tree2 = hybrid_tree_2()
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
@@ -249,14 +257,14 @@ class InductionTest(unittest.TestCase):
 
         fst, rules = compile_wfst_from_left_branching_grammar(grammar)
 
-        print(fst)
+        print(repr(fst))
 
         symboltable = fst.input_symbols()
 
         string = ["NP", "N", "V", "V", "V"]
 
         fsa = fsa_from_list_of_symbols(string, symboltable)
-        self.assertEqual(fsa.text(), '0\t1\tNP\tNP\n1\t2\tN\tN\n2\t3\tV\tV\n3\t4\tV\tV\n4\t5\tV\tV\n5\n')
+        self.assertEqual(fsa.text().decode('utf-8'), '0\t1\tNP\tNP\n1\t2\tN\tN\n2\t3\tV\tV\n3\t4\tV\tV\n4\t5\tV\tV\n5\n')
 
         b = compose(fsa, fst)
 
@@ -271,7 +279,7 @@ class InductionTest(unittest.TestCase):
         polish_rules = retrieve_rules(best)
         self.assertSequenceEqual(polish_rules, [1, 2, 3, 4, 5, 4, 9, 4, 7, 8])
 
-        polish_rules = map(rules.index_object, polish_rules)
+        polish_rules = list(map(rules.index_object, polish_rules))
 
         for rule in polish_rules:
             print(rule)
