@@ -462,6 +462,8 @@ class GraphTests(unittest.TestCase):
             ["java", "-jar", os.path.join("util", schick_executable), 'dog-reduct', '-g', grammar_path, '-t',
              corpus_path, "-o", reduct_dir])], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
+        print("stdout", p.stdout.name)
+
         while True:
             nextline = p.stdout.readline()
             if nextline == b'' and p.poll() is not None:
@@ -471,6 +473,7 @@ class GraphTests(unittest.TestCase):
             # sys.stdout.flush()
 
         p.wait()
+        p.stdout.close()
         self.assertEqual(0, p.returncode)
 
         rtgs = []
