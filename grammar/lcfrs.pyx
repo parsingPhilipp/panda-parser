@@ -7,6 +7,7 @@ import codecs
 import re
 import time
 
+
 from grammar.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
 
 # ##########################################################################
@@ -52,7 +53,10 @@ LCFRS_var = namedtuple('LCFRS_var', ['mem', 'arg'])
 
 
 # LHS of LCFRS rule.
-class LCFRS_lhs:
+cdef class LCFRS_lhs:
+    cdef str __nont
+    cdef list __args
+
     # Constructor.
     # nont: string
     def __init__(self, nont):
@@ -66,7 +70,7 @@ class LCFRS_lhs:
 
     # Number of arguments.
     # return: int
-    def fanout(self):
+    cpdef int fanout(self):
         return len(self.__args)
 
     # Get nonterminal.
@@ -82,7 +86,7 @@ class LCFRS_lhs:
     # Get i-th argument.
     # i: int
     # return: list of string/LCFRS_var
-    def arg(self, i):
+    def arg(self, int i):
         if i >= len(self.__args):
             pass
         return self.__args[i]
@@ -90,6 +94,10 @@ class LCFRS_lhs:
     # String representation.
     # return: string
     def __str__(self):
+        cdef int i
+        cdef int j
+        cdef str s
+
         s = self.nont() + '('
         for i in range(self.fanout()):
             arg = self.arg(i)
@@ -105,6 +113,10 @@ class LCFRS_lhs:
     # Shorter string representation than above (fewer spaces).
     # return: string
     def key(self):
+        cdef int i
+        cdef int j
+        cdef str s
+
         s = self.nont() + '('
         for i in range(self.fanout()):
             arg = self.arg(i)
@@ -119,21 +131,24 @@ class LCFRS_lhs:
 
 
 # LCFRS rule, optionally with DCP rules.
-class LCFRS_rule:
-    # cdef double __weight
-    # cdef size_t __idx
+cdef class LCFRS_rule:
+    cdef double __weight
+    cdef LCFRS_lhs __lhs
+    cdef list __rhs
+    cdef list __dcp
+    cdef int __idx
 
-    def get_idx(self):
+    cpdef int get_idx(self):
         return self.__idx
 
-    def set_idx(self, idx):
+    cpdef int set_idx(self, int idx):
         self.__idx = idx
 
     # Constructor.
     # lhs: LCFRS_lhs
     # weight: real
     # dcp: list of DCP_rule
-    def __init__(self, lhs, weight=1, dcp=None, idx=0):
+    def __init__(self, lhs, double weight=1, dcp=None, int idx=0):
         self.__weight = weight
         self.__lhs = lhs
         self.__rhs = []
@@ -147,7 +162,7 @@ class LCFRS_rule:
 
     # Increase weight.
     # weight: real
-    def add_weight(self, weight):
+    cpdef void add_weight(self, double weight):
         self.__weight += weight
 
     # Set DCP.
@@ -157,12 +172,12 @@ class LCFRS_rule:
 
     # Set weight.
     # weight: real
-    def set_weight(self, weight):
+    cpdef void set_weight(self, double weight):
         self.__weight = weight
 
     # Get weight.
     # return: real
-    def weight(self):
+    cpdef double weight(self):
         return self.__weight
 
     # Get DCP.
@@ -172,7 +187,7 @@ class LCFRS_rule:
 
     # Get LHS.
     # return: LCFRS_lhs
-    def lhs(self):
+    cpdef LCFRS_lhs lhs(self):
         """
         :return:
         :rtype: LCFRS_lhs
@@ -181,7 +196,7 @@ class LCFRS_rule:
 
     # Get rank (length of RHS).
     # return: int
-    def rank(self):
+    cpdef int rank(self):
         return len(self.__rhs)
 
     # Get all RHS nonterminals.
@@ -196,7 +211,7 @@ class LCFRS_rule:
 
     # Size in terms of RHS length plus 1.
     # return: int
-    def size(self):
+    cpdef int size(self):
         return 1 + len(self.__rhs)
 
     # Get occurrences of terminals.
@@ -213,21 +228,24 @@ class LCFRS_rule:
     # fanout: mapping from nonterminals (string) to fanout (int).
     # return: string or None
     def well_formed(self, fanout):
+        cdef int i
         for i in range(self.rank()):
             nont = self.rhs_nont(i)
             if nont not in fanout:
                 return 'lacks definition of nonterminal ' + nont
             nont_fanout = fanout[nont]
             variables = self.__get_vars(i)
-            if variables != range(nont_fanout):
+            if variables != list(range(nont_fanout)):
                 return 'wrong variables in ' + str(self)
         return None
 
     def ordered(self):
         """
-        :rtype: Bool
+        :rtype: bool
         :return: Do the variables of each rhs nonterminal occur in ascending order in the components on the lhs.
         """
+        cdef int arg
+        cdef int mem
         for mem in range(self.rank()):
             arg = -1
             for comp in range(self.lhs().fanout()):
