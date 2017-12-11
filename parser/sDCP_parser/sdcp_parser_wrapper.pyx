@@ -520,7 +520,7 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         if debug:
             for enum in [terminal_map, nonterminal_map]:
                 for idx in range(enum.first_index, enum.counter):
-                    output_helper(str(idx) + " : " + str(enum.index_object(idx)))
+                    output_helper(bytes(str(idx), encoding="utf-8") + b" : " + bytes(str(enum.index_object(idx)), encoding="utf-8"))
             sdcp.output()
 
         parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing=True, debug=debug)
