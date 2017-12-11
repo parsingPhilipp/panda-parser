@@ -1,12 +1,10 @@
 from __future__ import print_function, unicode_literals
 from grammar.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
-from collections import Counter
 from discodop.grammar import sortgrammar
-from math import log
 from discodop.tree import escape
 from discodop.containers import Grammar
 from discodop.plcfrs import parse
-from pprint import pprint, pformat
+
 
 def transform_grammar(grammar):
     # TODO assert ordered rules, terminals only in rules with len(rhs) = 0
@@ -30,4 +28,3 @@ def transform_args(args):
                 return escape(elem)
         return tuple(arg_new)
     return tuple([transform_arg(arg) for arg in args])
-
