@@ -2,8 +2,7 @@ import pgf
 from parser.parser_interface import AbstractParser
 from parser.derivation_interface import AbstractDerivation
 from parser.gf_parser.gf_export import compile_gf_grammar, export, LANGUAGE, COMPILED_SUFFIX
-from grammar.linearization import Enumerator
-from collections import defaultdict
+from util.enumerator import Enumerator
 from math import exp
 import os.path
 from functools import reduce
@@ -99,7 +98,7 @@ class GFParser(AbstractParser):
         # assert isinstance(self.rules, Enumerator)
         try:
             i = self.gf_grammar.parse(' '.join(self.input), n=1, heuristics=self._heuristics)
-            self._best, self._goal = i.next()
+            self._best, self._goal = next(i)
         except pgf.ParseError:
             self._best = None
             self._goal = None
@@ -143,6 +142,8 @@ class GFParser_k_best(GFParser):
     def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, k=1, heuristics=-1.0):
         self._derivations = []
         self.k = k
+        self._viterbi = None
+        self._viterbi_weigth = None
         GFParser.__init__(self, grammar, input, save_preprocess, load_preprocess, heuristics=heuristics)
 
     def set_input(self, input):
@@ -178,7 +179,6 @@ class GFParser_k_best(GFParser):
                 probability = reduce(lambda x, y: x * y, [der.getRule(idx).weight() for idx in der.ids()], 1.0)
 
             yield probability, GFDerivation(self.grammar, gf_deriv)
-
 
     def viterbi_derivation(self):
         if self._viterbi is not None:

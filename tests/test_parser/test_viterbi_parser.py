@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 
 from dependency.induction import induce_grammar
@@ -16,11 +17,11 @@ class MyTestCase(unittest.TestCase):
     def test_dcp_evaluation_with_induced_dependency_grammar(self):
         tree = hybrid_tree_1()
 
-        print tree
+        print(tree)
 
         tree2 = hybrid_tree_2()
 
-        print tree2
+        print(tree2)
         # print tree.recursive_partitioning()
 
         labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
@@ -32,7 +33,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(grammar.well_formed(), None)
         self.assertEqual(grammar.ordered()[0], True)
         # print max([grammar.fanout(nont) for nont in grammar.nonts()])
-        print grammar
+        print(grammar)
 
         parser = Parser(grammar, 'NP N V V'.split(' '))
 
@@ -40,11 +41,11 @@ class MyTestCase(unittest.TestCase):
 
 
         der = parser.best_derivation_tree()
-        print der
+        print(der)
 
         hybrid_tree = derivation_to_hybrid_tree(der, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '),
                                                 construct_constituent_token)
-        print hybrid_tree
+        print(hybrid_tree)
 
         dcp = The_DCP_evaluator(der).getEvaluation()
         h_tree_2 = HybridTree()
@@ -53,7 +54,7 @@ class MyTestCase(unittest.TestCase):
         dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,
                           construct_conll_token)
 
-        print h_tree_2
+        print(h_tree_2)
 
             # correct = h_tree_2.__eq__(tree) or h_tree_2.__eq__(tree2)
             # self.assertEqual(correct, True)

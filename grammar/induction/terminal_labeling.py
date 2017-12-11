@@ -23,7 +23,7 @@ class TerminalLabeling:
             return self.token_label(token) + " : " + token.edge()
 
     def prepare_parser_input(self, tokens):
-        return map(self.token_label, tokens)
+        return list(map(self.token_label, tokens))
 
 
 # class ConstituentTerminalLabeling(TerminalLabeling):

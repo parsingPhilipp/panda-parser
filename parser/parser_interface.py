@@ -1,8 +1,10 @@
+from __future__ import print_function
+
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
 from grammar.lcfrs import *
-from sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from hybridtree.monadic_tokens import MonadicToken
 from collections import defaultdict
 from math import exp
@@ -71,7 +73,7 @@ class AbstractParser:
         if der is not None:
             # todo: comment out the next integrity check
             if not der.check_integrity_recursive(der.root_id(), der.getRule(der.root_id()).lhs().nont()):
-                print der
+                print(der)
                 raise Exception()
             return The_DCP_evaluator(der).getEvaluation()
         else:
@@ -107,9 +109,10 @@ class AbstractParser:
             tree = derivation_to_tree(der)
             weights[tree] += weight
             witnesses[tree] += [i+1]
-        the_derivations = weights.items()
+        the_derivations = [(tree, weights[tree]) for tree in weights]
         the_derivations.sort(key=lambda x: x[1], reverse=True)
         return [(tree, weight, witnesses[tree]) for tree, weight in the_derivations]
+
 
 def best_hybrid_tree_for_best_derivation():
     pass

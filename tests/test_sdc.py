@@ -123,7 +123,7 @@ class SDPTest(unittest.TestCase):
                 print(grammar)
 
             parser = LCFRS_parser(grammar)
-            parser.set_input(map(terminal_labeling, dsg.sentence))
+            parser.set_input(list(map(terminal_labeling, dsg.sentence)))
 
             print("parsing")
 
@@ -150,7 +150,7 @@ class SDPTest(unittest.TestCase):
             for i in range(5000):
                 dsg = generate_sdg(randint(2, 12), maximum_inputs=3)
                 if rec_part_strat == extract_recursive_partitioning and dsg.dog.cyclic():
-                     continue
+                    continue
                 # render_and_view_dog(dsg.dog, 'random_dog_' + str(i))
                 try:
                     self.__process_single_dsg(i, dsg, rec_part_strat, terminal_labeling=str)

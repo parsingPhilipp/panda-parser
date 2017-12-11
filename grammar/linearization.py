@@ -1,3 +1,4 @@
+from __future__ import print_function
 from sys import stdout
 
 from grammar.lcfrs import *
@@ -12,9 +13,9 @@ def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
     :param terminal_labeling:
     :return:
     """
-    print >>file, "Nonterminal Labeling: ", nonterminal_labeling
-    print >>file, "Terminal Labeling: ", terminal_labeling
-    print >>file
+    print("Nonterminal Labeling: ", nonterminal_labeling, file=file)
+    print("Terminal Labeling: ", terminal_labeling, file=file)
+    print(file=file)
 
     terminals = Enumerator(file)
     nonterminals = Enumerator(file)
@@ -23,11 +24,11 @@ def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
 
     for i, rule in enumerate(grammar.rules()):
         rid = 'r'+str(i+1)
-        print >>file, rid, 'RTG   ', nonterminals.object_index(rule.lhs().nont()), '->',
-        print >>file, map(lambda nont: nonterminals.object_index(nont), rule.rhs()), ';'
+        print(rid, 'RTG   ', nonterminals.object_index(rule.lhs().nont()), '->', file=file, end=" ")
+        print(list(map(lambda nont: nonterminals.object_index(nont), rule.rhs())), ';', file=file)
         #for rhs_nont in rule.rhs():
         #    print nonterminals[rhs_nont],
-        print >>file, rid , 'WEIGHT', rule.weight(), ';'
+        print(rid , 'WEIGHT', rule.weight(), ';', file=file)
 
         sync_index = {}
         inh_args = defaultdict(lambda: 0)
@@ -50,48 +51,49 @@ def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
                 var_string = 's<0,' + str(var.arg() + 1 - inh_args[-1]) + ">"
             else:
                 var_string = 's<' + str(var.mem() + 1) + "," + str(var.arg() + 1) + ">"
-            print >>file, rid, 'sDCP  ', var_string, '==', printer.string, ';'
+            print (rid, 'sDCP  ', var_string, '==', printer.string, ';', file=file)
 
         s = 0
         for j, arg in enumerate(rule.lhs().args()):
-            print >>file, rid, 'LCFRS ', 's<0,' + str(j + 1) + '>', '==', '[',
+            print(rid, 'LCFRS ', 's<0,' + str(j + 1) + '>', '==', '[', end=' ', file=file)
             first = True
             for a in arg:
                 if not first:
-                    print >>file, ",",
+                    print(",", end=' ', file=file)
                 if isinstance(a, LCFRS_var):
-                    print >>file, "x<{0!s},{1!s}>".format(a.mem + 1, a.arg + 1),
+                    print("x<{0!s},{1!s}>".format(a.mem + 1, a.arg + 1), end=' ', file=file)
                     pass
                 else:
                     if s in sync_index:
-                        print >>file, str(terminals.object_index(a)) + '^{' + str(sync_index[s]) +'}',
+                        print(str(terminals.object_index(a)) + '^{' + str(sync_index[s]) +'}', end=' ', file=file)
                     else:
-                        print >>file, str(terminals.object_index(a)),
+                        print(str(terminals.object_index(a)), end=' ', file=file)
                     s += 1
                 first = False
-            print >>file, '] ;'
-        print >>file
+            print('] ;', file=file)
+        print(file=file)
 
-    print >>file, "Terminals: "
+    print("Terminals: ", file=file)
     terminals.print_index()
-    print >>file
+    print(file=file)
 
-    print >>file, "Nonterminal ID, nonterminal name, fanout, #inh, #synth: "
+    print("Nonterminal ID, nonterminal name, fanout, #inh, #synth: ", file=file)
     max_fanout, max_inh, max_syn, max_args, fanouts, inherits, synths, args = nonterminals.print_index_and_stats(grammar, num_inherited_args, num_synthezied_args)
-    print >>file
-    print >>file, "max fanout:", max_fanout
-    print >>file, "max inh:", max_inh
-    print >>file, "max synth:", max_syn
-    print >>file, "max args:", max_args
-    print >>file
+    print(file=file)
+    print("max fanout:", max_fanout, file=file)
+    print("max inh:", max_inh, file=file)
+    print("max synth:", max_syn, file=file)
+    print("max args:", max_args, file=file)
+    print(file=file)
     for s, d, m in [('fanout', fanouts, max_fanout), ('inh', inherits, max_inh), ('syn', synths, max_syn), ('args', args, max_args)]:
         for i in range(m + 1):
-            print >> file, '# the number of nonterminals with', s, '=', i, 'is', d[i]
-        print >> file
-    print >>file
+            print('# the number of nonterminals with', s, '=', i, 'is', d[i], file=file)
+        print(file=file)
+    print(file=file)
 
-    print >>file, "Initial nonterminal: ", nonterminals.object_index(grammar.start())
-    print >>file
+    print("Initial nonterminal: ", nonterminals.object_index(grammar.start()), file=file)
+    print(file=file)
+
 
 class Enumerator:
     def __init__(self, file=stdout, first_index=1):
@@ -119,7 +121,7 @@ class Enumerator:
 
     def print_index(self):
         for i in range(self.first_index, self.counter + 1):
-            print >> self.file, i, self.index_object(i)
+            print(self.file, i, self.index_object(i), file=self.file)
 
     def print_index_and_stats(self, grammar, inh, syn):
         fanouts = defaultdict(lambda: 0)
@@ -140,7 +142,7 @@ class Enumerator:
             max_syn = max(max_syn, syn[i])
             args[inh[i] + syn[i]] += 1
             max_args = max(max_args, inh[i] + syn[i])
-            print >>self.file, i, self.index_object(i), fanout, inh[i], syn[i]
+            print(i, self.index_object(i), fanout, inh[i], syn[i], file=self.file)
         return max_fanout, max_inh, max_syn, max_args, fanouts, inherits, synths, args
 
 class DCP_Labels(DCP_evaluator):
@@ -197,7 +199,6 @@ class OUTPUT_DCP(DCP_evaluator):
             self.string += 'x<' + str(var.mem() + 1) + "," + str(var.arg() + 1 - self.inh_args[var.mem()]) + "> "
         else:
             self.string += 'x<' + str(var.mem() + 1) + "," + str(var.arg() + 1) + "> "
-
 
     def __init__(self, terminal_to_index, rule, sync_index, inh_args):
         self.terminal_to_index = terminal_to_index

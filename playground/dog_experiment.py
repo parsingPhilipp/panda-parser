@@ -326,6 +326,7 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
         sys.stdout.flush()
 
     p.wait()
+    p.stdout.close()
 
     rtgs = []
     for i in range(1, len(train_dsgs) + 1):

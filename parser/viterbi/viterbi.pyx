@@ -7,7 +7,7 @@ import heapq
 from collections import defaultdict
 from math import log
 from parser.derivation_interface import AbstractDerivation
-from sys import maxint
+from sys import maxsize
 
 
 cdef class Range:
@@ -246,7 +246,7 @@ class ActiveItem(PassiveItem):
     def __init__(self, nonterminal, rule):
         PassiveItem.__init__(self, nonterminal, rule)
         self.next_low = None
-        self.next_low_max = maxint - 1
+        self.next_low_max = maxsize - 1
 
     def next_nont(self):
         return self.rule.rhs_nont(len(self.children))
@@ -285,7 +285,7 @@ class ActiveItem(PassiveItem):
         """
         arg = len(self.children)
         new_ranges = []
-        next_low_max = maxint - 1
+        next_low_max = maxsize - 1
         next_low = None
         pos = 0
         for r in self.ranges:

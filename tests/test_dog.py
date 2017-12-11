@@ -186,7 +186,7 @@ class GraphTests(unittest.TestCase):
         morphism, _ = dsg.dog.compute_isomorphism(dog)
 
         for i in range(len(dsg.sentence)):
-            self.assertListEqual(map(lambda x: morphism[x], dsg.get_graph_position(i)), sync_list[i])
+            self.assertListEqual(list(map(lambda x: morphism[x], dsg.get_graph_position(i))), sync_list[i])
 
     def test_induction_with_labeling_strategies(self):
         dsg = build_dsg()
@@ -216,7 +216,7 @@ class GraphTests(unittest.TestCase):
         morphism, _ = dsg.dog.compute_isomorphism(dog)
 
         for i in range(len(dsg.sentence)):
-            self.assertListEqual(map(lambda x: morphism[x], dsg.get_graph_position(i)), sync_list[i])
+            self.assertListEqual(list(map(lambda x: morphism[x], dsg.get_graph_position(i))), sync_list[i])
 
     def __structurally_equal(self, rec_part, decomp):
         self.assertEqual(len(rec_part[1]), len(decomp[1]))
@@ -494,12 +494,13 @@ class GraphTests(unittest.TestCase):
                 dog, sync = dog_evaluation(der)
                 dsg2 = DeepSyntaxGraph(der.compute_yield(), dog, sync)
                 dsg.dog.project_labels(f)
-                dsg.sentence = map(f, dsg.sentence)
+                dsg.sentence = list(map(f, dsg.sentence))
                 self.assertEqual(dsg.sentence, dsg2.sentence)
                 morphs = dsg.dog.compute_isomorphism(dsg2.dog)
                 self.assertFalse(morphs is None)
                 self.assertListEqual([[morphs[0].get(node, node) for node in syncs]
                                       for syncs in dsg.synchronization], dsg2.synchronization)
+        pass
                 # print("i", i)
                 # print("dsg", dsg.sentence, dsg.dog, dsg.synchronization)
                 # print("dsg_reduct", dsg2.sentence, dsg2.dog, dsg2.synchronization)
@@ -570,7 +571,7 @@ class GraphTests(unittest.TestCase):
         for dsg in dsgs:
             dsg.dog.project_labels(f)
             render_and_view_dog(dsg.dog, "tigerdsg4", "/tmp/")
-            print(map(lambda x: x.form(), dsg.sentence))
+            print(list(map(lambda x: x.form(), dsg.sentence)))
             print(dsg.synchronization)
             print(dsg.recursive_partitioning())
             print(fanout_limited_partitioning(dsg.recursive_partitioning(), 1))

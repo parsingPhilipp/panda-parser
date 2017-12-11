@@ -1,3 +1,4 @@
+from __future__ import print_function
 import unittest
 
 from dependency.induction import induce_grammar
@@ -32,8 +33,8 @@ class MyTestCase(unittest.TestCase):
                                       the_labeling_factory().create_simple_labeling_strategy('empty','pos'),
                                       # the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'),
                                       terminal_labeling.token_label, [direct_extraction], 'START')
-        print max([grammar.fanout(nont) for nont in grammar.nonts()])
-        print grammar
+        print(max([grammar.fanout(nont) for nont in grammar.nonts()]))
+        print(grammar)
 
         prefix = '/tmp/'
         name = 'tmpGrammar'
@@ -53,9 +54,9 @@ class MyTestCase(unittest.TestCase):
         der = parser.best_derivation_tree()
         self.assertTrue(der.check_integrity_recursive(der.root_id(), grammar.start()))
 
-        print der
+        print(der)
 
-        print derivation_to_hybrid_tree(der, string, "Piet Marie helpen lezen leren".split(), construct_conll_token)
+        print(derivation_to_hybrid_tree(der, string, "Piet Marie helpen lezen leren".split(), construct_conll_token))
 
         dcp = The_DCP_evaluator(der).getEvaluation()
 
@@ -65,7 +66,7 @@ class MyTestCase(unittest.TestCase):
         dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,
                           construct_conll_token)
 
-        print h_tree_2
+        print(h_tree_2)
 
     def test_k_best_parsing(self):
         limit_train = 20
@@ -89,7 +90,7 @@ class MyTestCase(unittest.TestCase):
         trees = parse_conll_corpus(test, False, limit_test)
 
         for i, tree in enumerate(trees):
-            print >>stderr, "Parsing sentence ", i
+            print("Parsing sentence ", i, file=stderr)
 
             # print >>stderr, tree
 
@@ -98,7 +99,7 @@ class MyTestCase(unittest.TestCase):
             self.assertTrue(parser.recognized())
 
             derivations = [der for der in parser.k_best_derivation_trees()]
-            print >>stderr, "# derivations: ", len(derivations)
+            print("# derivations: ", len(derivations), file=stderr)
             h_trees = []
             current_weight = 0
             weights = []
@@ -131,11 +132,11 @@ class MyTestCase(unittest.TestCase):
                 for i, h_tree1 in enumerate(h_trees):
                     for h_tree2 in h_trees:
                         if h_tree1 == h_tree2:
-                            print >> stderr, "x",
+                            print("x", end=' ', file=stderr)
                         else:
-                            print >> stderr, " ",
-                    print >> stderr, weights[i]
-                print >> stderr
+                            print("", end=' ', file=stderr)
+                    print(weights[i], file=stderr)
+                print(file=stderr)
 
     def test_minimum_risk_parsing(self):
         limit_train = 20
@@ -159,7 +160,7 @@ class MyTestCase(unittest.TestCase):
         trees = parse_conll_corpus(test, False, limit_test)
 
         for i, tree in enumerate(trees):
-            print >> stderr, "Parsing sentence ", i
+            print("Parsing sentence ", i, file=stderr)
 
             # print >>stderr, tree
 
@@ -168,7 +169,7 @@ class MyTestCase(unittest.TestCase):
             self.assertTrue(parser.recognized())
 
             derivations = [der for der in parser.k_best_derivation_trees()]
-            print >> stderr, "# derivations: ", len(derivations)
+            print("# derivations: ", len(derivations), file=stderr)
             h_trees = []
             current_weight = 0
             weights = []
@@ -190,8 +191,8 @@ class MyTestCase(unittest.TestCase):
             if True:
                 min_risk_tree = compute_minimum_risk_tree(h_trees, weights)
                 if not min_risk_tree.__eq__(h_trees[0]):
-                    print h_trees[0]
-                    print min_risk_tree
+                    print(h_trees[0])
+                    print(min_risk_tree)
 
 
     def test_oracle_parsing(self):
@@ -216,7 +217,7 @@ class MyTestCase(unittest.TestCase):
         trees = parse_conll_corpus(test, False, limit_test)
 
         for i, tree in enumerate(trees):
-            print >> stderr, "Parsing sentence ", i
+            print("Parsing sentence ", i, file=stderr)
 
 
             parser = parser_type(grammar_prim, tree_yield(tree.token_yield()), k=50)
@@ -224,7 +225,7 @@ class MyTestCase(unittest.TestCase):
             self.assertTrue(parser.recognized())
 
             derivations = [der for der in parser.k_best_derivation_trees()]
-            print >> stderr, "# derivations: ", len(derivations)
+            print("# derivations: ", len(derivations), file=stderr)
             h_trees = []
             current_weight = 0
             weights = []
@@ -247,8 +248,8 @@ class MyTestCase(unittest.TestCase):
             if True:
                 oracle_tree = compute_oracle_tree(h_trees, tree)
                 if not oracle_tree.__eq__(h_trees[0]):
-                    print >>stderr, h_trees[0]
-                    print >>stderr, oracle_tree
+                    print(h_trees[0], file=stderr)
+                    print(oracle_tree, file=stderr)
 
     def test_best_trees(self):
         limit_train = 5000
@@ -272,7 +273,7 @@ class MyTestCase(unittest.TestCase):
         trees = parse_conll_corpus(test, False, limit_test)
 
         for i, tree in enumerate(trees):
-            print >> stderr, "Parsing sentence ", i
+            print("Parsing sentence ", i, file=stderr)
 
             parser = parser_type(grammar_prim, tree_yield(tree.token_yield()), k=200)
 
@@ -291,21 +292,21 @@ class MyTestCase(unittest.TestCase):
 
             for i, (parsed_tree, _, _) in enumerate(ordered_parse_trees):
                 if parsed_tree.__eq__(tree):
-                    print >>stderr, "Gold tree is ", i+1, " in best tree list"
+                    print("Gold tree is ", i+1, " in best tree list", file=stderr)
                     break
 
             if (not viterbi_tree.__eq__(best_tree) and viterbi_weight != best_weight):
-                print >> stderr, "viterbi and k-best tree differ"
-                print >> stderr, "viterbi: ", viterbi_weight
-                print >> stderr, "k-best: ", best_weight, best_witnesses
+                print("viterbi and k-best tree differ", file=stderr)
+                print("viterbi: ", viterbi_weight, file=stderr)
+                print("k-best: ", best_weight, best_witnesses, file=stderr)
                 if False:
-                    print >> stderr, viterbi_tree
-                    print >> stderr, tree_to_conll_str(viterbi_tree)
-                    print >> stderr, best_tree
-                    print >> stderr, tree_to_conll_str(best_tree)
-                    print >> stderr, "gold tree"
-                    print >> stderr, tree
-                    print >> stderr, tree_to_conll_str(tree)
+                    print(viterbi_tree, file=stderr)
+                    print(tree_to_conll_str(viterbi_tree), file=stderr)
+                    print(best_tree, file=stderr)
+                    print(tree_to_conll_str(best_tree), file=stderr)
+                    print("gold tree", file=stderr)
+                    print(tree, file=stderr)
+                    print(tree_to_conll_str(tree), file=stderr)
 
 
 

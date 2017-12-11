@@ -1,3 +1,5 @@
+from __future__ import print_function
+
 __author__ = 'kilian'
 
 import unittest
@@ -48,7 +50,7 @@ class PassiveParserTest(unittest.TestCase):
 
         parser2 = LCFRS_parser(grammar, word)
         derivation = parser2.best_derivation_tree()
-        print derivation
+        print(derivation)
 
 
 if __name__ == '__main__':

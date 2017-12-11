@@ -1,7 +1,7 @@
 __author__ = 'kilian'
 
 from parser.derivation_interface import AbstractDerivation
-from parse_items import *
+from parser.active.parse_items import *
 import collections
 
 

@@ -225,9 +225,9 @@ class PolishDerivation(AbstractDerivation):
 
     def getRule(self, id):
         if id >= self._len:
-            print
-            print id
-            print self._len
+            print()
+            print(id)
+            print(self._len)
         return self._rule_list[id]
 
     def __str__(self):
@@ -272,9 +272,9 @@ class ReversePolishDerivation(AbstractDerivation):
 
     def getRule(self, id):
         if id >= self._len:
-            print
-            print id
-            print self._len
+            print()
+            print(id)
+            print(self._len)
         return self._rule_list[id]
 
     def __str__(self):

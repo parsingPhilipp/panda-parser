@@ -874,7 +874,7 @@ class DeepSyntaxGraph:
             return covered, children
 
     def id_yield(self):
-        return map(lambda x: self.get_graph_position(x), [i for i in range(len(self.sentence))])
+        return list(map(lambda x: self.get_graph_position(x), [i for i in range(len(self.sentence))]))
 
     def export_bihypergraph_json(self, terminal_encoding, tentacle_labels=True, terminal_labeling=str):
         data = {"type": "bihypergraph"}

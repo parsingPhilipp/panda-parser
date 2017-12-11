@@ -280,7 +280,7 @@ def create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
     positions = map(tree.node_index, node_ids)
     spans = join_spans(positions)
 
-    children_spans = map(join_spans, [map(tree.node_index, ids) for (ids, _) in children])
+    children_spans = list(map(join_spans, [map(tree.node_index, ids) for (ids, _) in children]))
 
     lhs = LCFRS_lhs(nont_labelling.label_nonterminal(tree, node_ids, t_max, b_max, len(spans)))
     for (low, high) in spans:

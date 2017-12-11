@@ -1,3 +1,4 @@
+from __future__ import print_function
 from corpora.conll_parse import is_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
 
@@ -39,14 +40,14 @@ def disconnect_punctuation(trees):
             elif not tree2.root \
                     or tree2.n_nodes() != len(tree2.id_yield()) \
                     or len(tree2.nodes()) != len(tree2.full_yield()):
-                print tree
+                print(tree)
 
-                print tree2
-                print tree2.sent_label()
-                print "Root:", tree2.root
-                print "Nodes: ", tree2.n_nodes()
-                print "Id_yield:", len(tree2.id_yield()), tree2.id_yield()
-                print "Nodes: ", len(tree2.nodes())
-                print "full yield: ", len(tree2.full_yield())
+                print(tree2)
+                print(tree2.sent_label())
+                print("Root:", tree2.root)
+                print("Nodes: ", tree2.n_nodes())
+                print("Id_yield:", len(tree2.id_yield()), tree2.id_yield())
+                print("Nodes: ", len(tree2.nodes()))
+                print("full yield: ", len(tree2.full_yield()))
                 raise Exception()
             yield tree2

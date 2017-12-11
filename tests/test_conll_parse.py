@@ -1,4 +1,5 @@
 # -*- coding: iso-8859-15 -*-
+from __future__ import print_function
 import grammar.induction.recursive_partitioning
 import grammar.induction.terminal_labeling
 
@@ -69,12 +70,12 @@ class CoNLLParserTest(unittest.TestCase):
             h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
                                                             construct_conll_token)
             # print h_tree
-            print 'input -> hybrid-tree -> output'
-            print tree_to_conll_str(tree)
-            print 'parsed tokens'
-            print map(str, h_tree.full_token_yield())
-            print 'test_parser output'
-            print tree_to_conll_str(h_tree)
+            print('input -> hybrid-tree -> output')
+            print(tree_to_conll_str(tree))
+            print('parsed tokens')
+            print(list(map(str, h_tree.full_token_yield())))
+            print('test_parser output')
+            print(tree_to_conll_str(h_tree))
 
     def test_multi_root_parsing(self):
         trees = parse_conll_corpus(slovene, False)
@@ -82,8 +83,8 @@ class CoNLLParserTest(unittest.TestCase):
         counter = 0
 
         for tree in trees:
-            print tree_to_conll_str(tree)
-            print tree
+            print(tree_to_conll_str(tree))
+            print(tree)
             counter += 1
 
         self.assertEqual(counter, 1)
@@ -98,8 +99,8 @@ class CoNLLParserTest(unittest.TestCase):
         #         print score_cmp_dep_trees(trees[i], test_trees[i])
         try:
             while True:
-                t1 = trees.next()
-                t2 = test_trees.next()
+                t1 = next(trees)
+                t2 = next(test_trees)
                 self.assertEqual(t1.sent_label(), t2.sent_label())
                 # tuple2 = score_cmp_dep_trees(t1, t2)
                 # self.assertEqual(tuple2[0], tuple2)
@@ -137,7 +138,7 @@ class CoNLLParserTest(unittest.TestCase):
         test_file.close()
 
         eval_pl_call_strings = ["-g {!s}".format(conll_test), "-s {!s}".format(test_file_path), ""]
-        print eval_pl_call_strings
+        print(eval_pl_call_strings)
         p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
 
@@ -146,6 +147,7 @@ class CoNLLParserTest(unittest.TestCase):
 
         self.assertEqual(p.returncode, 0)
 
+        out = str(out)
         lines = out.split('\n')
         # print lines
         uas = 0.0
@@ -162,7 +164,7 @@ class CoNLLParserTest(unittest.TestCase):
             if m:
                 la = float(m.group(1)) / 100
 
-        print uas, las, la
+        print(uas, las, la)
 
     def test_conll_generation_2(self):
         test_trees = parse_conll_corpus(conll_test, True)
@@ -200,7 +202,7 @@ class CoNLLParserTest(unittest.TestCase):
                 mylist.append(tree.sent_label())
             if i == 1000:
                 break
-        print mylist
+        print(mylist)
 
 if __name__ == '__main__':
     unittest.main()

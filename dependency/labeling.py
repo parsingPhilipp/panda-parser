@@ -229,9 +229,7 @@ def argument_dependencies_rec(tree, id_seqs, descendants, arg_indices):
     arg_indices = [i for i in arg_indices if i not in skip]
 
     # sort indices according to position in yield
-    arg_indices = sorted(arg_indices,
-                         cmp=lambda i, j: cmp(tree.node_index(id_seqs[i][0]),
-                                              tree.node_index(id_seqs[j][0])))
+    arg_indices = sorted(arg_indices, key=lambda x: tree.node_index(id_seqs[x][0]))
     term = []
     for i in arg_indices:
         t = str(i)
@@ -302,10 +300,10 @@ class LabelingStrategyFactory:
         :type top_level: str
         """
         name = ('-'.join([top_level, node_to_string]))
-        if not self.__top_level_strategies.has_key(top_level):
+        if top_level not in self.__top_level_strategies:
             s = 'Unknown top-level strategy ' + top_level + '\n'
             s += 'I know the following top-level strategies: \n'
-            for name in self.__top_level_strategies.keys():
+            for name in self.__top_level_strategies:
                 s += '\t' + name + '\n'
             raise Exception(s)
         labeling_strategy = self.__top_level_strategies[top_level](name)

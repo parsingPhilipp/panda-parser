@@ -582,7 +582,7 @@ def make_fringe_terms(tree, seq, child_seqss, term_to_pos, term_labeling):
     return terms
 
 
-def span_to_arg((low, high), children, tree, term_to_pos, term_labeling):
+def span_to_arg(span, children, tree, term_to_pos, term_labeling):
     """
     :type low: int
     :type high: int
@@ -595,6 +595,7 @@ def span_to_arg((low, high), children, tree, term_to_pos, term_labeling):
     Children is list of (sub)spans.
     Also keep list of terminals.
     """
+    low, high = span
     arg = []
     k = low
     while k <= high:

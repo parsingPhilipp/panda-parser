@@ -1,6 +1,7 @@
 # Definite clause program rules. A list of such rules is
 # part of a LCFRS/DCP hybrid grammar rule.
 
+from __future__ import print_function
 import re
 
 # abc (abstract base classes)
@@ -404,6 +405,6 @@ def parse_dcp_string(s):
 def test_dcp():
     inp = '<1>=NP(VP(<0,1> a()[0:{142_abAB}]( )<0,1>)Det()) [1](); <2>= [2:{}]() <1,0> '
     rules = parse_dcp(inp)
-    print dcp_rules_to_str(rules)
+    print(dcp_rules_to_str(rules))
 
 # test_dcp()

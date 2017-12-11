@@ -110,9 +110,10 @@ class ConstituentTree(HybridTree):
             # TODO: this if-clause allows to handle trees, that have nodes with empty fringe
             if len(span) >= 3:
                 spans += [span]
-        return sorted(spans, \
-                      cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
-                                           [y[1]] + [-y[2]] + y[3:] + [y[0]]))
+        return sorted(spans,
+                      # cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
+                      #                      [y[1]] + [-y[2]] + y[3:] + [y[0]])
+                      key=lambda x: [x[1]] + [-x[2]] + x[3:] + [x[0]])
 
     def strip_vroot(self):
         if (len(self.root) == 1) and self.node_token(self.root[0]).type() == "CONSTITUENT-CATEGORY" and self.node_token(self.root[0]).category() == "VROOT":

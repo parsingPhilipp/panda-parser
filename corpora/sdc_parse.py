@@ -14,7 +14,7 @@ def parse_file(path, start_id=None, last_id=None, max_n=None):
             if max_n is not None and len(corpus) >= max_n\
                     or last_id is not None and sentence_id > last_id:
                 break
-            if re.match(r'^\s*$', line) and sentence_id >= start_id:
+            if re.match(r'^\s*$', line) and (start_id is None or sentence_id >= start_id):
                 if sentence != []:
                     entry = parse_sentence(sentence, sentence_id)
                     if (start_id is None or entry.label >= start_id)\

@@ -339,8 +339,8 @@ class HybridTree:
 
     def node_id_rec_par(self, rec_par):
         (head, tail) = rec_par
-        head = map(lambda x: self.index_node(x + 1), head)
-        tail = map(self.node_id_rec_par, tail)
+        head = list(map(lambda x: self.index_node(x + 1), head))
+        tail = list(map(self.node_id_rec_par, tail))
         return head, tail
 
     def id_yield(self):

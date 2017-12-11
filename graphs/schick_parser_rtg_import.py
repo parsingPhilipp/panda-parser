@@ -37,7 +37,7 @@ def read_rtg(path):
                     if match2:
                         rhs.append(match2.group(1))
                     rhs.reverse()
-                    rtg.construct_and_add_rule(lhs, symbol, map(read_nonterminal, rhs))
+                    rtg.construct_and_add_rule(lhs, symbol, list(map(read_nonterminal, rhs)))
                 else:
                     raise IOError("Could not parse line " + line)
         return rtg
