@@ -106,7 +106,7 @@ ext_modules=[
               extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args,
               include_dirs=sterm_include),
     Extension("parser.trace_manager.trace_manager", sources=["parser/trace_manager/trace_manager.pyx"], language='c++',
-              extra_compile_args= extra_compile_args + optimizations_tensors, extra_linker_args=linker_args,
+              extra_compile_args= extra_compile_args + optimizations_tensors, extra_link_args=linker_args,
               include_dirs=eigen_include+sterm_include),
     Extension("parser.supervised_trainer.trainer", sources=["parser/supervised_trainer/trainer.pyx"], language='c++',
               extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args,
