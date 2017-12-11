@@ -687,10 +687,10 @@ cdef class PySplitMergeTrainer:
     cdef shared_ptr[EMTrainerLA] emTrainer
 
     def __init__(self):
-        modes_ = { "default": Default
-                 , "splitting": Splitting
-                 , "merging": Merging
-                 , "smoothing": Smoothing}
+        modes_ = { b"default": Default
+                 , b"splitting": Splitting
+                 , b"merging": Merging
+                 , b"smoothing": Smoothing}
         self.modes = modes_
 
     cpdef PyLatentAnnotation split_merge_cycle (self, PyLatentAnnotation la):
@@ -699,7 +699,7 @@ cdef class PySplitMergeTrainer:
             = make_shared[LatentAnnotation](deref(self.splitMergeTrainer).split_merge_cycle(deref(la.latentAnnotation)))
         cdef PyLatentAnnotation pyLaTrained = PyLatentAnnotation()
         pyLaTrained.latentAnnotation = la_trained
-        output_helper("Completed split/merge cycles in " + str(time.time() - timeStart) + " seconds")
+        output_helper(b"Completed split/merge cycles in " + bytes(str(time.time() - timeStart), encoding="utf-8") + b" seconds")
         return pyLaTrained
 
     cpdef PyLatentAnnotation merge(self, PyLatentAnnotation la):
@@ -716,13 +716,13 @@ cdef class PySplitMergeTrainer:
         deref(deref(self.splitMergeTrainer).splitter).reset_random_seed(seed)
 
     cpdef setEMepochs(self, unsigned epochs, mode="default"):
-        deref(self.emTrainer).setEMepochs(epochs, self.modes.at(mode))
+        deref(self.emTrainer).setEMepochs(epochs, self.modes.at(bytes(mode, encoding="utf-8")))
 
     cpdef setMaxDrops(self, unsigned maxDrops, mode="default"):
-        (<EMTrainerLAValidation &> deref(self.emTrainer)).setMaxDrops(maxDrops, self.modes[mode])
+        (<EMTrainerLAValidation &> deref(self.emTrainer)).setMaxDrops(maxDrops, self.modes.at(bytes(mode, encoding="utf-8")))
 
     cpdef setMinEpochs(self, unsigned epochs, mode="default"):
-        (<EMTrainerLAValidation &> deref(self.emTrainer)).setMinEpochs(epochs, self.modes[mode])
+        (<EMTrainerLAValidation &> deref(self.emTrainer)).setMinEpochs(epochs, self.modes.at(bytes(mode, encoding="utf-8")))
 
     cpdef get_current_merge_sources(self):
         return deref(self.splitMergeTrainer).get_current_merge_sources()

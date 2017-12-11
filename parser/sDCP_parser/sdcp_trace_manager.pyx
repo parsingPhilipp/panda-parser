@@ -21,6 +21,10 @@ cdef extern from "DCP/util.h" namespace "DCP":
 cdef extern from "util.h":
     cdef void output_helper(string)
 
+
+cpdef void output_helper_utf8(str s):
+    output_helper(bytes(s, encoding="utf-8"))
+
 cdef class PySDCPTraceManager(PyTraceManager):
     cdef PySDCPParser parser
     cdef bint debug
@@ -76,11 +80,11 @@ cdef class PySDCPTraceManager(PyTraceManager):
             else:
                 fails += 1
                 if self.debug:
-                    output_helper(str(i) + " " + str(tree) + str(map(str, tree.token_yield())) + " " + str(tree.full_yield()) )
+                    output_helper_utf8(str(i) + " " + str(tree) + str(map(str, tree.token_yield())) + " " + str(tree.full_yield()) )
 
             if (i + 1) % 100 == 0:
-                output_helper(str(i + 1) + ' ' + str(time.time() - start_time))
-        output_helper("Computed reducts for " + str(successful) + " out of " + str(successful + fails))
+                output_helper_utf8(str(i + 1) + ' ' + str(time.time() - start_time))
+        output_helper_utf8("Computed reducts for " + str(successful) + " out of " + str(successful + fails))
 
     cpdef Enumerator get_nonterminal_map(self):
         return self.parser.nonterminal_map
@@ -90,8 +94,8 @@ cdef class PySDCPTraceManager(PyTraceManager):
 
 def compute_reducts(grammar, corpus, term_labelling, PySDCPParser parser=None, Enumerator nont_map=None, debug=False,
                     frequency=1.0):
-    output_helper("creating trace")
+    output_helper_utf8("creating trace")
     trace = PySDCPTraceManager(grammar, term_labelling, parser=parser, nont_map=nont_map, debug=debug)
-    output_helper("computing reducts")
+    output_helper_utf8("computing reducts")
     trace.compute_reducts(corpus, frequency=frequency)
     return trace

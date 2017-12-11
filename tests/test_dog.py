@@ -464,10 +464,11 @@ class GraphTests(unittest.TestCase):
 
         while True:
             nextline = p.stdout.readline()
-            if nextline == '' and p.poll() is not None:
+            if nextline == b'' and p.poll() is not None:
                 break
-            sys.stdout.write(nextline)
-            sys.stdout.flush()
+            print(nextline.decode('unicode_escape'), end='')
+            # sys.stdout.write(nextline)
+            # sys.stdout.flush()
 
         p.wait()
         self.assertEqual(0, p.returncode)
@@ -478,7 +479,7 @@ class GraphTests(unittest.TestCase):
 
         derivation_manager = PyDerivationManager(grammar)
         derivation_manager.convert_rtgs_to_hypergraphs(rtgs)
-        derivation_manager.serialize('/tmp/reduct_manager.trace')
+        derivation_manager.serialize(bytes('/tmp/reduct_manager.trace', encoding='utf8'))
 
         f = lambda token: token.pos() if isinstance(token, ConstituentTerminal) else token
 

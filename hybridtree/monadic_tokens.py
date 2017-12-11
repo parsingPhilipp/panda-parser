@@ -129,11 +129,13 @@ class ConstituentTerminal(ConstituencyToken):
         return self._morph
 
     def __str__(self):
-        try:
-            return self.form().encode("utf_8") + "[" + self.__lemma + "]"+ ' : ' + self.pos() + '\t' + str(self.edge())\
+        return self.form() + "[" + self.__lemma + "]" + ' : ' + self.pos() + '\t' + str(self.edge())\
                    + '\t' + str(self._morph)
-        except UnicodeDecodeError:
-            return ' : ' + self.pos() + '\t' + str(self.edge()) + '\t' + str(self._morph)
+        # try:
+        #     return self.form().encode("utf_8") + "[" + self.__lemma + "]"+ ' : ' + self.pos() + '\t' + str(self.edge())\
+        #            + '\t' + str(self._morph)
+        # except UnicodeDecodeError:
+        #     return ' : ' + self.pos() + '\t' + str(self.edge()) + '\t' + str(self._morph)
 
     def __hash__(self):
         return hash((self.__form, self.__pos))
@@ -174,5 +176,7 @@ def construct_conll_token(form, pos, _=True):
 def construct_constituent_token(form, pos, terminal):
     if terminal:
         return ConstituentTerminal(form, pos)
+    elif isinstance(form, str):
+        return ConstituentCategory(form)
     else:
         return ConstituentCategory(form.get_string(), edge=form.edge_label())

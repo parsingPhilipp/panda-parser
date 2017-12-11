@@ -4,7 +4,6 @@ __author__ = 'kilian'
 
 import re
 import sys
-import string
 
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
@@ -16,16 +15,16 @@ def match_line(line):
     return match
 
 
-no_translation = string.maketrans("", "")
+delete_puntcuation = str.maketrans("", "", '!"&()*+#,/-:.?;<=>@[\\]^_{|}~')
 
 
 def is_punctuation(form):
     # this is string.punctuation with $, % removed (which are PMOD, NMOD, COORD, NMOD with dependents in WSJ)
-    return not str(form).translate(no_translation, '!"&()*+#,/-:.?;<=>@[\\]^_{|}~')
+    return not str(form).translate(delete_puntcuation)
     # we allow the dollar sign $ and the quotation marks `` and ''
 
 
-def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint, start=0):
+def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxsize, start=0):
     """
     :param path: path to corpus
     :type: str
@@ -40,91 +39,91 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxint, start=0):
     """
 
     # print path
-    file_content = open(path)
-    tree_count = 0
+    with open(path) as file_content:
+        tree_count = 0
 
-    while tree_count < limit:
-        tree = None
-
-        try:
-            line = file_content.next()
-            while line.startswith('#'):
-                line = file_content.next()
-        except StopIteration:
-            break
-
-        match = match_line(line)
-        while match:
-            if match.group(1) == '1':
-                tree_count += 1
-                tree = HybridTree('tree' + str(tree_count))
-
-            node_id = match.group(1)
-            form = match.group(2)
-            lemma = match.group(3)
-            cpos = match.group(4)
-            pos = match.group(5)
-            feats = match.group(6)
-            parent = match.group(7)
-            deprel = match.group(8)
-
-            # We ignore information about multiple token's as present in the UD version of Prague Dep. TB
-            if re.search(r'^[^\s]+-[^\s]+', node_id):
-              pass
-            else:
-                # If punctuation is to be ignored, we
-                # remove it from the hybrid tree
-                # Punctuation according to definition
-                # cf. http://ilk.uvt.nl/conll/software.html#eval
-
-                # if not ignore_punctuation or form.translate(no_translation, string.punctuation):
-                tree.add_node(node_id, CoNLLToken(form, lemma, cpos, pos, feats, deprel), True, True)
-                if parent != '0':
-                    tree.add_child(parent, node_id)
-                # else:
-                #    tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, False)
-
-                # TODO: If punctuation is ignored and the root is punctuation,
-                # TODO: it is added to the tree anyhow.
-                if parent == '0':
-                    tree.add_to_root(node_id)
+        while tree_count < limit:
+            tree = None
 
             try:
-                line = file_content.next()
+                line = next(file_content)
                 while line.startswith('#'):
-                    line = file_content.next()
-                match = match_line(line)
+                    line = next(file_content)
             except StopIteration:
-                line = ''
-                match = None
+                break
 
-        # Assume empty line, otherwise raise exception
-        match = re.search(r'^[^\s]*$', line)
-        if not match:
-            raise Exception("Unexpected input in CoNLL corpus file.")
+            match = match_line(line)
+            while match:
+                if match.group(1) == '1':
+                    tree_count += 1
+                    tree = HybridTree('tree' + str(tree_count))
 
-        if tree:
-            # basic sanity checks
-            if not tree.root:
-                # FIXME: ignoring punctuation may leads to malformed trees
-                print "non-rooted"
-                if ignore_punctuation:
-                    continue
-                raise Exception
-                # elif root > 1:
-                # FIXME: turkish corpus contains trees with more than one root
-                # FIXME: currently, they are ignored
-                # continue
-            elif tree.n_nodes() != len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
-                # FIXME: ignoring punctuation may leads to malformed trees
-                if ignore_punctuation:
-                    continue
-                raise Exception(
-                    '{4}: connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
-                        str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
-                        str(len(tree.id_yield()))), tree.sent_label())
-            if tree_count > start:
-                yield tree
+                node_id = match.group(1)
+                form = match.group(2)
+                lemma = match.group(3)
+                cpos = match.group(4)
+                pos = match.group(5)
+                feats = match.group(6)
+                parent = match.group(7)
+                deprel = match.group(8)
+
+                # We ignore information about multiple token's as present in the UD version of Prague Dep. TB
+                if re.search(r'^[^\s]+-[^\s]+', node_id):
+                  pass
+                else:
+                    # If punctuation is to be ignored, we
+                    # remove it from the hybrid tree
+                    # Punctuation according to definition
+                    # cf. http://ilk.uvt.nl/conll/software.html#eval
+
+                    # if not ignore_punctuation or form.translate(no_translation, string.punctuation):
+                    tree.add_node(node_id, CoNLLToken(form, lemma, cpos, pos, feats, deprel), True, True)
+                    if parent != '0':
+                        tree.add_child(parent, node_id)
+                    # else:
+                    #    tree.add_node(node_id, CoNLLToken(form, lemma, pos, fine_grained_pos, feats, deprel), True, False)
+
+                    # TODO: If punctuation is ignored and the root is punctuation,
+                    # TODO: it is added to the tree anyhow.
+                    if parent == '0':
+                        tree.add_to_root(node_id)
+
+                try:
+                    line = next(file_content)
+                    while line.startswith('#'):
+                        line = next(file_content)
+                    match = match_line(line)
+                except StopIteration:
+                    line = ''
+                    match = None
+
+            # Assume empty line, otherwise raise exception
+            match = re.search(r'^[^\s]*$', line)
+            if not match:
+                raise Exception("Unexpected input in CoNLL corpus file.")
+
+            if tree:
+                # basic sanity checks
+                if not tree.root:
+                    # FIXME: ignoring punctuation may leads to malformed trees
+                    print("non-rooted")
+                    if ignore_punctuation:
+                        continue
+                    raise Exception
+                    # elif root > 1:
+                    # FIXME: turkish corpus contains trees with more than one root
+                    # FIXME: currently, they are ignored
+                    # continue
+                elif tree.n_nodes() != len(tree.id_yield()) or len(tree.nodes()) != len(tree.full_yield()):
+                    # FIXME: ignoring punctuation may leads to malformed trees
+                    if ignore_punctuation:
+                        continue
+                    raise Exception(
+                        '{4}: connected nodes: {0}, total nodes: {1}, full yield: {2}, connected yield: {3}'.format(
+                            str(tree.n_nodes()), str(len(tree.nodes())), str(len(tree.full_yield())),
+                            str(len(tree.id_yield()))), tree.sent_label())
+                if tree_count > start:
+                    yield tree
 
 
 def tree_to_conll_str(tree):
