@@ -31,6 +31,10 @@ class Edge:
     def label(self):
         return self._label
 
+    @label.setter
+    def label(self, value):
+        self._label = value
+
     @property
     def terminal(self):
         return self._label is not None
@@ -819,6 +823,10 @@ class DeepSyntaxGraph:
     @property
     def sentence(self):
         return self.__sentence
+
+    @sentence.setter
+    def sentence(self, value):
+        self.__sentence = value
 
     @property
     def synchronization(self):
