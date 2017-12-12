@@ -11,7 +11,9 @@ from hybridtree.monadic_tokens import construct_constituent_token
 from parser.derivation_interface import derivation_to_hybrid_tree
 from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.supervised_trainer.trainer import PyDerivationManager
-from parser.trace_manager.sm_trainer import PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
+from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
+from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
+
 
 limit_train = 20
 limit_test = 10
@@ -20,12 +22,11 @@ test = train
 max_cycles = 2
 parsing = True
 
+
 def obtain_derivations(grammar, term_labelling):
     # build parser
     tree_yield = term_labelling.prepare_parser_input
     parser = GFParser_k_best(grammar, k=50)
-
-    #
 
     # parse sentences
     trees = parse_conll_corpus(test, False, limit_test)
@@ -44,7 +45,6 @@ def obtain_derivations(grammar, term_labelling):
             yield der[1]
 
 
-
 def main():
     # induce grammar from a corpus
     trees = parse_conll_corpus(train, False, limit_train)
@@ -60,7 +60,7 @@ def main():
     # create derivation manager and add derivations
     manager = PyDerivationManager(grammar)
     manager.convert_derivations_to_hypergraphs(derivations)
-    manager.serialize("/tmp/derivations.txt")
+    manager.serialize(b"/tmp/derivations.txt")
 
     # build and configure split/merge trainer and supplementary objects
 
@@ -69,7 +69,6 @@ def main():
         rule = grammar.rule_index(i)
         nonts = [manager.get_nonterminal_map().object_index(rule.lhs().nont())] + [manager.get_nonterminal_map().object_index(nont) for nont in rule.rhs()]
         rule_to_nonterminals.append(nonts)
-
 
     grammarInfo = PyGrammarInfo(grammar, manager.get_nonterminal_map())
     storageManager = PyStorageManager()
@@ -105,7 +104,6 @@ def main():
                             , construct_constituent_token
                             )
                          )
-
 
 
 if __name__ == '__main__':
