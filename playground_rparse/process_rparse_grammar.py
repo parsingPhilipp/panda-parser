@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-
+from __future__ import print_function
 import re
 import pgf
 import os
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token, construct_constituent_token
 from collections import defaultdict
-import string
 import subprocess
 from corpora.conll_parse import tree_to_conll_str
 import plac
 import time
+
 
 def new_lex_files(abstract_path, output_abstract, output_concrete, bin):
     with open(abstract_path) as abstract, open(output_abstract, 'w') as abstract_new, open(output_concrete, 'w') as concrete_new:
@@ -18,8 +18,8 @@ def new_lex_files(abstract_path, output_abstract, output_concrete, bin):
         concrete_new.write('concrete ' + bin + 'grammargflexconcrete of ' + bin + 'grammargflexabstract = {\n\n')
         while True:
             try:
-                line = abstract.next()
-            except:
+                line = next(abstract)
+            except StopIteration:
                 break
             match = re.search(r'^cat\s([^\s]+)1\s;$', line)
             if match:
@@ -52,30 +52,32 @@ def escape(s):
     s = s.replace("^", "_HAT_")
     return s
 
+
 def un_escape(s):
-    s = s.replace( "LBR" , "(" )
-    s = s.replace( "RBR" , ")" )
-    s = s.replace( "_LSQBR_" , "[" )
-    s = s.replace( "_RSQBR_" , "]" )
-    s = s.replace( "_STAR_" , "*" )
-    s = s.replace( "_PIPE_" , "|" )
-    s = s.replace( "_PUNCT_"  , "." )
-    s = s.replace( "_COMMA_"  , "," )
+    s = s.replace("LBR", "(")
+    s = s.replace("RBR", ")")
+    s = s.replace("_LSQBR_", "[")
+    s = s.replace("_RSQBR_", "]")
+    s = s.replace("_STAR_", "*")
+    s = s.replace("_PIPE_", "|")
+    s = s.replace("_PUNCT_", ".")
+    s = s.replace("_COMMA_", ",")
     s = s.replace("_MDASH_", "--")
-    s = s.replace( "_DASH_"  , "-" )
-    s = s.replace( "SLASH"  , "/" )
+    s = s.replace("_DASH_", "-")
+    s = s.replace("SLASH", "/")
     s = s.replace("BACKSLASH", "\\")
     s = s.replace("DQ", "\"")
     s = s.replace("SQ", "\'")
     return s
 
-def parse_with_pgf(gr, forms, poss, bin):
+
+def parse_with_pgf(grammar, forms, poss, bin):
     """"
-    :type gr: PGF
+    :type grammar: PGF
     :return:
     :rtype:
     """
-    lcfrs = gr.languages[bin + 'grammargfconcrete']
+    lcfrs = grammar.languages[bin + 'grammargfconcrete']
 
     # sentence = "ADJD ADV _COMMA_ KOUS ADV PIS PROAV VVINF VMFIN _PUNCT_"
     sentence = ' '.join(map(escape, poss))
@@ -168,7 +170,7 @@ def parse_with_pgf(gr, forms, poss, bin):
 
 def print_ast(gr, e, indent):
     node, children = e.unpack()
-    print ' ' * indent, gr.functionType(node)
+    print(' ' * indent, gr.functionType(node))
     for c in children:
         print_ast(gr, c, indent + 2)
 
@@ -206,8 +208,6 @@ def fall_back_left_branching_token(clean_tokens):
     return tree
 
 
-
-
 def parse(gf, input, output, verbose=False, bin=''):
     parse_failures = 0
     parse_time = 0.0
@@ -230,7 +230,7 @@ def parse(gf, input, output, verbose=False, bin=''):
                 poss.append(pos)
             elif re.search(r'^[^\s]*$', line):
                 if verbose:
-                    print zip(forms, poss)
+                    print(zip(forms, poss))
                 time_stamp = time.clock()
                 result = parse_with_pgf(gf, forms, poss, bin)
                 parse_time = parse_time + (time.clock() - time_stamp)
@@ -238,16 +238,16 @@ def parse(gf, input, output, verbose=False, bin=''):
                     parse_failures += 1
                     result = fall_back_left_branching(forms, poss)
                     if verbose:
-                        print "parse failure"
+                        print("parse failure")
                 if verbose:
-                    print result
+                    print(result)
                 # print result
                 output_file.write(tree_to_conll_str(result))
                 output_file.write('\n\n')
                 forms = []
                 poss = []
             else:
-                print line
+                print(line)
                 raise Exception("unexpected input")
     return parse_failures, parse_time
 
@@ -270,20 +270,20 @@ def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forc
     else: 
         rparse_params = ["-dep", "-doTrain", "-trainFormat", "conll", "-train", train, "-binType", binarization, "-vMarkov", str(vMarkov), "-hMarkov", str(hMarkov), "-binSave", grammarName] + optional_args.split(' ')
         grammar_prefix = '/bingrammargf'
-	bin = 'bin'
+    bin = 'bin'
     #
     if forceRecompile or not os.path.isfile(grammarName + grammar_prefix + "abstract.gf"):
-        print "Extracting grammar with rparse"
+        print("Extracting grammar with rparse")
         p = subprocess.Popen(['java', "-jar", rparse_path] + rparse_params, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
-        print out
-        print err
+        print(str(out, encoding="utf-8"))
+        print(str(err, encoding="utf-8"))
     else:
-        print "Found grammar", grammarName + grammar_prefix +  "abstract.gf"
+        print("Found grammar", grammarName + grammar_prefix +  "abstract.gf")
 
     #
     if forceRecompile or not os.path.isfile(grammarName + grammar_prefix + "lexabstract.gf.lex"):
-        print "Replacing Lexicon by Part-of-Speech tags"
+        print("Replacing Lexicon by Part-of-Speech tags")
         p = subprocess.Popen(
             ["mv", grammarName + grammar_prefix + "lexabstract.gf", grammarName + grammar_prefix + "lexabstract.gf.lex"])
         p.communicate()
@@ -296,26 +296,25 @@ def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forc
                       bin)
 
     #
-    print "Compiling grammar with gf"
+    print("Compiling grammar with gf")
     p = subprocess.Popen(["gf", "+RTS", "-K100M", "-RTS", "-make", "-probs=" + grammarName + grammar_prefix + ".probs", "--cpu", "-D", grammarName, grammarName + grammar_prefix + "concrete.gf"])
     p.communicate()
     gr = pgf.readPGF(grammarName + grammar_prefix + "abstract.pgf")
 
     if os.path.isfile(test):
         if forceRecompile or not os.path.isfile(grammarName + "/parse-results.conll"):
-            print "Parsing test sentences"
+            print("Parsing test sentences")
             failures, time = parse(gr, test, grammarName + "/parse-results.conll", v, bin)
-            print "Parse time", time
-            print "Parse failures", failures
+            print("Parse time", time)
+            print("Parse failures", failures)
 
     #
-    print "eval.pl", "no punctuation"
+    print("eval.pl", "no punctuation")
     p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", grammarName + "/parse-results.conll", "-q"])
     p.communicate()
-    print "eval.pl", "punctation"
+    print("eval.pl", "punctation")
     p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", grammarName + "/parse-results.conll", "-q", "-p"])
     p.communicate()
-
 
 
 if __name__ == '__main__':
@@ -334,6 +333,6 @@ if __name__ == '__main__':
 
         # lcfrs = gr.languages['bingrammargfconcrete']
 
-        print parse_with_pgf(gr, [], "ADJD ADV _COMMA_ KOUS ADV PIS PROAV VVINF VMFIN _PUNCT_".split(' '), 'bin')
+        print(parse_with_pgf(gr, [], "ADJD ADV _COMMA_ KOUS ADV PIS PROAV VVINF VMFIN _PUNCT_".split(' '), 'bin'))
 
         parse(gr, "/home/kilian/uni/implementation/rparse/negra-lower-punct-test.conll", "/tmp/parse-results.conll")

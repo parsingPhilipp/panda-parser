@@ -6,7 +6,10 @@ import pickle
 import re
 import subprocess
 import time
-from string import maketrans
+try:
+    from string import maketrans
+except ModuleNotFoundError:
+    maketrans = str.maketrans
 
 import plac
 
@@ -37,6 +40,7 @@ dir = 'exp12/'
 import hashlib
 import sys
 
+
 def sha256_checksum(filename, block_size=65536):
     sha256 = hashlib.sha256()
     with open(filename, 'rb') as f:
@@ -44,8 +48,10 @@ def sha256_checksum(filename, block_size=65536):
             sha256.update(block)
     return sha256.hexdigest()
 
+
 def compute_grammar_name(prefix, grammar_id, suffix):
     return os.path.join(prefix, grammar_id + '-' + suffix + '.pkl')
+
 
 def grammar_id(corpus, nonterminal_labeling, terminal_labeling, recursive_partitioning):
     name = ''
@@ -62,6 +68,7 @@ def grammar_id(corpus, nonterminal_labeling, terminal_labeling, recursive_partit
     name = name.translate(maketrans('/', '-'))
     return name
 
+
 def compute_reduct_name(prefix, grammar_id, corpus, suffix=''):
     reduct = grammar_id
     reduct += '-' + str(os.path.split(corpus._path)[1].split('.conll')[0])
@@ -69,6 +76,7 @@ def compute_reduct_name(prefix, grammar_id, corpus, suffix=''):
     reduct += '-' + str(corpus._end)
     reduct += '-reducts' + suffix + '.hygra'
     return os.path.join(prefix, reduct)
+
 
 def compute_sm_info_path(dir, baseline_id, emEpochs, rule_smoothing, splitRandomization, seed, discr, validation, corpus_validation, init):
     name = ['sm_info', str(emEpochs), str(rule_smoothing), str(splitRandomization), str(seed),
@@ -79,6 +87,7 @@ def compute_sm_info_path(dir, baseline_id, emEpochs, rule_smoothing, splitRandom
 
     return os.path.join(dir, baseline_id, '-'.join(map(str, name)) + '.pkl')
 
+
 def compute_sm_grammar_id(baseline_id, emEpochs, rule_smoothing, splitRandomization, seed, discr, validation, corpus_validation, init, cycle):
     name = ['sm_grammar', str(emEpochs), str(rule_smoothing), str(splitRandomization), str(seed),
             'discr' if discr else '', str(init), 'cycle_' + str(cycle)]
@@ -88,12 +97,15 @@ def compute_sm_grammar_id(baseline_id, emEpochs, rule_smoothing, splitRandomizat
 
     return os.path.join(baseline_id, '-'.join(map(str, name)))
 
+
 # baseline_path = dir + 'baseline_grammar.pkl'
 # reduct_path = dir + 'reduct.pkl'
 # reduct_path_discr = dir + 'reduct_discr.pkl'
 # sm_info_path = dir + 'sm_info.pkl'
 def em_trained_path(prefix, grammar_id, n_epochs, init, tie_breaking, seed):
     return os.path.join(prefix, grammar_id + '-' + str(n_epochs) + '_' + init + ('_tie_breaking_' if tie_breaking else '') + '-seed_' + str(seed) + '.pkl')
+
+
 def sm_path(prefix, grammar_id, cycles):
     return os.path.join(prefix, grammar_id, 'sm_' + str(cycles) + '_grammar.pkl')
 
@@ -129,6 +141,7 @@ child_top_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy
 empty_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('empty', 'pos')
 
 ignore_punctuation=False
+
 
 @plac.annotations(
       recompileGrammar=('force (repeated) grammar induction and compilation', 'option', None, str)
@@ -531,6 +544,7 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
 
     return parser
 
+
 def eval_pl_call(test_path, result_path):
     print("eval.pl", "no punctuation")
     p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test_path, "-s", result_path, "-q"])
@@ -540,10 +554,12 @@ def eval_pl_call(test_path, result_path):
         ["perl", "../util/eval.pl", "-g", test_path, "-s", result_path, "-q", "-p"])
     p.communicate()
 
+
 def length_limit(trees, max_length=50):
     for tree in trees:
         if len(tree.full_token_yield()) <= max_length:
             yield tree
+
 
 def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManager, term_labelling, parser, corpus_validation, validationMethod):
     validator = PyCandidateScoreValidator(grammarInfo, storageManager, validationMethod)
@@ -616,4 +632,3 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
 
 if __name__ == '__main__':
     plac.call(main)
-

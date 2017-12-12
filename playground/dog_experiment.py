@@ -30,7 +30,8 @@ from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from graphs.parse_accuracy import PredicateArgumentScoring
 from graphs.util import render_and_view_dog
-from experiment_helpers import ScoringExperiment, TRAINING, TESTING, RESULT, CorpusFile, ScorerResource, stdout
+from playground.experiment_helpers import ScoringExperiment, TRAINING, TESTING, RESULT, CorpusFile, ScorerResource
+from sys import stdout
 
 
 schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
@@ -104,7 +105,7 @@ class InductionSettings:
                       ('subgrouping', self.subgrouping),
                       ('fanout', self.fanout)
                       ]
-        return '\n'.join([x[0] + ' : ' + str(x[1]) for x in attributes])
+        return '\n'.join(['\t' + x[0] + ' : ' + str(x[1]) for x in attributes])
 
 
 class Statistics:
@@ -112,7 +113,7 @@ class Statistics:
         self.not_output_connected = 0
 
 
-class DOG_Experiment(ScoringExperiment):
+class DOGExperiment(ScoringExperiment):
     def __init__(self, induction_settings):
         super(self.__class__, self).__init__()
         self.induction_settings = induction_settings
@@ -220,7 +221,7 @@ class DOG_Experiment(ScoringExperiment):
         return f1
 
     def print_config(self, file=stdout):
-        super(DOG_Experiment, self).print_config(file)
+        super(DOGExperiment, self).print_config(file)
         print("k-best", self.k_best)
         print("Induction Settings {", file=file)
         print(self.induction_settings, "\n}", file=file)
@@ -623,11 +624,11 @@ def main2():
     induction_settings.nonterminal_labeling = simple_nonterminal_labeling
     induction_settings.normalize = True
 
-    experiment = DOG_Experiment(induction_settings)
+    experiment = DOGExperiment(induction_settings)
 
     # Corpora
     start = 1
-    stop = 7000
+    stop = 2000
 
     test_start = 7001
     test_stop = 7200

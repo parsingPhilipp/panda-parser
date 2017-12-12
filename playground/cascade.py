@@ -13,11 +13,12 @@ from playground_rparse.process_rparse_grammar import fall_back_left_branching
 import subprocess
 
 test = '../res/negra-dep/negra-lower-punct-test.conll'
-train ='../res/negra-dep/negra-lower-punct-train.conll'
+train = '../res/negra-dep/negra-lower-punct-train.conll'
 result = 'cascade-parse-results.conll'
 start = 'START'
 term_labelling = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy('pos')
-recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning('fanout-1')
+recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().\
+    getPartitioning('fanout-1')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')
@@ -25,18 +26,21 @@ ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('
 parser_type = parser.parser_factory.GFParser
 tree_yield = term_labelling.prepare_parser_input
 
+
 def main(limit=100000, ignore_punctuation=False):
     test_limit = 10000
     trees = parse_conll_corpus(train, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
-    (n_trees, grammar_prim) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label, recursive_partitioning, start)
+    (n_trees, grammar_prim) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label,
+                                                 recursive_partitioning, start)
     parser_type.preprocess_grammar(grammar_prim)
 
     trees = parse_conll_corpus(train, False, limit)
     if ignore_punctuation:
         trees = disconnect_punctuation(trees)
-    (n_trees, grammar_second) = d_i.induce_grammar(trees, secondary_labelling, term_labelling.token_label, recursive_partitioning, start)
+    (n_trees, grammar_second) = d_i.induce_grammar(trees, secondary_labelling, term_labelling.token_label,
+                                                   recursive_partitioning, start)
     parser_type.preprocess_grammar(grammar_second)
 
     trees = parse_conll_corpus(train, False, limit)
@@ -82,16 +86,17 @@ def main(limit=100000, ignore_punctuation=False):
                 result_file.write(tree_to_conll_str(fall_back_left_branching(forms, poss)))
                 result_file.write('\n\n')
 
-    print "parse failures", failures
-    print "parse time", total_time
+    print("parse failures", failures)
+    print("parse time", total_time)
 
-    print "eval.pl", "no punctuation"
+    print("eval.pl", "no punctuation")
     p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
     p.communicate()
-    print "eval.pl", "punctation"
+    print("eval.pl", "punctation")
     p = subprocess.Popen(
         ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
     p.communicate()
+
 
 if __name__ == '__main__':
     main()

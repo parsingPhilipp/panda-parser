@@ -379,7 +379,7 @@ class Experiment(object):
         print("Purge rule freq:", self.purge_rule_freq, file=file)
         print("Max score", self.max_score, file=file)
         print("Score", self.score_name, file=file)
-        print("Resources", '{\n' + '\n'.join([str(k) + ' : ' + str(self.resources[k]) for k in self.resources]) + '\n}', file=file)
+        print("Resources", '{\n' + '\n'.join(['\t' + str(k) + ' : ' + str(self.resources[k]) for k in self.resources]) + '\n}', file=file)
         print("Parsing Timeout: ", self.parsing_timeout, file=file)
         print("Oracle parsing: ", self.oracle_parsing, file=file)
 
