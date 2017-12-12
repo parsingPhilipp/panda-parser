@@ -1,5 +1,4 @@
 #!/usr/bin/python
-#-*- coding: iso-8859-15 -*-
 
 from parser.parser_interface import AbstractParser
 from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_var

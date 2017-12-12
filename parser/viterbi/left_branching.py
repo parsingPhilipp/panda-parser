@@ -1,6 +1,6 @@
 from parser.viterbi.viterbi import ViterbiParser, Range, PassiveItem
 from grammar.lcfrs import LCFRS, LCFRS_var
-from sys import maxint
+from sys import maxsize
 from math import log
 import heapq
 
@@ -48,7 +48,7 @@ class ActiveItem(PassiveItem):
         arg = self.rule.rank() - len(self.children) - 1
         new_ranges = []
         next_high = None
-        pos = maxint
+        pos = maxsize
         for i in range(len(self.ranges) - 1, -1, -1):
             r = self.ranges[i]
             new_range = []
