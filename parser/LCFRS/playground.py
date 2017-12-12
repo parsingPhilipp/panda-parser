@@ -1,6 +1,5 @@
-import Queue
+from __future__ import print_function
 import timeit
-from collections import deque
 
 from dependency.induction import induce_grammar
 from grammar.induction.recursive_partitioning import direct_extraction, cfg
@@ -27,7 +26,7 @@ def play_with_parser():
                                   the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
                                   terminal_labeling.token_label, [cfg], 'START')
 
-    print map((lambda x: x.pos()), tree.full_token_yield())
+    print(map((lambda x: x.pos()), tree.full_token_yield()))
 
     # print '\n\n'
     # print grammar
@@ -41,17 +40,17 @@ def play_with_parser():
 
     parser.do_parse(word)
 
-    print 'Passive Items:'
+    print('Passive Items:')
     passiveItems = parser.get_passive_items_map()
     for (i, pItem) in passiveItems.iteritems():
-        print i, ': ', pItem[0], pItem[1]
+        print(i, ': ', pItem[0], pItem[1])
 
-    print '\n\n Trace:'
+    print('\n\n Trace:')
     trace = parser.convert_trace()
     for (i, pItem) in trace.iteritems():
-        print i, ': ', pItem
+        print(i, ': ', pItem)
 
-    print "No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item())
+    print("No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item()))
 
 
 
@@ -79,15 +78,16 @@ def play_with_corpus():
     parser = factory.build_parser()
 
     for i in range(0, limit_test):
-        tree = test_trees.next()
-        word = map((lambda x: x.pos()), tree.full_token_yield())
+        tree = next(test_trees)
+        if len(tree.token_yield()) > 15:
+            continue
+        word = list(map((lambda x: x.pos()), tree.token_yield()))
         parser.do_parse(word)
         passiveItems = parser.get_passive_items_map()
         trace = parser.convert_trace()
-        print ("Word length: ", len(word)
-               , " - #passive Items: ", len(passiveItems)
-               , " - #parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item())
-               )
+        print("Word length: ", len(word),
+              " - #passive Items: ", len(passiveItems),
+              " - #parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item()))
 
 
 
@@ -141,24 +141,27 @@ def play_with_manual_grammar():
     parser = factory.build_parser()
     parser.do_parse(word)
 
-    print 'Passive Items:'
+    print('Passive Items:')
     passiveItems = parser.get_passive_items_map()
     for (i, pItem) in passiveItems.iteritems():
-        print i, ': ', pItem[0], pItem[1]
+        print(i, ': ', pItem[0], pItem[1])
 
-    print '\n\n Trace:'
+    print('\n\n Trace:')
     trace = parser.convert_trace()
     for (i, pItem) in trace.iteritems():
-        print i, ': ', pItem
+        print(i, ': ', pItem)
 
-    print "No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item())
+    print("No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item()))
 
 
 
 
 def count_parses(passiveItems, trace, initial_passive_item):
-
-    initial = passiveItems.keys()[passiveItems.values().index(initial_passive_item)]
+    # initial = passiveItems.keys()[passiveItems.values().index(initial_passive_item)]
+    for key in passiveItems:
+        if passiveItems[key] == initial_passive_item:
+            initial = key
+            break
     (result, _) = parses_per_pitem(trace, initial, {})
     return result
 
@@ -217,4 +220,4 @@ seconds = 0
 # play_with_manual_grammar()
 seconds = timeit.timeit(play_with_corpus, number=1)
 
-print 'Finished in ', seconds, ' seconds'
+print('Finished in ', seconds, ' seconds')
