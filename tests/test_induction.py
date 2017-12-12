@@ -26,7 +26,7 @@ except ModuleNotFoundError:
     test_pynini = False
 
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
-from parser.viterbi.viterbi import ViterbiParser as LCFRS_parser
+from parser.naive.parsing import LCFRS_parser
 from tests.test_multiroot import multi_dep_tree
 
 

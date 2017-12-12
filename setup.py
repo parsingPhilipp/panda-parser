@@ -90,7 +90,6 @@ linker_args = ["-rdynamic"]
 
 ext_modules=[
     Extension("decomposition",       ["decomposition.pyx"]),
-    Extension("parser.viterbi.viterbi",      ["parser/viterbi/viterbi.pyx"]),
     Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++',
               extra_compile_args=['-std=c++14', '-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl'],
               include_dirs=add_include),
