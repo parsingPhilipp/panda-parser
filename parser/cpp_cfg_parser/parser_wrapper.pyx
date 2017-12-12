@@ -6,6 +6,8 @@ cimport cython
 from libc.stdlib cimport malloc, free
 from math import log
 
+ctypedef unsigned int unsigned_int
+
 cdef extern from "cfg.h":
     ctypedef unsigned Terminal
     ctypedef unsigned Nonterminal
@@ -119,8 +121,7 @@ cdef class PyCFGParser:
         self.cpp_parser = CYKParser(py_cfg.cfg)
 
     def parse_sentence(self, sentence):
-        # todo: cython.sizeof(unsigned) does not compile?!
-        my_ints = <unsigned *>malloc(len(sentence)*cython.sizeof(int))
+        my_ints = <unsigned *>malloc(len(sentence)*cython.sizeof(unsigned_int))
         if my_ints is NULL:
             raise MemoryError()
 
