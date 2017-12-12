@@ -69,6 +69,7 @@ class SplitMergeOrganizer:
                 s += "\t" + key + ": " + str(self.__dict__[key]) + "\n"
         return s + "}\n"
 
+
 class Resource(object):
     def __init__(self, path, start=1, end=None):
         self.start = start
@@ -169,7 +170,7 @@ class Experiment(object):
                 self.stage_dict = json.load(f)
 
                 if "base_grammar" in self.stage_dict:
-                    self.base_grammar = pickle.load(open(self.stage_dict["base_grammar"]))
+                    self.base_grammar = pickle.load(open(self.stage_dict["base_grammar"], 'rb'))
 
     def write_stage_file(self):
         with open(self.__stage_path, "w") as f:
@@ -464,7 +465,7 @@ class SplitMergeExperiment(Experiment):
 
             las = self.stage_dict["latent_annotations"]
             for key in las:
-                with open(las[key]) as f:
+                with open(las[key], "rb") as f:
                     splits, rootWeights, ruleWeights = pickle.load(f)
                     # print(key)
                     # print(len(splits), len(rootWeights), len(ruleWeights))
@@ -493,7 +494,7 @@ class SplitMergeExperiment(Experiment):
 
             if self.parsing_timeout:
                 timeout, derivations_ = self._compute_derivations_with_timeout(return_dict)
-                derivations = map(lambda x: x[1], derivations_)
+                derivations = list(map(lambda x: x[1], derivations_))
             else:
                 self.parser.parse()
                 derivations = list(map(lambda x: x[1], self.parser.k_best_derivation_trees()))
@@ -544,7 +545,7 @@ class SplitMergeExperiment(Experiment):
 
     def update_reducts(self, trace, type=TRAINING):
         _, trace_path = tempfile.mkstemp("." + type + ".reduct", dir=self.directory)
-        trace.serialize(trace_path)
+        trace.serialize(bytes(trace_path, encoding="utf-8"))
         print("Serialized " + type + " reducts to " + trace_path, file=self.logger)
         if type is TRAINING:
             self.organizer.training_reducts = trace

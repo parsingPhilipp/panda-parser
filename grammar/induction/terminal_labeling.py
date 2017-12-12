@@ -46,7 +46,7 @@ class FeatureTerminals(TerminalLabeling):
         feat_list = self.token_to_features(token, isleaf)
         features = self.feature_filter([feat_list])
         return "[" + (",".join([str(key) + ':' + str(val) for key, val in features]))\
-            .translate(string.maketrans('', ''), ' ') + "]"
+            .translate(str.maketrans('', '', ' ')) + "]"
 
     def __str__(self):
         return "feature-terminals"

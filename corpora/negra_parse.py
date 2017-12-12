@@ -3,7 +3,10 @@ from __future__ import print_function, unicode_literals
 from os.path import expanduser
 from hybridtree.constituent_tree import ConstituentTree
 from grammar.lcfrs import *
-from __builtin__ import str as text
+try:
+    from __builtin__ import str as text
+except ModuleNotFoundError:
+    text = str
 
 # Location of Negra corpus.
 negra_dir = 'res/negra-corpus/downloadv2'

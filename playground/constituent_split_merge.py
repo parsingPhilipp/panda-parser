@@ -17,13 +17,16 @@ from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCa
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
-from experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, VALIDATION, \
+from playground.experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, VALIDATION, \
     SplitMergeExperiment
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
 import tempfile
 import sys
 import pickle
-from functools32 import lru_cache
+try:
+    from functools32 import lru_cache
+except ModuleNotFoundError:
+    from functools import lru_cache
 from ast import literal_eval
 import plac
 if sys.version_info < (3,):
@@ -46,8 +49,8 @@ validation_start = 40475
 validation_size = validation_start + 200 #4999
 validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 
-test_start = validation_size # 40475
-test_limit = test_start + 200 # 4999
+test_start = validation_size  # 40475
+test_limit = test_start + 200  # 4999
 test_exclude = train_exclude
 test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 
@@ -300,7 +303,7 @@ class ConstituentExperiment(ScoringExperiment):
         print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_rn, "with proper.prm", file=self.logger)
         output = subprocess.Popen(["discodop", "eval", ref_rn, sys_rn, prm],
                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-        print(output[0], file=self.logger)
+        print(str(output[0], encoding='utf-8'), file=self.logger)
 
     @staticmethod
     def __obtain_labelled_spans(obj):
@@ -360,11 +363,13 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 
         if "training_reducts" in self.stage_dict:
             self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
-            self.organizer.training_reducts.load_traces_from_file(self.stage_dict["training_reducts"])
+            self.organizer.training_reducts.load_traces_from_file(
+                bytes(self.stage_dict["training_reducts"], encoding="utf-8"))
 
         if "validation_reducts" in self.stage_dict:
             self.organizer.validation_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
-            self.organizer.validation_reducts.load_traces_from_file(self.stage_dict["validation_reducts"])
+            self.organizer.validation_reducts.load_traces_from_file(
+                bytes(self.stage_dict["validation_reducts"], encoding="utf-8"))
 
         if "rule_smooth_list" in self.stage_dict:
             with open(self.stage_dict["rule_smooth_list"]) as fd:
@@ -682,6 +687,7 @@ def main3(directory=None):
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.read_stage_file()
     experiment.run_experiment()
+
 
 if __name__ == '__main__':
     plac.call(main3)
