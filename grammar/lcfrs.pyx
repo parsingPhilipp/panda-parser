@@ -13,43 +13,51 @@ from grammar.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
 # ##########################################################################
 # Parts of the grammar.
 
-LCFRS_var = namedtuple('LCFRS_var', ['mem', 'arg'])
+# LCFRS_var = namedtuple('LCFRS_var', ['mem', 'arg'])
 
-# Variable of LCFRS rule. 
+# Variable of LCFRS rule.
 # Represents i-th member in RHS and j-th argument thereof.
-# class LCFRS_var:
-# # Constructor.
-# # i: int
-# # j: int
-#     def __init__(self, i, j):
-#         self.__i = i
-#         self.__j = j
-#
-#     # Member number part of variable.
-#     # return: int
-#     @property
-#     def mem(self):
-#         return self.__i
-#
-#     # Argument number part of variable.
-#     # return: int
-#     @property
-#     def arg(self):
-#         return self.__j
-#
-#     # String representation.
-#     # return: string
-#     def __str__(self):
-#         return '<' + str(self.mem) + ',' + str(self.arg) + '>'
-#
-#     def __eq__(self, other):
-#         # if isinstance(other, LCFRS_var):
-#         return self.arg == other.arg and self.mem == other.mem
-#         # else:
-#         #     return False
-#
-#     def __hash__(self):
-#         return hash((self.__i, self.__j))
+cdef class LCFRS_var:
+    cdef int _mem
+    cdef int _arg
+    # Constructor.
+    def __init__(self, int mem, int arg):
+        self._mem = mem
+        self._arg = arg
+
+    # Member number part of variable.
+    # return: int
+    @property
+    def mem(self):
+        return self._mem
+
+    @mem.setter
+    def mem(self, int value):
+        self._mem = value
+
+    # Argument number part of variable.
+    # return: int
+    @property
+    def arg(self):
+        return self._arg
+
+    @arg.setter
+    def arg(self, int value):
+        self._arg = value
+
+    # String representation.
+    # return: string
+    def __str__(self):
+        return '<' + str(self.mem) + ',' + str(self.arg) + '>'
+
+    def __eq__(self, other):
+        if isinstance(other, LCFRS_var):
+            return self.mem == other.mem and self.arg == other.arg
+        else:
+            return False
+
+    def __hash__(self):
+        return hash((self._mem, self._arg))
 
 
 # LHS of LCFRS rule.
@@ -65,7 +73,7 @@ cdef class LCFRS_lhs:
 
     # Add one argument.
     # arg: list of string and LCFRS_var
-    def add_arg(self, arg):
+    cpdef list add_arg(self, list arg):
         self.__args += [arg]
 
     # Number of arguments.
@@ -75,12 +83,12 @@ cdef class LCFRS_lhs:
 
     # Get nonterminal.
     # return: string
-    def nont(self):
+    cpdef str nont(self):
         return self.__nont
 
     # Get all arguments.
     # return: list of list of string/LCFRS_var
-    def args(self):
+    cpdef list args(self):
         return self.__args
 
     # Get i-th argument.
@@ -112,7 +120,7 @@ cdef class LCFRS_lhs:
 
     # Shorter string representation than above (fewer spaces).
     # return: string
-    def key(self):
+    cpdef str key(self):
         cdef int i
         cdef int j
         cdef str s
@@ -148,7 +156,7 @@ cdef class LCFRS_rule:
     # lhs: LCFRS_lhs
     # weight: real
     # dcp: list of DCP_rule
-    def __init__(self, lhs, double weight=1, dcp=None, int idx=0):
+    def __init__(self, LCFRS_lhs lhs, double weight=1, dcp=None, int idx=0):
         self.__weight = weight
         self.__lhs = lhs
         self.__rhs = []
@@ -157,7 +165,7 @@ cdef class LCFRS_rule:
 
     # Add single RHS nonterminal.
     # nont: string
-    def add_rhs_nont(self, nont):
+    cpdef void add_rhs_nont(self, str nont):
         self.__rhs += [nont]
 
     # Increase weight.
@@ -201,12 +209,12 @@ cdef class LCFRS_rule:
 
     # Get all RHS nonterminals.
     # return: list of string
-    def rhs(self):
+    cpdef list rhs(self):
         return self.__rhs
 
     # Get i-th RHS nonterminal.
     # return: string
-    def rhs_nont(self, i):
+    cpdef str rhs_nont(self, int i):
         return self.__rhs[i]
 
     # Size in terms of RHS length plus 1.
@@ -239,13 +247,14 @@ cdef class LCFRS_rule:
                 return 'wrong variables in ' + str(self)
         return None
 
-    def ordered(self):
+    cpdef bint ordered(self):
         """
         :rtype: bool
         :return: Do the variables of each rhs nonterminal occur in ascending order in the components on the lhs.
         """
         cdef int arg
         cdef int mem
+        cdef int comp
         for mem in range(self.rank()):
             arg = -1
             for comp in range(self.lhs().fanout()):
@@ -260,8 +269,9 @@ cdef class LCFRS_rule:
     # Get variables from i-th member.
     # i: int 
     # return: list of int (argument numbers).
-    def __get_vars(self, i):
-        variables = []
+    cpdef list __get_vars(self, int i):
+        cdef list variables = []
+        cdef int j
         for j in range(self.lhs().fanout()):
             for elem in self.lhs().arg(j):
                 if isinstance(elem, LCFRS_var) and elem.mem == i:
@@ -283,7 +293,9 @@ cdef class LCFRS_rule:
 
     # Short string representation (without probability).
     # return: string
-    def key(self):
+    cpdef str key(self):
+        cdef str s
+        cdef int i
         s = self.lhs().key() + '->'
         for i in range(self.rank()):
             s += self.rhs_nont(i)
@@ -436,22 +448,19 @@ class LCFRS:
     # Get total size of grammar.
     # return: int
     def size(self):
-        n = 0
-        for rule in self.rules():
-            n += rule.size()
-        return n
+        return sum([rule.size() for rule in self.rules()])
 
     # Maps nonterminal to fanout.
     # nont: string
     # return: int
-    def fanout(self, nont):
+    def fanout(self, str nont):
         return self.__nont_to_fanout[nont]
 
     # Maps nonterminal to rules that have nonterminal as first
     # member in RHS.
     # nont: string
     # return: list of LCFRS_rule
-    def nont_corner_of(self, nont):
+    def nont_corner_of(self, str nont):
         return self.__nont_corner_of[nont]
 
     # Return problems with grammar is any.
@@ -472,7 +481,7 @@ class LCFRS:
     # Get zero-rank rules in which terminal is first terminal.
     # term: string
     # return: list of LCFRS_rule
-    def lex_rules(self, term):
+    def lex_rules(self, str term):
         return self.__first_term_of[term]
 
     # Get epsilon rules.
@@ -589,7 +598,7 @@ class LCFRS:
                         if lex_nont not in self.__left_corner_of[rule.lhs().nont()]:
                             self.__left_corner_of[rule.lhs().nont()].add(lex_nont)
                             changed = True
-        print "Left-corner: ", time.time() - time1
+        print("Left-corner: ", time.time() - time1)
 
     def full_left_corner(self, nontp):
         if not self.__left_corner_of:
@@ -651,7 +660,7 @@ class LCFRS:
                     else:
                         self.__nont_lex_predict[(nont, rule.lhs().arg(0)[0])].append(rule)
 
-            print "nont lex prediction table: ", time.time() - start
+            print("nont lex prediction table: ", time.time() - start)
         return self.__nont_lex_predict[(nont_p, term_p)]
 
     def left_branch_predict(self, nont_p, term_p):
@@ -691,7 +700,7 @@ class LCFRS:
                             self.__left_branch_predict[(nont, term)].append(rule)
                     else:
                         self.__left_branch_predict[(nont, rule.lhs().arg(0)[0])].append(rule)
-            print "left branching prediction table", time.time() - start
+            print("left branching prediction table", time.time() - start)
         return self.__left_branch_predict[(nont_p, term_p)]
 
 ############################################################
