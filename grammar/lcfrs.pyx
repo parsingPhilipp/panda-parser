@@ -175,7 +175,7 @@ cdef class LCFRS_rule:
 
     # Set DCP.
     # dcp: list of DCP_rule
-    def set_dcp(self, dcp):
+    cpdef void set_dcp(self, list dcp):
         self.__dcp = dcp
 
     # Set weight.
@@ -190,7 +190,7 @@ cdef class LCFRS_rule:
 
     # Get DCP.
     # return: list of DCP_rule
-    def dcp(self):
+    cpdef list dcp(self):
         return self.__dcp
 
     # Get LHS.
@@ -571,7 +571,6 @@ class LCFRS:
         :rtype: list[LCFRS_rule]
         """
         return self.__lhs_nont_to_rules[nont]
-
 
 ############################################################
 # Reading in grammar.
