@@ -121,7 +121,7 @@ class Enumerator:
 
     def print_index(self):
         for i in range(self.first_index, self.counter + 1):
-            print(self.file, i, self.index_object(i), file=self.file)
+            print(i, self.index_object(i), file=self.file)
 
     def print_index_and_stats(self, grammar, inh, syn):
         fanouts = defaultdict(lambda: 0)
