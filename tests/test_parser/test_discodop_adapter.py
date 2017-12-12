@@ -54,14 +54,33 @@ class DiscodopAdapterTest(unittest.TestCase):
         disco_grammar = Grammar(rule_list, start=grammar.start())
         print(disco_grammar)
 
-        chart, msg = parse(["a"] * 10, disco_grammar)
+        inp = ["a"] * 3
+        chart, msg = parse(["a"] * 3, disco_grammar)
         chart.filter()
         print(msg)
         print(disco_grammar.nonterminals)
         print(type(disco_grammar.nonterminals))
 
-        # print(chart)
-        # print(chart.parseforest)
+        print(chart)
+        print(help(chart))
+
+        root = chart.root()
+        print("root", root, type(root))
+        print(chart.indices(root))
+        print(chart.itemstr(root))
+        print(chart.stats())
+        print("root label", chart.label(root))
+        print(root, chart.itemid1(chart.label(root), chart.indices(root)))
+        for i in range(1, chart.numitems()):
+            print(i, chart.label(i), chart.indices(i), chart.numedges(i))
+            if True or len(chart.indices(i)) > 1:
+                for edge_num in range(chart.numedges(i)):
+                    edge = chart.getEdgeForItem(i, edge_num)
+                    if isinstance(edge, tuple):
+                        print("\t", disco_grammar.nonterminalstr(chart.label(i)), "->", ' '.join([disco_grammar.nonterminalstr(chart.label(j)) + "[" + str(j) + "]" for j in [edge[1], edge[2]] if j != 0]))
+                    else:
+                        print("\t", disco_grammar.nonterminalstr(chart.label(i)), "->", inp[edge])
+        print(chart.getEdgeForItem(root, 0))
 
         # print(disco_grammar.rulenos)
         # print(disco_grammar.numrules)
@@ -84,8 +103,10 @@ class DiscodopAdapterTest(unittest.TestCase):
         #     for elem in group:
         #         print(grammar.rule_index(elem))
 
-        for _, item in zip(range(20), chart.parseforest):
-            print(item, item.binrepr(), item.__repr__())
+        # for _, item in zip(range(20), chart.parseforest):
+        #     edge = chart.parseforest[item]
+        #     print(item, item.binrepr(), item.__repr__(), item.lexidx())
+        #     print(type(edge))
 
 
 if __name__ == '__main__':
