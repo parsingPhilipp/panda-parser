@@ -259,7 +259,7 @@ def binarize(lhs, rhs, dcp_rule, hmarkov=0):
             new_arg += tmp_arg
             dcp_term_args += tmp_dcp_indices
             lhs_args.append(new_arg)
-        bar_args = map(lambda xs: map(shift_var, xs), bar_args)
+        bar_args = list(map(lambda xs: list(map(shift_var, xs)), bar_args))
         lhs_nont = lhs.nont() if origin_counter == 0 else bar_nont(len(lhs_args), origin_counter)
         lhs_new = LCFRS_lhs(lhs_nont)
         for arg in lhs_args:
