@@ -182,9 +182,7 @@ class CFGParser(AbstractParser):
 
     @staticmethod
     def __preprocess(grammar):
-        # todo: why do we need 1 for terminal and nonterminal map ?!
-        # todo: otherwise incomplete
-        terminal_map, nonterminal_map, rule_map = Enumerator(1), Enumerator(1), Enumerator(0)
+        terminal_map, nonterminal_map, rule_map = Enumerator(0), Enumerator(0), Enumerator(0)
         pycfg = grammar_to_cfg(grammar, terminal_map, nonterminal_map, rule_map)
         return PyCFGParser(pycfg)
 
