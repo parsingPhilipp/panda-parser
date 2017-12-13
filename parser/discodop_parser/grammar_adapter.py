@@ -70,6 +70,8 @@ class DiscodopKbestParser(AbstractParser):
         self.chart, msg = parse(self.input, self.disco_grammar,
                                 beam_beta=-log(self.beam_beta),
                                 beam_delta=self.beam_delta)
+        if self.chart:
+            self.chart.filter()
 
     def clear(self):
         self.input = None
