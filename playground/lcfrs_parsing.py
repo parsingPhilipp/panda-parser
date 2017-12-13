@@ -140,11 +140,13 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 
         if "training_reducts" in self.stage_dict:
             self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
-            self.organizer.training_reducts.load_traces_from_file(self.stage_dict["training_reducts"])
+            self.organizer.training_reducts.load_traces_from_file(
+                bytes(self.stage_dict["training_reducts"], encoding="utf-8"))
 
         if "validation_reducts" in self.stage_dict:
             self.organizer.validation_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
-            self.organizer.validation_reducts.load_traces_from_file(self.stage_dict["validation_reducts"])
+            self.organizer.validation_reducts.load_traces_from_file(
+                bytes(self.stage_dict["validation_reducts"], encoding="utf-8"))
 
         SplitMergeExperiment.read_stage_file(self)
 
