@@ -14,6 +14,8 @@ import re
 def transform_grammar(grammar):
     # TODO assert ordered rules, terminals only in rules with len(rhs) = 0
     for rule in grammar.rules():
+        if rule.weight() == 0.0:
+            continue
         fake_nont = rule.lhs().nont() + "-" + str(rule.get_idx())
         trans_rule_fake = (rule.lhs().nont(), fake_nont), tuple([(0,) for _ in rule.lhs().args()])
         yield trans_rule_fake, rule.weight()
