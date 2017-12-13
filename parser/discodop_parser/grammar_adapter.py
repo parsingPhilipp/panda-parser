@@ -9,7 +9,7 @@ from parser.parser_interface import AbstractParser
 from parser.derivation_interface import AbstractDerivation
 import nltk
 import re
-
+from math import log, exp
 
 def transform_grammar(grammar):
     # TODO assert ordered rules, terminals only in rules with len(rhs) = 0
@@ -45,6 +45,8 @@ class DiscodopKbestParser(AbstractParser):
         self.input = input
         self.grammar = grammar
         self.k = k
+        self.beam_beta = exp(-10)  # beam pruning factor, between 0 and 1; 1 to disable.
+        self.beam_delta = 40  # maximum span length to which beam_beta is applied
 
     def best(self):
         pass
@@ -65,7 +67,9 @@ class DiscodopKbestParser(AbstractParser):
         self.input = input
 
     def parse(self):
-        self.chart, msg = parse(self.input, self.disco_grammar)
+        self.chart, msg = parse(self.input, self.disco_grammar,
+                                beam_beta=-log(self.beam_beta),
+                                beam_delta=self.beam_delta)
 
     def clear(self):
         self.input = None
