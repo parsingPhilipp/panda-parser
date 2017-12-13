@@ -38,7 +38,7 @@ def transform_args(args):
 
 
 class DiscodopKbestParser(AbstractParser):
-    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50):
+    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=-1):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
         self.chart = None
