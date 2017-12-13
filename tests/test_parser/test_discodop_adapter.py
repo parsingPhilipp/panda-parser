@@ -2,9 +2,10 @@ from __future__ import print_function, unicode_literals
 import unittest
 from grammar.lcfrs import LCFRS, LCFRS_var, LCFRS_lhs
 from pprint import pprint
-from parser.discodop_parser.grammar_adapter import transform_grammar
+from parser.discodop_parser.grammar_adapter import transform_grammar, DiscodopKbestParser
 from discodop.plcfrs import parse
 from discodop.containers import Grammar
+from discodop.kbest import lazykbest
 
 
 class DiscodopAdapterTest(unittest.TestCase):
@@ -42,6 +43,77 @@ class DiscodopAdapterTest(unittest.TestCase):
 
         grammar.make_proper()
         return grammar
+
+    def build_nm_grammar(self):
+        grammar = LCFRS("START")
+        # rule 0
+        lhs = LCFRS_lhs("START")
+        lhs.add_arg([LCFRS_var(0, 0)])
+        grammar.add_rule(lhs, ["S"])
+
+        # rule 1
+        lhs = LCFRS_lhs("S")
+        lhs.add_arg([LCFRS_var(0, 0), LCFRS_var(1, 0), LCFRS_var(0, 1), LCFRS_var(1, 1)])
+        grammar.add_rule(lhs, ["N", "M"])
+
+        for nont, term in [("A", "a"), ("B", "b"), ("C", "c"), ("D", "d")]:
+            # rule 2
+            lhs = LCFRS_lhs(nont)
+            lhs.add_arg([term])
+            grammar.add_rule(lhs, [])
+
+        for nont, nont_, c1, c2 in [("N", "N'", "A", "C"), ("M", "M'", "B", "D")]:
+            # rule 3
+            lhs = LCFRS_lhs(nont)
+            lhs.add_arg([LCFRS_var(0, 0)])
+            lhs.add_arg([LCFRS_var(1, 0)])
+            grammar.add_rule(lhs, [c1, c2])
+
+            # rule 4
+            lhs = LCFRS_lhs(nont)
+            lhs.add_arg([LCFRS_var(0, 0), LCFRS_var(1, 0)])
+            lhs.add_arg([LCFRS_var(0,1)])
+            grammar.add_rule(lhs, [nont_, c1])
+
+            # rule 5
+            lhs = LCFRS_lhs(nont_)
+            lhs.add_arg([LCFRS_var(0, 0)])
+            lhs.add_arg([LCFRS_var(0, 1), LCFRS_var(1, 0)])
+            grammar.add_rule(lhs, [nont, c2])
+
+        grammar.make_proper()
+        return grammar
+
+    def test_discodop_kbest_parser(self):
+        grammar = self.build_grammar()
+        parser = DiscodopKbestParser(grammar)
+        inp = ["a"] * 5
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        counter = 0
+        for weight, der in parser.k_best_derivation_trees():
+            # print(weight, der)
+            self.assertTrue(der.check_integrity_recursive(der.root_id(), grammar.start()))
+            counter += 1
+        self.assertEqual(50, counter)
+
+    def test_copy_grammar(self):
+        grammar = self.build_nm_grammar()
+        parser = DiscodopKbestParser(grammar)
+        n = 2
+        m = 3
+        inp = ["a"] * n + ["b"] * m + ["c"] * n + ["d"] * m
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        counter = 0
+        for weight, der in parser.k_best_derivation_trees():
+            print(weight, der)
+            self.assertTrue(der.check_integrity_recursive(der.root_id(), grammar.start()))
+            self.assertEqual(inp, der.compute_yield())
+            counter += 1
+        self.assertEqual(1, counter)
 
     def test_something(self):
         grammar = self.build_grammar()
@@ -81,6 +153,8 @@ class DiscodopAdapterTest(unittest.TestCase):
                     else:
                         print("\t", disco_grammar.nonterminalstr(chart.label(i)), "->", inp[edge])
         print(chart.getEdgeForItem(root, 0))
+
+        print(lazykbest(chart, 5))
 
         # print(disco_grammar.rulenos)
         # print(disco_grammar.numrules)
