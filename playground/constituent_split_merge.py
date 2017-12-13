@@ -356,7 +356,7 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 
     def initialize_parser(self):
         self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best,
-                                      save_preprocess=(self.directory, "gfgrammar"))
+                                      save_preprocessing=(self.directory, "gfgrammar"))
 
     def read_stage_file(self):
         ScoringExperiment.read_stage_file(self)

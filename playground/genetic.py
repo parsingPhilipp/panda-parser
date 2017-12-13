@@ -389,12 +389,12 @@ def evaluate_la(grammar, grammarInfo, la, trace, corpus):
     if(genetic_eval_is_first):
         genetic_eval_is_first = False
         parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, grammarInfo,
-                                   trace.get_nonterminal_map(), k=k_best,
-                                       save_preprocess=(parse_results_prefix, genetic_eval_name))
+                                       trace.get_nonterminal_map(), k=k_best,
+                                       save_preprocessing=(parse_results_prefix, genetic_eval_name))
     else:
         parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, grammarInfo,
                                        trace.get_nonterminal_map(), k=k_best,
-                                       load_preprocess=(parse_results_prefix, genetic_eval_name))
+                                       load_preprocessing=(parse_results_prefix, genetic_eval_name))
     accuracy = do_parsing(parser, corpus)
     return - accuracy.fmeasure()
 

@@ -106,9 +106,9 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         save_preprocess=(self.directory, "mygrammar")
         if not self.organizer.disable_split_merge \
                 or self.oracle_parsing:
-            self.parser = GFParser_k_best(self.base_grammar, save_preprocess=save_preprocess, k=self.k_best)
+            self.parser = GFParser_k_best(self.base_grammar, save_preprocessing=save_preprocess, k=self.k_best)
         else:
-            self.parser = GFParser(self.base_grammar, save_preprocess=save_preprocess)
+            self.parser = GFParser(self.base_grammar, save_preprocessing=save_preprocess)
 
     def compute_reducts(self, resource):
 

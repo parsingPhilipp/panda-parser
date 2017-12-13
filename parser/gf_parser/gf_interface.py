@@ -58,7 +58,7 @@ class GFParser(AbstractParser):
     def all_derivation_trees(self):
         pass
 
-    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, heuristics=-1.0):
+    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, heuristics=-1.0):
         self.grammar = grammar
         self._goal = None
         self._best = None
@@ -72,12 +72,12 @@ class GFParser(AbstractParser):
             self.input = input
             self.parse()
         else:
-            if load_preprocess is not None:
-                self.gf_grammar = pgf.readPGF(self.resolve_path(load_preprocess)).languages[load_preprocess[1] + LANGUAGE]
+            if load_preprocessing is not None:
+                self.gf_grammar = pgf.readPGF(self.resolve_path(load_preprocessing)).languages[load_preprocessing[1] + LANGUAGE]
             else:
-                if save_preprocess is not None:
-                    prefix = save_preprocess[0]
-                    name = save_preprocess[1]
+                if save_preprocessing is not None:
+                    prefix = save_preprocessing[0]
+                    name = save_preprocessing[1]
                     override = True
                 else:
                     prefix = default_prefix
@@ -139,12 +139,12 @@ class GFParser_k_best(GFParser):
     def recognized(self):
         return self._viterbi is not None
 
-    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None, k=1, heuristics=-1.0):
+    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=1, heuristics=-1.0):
         self._derivations = []
         self.k = k
         self._viterbi = None
         self._viterbi_weigth = None
-        GFParser.__init__(self, grammar, input, save_preprocess, load_preprocess, heuristics=heuristics)
+        GFParser.__init__(self, grammar, input, save_preprocessing, load_preprocessing, heuristics=heuristics)
 
     def set_input(self, input):
         self.input = input

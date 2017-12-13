@@ -429,9 +429,9 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
         os.makedirs(os.path.join(dir, grammar_identifier))
 
     if parser_type == GFParser_k_best:
-        parser = GFParser_k_best(grammar, save_preprocess=preprocess_path, load_preprocess=load_preprocess, k=k_best)
+        parser = GFParser_k_best(grammar, save_preprocessing=preprocess_path, load_preprocessing=load_preprocess, k=k_best)
     elif parser_type == Coarse_to_fine_parser:
-        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la=opt["latentAnnotation"], grammarInfo=opt["grammarInfo"], nontMap=opt["nontMap"], save_preprocess=preprocess_path, load_preprocess=load_preprocess, k=k_best)
+        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la=opt["latentAnnotation"], grammarInfo=opt["grammarInfo"], nontMap=opt["nontMap"], save_preprocessing=preprocess_path, load_preprocessing=load_preprocess, k=k_best)
     else:
         parser = parser_type(grammar, save_preprocess=preprocess_path, load_preprocess=load_preprocess)
 

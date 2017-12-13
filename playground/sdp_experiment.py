@@ -43,7 +43,7 @@ class SDPExperiment(Experiment):
         self.resources[RESULT] = CorpusFile(header="#SDP 2015\n")
 
     def initialize_parser(self):
-        self.parser = GFParser(self.base_grammar, save_preprocess=(self.directory, "gfgrammar"))
+        self.parser = GFParser(self.base_grammar, save_preprocessing=(self.directory, "gfgrammar"))
 
     def induce_from(self, graph):
         rec_part = self.induction_settings.rec_part_strat(graph)

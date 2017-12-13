@@ -654,13 +654,14 @@ class SplitMergeExperiment(Experiment):
         if self.parsing_mode == "best-latent-derivation":
             grammar = last_la.build_sm_grammar(self.base_grammar, self.organizer.grammarInfo, rule_pruning=0.0001,
                                                rule_smoothing=0.1)
-            self.parser = GFParser_k_best(grammar=grammar, k=1, save_preprocess=(self.directory, "gfgrammar"))
+            self.parser = GFParser_k_best(grammar=grammar, k=1, save_preprocessing=(self.directory, "gfgrammar"))
         elif self.parsing_mode == "k-best-rerank":
             if self.organizer.project_weights_before_parsing: 
                 self.project_weights()
-            self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo,
+            base_parser = GFParser_k_best
+            self.parser = Coarse_to_fine_parser(self.base_grammar, base_parser, last_la, self.organizer.grammarInfo,
                                                 self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics,
-                                                save_preprocess=(self.directory, "gfgrammar"))
+                                                save_preprocessing=(self.directory, "gfgrammar"))
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]

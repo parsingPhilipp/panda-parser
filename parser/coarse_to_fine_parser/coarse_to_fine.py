@@ -31,11 +31,11 @@ class Coarse_to_fine_parser(AbstractParser):
     def recognized(self):
         return self.base_parser.recognized()
 
-    def __init__(self, grammar, base_parser_type, la, grammarInfo, nontMap, input=None, save_preprocess=None,
-                 load_preprocess=None, k=50, heuristics=-1.0):
+    def __init__(self, grammar, base_parser_type, la, grammarInfo, nontMap, input=None, save_preprocessing=None,
+                 load_preprocessing=None, k=50, heuristics=-1.0):
         self.grammar = grammar
-        self.base_parser = base_parser_type(grammar, input=input, save_preprocess=save_preprocess,
-                                            load_preprocess=load_preprocess, k=k, heuristics=heuristics)
+        self.base_parser = base_parser_type(grammar, input=input, save_preprocessing=save_preprocessing,
+                                            load_preprocessing=load_preprocessing, k=k, heuristics=heuristics)
         self.la = [la] if isinstance(la, PyLatentAnnotation) else la
         self.grammarInfo = grammarInfo
         self.nontMap = nontMap
