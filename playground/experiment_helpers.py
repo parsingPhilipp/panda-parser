@@ -137,7 +137,7 @@ class Logger(object):
         #this flush method is needed for python 3 compatibility.
         #this handles the flush command by doing nothing.
         #you might want to specify some extra behavior here.
-        pass
+        self.stdout.flush()
 
 
 class Experiment(object):
@@ -401,6 +401,7 @@ class ScoringExperiment(Experiment):
 
         if self.parser.recognized():
             print('.', end='', file=self.logger)
+            self.logger.flush()
             if self.oracle_parsing:
                 derivations = [der for _, der in self.parser.k_best_derivation_trees()]
                 best_derivation = self.compute_oracle_derivation(derivations, gold)
