@@ -17,7 +17,7 @@ sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
 the_branch = 'origin/MT_Genetic'
-the_commit = '932dce9109284853fb55ab22d6d6c943639eb493'
+the_commit = '2d2ab401852531b3df4f5c45639d5bd20d66aefb'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
@@ -121,7 +121,12 @@ ext_modules=[
               extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
     Extension("parser.trace_manager.sm_trainer", sources=["parser/trace_manager/sm_trainer.pyx"], language='c++',
               extra_compile_args=extra_compile_args + openmp + optimizations_tensors,
-              extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include)
+              extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
+    Extension("parser.coarse_to_fine_parser.trace_weight_projection",
+              sources=["parser/coarse_to_fine_parser/trace_weight_projection.pyx"],
+              language='c++',
+              extra_compile_args=extra_compile_args + optimizations_tensors,
+              extra_link_args=linker_args, include_dirs=eigen_include+sterm_include)
 ]
 
 if __name__ == '__main__':

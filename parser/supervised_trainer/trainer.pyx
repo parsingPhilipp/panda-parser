@@ -123,7 +123,7 @@ cdef class PyDerivationManager(PyTraceManager):
             add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
             # nodeMap.clear()
 
-    cpdef void convert_chart_to_hypergraph(self, chart, disco_grammar):
+    cpdef void convert_chart_to_hypergraph(self, chart, disco_grammar, bint debug=False):
         cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
         cdef vector[Element[Node[NONTERMINAL]]] sources
         cdef PyElement pyElement
@@ -171,14 +171,17 @@ cdef class PyDerivationManager(PyTraceManager):
                 for edge_num in range(chart.numedges(node_intermediate)):
                     eLabel = rule_idx_from_label(disco_grammar.nonterminalstr(chart.label(node_intermediate)))
 
-                    # print("goal", node_prim, "edge", eLabel, "sources:", end=" ")
+                    if debug:
+                        print("goal", node_prim, "edge", eLabel, "sources:", end=" ")
                     edge_inter = chart.getEdgeForItem(node_intermediate, edge_num)
                     if isinstance(edge_inter, tuple):
                         for rhs_nont in [j for j in [edge_inter[1], edge_inter[2]] if j != 0]:
-                            # print(rhs_nont, end=" ")
+                            if debug:
+                                print(rhs_nont, end=" ")
                             pyElement = nodeMap[rhs_nont]
                             sources.push_back(deref(pyElement.element))
-                    # print()
+                    if debug:
+                        print()
                     # target
                     pyElement = nodeMap[node_prim]
                     deref(hg).add_hyperedge(eLabel, deref(pyElement.element), sources)

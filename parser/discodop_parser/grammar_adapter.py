@@ -86,6 +86,13 @@ class DiscodopKbestParser(AbstractParser):
 striplabelre = re.compile(r'^(.*)-(\d+)$')
 
 
+def rule_idx_from_label(label):
+    split = striplabelre.split(label)
+    assert len(split) == 4
+    rule_idx = int(split[-2])
+    return rule_idx
+
+
 class DiscodopDerivation(AbstractDerivation):
     def __init__(self, nltk_tree, grammar):
         """
@@ -104,9 +111,8 @@ class DiscodopDerivation(AbstractDerivation):
     def __init__rec(self, nltk_tree, grammar):
         if isinstance(nltk_tree, str):
             return []
-        split = striplabelre.split(nltk_tree.label())
-        assert len(split) == 4
-        rule_idx = int(split[-2])
+
+        rule_idx = rule_idx_from_label(nltk_tree.label())
 
         node = self.node_counter
         self.node_counter += 1

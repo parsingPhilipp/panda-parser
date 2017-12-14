@@ -8,6 +8,9 @@ from discodop.containers import Grammar
 from discodop.kbest import lazykbest
 from parser.supervised_trainer.trainer import PyDerivationManager
 import tempfile
+from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_projection
+from parser.trace_manager.sm_trainer import build_PyLatentAnnotation_initial
+from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 
 
 class DiscodopAdapterTest(unittest.TestCase):
@@ -42,6 +45,11 @@ class DiscodopAdapterTest(unittest.TestCase):
         lhs = LCFRS_lhs("S")
         lhs.add_arg(["b"])
         grammar.add_rule(lhs, [], dcp=["4"])
+
+        # rule 5
+        lhs = LCFRS_lhs("A")
+        lhs.add_arg(["a"])
+        grammar.add_rule(lhs, [])
 
         grammar.make_proper()
         return grammar
@@ -148,7 +156,7 @@ class DiscodopAdapterTest(unittest.TestCase):
         print("root label", chart.label(root))
         print(root, chart.itemid1(chart.label(root), chart.indices(root)))
         for i in range(1, chart.numitems()):
-            print(i, chart.label(i), chart.indices(i), chart.numedges(i))
+            # print(i, chart.label(i), chart.indices(i), chart.numedges(i))
             if True or len(chart.indices(i)) > 1:
                 for edge_num in range(chart.numedges(i)):
                     edge = chart.getEdgeForItem(i, edge_num)
@@ -158,13 +166,24 @@ class DiscodopAdapterTest(unittest.TestCase):
                         print("\t", disco_grammar.nonterminalstr(chart.label(i)) + "[" + str(i) + "]", "->", inp[edge])
         print(chart.getEdgeForItem(root, 0))
         manager = PyDerivationManager(grammar)
-        manager.convert_chart_to_hypergraph(chart, disco_grammar)
+        manager.convert_chart_to_hypergraph(chart, disco_grammar, debug=True)
 
-        print(lazykbest(chart, 5))
+
         file = tempfile.mktemp()
         print(file)
         manager.serialize(bytes(file, encoding="utf-8"))
 
+        gi = PyGrammarInfo(grammar, manager.get_nonterminal_map())
+        sm = PyStorageManager()
+        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
+
+        vec = py_edge_weight_projection(la, manager, variational=True)
+        print(vec)
+        self.assertEqual([1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 1.0], vec)
+
+        vec = py_edge_weight_projection(la, manager, variational=False)
+        print(vec)
+        self.assertEqual([1.0, 1.0, 1.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 1.0], vec)
         # print(disco_grammar.rulenos)
         # print(disco_grammar.numrules)
         # print(disco_grammar.lexicalbylhs)
