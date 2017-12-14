@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+from __future__ import print_function
 from cython.operator cimport dereference as deref
 from parser.derivation_interface import AbstractDerivation
 from grammar.rtg import RTG
+from parser.discodop_parser.grammar_adapter import rule_idx_from_label, striplabelre
+
 
 cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
     cdef void add_hypergraph_to_trace[Nonterminal, TraceID](
@@ -120,4 +122,71 @@ cdef class PyDerivationManager(PyTraceManager):
             pyElement = nodeMap[rtg.initial]
             add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
             # nodeMap.clear()
+
+    cpdef void convert_chart_to_hypergraph(self, chart, disco_grammar):
+        cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
+        cdef vector[Element[Node[NONTERMINAL]]] sources
+        cdef PyElement pyElement
+        cdef int node_intermediate
+        cdef int node_prim
+        cdef int node
+        cdef int eLabel
+        cdef set intermediate_nodes
+        cdef int edge_num, edge_num_prim
+
+        hg = make_shared[Hypergraph[NONTERMINAL, size_t]](self.node_labels, self.edge_labels)
+        nodeMap = {}
+        intermediate_nodes = set()
+
+        # create nodes
+        for node in range(1, chart.numitems()):
+            orig_nont = disco_grammar.nonterminalstr(chart.label(node))
+            # print(orig_nont)
+            if striplabelre.match(orig_nont):
+                intermediate_nodes.add(node)
+                continue
+            nLabel = self.nonterminal_map.object_index(orig_nont)
+            pyElement2 = PyElement()
+            pyElement2.element = make_shared[Element[Node[NONTERMINAL]]](deref(hg).create(nLabel))
+            nodeMap[node] = pyElement2
+
+        # create edges
+        for node_prim in range(1, chart.numitems()):
+            # skip intermediate nodes
+            if node_prim in intermediate_nodes:
+                continue
+            # print("node prim", node_prim)
+            # go over intermediate unary edges
+            for edge_num_prim in range(chart.numedges(node_prim)):
+                edge = chart.getEdgeForItem(node_prim, edge_num_prim)
+                # print("edge", edge)
+                assert isinstance(edge, tuple)
+                assert edge[2] == 0
+
+
+                # determine intermediate node
+                node_intermediate = edge[1]
+
+                # create hyperedges for primary node for each edge outgoing from intermediate node
+                for edge_num in range(chart.numedges(node_intermediate)):
+                    eLabel = rule_idx_from_label(disco_grammar.nonterminalstr(chart.label(node_intermediate)))
+
+                    # print("goal", node_prim, "edge", eLabel, "sources:", end=" ")
+                    edge_inter = chart.getEdgeForItem(node_intermediate, edge_num)
+                    if isinstance(edge_inter, tuple):
+                        for rhs_nont in [j for j in [edge_inter[1], edge_inter[2]] if j != 0]:
+                            # print(rhs_nont, end=" ")
+                            pyElement = nodeMap[rhs_nont]
+                            sources.push_back(deref(pyElement.element))
+                    # print()
+                    # target
+                    pyElement = nodeMap[node_prim]
+                    deref(hg).add_hyperedge(eLabel, deref(pyElement.element), sources)
+                    sources.clear()
+
+
+        # root
+        pyElement = nodeMap[chart.root()]
+        add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
+        # nodeMap.clear()
 

@@ -6,6 +6,8 @@ from parser.discodop_parser.grammar_adapter import transform_grammar, DiscodopKb
 from discodop.plcfrs import parse
 from discodop.containers import Grammar
 from discodop.kbest import lazykbest
+from parser.supervised_trainer.trainer import PyDerivationManager
+import tempfile
 
 
 class DiscodopAdapterTest(unittest.TestCase):
@@ -127,14 +129,16 @@ class DiscodopAdapterTest(unittest.TestCase):
         print(disco_grammar)
 
         inp = ["a"] * 3
-        chart, msg = parse(["a"] * 3, disco_grammar)
-        chart.filter()
+        chart, msg = parse(inp, disco_grammar)
+        print(chart)
         print(msg)
+        chart.filter()
+        print("filtered chart")
         print(disco_grammar.nonterminals)
         print(type(disco_grammar.nonterminals))
 
         print(chart)
-        print(help(chart))
+        # print(help(chart))
 
         root = chart.root()
         print("root", root, type(root))
@@ -149,12 +153,17 @@ class DiscodopAdapterTest(unittest.TestCase):
                 for edge_num in range(chart.numedges(i)):
                     edge = chart.getEdgeForItem(i, edge_num)
                     if isinstance(edge, tuple):
-                        print("\t", disco_grammar.nonterminalstr(chart.label(i)), "->", ' '.join([disco_grammar.nonterminalstr(chart.label(j)) + "[" + str(j) + "]" for j in [edge[1], edge[2]] if j != 0]))
+                        print("\t", disco_grammar.nonterminalstr(chart.label(i)) + "[" + str(i) + "]", "->", ' '.join([disco_grammar.nonterminalstr(chart.label(j)) + "[" + str(j) + "]" for j in [edge[1], edge[2]] if j != 0]))
                     else:
-                        print("\t", disco_grammar.nonterminalstr(chart.label(i)), "->", inp[edge])
+                        print("\t", disco_grammar.nonterminalstr(chart.label(i)) + "[" + str(i) + "]", "->", inp[edge])
         print(chart.getEdgeForItem(root, 0))
+        manager = PyDerivationManager(grammar)
+        manager.convert_chart_to_hypergraph(chart, disco_grammar)
 
         print(lazykbest(chart, 5))
+        file = tempfile.mktemp()
+        print(file)
+        manager.serialize(bytes(file, encoding="utf-8"))
 
         # print(disco_grammar.rulenos)
         # print(disco_grammar.numrules)
