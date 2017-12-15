@@ -1,7 +1,8 @@
 from libcpp.vector cimport vector
-from libcpp.memory cimport shared_ptr
+from libcpp.memory cimport shared_ptr, weak_ptr
 from libcpp.string cimport string
 from util.enumerator cimport Enumerator
+from libcpp.pair cimport pair
 
 cdef extern from "Manage/Manager.h":
     cppclass Element[InfoT]:
@@ -9,7 +10,10 @@ cdef extern from "Manage/Manager.h":
         bint equals "operator=="(const Element[InfoT]& other)
         size_t hash()
 
-# cdef extern from "Manage/Mangaer.h" namespace "std":
+cdef extern from "Manage/Manager.h" namespace "Manage":
+    cppclass Manager[InfoT]:
+        const InfoT operator[](size_t) const
+        unsigned long size() const
 #     cppclass hasher "hash"[InfoT, isConst]:
 #         size_t hash_it "operator()"(const Element[InfoT]& element)
 
@@ -22,7 +26,7 @@ cdef extern from "Manage/Hypergraph.h" namespace "Manage":
         size_t get_label_id()
         LabelT get_label()
         Element[NodeT] get_target()
-        vector[Element[NodeT]] get_sources()
+        const vector[Element[NodeT]] get_sources() const
 
     cppclass Hypergraph[NodeLabelT, EdgeLabelT]:
         Hypergraph(shared_ptr[vector[NodeLabelT]] nLabels
@@ -34,6 +38,9 @@ cdef extern from "Manage/Hypergraph.h" namespace "Manage":
                 , vector[Element[Node[NodeLabelT]]]& sources
                 )
         vector[Element[HyperEdge[Node[NodeLabelT], EdgeLabelT]]] get_incoming_edges(Element[Node[NodeLabelT]] e)
+        const vector[pair[Element[HyperEdge[Node[NodeLabelT], EdgeLabelT]], size_t]]& get_outgoing_edges(Element[Node[NodeLabelT]])
+        const weak_ptr[Manager[HyperEdge[Node[NodeLabelT], EdgeLabelT]]] get_edges()
+
 
 cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
     cdef cppclass Trace[Nonterminal, oID]:
@@ -61,3 +68,13 @@ cdef class PyTraceManager:
     cpdef serialize(self, string path)
     cpdef void load_traces_from_file(self, string path)
     cpdef Enumerator get_nonterminal_map(self)
+    cdef DerivationTree __build_viterbi_derivation_tree_rec(self, PyElement node, dict node_best_edge, shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges)
+
+cdef class PyElement:
+    cdef shared_ptr[Element[Node[NONTERMINAL]]] element
+
+cdef class DerivationTree:
+    cdef PyElement root_id
+    cdef NONTERMINAL root_nonterminal
+    cdef size_t rule_id
+    cdef list children

@@ -21,6 +21,7 @@ cdef class PyElement:
         self.element = shared_ptr[Element[Node[NONTERMINAL]]]()
          # self.element = make_shared[Element[Node[NONTERMINAL]]](element)
 
+
 cdef class PyDerivationManager(PyTraceManager):
     def __init__(self, grammar, Enumerator nonterminal_map=None):
         """

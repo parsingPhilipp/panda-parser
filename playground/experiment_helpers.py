@@ -6,7 +6,7 @@ from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, build_Py
     build_PyLatentAnnotation
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from parser.gf_parser.gf_interface import GFParser_k_best
-from parser.discodop_parser.grammar_adapter import DiscodopKbestParser
+from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from collections import defaultdict
 import tempfile
@@ -660,11 +660,17 @@ class SplitMergeExperiment(Experiment):
         elif self.parsing_mode == "k-best-rerank":
             if self.organizer.project_weights_before_parsing: 
                 self.project_weights()
-            base_parser = GFParser_k_best
-            # base_parser = DiscodopKbestParser
+            # base_parser = GFParser_k_best
+            base_parser = DiscodopKbestParser
             self.parser = Coarse_to_fine_parser(self.base_grammar, base_parser, last_la, self.organizer.grammarInfo,
                                                 self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics,
                                                 save_preprocessing=(self.directory, "gfgrammar"))
+        elif self.parsing_mode in ["max-rule-prod", "max-rule-sum", "variational"]:
+            if self.organizer.project_weights_before_parsing:
+                self.project_weights()
+            self.parser = DiscodopKbestParser(self.base_grammar, k=self.k_best, la=last_la,
+                                              variational=(self.parsing_mode == "variational"),
+                                              sum_op="sum" in self.parsing_mode)
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]

@@ -117,7 +117,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         #     print(rule.get_idx(), rule)
         # sys.stdout.flush()
 
-        training_corpus = filter(self.__valid_tree, self.read_corpus(resource))
+        training_corpus = list(filter(self.__valid_tree, self.read_corpus(resource)))
         parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
         nonterminal_map = self.organizer.nonterminal_map
         frequency = self.backoff_factor if self.backoff else 1.0
@@ -129,6 +129,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
             self.terminal_labeling.backoff_mode = False
         print("computed trace")
         return trace
+
     def print_config(self, file=None):
         if file is None:
             file = self.logger
@@ -180,6 +181,7 @@ def main(directory=None):
     experiment.k_best = 1000
     experiment.read_stage_file()
     experiment.run_experiment()
+    experiment.parsing_mode = "max-rule-prod"
 
 
 if __name__ == '__main__':

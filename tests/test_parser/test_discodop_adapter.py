@@ -2,7 +2,8 @@ from __future__ import print_function, unicode_literals
 import unittest
 from grammar.lcfrs import LCFRS, LCFRS_var, LCFRS_lhs
 from pprint import pprint
-from parser.discodop_parser.grammar_adapter import transform_grammar, DiscodopKbestParser
+from parser.discodop_parser.grammar_adapter import transform_grammar
+from parser.discodop_parser.parser import DiscodopKbestParser
 from discodop.plcfrs import parse
 from discodop.containers import Grammar
 from discodop.kbest import lazykbest
@@ -165,6 +166,9 @@ class DiscodopAdapterTest(unittest.TestCase):
                     else:
                         print("\t", disco_grammar.nonterminalstr(chart.label(i)) + "[" + str(i) + "]", "->", inp[edge])
         print(chart.getEdgeForItem(root, 0))
+        # print(lazykbest(chart, 5))
+
+
         manager = PyDerivationManager(grammar)
         manager.convert_chart_to_hypergraph(chart, disco_grammar, debug=True)
 
@@ -184,6 +188,10 @@ class DiscodopAdapterTest(unittest.TestCase):
         vec = py_edge_weight_projection(la, manager, variational=False)
         print(vec)
         self.assertEqual([1.0, 1.0, 1.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 1.0], vec)
+
+        der = manager.viterbi_derivation(0, vec, grammar)
+        print(der)
+
         # print(disco_grammar.rulenos)
         # print(disco_grammar.numrules)
         # print(disco_grammar.lexicalbylhs)
