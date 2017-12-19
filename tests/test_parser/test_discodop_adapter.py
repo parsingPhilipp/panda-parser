@@ -12,6 +12,7 @@ import tempfile
 from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_projection
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation_initial
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
+from util.enumerator import Enumerator
 
 
 class DiscodopAdapterTest(unittest.TestCase):
@@ -126,7 +127,7 @@ class DiscodopAdapterTest(unittest.TestCase):
             counter += 1
         self.assertEqual(1, counter)
 
-    def test_something(self):
+    def test_individual_parsing_stages(self):
         grammar = self.build_grammar()
 
         for r in transform_grammar(grammar):
@@ -181,11 +182,11 @@ class DiscodopAdapterTest(unittest.TestCase):
         sm = PyStorageManager()
         la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
-        vec = py_edge_weight_projection(la, manager, variational=True)
+        vec = py_edge_weight_projection(la, manager, variational=True, debug=True, log_mode=False)
         print(vec)
         self.assertEqual([1.0, 1.0, 1.0, 0.5, 0.5, 0.5, 0.5, 0.25, 0.25, 0.25, 0.25, 1.0], vec)
 
-        vec = py_edge_weight_projection(la, manager, variational=False)
+        vec = py_edge_weight_projection(la, manager, variational=False, debug=True, log_mode=False)
         print(vec)
         self.assertEqual([1.0, 1.0, 1.0, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 0.25, 1.0], vec)
 
@@ -217,6 +218,21 @@ class DiscodopAdapterTest(unittest.TestCase):
         #     edge = chart.parseforest[item]
         #     print(item, item.binrepr(), item.__repr__(), item.lexidx())
         #     print(type(edge))
+
+    def test_projection_based_parser(self):
+        grammar = self.build_grammar()
+        inp = ["a"] * 3
+        enumerator = Enumerator()
+        gi = PyGrammarInfo(grammar, enumerator)
+        sm = PyStorageManager()
+        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
+
+        parser = DiscodopKbestParser(grammar, la=la)
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        der = parser.best_derivation_tree()
+        print(der)
 
 
 if __name__ == '__main__':

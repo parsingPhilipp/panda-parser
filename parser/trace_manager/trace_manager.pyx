@@ -32,7 +32,7 @@ cdef class PyTraceManager:
     cpdef Enumerator get_nonterminal_map(self):
         raise NotImplementedError()
 
-    def viterbi_derivation(self, size_t traceId, vector[double] edge_weights, grammar, op=prod):
+    def viterbi_derivation(self, size_t traceId, vector[double] edge_weights, grammar, op=prod, log_mode=True):
         """
         :param traceId: trace of which the viterbi derivation shall be computed
         :type traceId: size_t
@@ -46,7 +46,6 @@ cdef class PyTraceManager:
         Uses Knuth's generalization of Dijkstra's algorithm to compute the best derivation of some hypergraph.
         cf. https://doi.org/10.1016/0020-0190(77)90002-3
         """
-        log_mode = True
 
         cdef Trace[NONTERMINAL, size_t]* trace = &(deref(fool_cython_unwrap(self.trace_manager))[traceId])
 
@@ -76,7 +75,7 @@ cdef class PyTraceManager:
             if sources_size == 0:
                 if node_best_weight.count(deref(edge).get_target()) == 0\
                         or node_best_weight[deref(edge).get_target()] < edge_weights[edge_idx]:
-                    node_best_weight[deref(edge).get_target()] = edge_weights[edge_idx]
+                    node_best_weight[deref(edge).get_target()] = edge_weights[edge_idx] # todo log_mode
                     node_best_edge[deref(edge).get_target()] = edge_idx
             else:
                 if node_best_weight.count(deref(edge).get_target()) == 0:
@@ -110,7 +109,8 @@ cdef class PyTraceManager:
                 edge = deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A))[edge_idx].first.get()
                 # position = deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A))[edge_idx].second
 
-                weight = edge_weights[edge_weights_dict[edge]] if not log_mode else log(edge_weights[edge_weights_dict[edge]])
+                weight = edge_weights[edge_weights_dict[edge]]
+                    # if not log_mode else edge_weights[edge_weights_dict[edge]]
                 all_sources_in_Q = True
 
                 for source_list_idx in range(deref(edge).get_sources().size()):
