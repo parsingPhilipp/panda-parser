@@ -3,6 +3,7 @@ from libcpp.memory cimport shared_ptr, weak_ptr
 from libcpp.string cimport string
 from util.enumerator cimport Enumerator
 from libcpp.pair cimport pair
+from libcpp.map cimport map as cmap
 
 cdef extern from "Manage/Manager.h":
     cppclass Element[InfoT]:
@@ -68,13 +69,14 @@ cdef class PyTraceManager:
     cpdef serialize(self, string path)
     cpdef void load_traces_from_file(self, string path)
     cpdef Enumerator get_nonterminal_map(self)
-    cdef DerivationTree __build_viterbi_derivation_tree_rec(self, PyElement node, dict node_best_edge, shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges)
+    cdef DerivationTree __build_viterbi_derivation_tree_rec(self,
+                                                            Element[Node[NONTERMINAL]] node, # dict node_best_edge,
+                                                            cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge,
+                                                            shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges)
 
 cdef class PyElement:
     cdef shared_ptr[Element[Node[NONTERMINAL]]] element
 
 cdef class DerivationTree:
-    cdef PyElement root_id
-    cdef NONTERMINAL root_nonterminal
     cdef size_t rule_id
     cdef list children

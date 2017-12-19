@@ -447,6 +447,7 @@ class ScoringExperiment(Experiment):
     def post_parsing_action(self, gold, system, result_resource):
         result_resource.score(system, gold)
 
+
 class SplitMergeExperiment(Experiment):
     def __init__(self):
         print("Initialize Split Merge Experiment", file=self.logger)

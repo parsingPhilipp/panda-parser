@@ -1,10 +1,13 @@
 from __future__ import print_function
 from parser.derivation_interface import AbstractDerivation
-from cython.operator cimport dereference as deref
+from cython.operator cimport dereference as deref, preincrement as inc
 from libcpp.memory cimport make_shared
 from libcpp.map cimport map as cmap
+from libcpp.set cimport set as cset
 from grammar.lcfrs import LCFRS_rule, LCFRS
 from itertools import product
+from libc.math cimport log, NAN, INFINITY, isnan, isinf
+
 
 cdef extern from "util.h":
     cdef void output_helper(string)
@@ -43,10 +46,12 @@ cdef class PyTraceManager:
         Uses Knuth's generalization of Dijkstra's algorithm to compute the best derivation of some hypergraph.
         cf. https://doi.org/10.1016/0020-0190(77)90002-3
         """
+        log_mode = True
+
         cdef Trace[NONTERMINAL, size_t]* trace = &(deref(fool_cython_unwrap(self.trace_manager))[traceId])
 
-        cdef dict node_best_weight = {}
-        cdef node_best_edge = {}
+        cdef cmap[Element[Node[NONTERMINAL]], double] node_best_weight
+        cdef cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge
         cdef cmap[void*, size_t] edge_weights_dict
         cdef edge_idx
         cdef HyperEdge[Node[NONTERMINAL], size_t]* edge
@@ -54,94 +59,107 @@ cdef class PyTraceManager:
         cdef shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges
         edges = deref(deref(trace).get_hypergraph()).get_edges().lock()
 
-        cdef NONTERMINAL target
-        cdef const Element[Node[NONTERMINAL]]* node
         cdef size_t source_list_idx
-
-        cdef PyElement target_element
         cdef size_t sources_size
 
-        cdef set U = set()
-        cdef set Q = set()
+        cdef cset[Element[Node[NONTERMINAL]]] U
+        cdef cset[Element[Node[NONTERMINAL]]] Q
 
         for edge_idx in range(deref(edges).size()):
             edge = &deref(edges)[edge_idx]
             edge_weights_dict[edge] = edge_idx
 
-            target_element = PyElement()
-            target_element.element = make_shared[Element[Node[NONTERMINAL]]](deref(edge).get_target())
-
-            U.add(target_element)
+            U.insert(deref(edge).get_target())
 
             sources_size = deref(edge).get_sources().size()
             # print("iterated over edge", edge_idx, sources_size)
             if sources_size == 0:
-                if target_element not in node_best_weight\
-                        or node_best_weight[target_element] < edge_weights[edge_idx]:
-                    node_best_weight[target_element] = edge_weights[edge_idx]
-                    node_best_edge[target_element] = edge_idx
+                if node_best_weight.count(deref(edge).get_target()) == 0\
+                        or node_best_weight[deref(edge).get_target()] < edge_weights[edge_idx]:
+                    node_best_weight[deref(edge).get_target()] = edge_weights[edge_idx]
+                    node_best_edge[deref(edge).get_target()] = edge_idx
             else:
-                if target_element not in node_best_weight:
-                    node_best_weight[target_element] = 0.0
-                    node_best_edge[target_element] = None
+                if node_best_weight.count(deref(edge).get_target()) == 0:
+                    node_best_weight[deref(edge).get_target()] = 0.0 if not log_mode else -INFINITY
+                    node_best_edge[deref(edge).get_target()] = <size_t> (-1)
 
-        cdef PyElement A
-        cdef size_t position
-        cdef PyElement source
+        cdef cset[Element[Node[NONTERMINAL]]].iterator A
+        cdef cset[Element[Node[NONTERMINAL]]].iterator it
+
+        # cdef size_t position
+
         cdef bint all_sources_in_Q
         cdef double weight
 
-        while U:
-            A = max(U, key=lambda x: node_best_weight[x])
-            U.remove(A)
-            Q.add(A)
-            for edge_idx in range(deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A.element)).size()):
-                edge = deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A.element))[edge_idx].first.get()
-                position = deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A.element))[edge_idx].second
+        while U.size() > 0:
 
-                weight = edge_weights[edge_weights_dict[edge]]
+            # finding element with maximum weight in U, i.e.,
+            # A = max(U, key=lambda x: node_best_weight[x])
+            A = U.begin()
+            it = U.begin()
+            while it != U.end():
+                if node_best_weight[deref(A)] <= node_best_weight[deref(it)]:
+                    A = it
+                inc(it)
+
+            it = A
+            A = Q.insert(deref(A)).first
+            U.erase(it)
+
+            for edge_idx in range(deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A)).size()):
+                edge = deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A))[edge_idx].first.get()
+                # position = deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A))[edge_idx].second
+
+                weight = edge_weights[edge_weights_dict[edge]] if not log_mode else log(edge_weights[edge_weights_dict[edge]])
                 all_sources_in_Q = True
 
                 for source_list_idx in range(deref(edge).get_sources().size()):
-                    source = PyElement()
-                    source.element = make_shared[Element[Node[NONTERMINAL]]](deref(edge).get_sources()[source_list_idx])
-                    if source not in Q:
+                    if Q.count(deref(edge).get_sources()[source_list_idx]) == 0:
                         all_sources_in_Q = False
                         break
-                    weight = op(weight, node_best_weight[source])
+                    if log_mode:
+                        weight = weight + node_best_weight[deref(edge).get_sources()[source_list_idx]]
+                    else:
+                        weight = op(weight, node_best_weight[deref(edge).get_sources()[source_list_idx]])
 
                 if all_sources_in_Q:
-                    target_element = PyElement()
-                    target_element.element = make_shared[Element[Node[NONTERMINAL]]](deref(edge).get_target())
-
-                    if weight >= node_best_weight[target_element]:
-                        node_best_weight[target_element] = weight
-                        node_best_edge[target_element] = edge_weights_dict[edge]
+                    if False and (isnan(weight) or isinf(weight)):
+                        print("Weight:", weight, "=", edge_weights[edge_weights_dict[edge]], end=" ")
+                        for source_list_idx in range(deref(edge).get_sources().size()):
+                            print("*", node_best_weight[deref(edge).get_sources()[source_list_idx]], end=" ")
+                        print()
+                    if weight > node_best_weight[deref(edge).get_target()]:
+                            # or node_best_edge[deref(edge).get_target()] == <size_t> (-1):
+                        node_best_weight[deref(edge).get_target()] = weight
+                        node_best_edge[deref(edge).get_target()] = edge_weights_dict[edge]
 
         # print("best weights and incoming edges")
         # for i, target_element in enumerate(sorted(node_best_weight)):
         #     print(i, node_best_weight[target_element], node_best_edge[target_element])
 
-        cdef PyElement root = PyElement()
-        root.element = make_shared[Element[Node[NONTERMINAL]]](deref(trace).get_goal())
-        cdef DerivationTree tree = self.__build_viterbi_derivation_tree_rec(root, node_best_edge, edges)
-        return TraceManagerDerivation(tree, grammar)
+        cdef DerivationTree tree
 
-    cdef DerivationTree __build_viterbi_derivation_tree_rec(self, PyElement node,
-                                                            dict node_best_edge,
+        if node_best_edge[deref(trace).get_goal()] != <size_t> (-1):
+            tree = self.__build_viterbi_derivation_tree_rec(deref(trace).get_goal(), node_best_edge, edges)
+            return TraceManagerDerivation(tree, grammar)
+        return None
+
+    cdef DerivationTree __build_viterbi_derivation_tree_rec(self, Element[Node[NONTERMINAL]] node,
+                                                            cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge,
                                                             shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges):
         cdef size_t best_edge_idx = node_best_edge[node]
+        if best_edge_idx == <size_t> (-1):
+            print("Unexpected edge idx")
+            raise Exception()
         cdef HyperEdge[Node[NONTERMINAL], size_t]* edge = &(deref(edges)[best_edge_idx])
-        cdef NONTERMINAL root_nonterminal = deref(deref(edge).get_target().get()).get_label()
         cdef list children = []
         cdef size_t child_list_idx
+
         for child_list_idx in range(deref(edge).get_sources().size()):
-            source = PyElement()
-            source.element = make_shared[Element[Node[NONTERMINAL]]](deref(edge).get_sources()[child_list_idx])
-            children.append(self.__build_viterbi_derivation_tree_rec(source, node_best_edge, edges))
+            children.append(self.__build_viterbi_derivation_tree_rec(deref(edge).get_sources()[child_list_idx], node_best_edge, edges))
         cdef size_t rule_id = deref(edge).get_label()
 
-        return DerivationTree(node, root_nonterminal, rule_id, children)
+        return DerivationTree(rule_id, children)
 
     def enumerate_derivations(self, size_t traceId, grammar):
         cdef Trace[NONTERMINAL, size_t]* trace = &(deref(fool_cython_unwrap(self.trace_manager))[traceId])
@@ -175,11 +193,8 @@ cdef class PyTraceManager:
                 childrens.append([tree for tree in self.__enumerate_derivations_rec(traceId, child)])
             child_combinations = product(*childrens)
             for children in child_combinations:
-                root = PyElement()
-                root.element = make_shared[Element[Node[NONTERMINAL]]](deref(deref(edge).get()).get_target())
-                root_nonterminal = deref(deref(deref(edge).get()).get_target().get()).get_label()
                 rule_id = deref(deref(edge).get()).get_label()
-                yield DerivationTree(root, root_nonterminal, rule_id, list(children))
+                yield DerivationTree(rule_id, list(children))
 
 
 cdef class PyElement:
@@ -199,9 +214,6 @@ cdef class PyElement:
 
 
 class TraceManagerDerivation(AbstractDerivation):
-    # cdef Element[Node[NONTERMINAL]] root_idx
-    # cdef vector[Element[Node[NONTERMINAL]]] __ids
-
     def getRule(self, idx):
         return self.__rules[idx]
 
@@ -221,32 +233,31 @@ class TraceManagerDerivation(AbstractDerivation):
         return self.__root_idx
 
     def __init__(self, DerivationTree tree, grammar):
-        self.__root_idx = tree.root_id
+        self.__root_idx = 0 # tree.root_id
         self.__ids = []
         self.__rules = {}
         self.__child_ids = {}
         self.__relative_positions = {}
         self.spans = None
-        self.__fill_recursive(tree, grammar)
+        self.__fill_recursive(tree, grammar, 0)
 
-    def __fill_recursive(self, DerivationTree tree, grammar):
-        self.__ids.append(tree.root_id)
-        self.__rules[tree.root_id] = grammar.rule_index(tree.rule_id)
-        self.__child_ids[tree.root_id] = []
-        cdef size_t i = 0
+    def __fill_recursive(self, DerivationTree tree, grammar, size_t next_pos):
+        cdef size_t current_pos = next_pos
+        self.__ids.append(current_pos)
+        self.__rules[current_pos] = grammar.rule_index(tree.rule_id)
+        self.__child_ids[current_pos] = []
         cdef DerivationTree child_
 
-        for child in tree.children:
+        for i, child in enumerate(tree.children):
             child_ = <DerivationTree> child
-            self.__child_ids[tree.root_id].append(child_.root_id)
-            self.__relative_positions[child_.root_id] = (tree.root_id, i)
-            self.__fill_recursive(child_, grammar)
-            i = i + 1
+            self.__child_ids[current_pos].append(next_pos + 1)
+            self.__relative_positions[next_pos + 1] = (current_pos, i)
+            next_pos = self.__fill_recursive(child_, grammar, next_pos + 1)
+
+        return next_pos
 
 
 cdef class DerivationTree:
-    def __init__(self, PyElement root_id, NONTERMINAL root_nonterminal, size_t rule_id, list children):
-        self.root_id = root_id
-        self.root_nonterminal = root_nonterminal
+    def __init__(self, size_t rule_id, list children):
         self.rule_id = rule_id
         self.children = children

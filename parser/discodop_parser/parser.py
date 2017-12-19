@@ -101,9 +101,13 @@ class DiscodopKbestParser(AbstractParser):
 
     def __projection_based_derivation_tree(self, la, variational=False, op=prod):
         manager = PyDerivationManager(self.grammar)
-        manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=True)
+        manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
         edge_weights = py_edge_weight_projection(la, manager, variational=variational)
-        return manager.viterbi_derivation(0, edge_weights, self.grammar, op=op)
+        der = manager.viterbi_derivation(0, edge_weights, self.grammar, op=op)
+        if der is None:
+            print("p", end="")
+            _, der = next(self.k_best_derivation_trees())
+        return der
 
     def best_derivation_tree(self):
         return self.__projection_based_derivation_tree(self.la, variational=self.variational, op=self.op)
