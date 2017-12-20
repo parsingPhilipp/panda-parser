@@ -32,6 +32,12 @@ cdef class PyTraceManager:
     cpdef Enumerator get_nonterminal_map(self):
         raise NotImplementedError()
 
+    cpdef void set_io_cycle_limit(self, unsigned int io_cycle_limit):
+        deref(fool_cython_unwrap(self.trace_manager)).set_io_cycle_limit(io_cycle_limit)
+
+    cpdef void set_io_precision(self, double io_precision):
+        deref(fool_cython_unwrap(self.trace_manager)).set_io_precision(io_precision)
+
     def viterbi_derivation(self, size_t traceId, vector[double] edge_weights, grammar, op=prod, log_mode=True):
         """
         :param traceId: trace of which the viterbi derivation shall be computed
@@ -104,6 +110,10 @@ cdef class PyTraceManager:
             it = A
             A = Q.insert(deref(A)).first
             U.erase(it)
+
+            # abort early since root has been found
+            if deref(A).equals(deref(trace).get_goal()):
+                break
 
             for edge_idx in range(deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A)).size()):
                 edge = deref(deref(trace).get_hypergraph()).get_outgoing_edges(deref(A))[edge_idx].first.get()

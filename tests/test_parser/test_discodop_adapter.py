@@ -7,6 +7,7 @@ from parser.discodop_parser.parser import DiscodopKbestParser
 from discodop.plcfrs import parse
 from discodop.containers import Grammar
 from discodop.kbest import lazykbest
+from discodop.estimates import getestimates
 from parser.supervised_trainer.trainer import PyDerivationManager
 import tempfile
 from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_projection
@@ -139,7 +140,9 @@ class DiscodopAdapterTest(unittest.TestCase):
         print(disco_grammar)
 
         inp = ["a"] * 3
-        chart, msg = parse(inp, disco_grammar)
+        estimates = 'SXlrgaps', getestimates(disco_grammar, 40, grammar.start())
+        print(type(estimates))
+        chart, msg = parse(inp, disco_grammar, estimates=estimates)
         print(chart)
         print(msg)
         chart.filter()

@@ -51,6 +51,8 @@ cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
         double get_frequency()
     cdef cppclass TraceManager2[Nonterminal, TraceID]:
         Trace[Nonterminal, TraceID] operator[](size_t)
+        void set_io_cycle_limit(unsigned int io_cycle_limit)
+        void set_io_precision(double io_precision)
     cdef cppclass TraceManagerPtr[Nonterminal, TraceID]:
          pass
     cdef TraceManagerPtr[Nonterminal, TraceID] build_trace_manager_ptr[Nonterminal, TraceID](
@@ -73,6 +75,8 @@ cdef class PyTraceManager:
                                                             Element[Node[NONTERMINAL]] node, # dict node_best_edge,
                                                             cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge,
                                                             shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges)
+    cpdef void set_io_cycle_limit(self, unsigned int io_cycle_limit)
+    cpdef void set_io_precision(self, double io_precision)
 
 cdef class PyElement:
     cdef shared_ptr[Element[Node[NONTERMINAL]]] element

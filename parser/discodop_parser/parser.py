@@ -2,6 +2,7 @@ from __future__ import print_function
 from discodop.containers import Grammar
 from discodop.plcfrs import parse
 from discodop.kbest import lazykbest
+from discodop.estimates import getestimates
 from parser.parser_interface import AbstractParser
 from parser.derivation_interface import AbstractDerivation
 import nltk
@@ -78,6 +79,8 @@ class DiscodopKbestParser(AbstractParser):
         self.op = add if sum_op else prod
         self.debug = False
         self.log_mode = True
+        self.estimates = None
+        # self.estimates = 'SXlrgaps', getestimates(self.disco_grammar, 40, grammar.start())
 
     def best(self):
         pass
@@ -104,6 +107,8 @@ class DiscodopKbestParser(AbstractParser):
     def __projection_based_derivation_tree(self, la, variational=False, op=prod):
         manager = PyDerivationManager(self.grammar)
         manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
+        manager.set_io_cycle_limit(200)
+        manager.set_io_precision(0.000001)
         edge_weights = py_edge_weight_projection(la, manager, variational=variational, debug=self.debug,
                                                  log_mode=self.log_mode)
         if self.debug:
@@ -138,6 +143,7 @@ class DiscodopKbestParser(AbstractParser):
     def parse(self):
         self.counter += 1
         self.chart, msg = parse(self.input, self.disco_grammar,
+                                estimates=self.estimates,
                                 beam_beta=-log(self.beam_beta),
                                 beam_delta=self.beam_delta)
         # if self.counter > 86:

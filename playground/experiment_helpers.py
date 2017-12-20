@@ -661,8 +661,8 @@ class SplitMergeExperiment(Experiment):
         elif self.parsing_mode == "k-best-rerank":
             if self.organizer.project_weights_before_parsing: 
                 self.project_weights()
-            # base_parser = GFParser_k_best
-            base_parser = DiscodopKbestParser
+            base_parser = GFParser_k_best
+            # base_parser = DiscodopKbestParser
             self.parser = Coarse_to_fine_parser(self.base_grammar, base_parser, last_la, self.organizer.grammarInfo,
                                                 self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics,
                                                 save_preprocessing=(self.directory, "gfgrammar"))
