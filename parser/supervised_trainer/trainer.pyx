@@ -78,6 +78,69 @@ cdef class PyDerivationManager(PyTraceManager):
             add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
             # nodeMap.clear()
 
+    def __compute_node_map_key(self, node, derivation):
+            nont = derivation.getRule(node).lhs().nont()
+            spans = derivation.spanned_ranges(node)
+            return nont, tuple(spans)
+
+    cpdef void convert_derivations_to_hypergraph(self, corpus):
+        """
+        :param corpus: nonempty iterable of derivations for the same sentence   
+        :type corpus: iterable[AbstractDerivation]
+        Joins a list/iterator over derivations of a single sentence into a single packed hypergraph. 
+        The nodes of the hypergraph are nonterminals from the rules annotated by the string positions they span. Duplicate edges which may arise this way are removed.  
+        """
+        cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
+        cdef vector[Element[Node[NONTERMINAL]]] sources
+        cdef PyElement pyElement
+
+        hg = make_shared[Hypergraph[NONTERMINAL, size_t]](self.node_labels, self.edge_labels)
+        nodeMap = {}
+        edgeSet = set()
+        root_key = None
+
+        for derivation in corpus:
+            assert(isinstance(derivation, AbstractDerivation))
+            # create nodes
+            for node in derivation.ids():
+                nont, spans = self.__compute_node_map_key(node, derivation)
+                if (nont, spans) not in nodeMap:
+                    nLabel = self.nonterminal_map.object_index(nont)
+                    pyElement2 = PyElement()
+                    pyElement2.element = make_shared[Element[Node[NONTERMINAL]]](deref(hg).create(nLabel))
+                    nodeMap[(nont, spans)] = pyElement2
+
+            if root_key is None:
+                root_key = self.__compute_node_map_key(derivation.root_id(), derivation)
+            else:
+                assert root_key == self.__compute_node_map_key(derivation.root_id(), derivation)
+
+            # create edges
+            for node in derivation.ids():
+                target_key = self.__compute_node_map_key(node, derivation)
+                eLabel = derivation.getRule(node).get_idx()
+                source_keys = []
+                for child in derivation.child_ids(node):
+                    source_keys.append(self.__compute_node_map_key(child, derivation))
+
+                edge_key = target_key, eLabel, tuple(source_keys)
+                if edge_key not in edgeSet:
+                    edgeSet.add(edge_key)
+
+                    for source_key in source_keys:
+                        pyElement = nodeMap[source_key]
+                        sources.push_back(deref(pyElement.element))
+
+                    # target
+                    pyElement = nodeMap[target_key]
+                    deref(hg).add_hyperedge(eLabel, deref(pyElement.element), sources)
+                    sources.clear()
+
+        # root
+        assert root_key is not None
+        pyElement = nodeMap[root_key]
+        add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
+
     cpdef Enumerator get_nonterminal_map(self):
         return self.nonterminal_map
 
