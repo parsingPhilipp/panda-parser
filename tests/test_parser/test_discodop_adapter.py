@@ -9,6 +9,8 @@ from discodop.containers import Grammar
 from discodop.kbest import lazykbest
 from discodop.estimates import getestimates
 from parser.supervised_trainer.trainer import PyDerivationManager
+from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
+from parser.gf_parser.gf_interface import GFParser_k_best
 import tempfile
 from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_projection
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation_initial
@@ -236,6 +238,30 @@ class DiscodopAdapterTest(unittest.TestCase):
         self.assertTrue(parser.recognized())
         der = parser.best_derivation_tree()
         print(der)
+
+        for node in der.ids():
+            print(node, der.getRule(node), der.spanned_ranges(node))
+
+    def test_projection_based_parser_k_best_hack(self):
+        grammar = self.build_grammar()
+        inp = ["a"] * 3
+        enumerator = Enumerator()
+        gi = PyGrammarInfo(grammar, enumerator)
+        sm = PyStorageManager()
+        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
+
+        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, gi, enumerator)
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        der = parser.max_rule_product_derivation()
+        print(der)
+
+        der = parser.best_derivation_tree()
+        print(der)
+
+        for node in der.ids():
+            print(der.getRule(node), der.spanned_ranges(node))
 
 
 if __name__ == '__main__':

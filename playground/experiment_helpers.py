@@ -669,9 +669,12 @@ class SplitMergeExperiment(Experiment):
         elif self.parsing_mode in ["max-rule-prod", "max-rule-sum", "variational"]:
             if self.organizer.project_weights_before_parsing:
                 self.project_weights()
-            self.parser = DiscodopKbestParser(self.base_grammar, k=self.k_best, la=last_la,
-                                              variational=(self.parsing_mode == "variational"),
-                                              sum_op="sum" in self.parsing_mode)
+            if False:
+                self.parser = DiscodopKbestParser(self.base_grammar, k=self.k_best, la=last_la,
+                                                  variational=(self.parsing_mode == "variational"),
+                                                  sum_op="sum" in self.parsing_mode)
+            else:
+                self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo, self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics, save_preprocessing=(self.directory, "gfgrammar"), mode=self.parsing_mode, variational=(self.parsing_mode == "variational"), sum_op="sum" in self.parsing_mode)
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
