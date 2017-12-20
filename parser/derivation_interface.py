@@ -47,15 +47,22 @@ class AbstractDerivation:
         """
         pass
 
+    def spanned_ranges(self, id):
+        if not self.spans:
+            self._compute_spans()
+        return [tuple(s) for s in self.spans[id]]
+
+    def spanned_positions(self, id):
+        if not self.spans:
+            self._compute_spans()
+        return [x + 1 for (l, r) in self.spans[id] for x in range(l, r)]
+
     def terminal_positions(self, id):
         if not self.spans:
             self._compute_spans()
 
-        def spanned_positions(id_):
-            return [x + 1 for (l, r) in self.spans[id_] for x in range(l, r)]
-
-        own = spanned_positions(id)
-        children = [x for cid in self.child_ids(id) for x in spanned_positions(cid)]
+        own = self.spanned_positions(id)
+        children = [x for cid in self.child_ids(id) for x in self.spanned_positions(cid)]
         return [x for x in own if not x in children]
 
     @abstractmethod
