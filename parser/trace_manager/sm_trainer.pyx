@@ -323,6 +323,8 @@ cdef class PyLatentAnnotation:
 
     def project_weights(self, grammar, PyGrammarInfo grammarInfo, debug=False):
         trivial_split = True
+        cdef size_t nont
+
         for nont in range(len(deref(self.latentAnnotation).nonterminalSplits)):
             if deref(self.latentAnnotation).nonterminalSplits[nont] > 1:
                 trivial_split = False
@@ -388,7 +390,7 @@ cdef class PyLatentAnnotation:
                         output_helper("Error: Grammar is not proper!")
                         for i in group:
                             rule_dimensions = [deref(la_proj).nonterminalSplits[_nont]
-                                           for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+                                               for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
                             rule_dimensions_product = itertools.product(*[range(dim) for dim in rule_dimensions])
 
                             lhs_dims = deref(la_proj).nonterminalSplits[
