@@ -323,9 +323,12 @@ cdef class PyLatentAnnotation:
 
     def project_weights(self, grammar, PyGrammarInfo grammarInfo, debug=False):
         trivial_split = True
-        cdef size_t nont
+        cdef size_t nont = 0
+        cdef vector[size_t] group
+        cdef size_t i
+        cdef vector[double] split_total_probs
 
-        for nont in range(len(deref(self.latentAnnotation).nonterminalSplits)):
+        for nont in range(deref(self.latentAnnotation).nonterminalSplits.size()):
             if deref(self.latentAnnotation).nonterminalSplits[nont] > 1:
                 trivial_split = False
                 break
@@ -335,9 +338,13 @@ cdef class PyLatentAnnotation:
             la_proj = self.latentAnnotation
         else:
             # guarantee properness:
-            for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
+            for nont in range(deref(grammarInfo.grammarInfo).normalizationGroups.size()):
                 group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
-                split_total_probs = [0.0] * (deref(self.latentAnnotation).nonterminalSplits[nont])
+
+                split_total_probs = []
+                for _ in range(deref(self.latentAnnotation).nonterminalSplits[nont]):
+                    split_total_probs.push_back(0.0)
+
                 for i in group:
                     rule_dimensions = [deref(self.latentAnnotation).nonterminalSplits[_nont]
                                        for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
@@ -365,9 +372,13 @@ cdef class PyLatentAnnotation:
                                                                                     debug))
 
             # guarantee properness:
-            for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
+            for nont in range(deref(grammarInfo.grammarInfo).normalizationGroups.size()):
                 group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
-                split_total_probs = [0.0] * (deref(la_proj).nonterminalSplits[nont])
+
+                split_total_probs = []
+                for _ in range(deref(self.latentAnnotation).nonterminalSplits[nont]):
+                    split_total_probs.push_back(0.0)
+
                 for i in group:
                     rule_dimensions = [deref(la_proj).nonterminalSplits[_nont]
                                        for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
@@ -401,22 +412,22 @@ cdef class PyLatentAnnotation:
                                 index = list(la)
                                 weight = deref(la_proj).get_weight(i, index)
                                 output_helper(str(i) + " " + str(index) + " " + str(weight))
-                        raise
+                        raise Exception(nont, split_total_probs)
 
-        for i in range(0, len(grammar.rule_index())):
-            rule = grammar.rule_index(i)
+        for rule_idx in range(0, grammar.rule_index()):
+            rule = grammar.rule_index(rule_idx)
 
             rule_dimensions = [deref(la_proj).nonterminalSplits[nont]
-                               for nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
+                               for nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[rule_idx]]
             rule_dimensions_product = [la for la in itertools.product(*[range(dim) for dim in rule_dimensions])]
 
             lhs_dims = deref(la_proj).nonterminalSplits[
-                deref(grammarInfo.grammarInfo).rule_to_nonterminals[i][0]
+                deref(grammarInfo.grammarInfo).rule_to_nonterminals[rule_idx][0]
             ]
 
             assert len(rule_dimensions_product) == 1
             index = list(rule_dimensions_product[0])
-            weight = deref(la_proj).get_weight(i, index)
+            weight = deref(la_proj).get_weight(rule_idx, index)
             rule.set_weight(weight)
 
 
@@ -428,12 +439,16 @@ cdef class PyLatentAnnotation:
             = make_shared[LatentAnnotation](project_annotation_by_merging[NONTERMINAL](deref(self.latentAnnotation), deref(grammarInfo.grammarInfo), merge_sources, IO_PRECISION_DEFAULT, IO_CYCLE_LIMIT_DEFAULT, debug))
         cdef PyLatentAnnotation pyLaProjected = PyLatentAnnotation()
         pyLaProjected.latentAnnotation = la_projected
-
+        cdef vector[double] split_total_probs
 
         # guarantee properness:
-        for nont in range(len(deref(grammarInfo.grammarInfo).normalizationGroups)):
+        for nont in range(deref(grammarInfo.grammarInfo).normalizationGroups.size()):
             group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
-            split_total_probs = [0.0] * (deref(la_projected).nonterminalSplits[nont])
+
+            split_total_probs = []
+            for _ in range(deref(self.latentAnnotation).nonterminalSplits[nont]):
+                split_total_probs.push_back(0.0)
+
             for i in group:
                 rule_dimensions = [deref(la_projected).nonterminalSplits[_nont]
                                    for _nont in deref(grammarInfo.grammarInfo).rule_to_nonterminals[i]]
@@ -670,7 +685,7 @@ cpdef PyLatentAnnotation build_PyLatentAnnotation_initial(
         , PyGrammarInfo grammarInfo
         , PyStorageManager storageManager):
     cdef vector[double] ruleWeights = []
-    cdef size_t i
+    cdef int i
     for i in range(0, len(grammar.rule_index())):
         rule = grammar.rule_index(i)
         assert(isinstance(rule, gl.LCFRS_rule))
