@@ -674,7 +674,7 @@ class SplitMergeExperiment(Experiment):
                                                   variational=(self.parsing_mode == "variational"),
                                                   sum_op="sum" in self.parsing_mode)
             else:
-                self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo, self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics, save_preprocessing=(self.directory, "gfgrammar"), mode=self.parsing_mode, variational=(self.parsing_mode == "variational"), sum_op="sum" in self.parsing_mode)
+                self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo, nontMap=self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics, save_preprocessing=(self.directory, "gfgrammar"), mode=self.parsing_mode, variational=(self.parsing_mode == "variational"), sum_op="sum" in self.parsing_mode)
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]

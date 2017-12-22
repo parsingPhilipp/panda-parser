@@ -227,12 +227,12 @@ class DiscodopAdapterTest(unittest.TestCase):
     def test_projection_based_parser(self):
         grammar = self.build_grammar()
         inp = ["a"] * 3
-        enumerator = Enumerator()
-        gi = PyGrammarInfo(grammar, enumerator)
+        nontMap = Enumerator()
+        gi = PyGrammarInfo(grammar, nontMap)
         sm = PyStorageManager()
         la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
-        parser = DiscodopKbestParser(grammar, la=la)
+        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap)
         parser.set_input(inp)
         parser.parse()
         self.assertTrue(parser.recognized())
@@ -245,12 +245,12 @@ class DiscodopAdapterTest(unittest.TestCase):
     def test_projection_based_parser_k_best_hack(self):
         grammar = self.build_grammar()
         inp = ["a"] * 3
-        enumerator = Enumerator()
-        gi = PyGrammarInfo(grammar, enumerator)
+        nontMap = Enumerator()
+        gi = PyGrammarInfo(grammar, nontMap)
         sm = PyStorageManager()
         la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
-        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, gi, enumerator)
+        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, gi, nontMap)
         parser.set_input(inp)
         parser.parse()
         self.assertTrue(parser.recognized())

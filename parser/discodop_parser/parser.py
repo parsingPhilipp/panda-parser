@@ -64,7 +64,7 @@ class DiscodopDerivation(AbstractDerivation):
 
 class DiscodopKbestParser(AbstractParser):
     def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=-1,
-                 la=None, variational=False, sum_op=False):
+                 la=None, variational=False, sum_op=False, nontMap=None):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
         self.chart = None
@@ -75,6 +75,7 @@ class DiscodopKbestParser(AbstractParser):
         self.beam_delta = 40  # maximum span length to which beam_beta is applied
         self.counter = 0
         self.la = la
+        self.nontMap = nontMap
         self.variational = variational
         self.op = add if sum_op else prod
         self.debug = False
@@ -105,7 +106,10 @@ class DiscodopKbestParser(AbstractParser):
             return self.__projection_based_derivation_tree(self, variational=True, op=prod)
 
     def __projection_based_derivation_tree(self, la, variational=False, op=prod):
-        manager = PyDerivationManager(self.grammar)
+        if self.nontMap is None:
+            print("A nonterminal map is required for weight projection based parsing!")
+            return None
+        manager = PyDerivationManager(self.grammar, self.nontMap)
         manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
         manager.set_io_cycle_limit(200)
         manager.set_io_precision(0.000001)

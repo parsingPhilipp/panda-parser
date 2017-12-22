@@ -48,7 +48,7 @@ class Coarse_to_fine_parser(AbstractParser):
             return self.__projection_based_derivation_tree(self.la[-1], variational=True, op=prod)
 
     def __projection_based_derivation_tree(self, la, variational=False, op=prod):
-        manager = PyDerivationManager(self.grammar)
+        manager = PyDerivationManager(self.grammar, self.nontMap)
         derivations = [der for _, der in self.base_parser.k_best_derivation_trees()]
         manager.convert_derivations_to_hypergraph(derivations)
         manager.set_io_cycle_limit(200)
