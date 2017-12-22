@@ -3,7 +3,9 @@ from libcpp.memory cimport make_shared
 from cython.operator cimport dereference as deref
 from libcpp.functional cimport function
 from libcpp cimport bool as c_bool
-from parser.commons.commons cimport *
+from libcpp.string cimport string
+from parser.commons.commons cimport NONTERMINAL, TERMINAL, unsigned_int
+from parser.commons.commons cimport output_helper_utf8 as output_helper
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2, PyStorageManager
 from parser.trace_manager.score_validator cimport PyCandidateScoreValidator, CandidateScoreValidator
@@ -121,7 +123,6 @@ cdef extern from "Trainer/GeneticCrosser.h" namespace "Trainer":
 cdef extern from "util.h":
     cdef cppclass Double
     cdef cppclass LogDouble
-    cdef void output_helper(string)
 
 # choose representation: prob / log-prob
 # ctypedef LogDouble SemiRing
@@ -376,7 +377,7 @@ cdef class PyLatentAnnotation:
                 group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
 
                 split_total_probs = []
-                for _ in range(deref(self.latentAnnotation).nonterminalSplits[nont]):
+                for _ in range(deref(la_proj).nonterminalSplits[nont]):
                     split_total_probs.push_back(0.0)
 
                 for i in group:
@@ -414,7 +415,7 @@ cdef class PyLatentAnnotation:
                                 output_helper(str(i) + " " + str(index) + " " + str(weight))
                         raise Exception(nont, split_total_probs)
 
-        for rule_idx in range(0, grammar.rule_index()):
+        for rule_idx in range(0, len(grammar.rule_index())):
             rule = grammar.rule_index(rule_idx)
 
             rule_dimensions = [deref(la_proj).nonterminalSplits[nont]
@@ -716,7 +717,7 @@ cdef class PySplitMergeTrainer:
             = make_shared[LatentAnnotation](deref(self.splitMergeTrainer).split_merge_cycle(deref(la.latentAnnotation)))
         cdef PyLatentAnnotation pyLaTrained = PyLatentAnnotation()
         pyLaTrained.latentAnnotation = la_trained
-        output_helper(b"Completed split/merge cycles in " + bytes(str(time.time() - timeStart), encoding="utf-8") + b" seconds")
+        output_helper("Completed split/merge cycles in " + str(time.time() - timeStart) + " seconds")
         return pyLaTrained
 
     cpdef PyLatentAnnotation merge(self, PyLatentAnnotation la):

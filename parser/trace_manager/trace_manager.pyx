@@ -9,10 +9,6 @@ from itertools import product
 from libc.math cimport log, NAN, INFINITY, isnan, isinf
 
 
-cdef extern from "util.h":
-    cdef void output_helper(string)
-
-
 cpdef double prod(double x, double y):
     return x * y
 

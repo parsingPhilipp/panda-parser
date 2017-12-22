@@ -13,25 +13,22 @@ DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 # ctypedef unsigned_int TERMINAL
 
-cdef extern from "util.h":
-    cdef void output_helper(string)
-
 cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, term_labelling, terminal_encoding=str) except * :
-    # output_helper("convert hybrid tree: " + str(p_tree))
+    # output_helper_utf8("convert hybrid tree: " + str(p_tree))
     cdef HybridTree[TERMINAL, int]* c_tree = new HybridTree[TERMINAL, int]()
     assert isinstance(p_tree, gh.HybridTree)
     cdef vector[int] linearization = [-1] * len(p_tree.id_yield())
     c_tree[0].set_entry(0)
-    # output_helper(str(p_tree.root))
+    # output_helper_utf8(str(p_tree.root))
     (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization, term_labelling, terminal_encoding)
     c_tree[0].set_exit(last)
-    # output_helper(str(linearization))
+    # output_helper_utf8(str(linearization))
     c_tree[0].set_linearization(linearization)
     return c_tree
 
 
 cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization, term_labelling, terminal_encoding) except *:
-    # output_helper(str(p_ids))
+    # output_helper_utf8(str(p_ids))
     if p_ids == []:
         return pred_id, max_id
     p_id = p_ids[0]
@@ -98,7 +95,7 @@ cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, t
                         c_rule[0].add_terminal_to_word_function(terminal_encoder(obj))
 
         if not sdcp.add_rule(c_rule[0]):
-            output_helper(str(rule))
+            output_helper_utf8(str(rule))
             raise Exception("rule does not satisfy parser restrictions")
         del c_rule
 
@@ -290,15 +287,15 @@ cdef class PySDCPParser(object):
     cpdef void do_parse(self):
         self.parser[0].do_parse()
         if self.debug:
-            output_helper("parsing completed\n")
+            output_helper_utf8("parsing completed\n")
 
         if self.recognized():
             self.parser[0].reachability_simplification()
 
         if self.debug:
-            output_helper("reachability simplification completed\n")
+            output_helper_utf8("reachability simplification completed\n")
             self.parser[0].print_trace()
-            output_helper("trace printed\n")
+            output_helper_utf8("trace printed\n")
 
     cpdef bint recognized(self):
         return self.parser.recognized()
@@ -339,8 +336,8 @@ cdef class PySDCPParser(object):
     def derivations_rec(self, list items, positions, derivation):
         assert isinstance(derivation, SDCPDerivation)
 
-        # output_helper("items = [" + ', '.join(map(str, items)) +  ']' + '\n')
-        # output_helper("positions = " + str(positions) + "\n")
+        # output_helper_utf8("items = [" + ', '.join(map(str, items)) +  ']' + '\n')
+        # output_helper_utf8("positions = " + str(positions) + "\n")
 
         if len(items) == 0:
             yield derivation
@@ -348,7 +345,7 @@ cdef class PySDCPParser(object):
 
         position = positions[0]
         for rule_id, children in self.query_trace(items[0]):
-            # output_helper("children = [" + ', '.join(map(str, children)) +  ']' + '\n')
+            # output_helper_utf8("children = [" + ', '.join(map(str, children)) +  ']' + '\n')
             extended_derivation, child_positions = derivation.extend_by(position, rule_id, len(children))
             for vertical_extension in self.derivations_rec(children, child_positions, extended_derivation):
                 for horizontal_extension in self.derivations_rec(items[1:], positions[1:], vertical_extension):
@@ -520,7 +517,7 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         if debug:
             for enum in [terminal_map, nonterminal_map]:
                 for idx in range(enum.first_index, enum.counter):
-                    output_helper(bytes(str(idx), encoding="utf-8") + b" : " + bytes(str(enum.index_object(idx)), encoding="utf-8"))
+                    output_helper_utf8(str(idx) + " : " + str(enum.index_object(idx)))
             sdcp.output()
 
         parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing=True, debug=debug)

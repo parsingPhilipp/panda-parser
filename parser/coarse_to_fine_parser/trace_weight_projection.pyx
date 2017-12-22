@@ -1,6 +1,5 @@
 from cython.operator cimport dereference as deref
 from libcpp.vector cimport vector
-
 from parser.trace_manager.trace_manager cimport PyTraceManager, TraceManagerPtr, build_trace_manager_ptr, Element, Hypergraph, Node, HyperEdge, Trace, fool_cython_unwrap
 from parser.trace_manager.sm_trainer cimport LatentAnnotation, PyLatentAnnotation
 

@@ -18,13 +18,6 @@ cdef extern from "DCP/util.h" namespace "DCP":
          , TraceManagerPtr[Nonterminal, TraceID],
            double frequency)
 
-cdef extern from "util.h":
-    cdef void output_helper(string)
-
-
-cpdef void output_helper_utf8(str s):
-    output_helper(bytes(s, encoding="utf-8"))
-
 cdef class PySDCPTraceManager(PyTraceManager):
     cdef PySDCPParser parser
     cdef bint debug

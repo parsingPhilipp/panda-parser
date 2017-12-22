@@ -17,7 +17,7 @@ sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
 the_branch = 'origin/MT_Genetic'
-the_commit = '56835752472292310509da73ab9b3939542ea528'
+the_commit = '1108fe8bd105591baa4acfde484a44fc28fc2fbc'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
@@ -101,6 +101,9 @@ ext_modules=[
               language='c++', extra_compile_args=extra_compile_args, extra_link_args=linker_args),
     Extension("parser.sDCP_parser.sdcp_parser_wrapper", sources=["parser/sDCP_parser/sdcp_parser_wrapper.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args, include_dirs=sterm_include
               ),
+    Extension("parser.commons.commons", sources=["parser/commons/commons.pyx"], language='c++',
+              extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args,
+              include_dirs=sterm_include),
     Extension("parser.LCFRS.LCFRS_Parser_Wrapper", sources=["parser/LCFRS/LCFRS_Parser_Wrapper.pyx"], language='c++',
               extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args,
               include_dirs=sterm_include),
