@@ -57,22 +57,28 @@ class Coarse_to_fine_parser(AbstractParser):
         self.log_mode = True
         edge_weights = py_edge_weight_projection(la, manager, variational=variational, debug=self.debug,
                                                  log_mode=self.log_mode)
-        if self.debug:
-            nans = 0
-            infs = 0
-            zeros = 0
-            for weight in edge_weights:
-                if weight == float("nan"):
-                    nans += 1
-                if weight == float("inf") or weight == float("-inf"):
-                    infs += 1
-                if weight == 0.0:
-                    zeros += 1
-            print("[", len(edge_weights), nans, infs, zeros, "]")
-            if len(edge_weights) < 100:
-                print(edge_weights)
         der = manager.viterbi_derivation(0, edge_weights, self.grammar, op=op, log_mode=self.log_mode)
         if der is None:
+            if True or self.debug:
+                nans = 0
+                infs = 0
+                zeros = 0
+                for weight in edge_weights:
+                    if math.isnan(weight):
+                        nans += 1
+                    if math.isinf(weight):
+                        infs += 1
+                    if weight == 0.0:
+                        zeros += 1
+                print("[", len(edge_weights), nans, infs, zeros, "]")
+                if len(edge_weights) < 200:
+                    print("orig:", edge_weights)
+                    edge_weights = py_edge_weight_projection(la, manager, variational=variational, debug=True, log_mode=self.log_mode)
+                    print("1:", edge_weights)
+                    edge_weights = py_edge_weight_projection(la, manager, variational=variational, debug=True,
+                                                             log_mode=self.log_mode)
+                    print("2:", edge_weights)
+
             print("p", end="")
             _, der = next(self.k_best_derivation_trees())
         return der

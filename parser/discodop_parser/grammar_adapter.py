@@ -5,8 +5,12 @@ import re
 
 
 def transform_grammar(grammar):
-    # TODO assert ordered rules, terminals only in rules with len(rhs) = 0
+    """
+    :type grammar: LCFRS
+    """
+    # TODO assert terminals only in rules with len(rhs) = 0
     for rule in grammar.rules():
+        assert rule.ordered()
         if rule.weight() == 0.0:
             continue
         fake_nont = rule.lhs().nont() + "-" + str(rule.get_idx())
@@ -28,6 +32,54 @@ def transform_args(args):
                 return escape(elem)
         return tuple(arg_new)
     return tuple([transform_arg(arg) for arg in args])
+
+
+def transform_grammar_cfg_approx(grammar):
+    """
+    :type grammar: LCFRS
+    """
+    # TODO assert terminals only in rules with len(rhs) = 0
+    for rule in grammar.rules():
+        assert rule.ordered()
+        if rule.weight() == 0.0:
+            continue
+        for n, arg in enumerate(rule.lhs().args()):
+            appendix = "*" + str(n) if rule.lhs().fanout() > 1 else ""
+            fake_nont = rule.lhs().nont() + "-" + str(rule.get_idx()) + appendix
+            trans_rule_fake = (rule.lhs().nont() + appendix, fake_nont), ((0,),)
+            yield trans_rule_fake, rule.weight()
+
+            for lhs, transformed_arg, rhs in transform_args_to_bin_cfg(fake_nont, arg, rule.rhs(), grammar):
+                trans_rule = tuple([lhs] + rhs), (transformed_arg,)
+                yield trans_rule, 1.0
+
+
+def transform_args_to_bin_cfg(lhs, arg, rhs, grammar):
+    arg_new = []
+    rhs_new = []
+    for elem in arg:
+        if isinstance(elem, LCFRS_var):
+            arg_new.append(len(rhs_new))
+            appendix = "*" + str(elem.arg) if grammar.fanout(rhs[elem.mem]) > 1 else ""
+            rhs_new.append(rhs[elem.mem] + appendix)
+        else:
+            assert len(arg) == 1
+            yield lhs, escape(elem), ['Epsilon']
+            return
+
+    assert rhs_new != []
+    if len(rhs_new) <= 2:
+        yield lhs, tuple(arg_new), rhs_new
+    else:
+        lhs_bar = lhs + "<>BAR"
+        generic_yf = (0, 1)
+        for i, rhs_nont in enumerate(rhs_new[:-2]):
+            if i == 0:
+                yield lhs, generic_yf, [rhs_nont, lhs_bar + "<>" + rhs_nont]
+            else:
+                yield lhs_bar + "<>" + rhs_new[i - 1], generic_yf, [rhs_nont, lhs_bar + "<>" + rhs_nont]
+
+        yield lhs_bar + "<>" + rhs_new[-3], generic_yf, [rhs_new[-2], rhs_new[-1]]
 
 
 striplabelre = re.compile(r'^(.*)-(\d+)$')

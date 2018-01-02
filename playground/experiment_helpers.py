@@ -230,6 +230,8 @@ class Experiment(object):
     def do_parse(self, corpus, result_resource):
         print("parsing, ", end='', file=self.logger)
         result_resource.init()
+        from time import clock
+        begin = clock()
         if self.parsing_timeout is None:
             for obj in corpus:
                 parser_input = self.parsing_preprocess(obj)
@@ -239,6 +241,7 @@ class Experiment(object):
                 self.parser.clear()
         else:
             self.do_parse_with_timeout(corpus, result_resource)
+        print("\nParsing time, ", clock() - begin, file=self.logger)
         result_resource.finalize()
 
     def process_parse(self, obj, result_resource):
@@ -669,10 +672,10 @@ class SplitMergeExperiment(Experiment):
         elif self.parsing_mode in ["max-rule-prod", "max-rule-sum", "variational"]:
             if self.organizer.project_weights_before_parsing:
                 self.project_weights()
-            if False:
+            if True:
                 self.parser = DiscodopKbestParser(self.base_grammar, k=self.k_best, la=last_la,
                                                   variational=(self.parsing_mode == "variational"),
-                                                  sum_op="sum" in self.parsing_mode)
+                                                  sum_op="sum" in self.parsing_mode, nontMap=self.organizer.nonterminal_map, cfg_approx=True)
             else:
                 self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo, nontMap=self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics, save_preprocessing=(self.directory, "gfgrammar"), mode=self.parsing_mode, variational=(self.parsing_mode == "variational"), sum_op="sum" in self.parsing_mode)
 

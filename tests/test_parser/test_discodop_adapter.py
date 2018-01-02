@@ -2,12 +2,13 @@ from __future__ import print_function, unicode_literals
 import unittest
 from grammar.lcfrs import LCFRS, LCFRS_var, LCFRS_lhs
 from pprint import pprint
-from parser.discodop_parser.grammar_adapter import transform_grammar
+from parser.discodop_parser.grammar_adapter import transform_grammar, transform_grammar_cfg_approx
 from parser.discodop_parser.parser import DiscodopKbestParser
 from discodop.plcfrs import parse
 from discodop.containers import Grammar
 from discodop.kbest import lazykbest
 from discodop.estimates import getestimates
+from discodop.coarsetofine import prunechart
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from parser.gf_parser.gf_interface import GFParser_k_best
@@ -16,6 +17,8 @@ from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation_initial
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from util.enumerator import Enumerator
+from math import log, exp
+import re
 
 
 class DiscodopAdapterTest(unittest.TestCase):
@@ -115,20 +118,49 @@ class DiscodopAdapterTest(unittest.TestCase):
 
     def test_copy_grammar(self):
         grammar = self.build_nm_grammar()
-        parser = DiscodopKbestParser(grammar)
+        for cfg_aprrox in [True, False]:
+            parser = DiscodopKbestParser(grammar, cfg_approx=cfg_aprrox)
+            n = 2
+            m = 3
+            inp = ["a"] * n + ["b"] * m + ["c"] * n + ["d"] * m
+            parser.set_input(inp)
+            parser.parse()
+            self.assertTrue(parser.recognized())
+            counter = 0
+            for weight, der in parser.k_best_derivation_trees():
+                print(weight, der)
+                self.assertTrue(der.check_integrity_recursive(der.root_id(), grammar.start()))
+                self.assertEqual(inp, der.compute_yield())
+                counter += 1
+            self.assertEqual(1, counter)
+
+    def test_cfg_approximation_conversion(self):
+        grammar = self.build_nm_grammar()
+        disco_grammar_rules = list(transform_grammar_cfg_approx(grammar))
+        print(disco_grammar_rules)
+        disco_grammar = Grammar(disco_grammar_rules, start=grammar.start())
+        print(disco_grammar)
         n = 2
         m = 3
         inp = ["a"] * n + ["b"] * m + ["c"] * n + ["d"] * m
-        parser.set_input(inp)
-        parser.parse()
-        self.assertTrue(parser.recognized())
-        counter = 0
-        for weight, der in parser.k_best_derivation_trees():
-            print(weight, der)
-            self.assertTrue(der.check_integrity_recursive(der.root_id(), grammar.start()))
-            self.assertEqual(inp, der.compute_yield())
-            counter += 1
-        self.assertEqual(1, counter)
+
+        chart, msg = parse(inp, disco_grammar, beam_beta=exp(-4))
+        chart.filter()
+        print(chart)
+        print(msg)
+
+        fine_grammar_rules = list(transform_grammar(grammar))
+
+        fine = Grammar(fine_grammar_rules, start=grammar.start())
+        fine.getmapping(disco_grammar, re.compile('\*[0-9]+$'), None, True, True)
+
+        whitelist, msg = prunechart(chart, fine, k=10000, splitprune=True, markorigin=True, finecfg=False)
+        print(msg)
+        print(whitelist)
+
+        chart2, msg = parse(inp, fine, whitelist=whitelist, splitprune=True, markorigin=True)
+        print(msg)
+        print(chart2)
 
     def test_individual_parsing_stages(self):
         grammar = self.build_grammar()

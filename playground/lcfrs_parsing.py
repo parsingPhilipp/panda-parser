@@ -180,9 +180,9 @@ def main(directory=None):
     experiment.oracle_parsing = False
     experiment.k_best = 1000
     experiment.read_stage_file()
-    experiment.run_experiment()
     experiment.parsing_mode = "max-rule-prod"
 
+    experiment.run_experiment()
 
 if __name__ == '__main__':
     plac.call(main)

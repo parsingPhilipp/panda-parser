@@ -3,6 +3,7 @@ from discodop.containers import Grammar
 from discodop.plcfrs import parse
 from discodop.kbest import lazykbest
 from discodop.estimates import getestimates
+from discodop.coarsetofine import prunechart
 from parser.parser_interface import AbstractParser
 from parser.derivation_interface import AbstractDerivation
 import nltk
@@ -10,7 +11,8 @@ from math import log, exp
 from parser.trace_manager.trace_manager import add, prod
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_projection
-from parser.discodop_parser.grammar_adapter import rule_idx_from_label, transform_grammar
+from parser.discodop_parser.grammar_adapter import rule_idx_from_label, transform_grammar, transform_grammar_cfg_approx
+import re
 
 
 class DiscodopDerivation(AbstractDerivation):
@@ -64,7 +66,7 @@ class DiscodopDerivation(AbstractDerivation):
 
 class DiscodopKbestParser(AbstractParser):
     def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=-1,
-                 la=None, variational=False, sum_op=False, nontMap=None):
+                 la=None, variational=False, sum_op=False, nontMap=None, cfg_approx=False):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
         self.chart = None
@@ -81,6 +83,11 @@ class DiscodopKbestParser(AbstractParser):
         self.debug = False
         self.log_mode = True
         self.estimates = None
+        self.cfg_approx = cfg_approx
+        if cfg_approx:
+            cfg_rule_list = list(transform_grammar_cfg_approx(grammar))
+            self.disco_cfg_grammar = Grammar(cfg_rule_list, start=grammar.start())
+            self.disco_grammar.getmapping(self.disco_cfg_grammar, re.compile('\*[0-9]+$'), None, True, True)
         # self.estimates = 'SXlrgaps', getestimates(self.disco_grammar, 40, grammar.start())
 
     def best(self):
@@ -146,10 +153,22 @@ class DiscodopKbestParser(AbstractParser):
 
     def parse(self):
         self.counter += 1
-        self.chart, msg = parse(self.input, self.disco_grammar,
-                                estimates=self.estimates,
-                                beam_beta=-log(self.beam_beta),
-                                beam_delta=self.beam_delta)
+        if self.cfg_approx:
+            chart, msg = parse(self.input, self.disco_cfg_grammar, beam_beta=-log(self.beam_beta), beam_delta=self.beam_delta)
+            if chart:
+                chart.filter()
+                whitelist, msg = prunechart(chart, self.disco_grammar, k=10000, splitprune=True, markorigin=True,
+                                            finecfg=False)
+                self.chart, msg = parse(self.input, self.disco_grammar,
+                                        estimates=self.estimates,
+                                        whitelist=whitelist,
+                                        splitprune=True,
+                                        markorigin=True)
+        else:
+            self.chart, msg = parse(self.input, self.disco_grammar,
+                                    estimates=self.estimates,
+                                    beam_beta=-log(self.beam_beta),
+                                    beam_delta=self.beam_delta)
         # if self.counter > 86:
         #     print(self.input)
         #     print(self.chart)
