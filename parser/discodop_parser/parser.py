@@ -1,6 +1,7 @@
 from __future__ import print_function
 from discodop.containers import Grammar
 from discodop.plcfrs import parse
+import discodop.pcfg as pcfg
 from discodop.kbest import lazykbest
 from discodop.estimates import getestimates
 from discodop.coarsetofine import prunechart
@@ -65,16 +66,17 @@ class DiscodopDerivation(AbstractDerivation):
 
 
 class DiscodopKbestParser(AbstractParser):
-    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=-1,
-                 la=None, variational=False, sum_op=False, nontMap=None, cfg_approx=False):
+    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=None,
+                 la=None, variational=False, sum_op=False, nontMap=None, cfg_ctf=False, beam_beta=0.0, beam_delta=50,
+                 pruning_k=10000):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
         self.chart = None
         self.input = input
         self.grammar = grammar
         self.k = k
-        self.beam_beta = exp(-10)  # beam pruning factor, between 0 and 1; 1 to disable.
-        self.beam_delta = 40  # maximum span length to which beam_beta is applied
+        self.beam_beta = beam_beta # beam pruning factor, between 0.0 and 1.0; 0.0 to disable.
+        self.beam_delta = beam_delta  # maximum span length to which beam_beta is applied
         self.counter = 0
         self.la = la
         self.nontMap = nontMap
@@ -83,8 +85,9 @@ class DiscodopKbestParser(AbstractParser):
         self.debug = False
         self.log_mode = True
         self.estimates = None
-        self.cfg_approx = cfg_approx
-        if cfg_approx:
+        self.cfg_approx = cfg_ctf
+        self.pruning_k = pruning_k
+        if cfg_ctf:
             cfg_rule_list = list(transform_grammar_cfg_approx(grammar))
             self.disco_cfg_grammar = Grammar(cfg_rule_list, start=grammar.start())
             self.disco_grammar.getmapping(self.disco_cfg_grammar, re.compile('\*[0-9]+$'), None, True, True)
@@ -154,21 +157,32 @@ class DiscodopKbestParser(AbstractParser):
     def parse(self):
         self.counter += 1
         if self.cfg_approx:
-            chart, msg = parse(self.input, self.disco_cfg_grammar, beam_beta=-log(self.beam_beta), beam_delta=self.beam_delta)
+            chart, msg = pcfg.parse(self.input,
+                                    self.disco_cfg_grammar,
+                                    beam_beta=self.beam_beta,
+                                    beam_delta=self.beam_delta)
             if chart:
                 chart.filter()
-                whitelist, msg = prunechart(chart, self.disco_grammar, k=10000, splitprune=True, markorigin=True,
+                whitelist, msg = prunechart(chart,
+                                            self.disco_grammar,
+                                            k=self.pruning_k,
+                                            splitprune=True,
+                                            markorigin=True,
                                             finecfg=False)
-                self.chart, msg = parse(self.input, self.disco_grammar,
+                self.chart, msg = parse(self.input,
+                                        self.disco_grammar,
                                         estimates=self.estimates,
                                         whitelist=whitelist,
                                         splitprune=True,
-                                        markorigin=True)
+                                        markorigin=True,
+                                        exhaustive=True)
         else:
-            self.chart, msg = parse(self.input, self.disco_grammar,
+            self.chart, msg = parse(self.input,
+                                    self.disco_grammar,
                                     estimates=self.estimates,
-                                    beam_beta=-log(self.beam_beta),
-                                    beam_delta=self.beam_delta)
+                                    beam_beta=self.beam_beta,
+                                    beam_delta=self.beam_delta,
+                                    exhaustive=True)
         # if self.counter > 86:
         #     print(self.input)
         #     print(self.chart)

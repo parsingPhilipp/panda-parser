@@ -119,7 +119,7 @@ class DiscodopAdapterTest(unittest.TestCase):
     def test_copy_grammar(self):
         grammar = self.build_nm_grammar()
         for cfg_aprrox in [True, False]:
-            parser = DiscodopKbestParser(grammar, cfg_approx=cfg_aprrox)
+            parser = DiscodopKbestParser(grammar, cfg_ctf=cfg_aprrox)
             n = 2
             m = 3
             inp = ["a"] * n + ["b"] * m + ["c"] * n + ["d"] * m

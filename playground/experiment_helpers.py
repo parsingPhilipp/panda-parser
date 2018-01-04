@@ -458,6 +458,10 @@ class SplitMergeExperiment(Experiment):
         self.parsing_mode = "k-best-rerank"  # or "best-latent-derivation"
         self.k_best = 50
         self.heuristics = -1.0
+        self.disco_dop_params = {"beam_beta": 0.0,
+                                 "beam_delta": 50,
+                                 "pruning_k": 10000,
+                                 "cfg_ctf": True}
 
     def read_stage_file(self):
         # super(SplitMergeExperiment, self).read_stage_file()
@@ -664,20 +668,43 @@ class SplitMergeExperiment(Experiment):
         elif self.parsing_mode == "k-best-rerank":
             if self.organizer.project_weights_before_parsing: 
                 self.project_weights()
-            base_parser = GFParser_k_best
-            # base_parser = DiscodopKbestParser
-            self.parser = Coarse_to_fine_parser(self.base_grammar, base_parser, last_la, self.organizer.grammarInfo,
-                                                self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics,
+            engine = GFParser_k_best
+            self.parser = Coarse_to_fine_parser(self.base_grammar, engine, last_la,
+                                                self.organizer.grammarInfo,
+                                                self.organizer.nonterminal_map,
+                                                k=self.k_best, heuristics=self.heuristics,
                                                 save_preprocessing=(self.directory, "gfgrammar"))
-        elif self.parsing_mode in ["max-rule-prod", "max-rule-sum", "variational"]:
+        elif self.parsing_mode in {method + "%s" % engine
+                                   for method in {"max-rule-prod", "max-rule-sum", "variational"}
+                                   for engine in {"GF", "disco-dop", ""}}:
             if self.organizer.project_weights_before_parsing:
                 self.project_weights()
-            if True:
-                self.parser = DiscodopKbestParser(self.base_grammar, k=self.k_best, la=last_la,
-                                                  variational=(self.parsing_mode == "variational"),
-                                                  sum_op="sum" in self.parsing_mode, nontMap=self.organizer.nonterminal_map, cfg_approx=True)
+            if "GF" in self.parsing_mode:
+                self.parser = Coarse_to_fine_parser(self.base_grammar,
+                                                    GFParser_k_best,
+                                                    last_la,
+                                                    self.organizer.grammarInfo,
+                                                    nontMap=self.organizer.nonterminal_map,
+                                                    k=self.k_best,
+                                                    heuristics=self.heuristics,
+                                                    save_preprocessing=(self.directory, "gfgrammar"),
+                                                    mode=self.parsing_mode,
+                                                    variational="variational" in self.parsing_mode,
+                                                    sum_op="sum" in self.parsing_mode)
             else:
-                self.parser = Coarse_to_fine_parser(self.base_grammar, GFParser_k_best, last_la, self.organizer.grammarInfo, nontMap=self.organizer.nonterminal_map, k=self.k_best, heuristics=self.heuristics, save_preprocessing=(self.directory, "gfgrammar"), mode=self.parsing_mode, variational=(self.parsing_mode == "variational"), sum_op="sum" in self.parsing_mode)
+                self.parser = DiscodopKbestParser(self.base_grammar,
+                                                  k=self.k_best,
+                                                  la=last_la,
+                                                  nontMap=self.organizer.nonterminal_map,
+                                                  variational="variational" in self.parsing_mode,
+                                                  sum_op="sum" in self.parsing_mode,
+                                                  cfg_ctf=self.disco_dop_params["cfg_ctf"],
+                                                  beam_beta=self.disco_dop_params["beam_beta"],
+                                                  beam_delta=self.disco_dop_params["beam_delta"],
+                                                  pruning_k=self.disco_dop_params["pruning_k"])
+
+        else:
+            raise ValueError("Unknown parsing mode %s" % self.parsing_mode)
 
     def project_weights(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
@@ -753,6 +780,7 @@ class SplitMergeExperiment(Experiment):
         print("Split/Merge Parsing mode: ", self.parsing_mode, file=file)
         print("k-best", self.k_best)
         print("heuristics", self.heuristics)
+        print("disco-dop engine settings", self.disco_dop_params, file=file)
 
 
 class ScorerResource(Resource):
