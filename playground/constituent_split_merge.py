@@ -25,7 +25,7 @@ import sys
 import pickle
 try:
     from functools32 import lru_cache
-except ModuleNotFoundError:
+except ImportError:
     from functools import lru_cache
 from ast import literal_eval
 import plac
@@ -382,6 +382,7 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
                                     term_labeling=self.induction_settings.terminal_labeling,
                                     isolate_pos=self.induction_settings.isolate_pos,
                                     feature_logging=features)
+
     def induce_from(self, tree):
         if not tree.complete() or tree.empty_fringe():
             return None, None

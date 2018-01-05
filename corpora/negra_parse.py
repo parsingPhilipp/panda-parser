@@ -5,7 +5,7 @@ from hybridtree.constituent_tree import ConstituentTree
 from grammar.lcfrs import *
 try:
     from __builtin__ import str as text
-except ModuleNotFoundError:
+except ImportError:
     text = str
 
 # Location of Negra corpus.
