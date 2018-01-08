@@ -19,6 +19,7 @@ cdef extern from "Trainer/LatentAnnotation.h" namespace "Trainer":
         void make_proper(shared_ptr[GrammarInfo2] grammarInfo)
         c_bool is_proper(shared_ptr[GrammarInfo2] info)
         c_bool check_for_validity(double delta)
+        c_bool check_rule_split_alignment(GrammarInfo2& grammarInfo)
 
 
 cdef class PyLatentAnnotation:
@@ -39,3 +40,4 @@ cdef class PyLatentAnnotation:
     cpdef bint is_proper(self, PyGrammarInfo)
     cpdef c_bool is_proper(self, PyGrammarInfo info)
     cpdef c_bool check_for_validity(self, double delta = *)
+    cpdef c_bool check_rule_split_alignment(self, PyGrammarInfo grammarInfo)
