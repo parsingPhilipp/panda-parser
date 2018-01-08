@@ -17,7 +17,7 @@ sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
 the_branch = 'origin/MT_Genetic'
-the_commit = '1108fe8bd105591baa4acfde484a44fc28fc2fbc'
+the_commit = '454ac74066f35a1cd3e29a0c9d3f90c2b3a2cb57'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
@@ -85,7 +85,7 @@ openmp = []
 # optimizations = ["-O3"]
 optimizations = []
 # optimizations_tensors = ["-O3", "-fdump-tree-optimized", "-ftree-vectorizer-verbose=2", "-ftree-vectorize", "-march=native"]
-optimizations_tensors = []
+optimizations_tensors = ["-mfpmath=sse", "-msse2"]
 linker_args = ["-rdynamic"]
 
 ext_modules=[
@@ -109,27 +109,32 @@ ext_modules=[
               include_dirs=sterm_include),
     Extension("parser.trace_manager.trace_manager", sources=["parser/trace_manager/trace_manager.pyx"], language='c++',
               extra_compile_args= extra_compile_args + optimizations_tensors, extra_link_args=linker_args,
-              include_dirs=eigen_include+sterm_include),
+              include_dirs=eigen_include+sterm_include
+              , undef_macros=["NDEBUG"]),
     Extension("parser.supervised_trainer.trainer", sources=["parser/supervised_trainer/trainer.pyx"], language='c++',
               extra_compile_args=extra_compile_args + optimizations, extra_link_args=linker_args,
-              include_dirs=eigen_include+sterm_include),
+              include_dirs=eigen_include+sterm_include
+              , undef_macros=["NDEBUG"]),
     Extension("parser.LCFRS.LCFRS_trace_manager", sources=["parser/LCFRS/LCFRS_trace_manager.pyx"], language='c++',
               extra_compile_args=extra_compile_args + optimizations, include_dirs=eigen_include+sterm_include,
               extra_link_args=linker_args),
     Extension("parser.sDCP_parser.sdcp_trace_manager", sources=["parser/sDCP_parser/sdcp_trace_manager.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations, include_dirs=eigen_include+sterm_include),
     Extension("parser.trace_manager.sm_trainer_util", sources=["parser/trace_manager/sm_trainer_util.pyx"], language='c++', extra_compile_args=extra_compile_args + optimizations_tensors + openmp, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
-    Extension("parser.coarse_to_fine_parser.ranker", sources=["parser/coarse_to_fine_parser/ranker.pyx"], language='c++', extra_compile_args=extra_compile_args + openmp + optimizations_tensors, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
+    Extension("parser.coarse_to_fine_parser.ranker", sources=["parser/coarse_to_fine_parser/ranker.pyx"], language='c++',
+              extra_compile_args=extra_compile_args + openmp + optimizations_tensors, extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
     Extension("parser.trace_manager.score_validator", sources=["parser/trace_manager/score_validator.pyx"],
               language='c++', extra_compile_args=extra_compile_args + openmp + optimizations_tensors,
               extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
     Extension("parser.trace_manager.sm_trainer", sources=["parser/trace_manager/sm_trainer.pyx"], language='c++',
               extra_compile_args=extra_compile_args + openmp + optimizations_tensors,
-              extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
+              extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include
+              , undef_macros=["NDEBUG"]),
     Extension("parser.coarse_to_fine_parser.trace_weight_projection",
               sources=["parser/coarse_to_fine_parser/trace_weight_projection.pyx"],
               language='c++',
               extra_compile_args=extra_compile_args + optimizations_tensors,
-              extra_link_args=linker_args, include_dirs=eigen_include+sterm_include)
+              extra_link_args=linker_args, include_dirs=eigen_include+sterm_include
+              , undef_macros=["NDEBUG"])
 ]
 
 if __name__ == '__main__':
