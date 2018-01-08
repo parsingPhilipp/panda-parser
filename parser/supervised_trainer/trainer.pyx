@@ -209,6 +209,7 @@ cdef class PyDerivationManager(PyTraceManager):
             if striplabelre.match(orig_nont):
                 intermediate_nodes.add(node)
                 continue
+            assert orig_nont in self.nonterminal_map.obj_to_ind
             nLabel = self.nonterminal_map.object_index(orig_nont)
             pyElement2 = PyElement()
             pyElement2.element = make_shared[Element[Node[NONTERMINAL]]](deref(hg).create(nLabel))

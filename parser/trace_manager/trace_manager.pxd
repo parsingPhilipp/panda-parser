@@ -4,6 +4,7 @@ from libcpp.string cimport string
 from util.enumerator cimport Enumerator
 from libcpp.pair cimport pair
 from libcpp.map cimport map as cmap
+from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2
 
 cdef extern from "Manage/Manager.h":
     cppclass Element[InfoT]:
@@ -49,6 +50,7 @@ cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
         bint has_topological_order()
         shared_ptr[Hypergraph[Nonterminal, size_t]] get_hypergraph()
         double get_frequency()
+        bint is_consistent_with_grammar(GrammarInfo2 & grammarInfo)
     cdef cppclass TraceManager2[Nonterminal, TraceID]:
         Trace[Nonterminal, TraceID] operator[](size_t)
         void set_io_cycle_limit(unsigned int io_cycle_limit)
@@ -71,6 +73,7 @@ cdef class PyTraceManager:
     cpdef serialize(self, string path)
     cpdef void load_traces_from_file(self, string path)
     cpdef Enumerator get_nonterminal_map(self)
+    cpdef is_consistent_with_grammar(self, PyGrammarInfo grammarInfo, size_t traceId=*)
     cdef DerivationTree __build_viterbi_derivation_tree_rec(self,
                                                             Element[Node[NONTERMINAL]] node, # dict node_best_edge,
                                                             cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge,

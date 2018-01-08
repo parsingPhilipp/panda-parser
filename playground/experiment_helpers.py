@@ -701,7 +701,8 @@ class SplitMergeExperiment(Experiment):
                                                   cfg_ctf=self.disco_dop_params["cfg_ctf"],
                                                   beam_beta=self.disco_dop_params["beam_beta"],
                                                   beam_delta=self.disco_dop_params["beam_delta"],
-                                                  pruning_k=self.disco_dop_params["pruning_k"])
+                                                  pruning_k=self.disco_dop_params["pruning_k"],
+                                                  grammarInfo=self.organizer.grammarInfo)
 
         else:
             raise ValueError("Unknown parsing mode %s" % self.parsing_mode)

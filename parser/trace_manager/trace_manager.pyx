@@ -28,6 +28,11 @@ cdef class PyTraceManager:
     cpdef Enumerator get_nonterminal_map(self):
         raise NotImplementedError()
 
+    cpdef is_consistent_with_grammar(self, PyGrammarInfo grammarInfo, size_t traceId=0):
+        cdef Trace[NONTERMINAL, size_t]* trace = &(deref(fool_cython_unwrap(self.trace_manager))[traceId])
+        cdef shared_ptr[GrammarInfo2] gI = grammarInfo.grammarInfo
+        return deref(trace).is_consistent_with_grammar(deref(gI))
+
     cpdef void set_io_cycle_limit(self, unsigned int io_cycle_limit):
         deref(fool_cython_unwrap(self.trace_manager)).set_io_cycle_limit(io_cycle_limit)
 

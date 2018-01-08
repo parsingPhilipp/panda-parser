@@ -68,7 +68,7 @@ class DiscodopDerivation(AbstractDerivation):
 class DiscodopKbestParser(AbstractParser):
     def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=None,
                  la=None, variational=False, sum_op=False, nontMap=None, cfg_ctf=False, beam_beta=0.0, beam_delta=50,
-                 pruning_k=10000):
+                 pruning_k=10000, grammarInfo=None):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
         self.chart = None
@@ -87,6 +87,7 @@ class DiscodopKbestParser(AbstractParser):
         self.estimates = None
         self.cfg_approx = cfg_ctf
         self.pruning_k = pruning_k
+        self.grammarInfo = grammarInfo
         if cfg_ctf:
             cfg_rule_list = list(transform_grammar_cfg_approx(grammar))
             self.disco_cfg_grammar = Grammar(cfg_rule_list, start=grammar.start())
@@ -121,6 +122,7 @@ class DiscodopKbestParser(AbstractParser):
             return None
         manager = PyDerivationManager(self.grammar, self.nontMap)
         manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
+        assert manager.is_consistent_with_grammar(self.grammarInfo)
         manager.set_io_cycle_limit(200)
         manager.set_io_precision(0.000001)
         edge_weights = py_edge_weight_projection(la, manager, variational=variational, debug=self.debug,

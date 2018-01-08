@@ -17,7 +17,7 @@ sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
 the_branch = 'origin/MT_Genetic'
-the_commit = '454ac74066f35a1cd3e29a0c9d3f90c2b3a2cb57'
+the_commit = '0265bcfccf9b4310d81586a80ed2f405cd9bce23'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
