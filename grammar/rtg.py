@@ -1,5 +1,6 @@
 from collections import defaultdict
 
+
 class RTG:
     def __init__(self, initial):
         self._initial = initial
