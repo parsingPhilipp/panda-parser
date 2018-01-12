@@ -264,7 +264,7 @@ class DiscodopAdapterTest(unittest.TestCase):
         sm = PyStorageManager()
         la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
-        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap)
+        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi)
         parser.set_input(inp)
         parser.parse()
         self.assertTrue(parser.recognized())

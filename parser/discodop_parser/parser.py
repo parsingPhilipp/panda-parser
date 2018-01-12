@@ -87,9 +87,9 @@ class DiscodopKbestParser(AbstractParser):
         self.estimates = None
         self.cfg_approx = cfg_ctf
         self.pruning_k = pruning_k
+        self.grammarInfo = grammarInfo
         if grammarInfo is not None:
-            self.grammarInfo = grammarInfo
-            assert self.la.check_rule_split_alignment(grammarInfo)
+            assert self.la.check_rule_split_alignment()
         if cfg_ctf:
             cfg_rule_list = list(transform_grammar_cfg_approx(grammar))
             self.disco_cfg_grammar = Grammar(cfg_rule_list, start=grammar.start())
