@@ -392,9 +392,9 @@ cdef class PyLatentAnnotation:
                     for la in rule_dimensions_product:
                         index = list(la)
                         weight = deref(la_proj).get_weight(i, index)
-                        if not weight >= 0.0 and weight <= 1.0001:
+                        if not (0.0 <= weight <= 1.0001):
                             output_helper(str(weight))
-                            assert weight >= 0.0 and weight <= 1.0001
+                            assert 0.0 <= weight <= 1.0001
                         split_total_probs[la[0]] += weight
                 if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
                     output_helper(str(split_total_probs))
@@ -447,7 +447,7 @@ cdef class PyLatentAnnotation:
             group = deref(grammarInfo.grammarInfo).normalizationGroups[nont]
 
             split_total_probs = []
-            for _ in range(deref(self.latentAnnotation).nonterminalSplits[nont]):
+            for _ in range(deref(la_projected).nonterminalSplits[nont]):
                 split_total_probs.push_back(0.0)
 
             for i in group:
@@ -462,9 +462,9 @@ cdef class PyLatentAnnotation:
                 for la in rule_dimensions_product:
                     index = list(la)
                     weight = deref(la_projected).get_weight(i, index)
-                    if not weight >= 0.0 and weight <= 1.0001:
+                    if not (0.0 <= weight <= 1.0001):
                         output_helper(str(weight))
-                        assert weight >= 0.0 and weight <= 1.0001
+                        assert 0.0 <= weight <= 1.0001
                     split_total_probs[la[0]] += weight
             if not all([ abs(x - 1.0) <= 0.0001 for x in split_total_probs]):
                 output_helper(str(split_total_probs))
@@ -482,7 +482,7 @@ cdef class PyLatentAnnotation:
                             index = list(la)
                             weight = deref(la_projected).get_weight(i, index)
                             output_helper(str(i) + " " + str(index) + " " + str(weight))
-                    raise Exception()
+                    raise Exception(nont, split_total_probs)
 
         return pyLaProjected
 
