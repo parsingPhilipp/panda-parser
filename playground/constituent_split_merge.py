@@ -450,7 +450,7 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 
             la = build_PyLatentAnnotation(nonterminal_splits, rootWeights, ruleWeights, self.organizer.grammarInfo,
                                           self.organizer.storageManager)
-            la.add_random_noise(self.organizer.grammarInfo, seed=self.organizer.seed)
+            la.add_random_noise(seed=self.organizer.seed)
             self.split_id = split_id
             return la
         else:
@@ -532,8 +532,8 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
                 self.stage_dict["rule_smooth_list"] = path
 
             grammar_fine.make_proper()
-            grammar_fine_LA_full.make_proper(grammar_fine_info)
-            print(grammar_fine_LA_full.is_proper(grammar_fine_info), file=self.logger)
+            grammar_fine_LA_full.make_proper()
+            print(grammar_fine_LA_full.is_proper(), file=self.logger)
             nonterminal_splits, rootWeights, ruleWeights = grammar_fine_LA_full.serialize()
 
             # for rule in grammar_fine.rules():

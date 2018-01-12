@@ -319,8 +319,8 @@ cdef class PyLatentAnnotation:
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la):
         self.latentAnnotation = la
 
-    cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent = 1.0, size_t seed=0, double bias=0.01):
-        deref(self.latentAnnotation).add_random_noise(grammarInfo.grammarInfo, randPercent, seed, bias)
+    cpdef void add_random_noise(self, double randPercent = 1.0, size_t seed=0, double bias=0.01):
+        deref(self.latentAnnotation).add_random_noise(randPercent, seed, bias)
 
     def project_weights(self, grammar, PyGrammarInfo grammarInfo, debug=False):
         trivial_split = True
@@ -511,11 +511,11 @@ cdef class PyLatentAnnotation:
     cpdef c_bool check_for_validity(self, double delta = 0.0005):
         return deref(self.latentAnnotation).check_for_validity(delta)
 
-    cpdef c_bool is_proper(self, PyGrammarInfo info):
-        return deref(self.latentAnnotation).is_proper(info.grammarInfo)
+    cpdef c_bool is_proper(self):
+        return deref(self.latentAnnotation).is_proper()
 
-    cpdef c_bool check_rule_split_alignment(self, PyGrammarInfo grammarInfo):
-        return deref(self.latentAnnotation).check_rule_split_alignment(deref(grammarInfo.grammarInfo))
+    cpdef c_bool check_rule_split_alignment(self):
+        return deref(self.latentAnnotation).check_rule_split_alignment()
 
     def build_sm_grammar(self, grammar, PyGrammarInfo grammarInfo, rule_pruning, rule_smoothing=0.0):
         new_grammar = gl.LCFRS(grammar.start() + "[0]")
@@ -665,8 +665,8 @@ cdef class PyLatentAnnotation:
         cdef vector[vector[double]] ruleWeights = deref(self.latentAnnotation).get_rule_weights()
         return splits, rootWeights, ruleWeights
 
-    cpdef void make_proper(self, PyGrammarInfo grammarInfo):
-        deref(self.latentAnnotation).make_proper(grammarInfo.grammarInfo)
+    cpdef void make_proper(self):
+        deref(self.latentAnnotation).make_proper()
 
 
 

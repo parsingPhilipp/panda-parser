@@ -603,7 +603,7 @@ class SplitMergeExperiment(Experiment):
         # randomize initial weights and do em training
         la_no_splits = build_PyLatentAnnotation_initial(self.base_grammar, self.organizer.grammarInfo,
                                                         self.organizer.storageManager)
-        la_no_splits.add_random_noise(self.organizer.grammarInfo, seed=self.organizer.seed)
+        la_no_splits.add_random_noise(seed=self.organizer.seed)
         return la_no_splits
 
     def prepare_split_merge_trainer(self):

@@ -355,7 +355,7 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
 
     # randomize initial weights and do em training
     la_no_splits = build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)
-    la_no_splits.add_random_noise(grammarInfo, seed=seed)
+    la_no_splits.add_random_noise(seed=seed)
     emTrainer.em_train(la_no_splits)
     la_no_splits.project_weights(grammar, grammarInfo)
 

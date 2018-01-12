@@ -295,7 +295,7 @@ def main():
 
     # randomize initial weights and do em training
     la_no_splits = build_PyLatentAnnotation_initial(grammar, grammarInfo, storageManager)
-    la_no_splits.add_random_noise(grammarInfo, seed=seed)
+    la_no_splits.add_random_noise(seed=seed)
     emTrainer.em_train(la_no_splits)
     la_no_splits.project_weights(grammar, grammarInfo)
 
@@ -328,7 +328,7 @@ def main():
         la = splitMergeTrainer.split_merge_cycle(la_no_splits)
         if not la.check_for_validity():
             print('[Genetic] Initial LA', i, 'is not consistent! (See details before)')
-        if not la.is_proper(grammarInfo):
+        if not la.is_proper():
             print('[Genetic] Initial LA', i, 'is not proper!')
         heapq.heappush(latentAnnotations, (evaluate_la(grammar, grammarInfo, la, traceValidationGenetic, validation_genetic_corpus),i, la))
         print('[Genetic]    added initial LA', i)
@@ -352,7 +352,7 @@ def main():
             la = splitMergeTrainer.split_merge_cycle(la)
             if not la.check_for_validity():
                 print('[Genetic] Split/Merge introduced invalid weights into LA', geneticCount)
-            if not la.is_proper(grammarInfo):
+            if not la.is_proper():
                 print('[Genetic] Split/Merge introduced problems with properness of LA', geneticCount)
 
             fscore = evaluate_la(grammar, grammarInfo, la, traceValidationGenetic, validation_genetic_corpus)

@@ -15,16 +15,16 @@ cdef extern from "Trainer/LatentAnnotation.h" namespace "Trainer":
         double get_weight(size_t, vector[size_t])
         vector[vector[double]] get_rule_weights()
         vector[double] get_root_weights()
-        void add_random_noise(shared_ptr[GrammarInfo2], double randPercent, size_t seed, double bias)
-        void make_proper(shared_ptr[GrammarInfo2] grammarInfo)
-        c_bool is_proper(shared_ptr[GrammarInfo2] info)
+        void add_random_noise(double randPercent, size_t seed, double bias)
+        void make_proper()
+        c_bool is_proper()
         c_bool check_for_validity(double delta)
-        c_bool check_rule_split_alignment(GrammarInfo2& grammarInfo)
+        c_bool check_rule_split_alignment()
 
 
 cdef class PyLatentAnnotation:
     cdef shared_ptr[LatentAnnotation] latentAnnotation
-    cpdef void add_random_noise(self, PyGrammarInfo grammarInfo, double randPercent=?, size_t seed=?, double bias=?)
+    cpdef void add_random_noise(self, double randPercent=?, size_t seed=?, double bias=?)
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la)
     cpdef genetic_recombination(self, PyLatentAnnotation otherAnnotation
                         , PyGrammarInfo info
@@ -36,8 +36,7 @@ cdef class PyLatentAnnotation:
     #                                                        PyGrammarInfo grammarInfo,
     #                                                        vector[vector[vector[size_t]]] merge_sources,
     #                                                        c_bool debug)
-    cpdef void make_proper(self, PyGrammarInfo)
-    cpdef bint is_proper(self, PyGrammarInfo)
-    cpdef c_bool is_proper(self, PyGrammarInfo info)
+    cpdef void make_proper(self)
+    cpdef c_bool is_proper(self)
     cpdef c_bool check_for_validity(self, double delta = *)
-    cpdef c_bool check_rule_split_alignment(self, PyGrammarInfo grammarInfo)
+    cpdef c_bool check_rule_split_alignment(self)
