@@ -1,6 +1,7 @@
 from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from hybridtree.monadic_tokens import MonadicToken
+from discodop.lexicon import getunknownwordmodel, unknownword4, replaceraretestwords, YEARRE, NUMBERRE, UNK
 import string
 
 
@@ -8,9 +9,10 @@ class TerminalLabeling:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         """
         :type token: MonadicToken
+        :type _loc: int
         """
         pass
 
@@ -23,8 +25,7 @@ class TerminalLabeling:
             return self.token_label(token) + " : " + token.edge()
 
     def prepare_parser_input(self, tokens):
-        return list(map(self.token_label, tokens))
-
+        return [self.token_label(token, _loc) for _loc, token in enumerate(tokens)]
 
 # class ConstituentTerminalLabeling(TerminalLabeling):
 #     def token_label(self, token):
@@ -41,7 +42,7 @@ class FeatureTerminals(TerminalLabeling):
         self.token_to_features = token_to_features
         self.feature_filter = feature_filter
 
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         isleaf = token.type() == "CONSTITUENT-TERMINAL"
         feat_list = self.token_to_features(token, isleaf)
         features = self.feature_filter([feat_list])
@@ -65,7 +66,7 @@ class FrequencyBiasedTerminalLabeling(TerminalLabeling):
                 self.fine_label_count[label] += 1
         self.fine_label_count = {label for label in self.fine_label_count if self.fine_label_count[label] >= threshold}
 
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         fine_label = self.fine_labeling.token_label(token)
         if not self.backoff_mode and fine_label in self.fine_label_count:
             return fine_label
@@ -80,7 +81,7 @@ class FrequencyBiasedTerminalLabeling(TerminalLabeling):
 
 
 class FormTerminals(TerminalLabeling):
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         return token.form()
 
     def __str__(self):
@@ -88,7 +89,7 @@ class FormTerminals(TerminalLabeling):
 
 
 class CPosTerminals(TerminalLabeling):
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         return token.cpos()
 
     def __str__(self):
@@ -96,7 +97,7 @@ class CPosTerminals(TerminalLabeling):
 
 
 class PosTerminals(TerminalLabeling):
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         return token.pos()
 
     def __str__(self):
@@ -104,7 +105,7 @@ class PosTerminals(TerminalLabeling):
 
 
 class CPOS_KON_APPR(TerminalLabeling):
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         cpos = token.pos()
         if cpos in ['KON', 'APPR']:
             return cpos + token.form().lower()
@@ -141,7 +142,7 @@ class FormTerminalsUnk(TerminalLabeling):
     def __str__(self):
         return 'form-unk-' + str(self.__threshold)
 
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         form = token.form().lower()
         if self.__terminal_counts.get(form, 0) < self.__threshold:
             form = self.__UNK
@@ -173,7 +174,7 @@ class FormTerminalsPOS(TerminalLabeling):
     def __str__(self):
         return 'form-POS-' + str(self.__threshold)
 
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         form = token.form().lower()
         if self.__terminal_counts.get(form, 0) < self.__threshold:
             form = token.pos()
@@ -206,7 +207,7 @@ class FormPosTerminalsUnk(TerminalLabeling):
     def __str__(self):
         return 'form-pos-unk-' + str(self.__threshold) + '-pos'
 
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         pos = token.pos()
         form = token.form().lower()
         if self.__terminal_counts.get((form, pos), 0) < self.__threshold:
@@ -228,7 +229,7 @@ class FormPosTerminalsUnkMorph(TerminalLabeling):
     def __str__(self):
         return 'form-pos-unk-' + str(self.__threshold) + '-morph-pos'
 
-    def token_label(self, token):
+    def token_label(self, token, _loc=None):
         pos = token.pos()
         form = token.form().lower()
         if self.__terminal_counts.get((form, pos)) < self.__threshold:
@@ -239,6 +240,62 @@ class FormPosTerminalsUnkMorph(TerminalLabeling):
                     if feat[0] in self.__add_morph[pos]:
                         form += '#' + feat[0] + ':' + feat[1]
         return form + '-:-' + pos
+
+
+class StanfordUNKing(TerminalLabeling):
+    def __init__(self, trees, unknown_threshold=4, openclass_threshold=150):
+        self.unknown_threshold = unknown_threshold
+        self.openclass_threshold = openclass_threshold
+        sentences = []
+        for tree in trees:
+            sentence = []
+            for token in tree.token_yield():
+                sentence.append((token.form(), token.pos()))
+            sentences.append(sentence)
+        (sigs, words, lexicon, wordsfortag, openclasstags,
+            openclasswords, tags, wordtags,
+            wordsig, sigtag), msg \
+            = getunknownwordmodel(sentences, unknownword4, self.unknown_threshold, self.openclass_threshold)
+        self.openclasswords = openclasswords
+        self.sigs = sigs
+        self.words = words
+        self.lexicon = lexicon
+        self.backoff_mode = False
+
+    def __str__(self):
+        return "stanford-unk-" + str(self.unknown_threshold) \
+               + "-openclass-" + str(self.openclass_threshold)
+
+    def token_label(self, token, _loc=None):
+        word = token.form()
+
+        # adapted from discodop
+        if YEARRE.match(word):
+            return '1970'
+        elif NUMBERRE.match(word):
+            return '000'
+        if not self.backoff_mode:
+            if word in self.lexicon:
+                return word
+            elif word.lower() in self.lexicon:
+                return word.lower()
+            else:
+                sig = unknownword4(word, _loc, self.lexicon)
+                if sig in self.sigs:
+                    return sig
+                else:
+                    return UNK
+        else:
+            if word in self.lexicon and word not in self.openclasswords:
+                return word
+            elif word.lower() in self.lexicon and word not in self.openclasswords:
+                return word.lower()
+            else:
+                sig = unknownword4(word, _loc, self.lexicon)
+                if sig in self.sigs:
+                    return sig
+                else:
+                    return UNK
 
 
 class TerminalLabelingFactory:
