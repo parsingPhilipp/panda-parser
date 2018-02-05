@@ -4,6 +4,10 @@ from discodop.tree import escape
 import re
 
 
+def escape_brackets(nont):
+    return nont.replace("(", "__OB__").replace(")", "__CB__")
+
+
 def transform_grammar(grammar):
     """
     :type grammar: LCFRS
@@ -13,10 +17,10 @@ def transform_grammar(grammar):
         assert rule.ordered()
         if rule.weight() == 0.0:
             continue
-        fake_nont = rule.lhs().nont() + "-" + str(rule.get_idx())
-        trans_rule_fake = (rule.lhs().nont(), fake_nont), tuple([(0,) for _ in rule.lhs().args()])
+        fake_nont = escape_brackets(rule.lhs().nont()) + "-" + str(rule.get_idx())
+        trans_rule_fake = (escape_brackets(rule.lhs().nont()), fake_nont), tuple([(0,) for _ in rule.lhs().args()])
         yield trans_rule_fake, rule.weight()
-        rhs = rule.rhs() if rule.rhs() else ['Epsilon']
+        rhs = list(map(escape_brackets, rule.rhs())) if rule.rhs() else ['Epsilon']
         trans_rule = tuple([fake_nont] + rhs), transform_args(rule.lhs().args())
         yield trans_rule, 1.0
 
@@ -45,11 +49,12 @@ def transform_grammar_cfg_approx(grammar):
             continue
         for n, arg in enumerate(rule.lhs().args()):
             appendix = "*" + str(n) if rule.lhs().fanout() > 1 else ""
-            fake_nont = rule.lhs().nont() + "-" + str(rule.get_idx()) + appendix
-            trans_rule_fake = (rule.lhs().nont() + appendix, fake_nont), ((0,),)
+            fake_nont = escape_brackets(rule.lhs().nont()) + "-" + str(rule.get_idx()) + appendix
+            trans_rule_fake = (escape_brackets(rule.lhs().nont()) + appendix, fake_nont), ((0,),)
             yield trans_rule_fake, rule.weight()
 
-            for lhs, transformed_arg, rhs in transform_args_to_bin_cfg(fake_nont, arg, rule.rhs(), grammar):
+            for lhs, transformed_arg, rhs in \
+                    transform_args_to_bin_cfg(fake_nont, arg, list(map(escape_brackets, rule.rhs())), grammar):
                 trans_rule = tuple([lhs] + rhs), (transformed_arg,)
                 yield trans_rule, 1.0
 
