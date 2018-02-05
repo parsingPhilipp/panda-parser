@@ -14,6 +14,7 @@ from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_projection
 from parser.discodop_parser.grammar_adapter import rule_idx_from_label, transform_grammar, transform_grammar_cfg_approx
 import re
+from sys import stderr
 
 
 class DiscodopDerivation(AbstractDerivation):
@@ -201,5 +202,8 @@ class DiscodopKbestParser(AbstractParser):
 
     def k_best_derivation_trees(self):
         for tree_string, weight in lazykbest(self.chart, self.k):
-            tree = nltk.Tree.fromstring(tree_string)
-            yield weight, DiscodopDerivation(tree, self.grammar)
+            try:
+                tree = nltk.Tree.fromstring(tree_string)
+                yield weight, DiscodopDerivation(tree, self.grammar)
+            except ValueError:
+                print("\nill-bracketed string:", tree_string, file=stderr)
