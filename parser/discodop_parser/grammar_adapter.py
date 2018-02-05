@@ -54,7 +54,7 @@ def transform_grammar_cfg_approx(grammar):
             yield trans_rule_fake, rule.weight()
 
             for lhs, transformed_arg, rhs in \
-                    transform_args_to_bin_cfg(fake_nont, arg, list(map(escape_brackets, rule.rhs())), grammar):
+                    transform_args_to_bin_cfg(fake_nont, arg, rule.rhs(), grammar):
                 trans_rule = tuple([lhs] + rhs), (transformed_arg,)
                 yield trans_rule, 1.0
 
@@ -66,7 +66,7 @@ def transform_args_to_bin_cfg(lhs, arg, rhs, grammar):
         if isinstance(elem, LCFRS_var):
             arg_new.append(len(rhs_new))
             appendix = "*" + str(elem.arg) if grammar.fanout(rhs[elem.mem]) > 1 else ""
-            rhs_new.append(rhs[elem.mem] + appendix)
+            rhs_new.append(escape_brackets(rhs[elem.mem]) + appendix)
         else:
             assert len(arg) == 1
             yield lhs, escape(elem), ['Epsilon']
