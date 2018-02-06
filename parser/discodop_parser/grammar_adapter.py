@@ -8,6 +8,10 @@ def escape_brackets(nont):
     return nont.replace("(", "__OB__").replace(")", "__CB__")
 
 
+def unescape_brackets(nont):
+    return nont.replace("__OB__", "(").replace("__CB__", ")")
+
+
 def transform_grammar(grammar):
     """
     :type grammar: LCFRS

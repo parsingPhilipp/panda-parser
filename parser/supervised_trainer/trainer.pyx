@@ -4,7 +4,7 @@ from __future__ import print_function
 from cython.operator cimport dereference as deref
 from parser.derivation_interface import AbstractDerivation
 from grammar.rtg import RTG
-from parser.discodop_parser.grammar_adapter import rule_idx_from_label, striplabelre
+from parser.discodop_parser.grammar_adapter import rule_idx_from_label, striplabelre, unescape_brackets
 
 
 cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
@@ -205,10 +205,12 @@ cdef class PyDerivationManager(PyTraceManager):
         # create nodes
         for node in range(1, chart.numitems()):
             orig_nont = disco_grammar.nonterminalstr(chart.label(node))
+            orig_nont = unescape_brackets(orig_nont)
             # print(orig_nont)
             if striplabelre.match(orig_nont):
                 intermediate_nodes.add(node)
                 continue
+
             assert orig_nont in self.nonterminal_map.obj_to_ind
             nLabel = self.nonterminal_map.object_index(orig_nont)
             pyElement2 = PyElement()
