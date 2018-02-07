@@ -48,6 +48,7 @@ cdef extern from "Trainer/EMTrainerLA.h" namespace "Trainer":
     cdef cppclass EMTrainerLAValidation(EMTrainerLA):
         void setMaxDrops(unsigned maxDrops, TrainingMode mode)
         void setMinEpochs(unsigned minEpochs, TrainingMode mode)
+        void setIgnoreFailures(bint ignoreFailures, TrainingMode mode)
 
 cdef extern from "Trainer/MergePreparator.h":
     pass
@@ -743,6 +744,9 @@ cdef class PySplitMergeTrainer:
 
     cpdef setMinEpochs(self, unsigned epochs, mode="default"):
         (<EMTrainerLAValidation &> deref(self.emTrainer)).setMinEpochs(epochs, self.modes.at(bytes(mode, encoding="utf-8")))
+
+    cpdef setIgnoreFailures(self, bint ignoreFailures, mode="default"):
+        (<EMTrainerLAValidation &> deref(self.emTrainer)).setIgnoreFailures(ignoreFailures, self.modes.at(bytes(mode, encoding="utf-8")))
 
     cpdef get_current_merge_sources(self):
         return deref(self.splitMergeTrainer).get_current_merge_sources()

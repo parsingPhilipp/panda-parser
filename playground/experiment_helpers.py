@@ -40,6 +40,7 @@ class SplitMergeOrganizer:
         self.max_sm_cycles = 2
         self.min_epochs = 6
         self.min_epochs_smoothing = 3
+        self.ignore_failures_smoothing = False
         self.threads = 1
         self.seed = 0
         self.validationDropIterations = 6
@@ -634,6 +635,7 @@ class SplitMergeExperiment(Experiment):
             self.organizer.splitMergeTrainer.setMaxDrops(self.organizer.validationDropIterations, mode="smoothing")
             self.organizer.splitMergeTrainer.setMinEpochs(self.organizer.min_epochs)
             self.organizer.splitMergeTrainer.setMinEpochs(self.organizer.min_epochs_smoothing, mode="smoothing")
+            self.organizer.splitMergeTrainer.setIgnoreFailures(self.organizer.ignore_failures_smoothing, mode="smoothing")
         self.organizer.splitMergeTrainer.setEMepochs(self.organizer.em_epochs_sm, mode="smoothing")
 
     def custom_sm_options(self, builder):
