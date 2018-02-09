@@ -667,26 +667,34 @@ class SplitMergeExperiment(Experiment):
             grammar = last_la.build_sm_grammar(self.base_grammar, self.organizer.grammarInfo, rule_pruning=0.0001,
                                                rule_smoothing=0.1)
             self.parser = GFParser_k_best(grammar=grammar, k=1, save_preprocessing=(self.directory, "gfgrammar"))
-        elif self.parsing_mode == "k-best-rerank":
+        elif self.parsing_mode in {"k-best-rerank%s" % engine
+                                   for engine in {"-GF", "-disco-dop", ""}}:
             if self.organizer.project_weights_before_parsing: 
                 self.project_weights()
-            engine = GFParser_k_best
-            self.parser = Coarse_to_fine_parser(self.base_grammar, engine, last_la,
+            if "disco-dop" in self.parsing_mode:
+                engine = DiscodopKbestParser(grammar=self.base_grammar, k=self.k_best,
+                                             cfg_ctf=self.disco_dop_params["cfg_ctf"],
+                                             beam_beta=self.disco_dop_params["beam_beta"],
+                                             beam_delta=self.disco_dop_params["beam_beta"],
+                                             pruning_k=self.disco_dop_params["pruning_k"]
+                                             )
+            else:
+                engine = GFParser_k_best(grammar=self.base_grammar, k=self.k_best, heuristics=self.heuristics, save_preprocessing=(self.directory, "gfgrammar"))
+            self.parser = Coarse_to_fine_parser(self.base_grammar, last_la,
                                                 self.organizer.grammarInfo,
                                                 self.organizer.nonterminal_map,
-                                                k=self.k_best, heuristics=self.heuristics,
-                                                save_preprocessing=(self.directory, "gfgrammar"))
+                                                base_parser=engine)
         elif self.parsing_mode in {method + "%s" % engine
                                    for method in {"max-rule-prod", "max-rule-sum", "variational"}
-                                   for engine in {"GF", "disco-dop", ""}}:
+                                   for engine in {"-GF", "-disco-dop", ""}}:
             if self.organizer.project_weights_before_parsing:
                 self.project_weights()
             if "GF" in self.parsing_mode:
                 self.parser = Coarse_to_fine_parser(self.base_grammar,
-                                                    GFParser_k_best,
                                                     last_la,
                                                     self.organizer.grammarInfo,
                                                     nontMap=self.organizer.nonterminal_map,
+                                                    base_parser_type=GFParser_k_best,
                                                     k=self.k_best,
                                                     heuristics=self.heuristics,
                                                     save_preprocessing=(self.directory, "gfgrammar"),
@@ -704,7 +712,8 @@ class SplitMergeExperiment(Experiment):
                                                   beam_beta=self.disco_dop_params["beam_beta"],
                                                   beam_delta=self.disco_dop_params["beam_delta"],
                                                   pruning_k=self.disco_dop_params["pruning_k"],
-                                                  grammarInfo=self.organizer.grammarInfo)
+                                                  grammarInfo=self.organizer.grammarInfo,
+                                                  projection_mode=True)
 
         else:
             raise ValueError("Unknown parsing mode %s" % self.parsing_mode)

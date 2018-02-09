@@ -264,7 +264,7 @@ class DiscodopAdapterTest(unittest.TestCase):
         sm = PyStorageManager()
         la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
-        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi)
+        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, projection_mode=True)
         parser.set_input(inp)
         parser.parse()
         self.assertTrue(parser.recognized())
@@ -282,7 +282,7 @@ class DiscodopAdapterTest(unittest.TestCase):
         sm = PyStorageManager()
         la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
-        parser = Coarse_to_fine_parser(grammar, GFParser_k_best, la, gi, nontMap)
+        parser = Coarse_to_fine_parser(grammar, la, gi, nontMap, base_parser_type=GFParser_k_best)
         parser.set_input(inp)
         parser.parse()
         self.assertTrue(parser.recognized())

@@ -69,7 +69,8 @@ class DiscodopDerivation(AbstractDerivation):
 class DiscodopKbestParser(AbstractParser):
     def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=None,
                  la=None, variational=False, sum_op=False, nontMap=None, cfg_ctf=False, beam_beta=0.0, beam_delta=50,
-                 pruning_k=10000, grammarInfo=None):
+                 pruning_k=10000, grammarInfo=None,
+                 projection_mode=False):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
         self.chart = None
@@ -89,6 +90,7 @@ class DiscodopKbestParser(AbstractParser):
         self.cfg_approx = cfg_ctf
         self.pruning_k = pruning_k
         self.grammarInfo = grammarInfo
+        self.projection_mode = projection_mode
         if grammarInfo is not None:
             assert self.la.check_rule_split_alignment()
         if cfg_ctf:
@@ -152,7 +154,11 @@ class DiscodopKbestParser(AbstractParser):
         return der
 
     def best_derivation_tree(self):
-        return self.__projection_based_derivation_tree(self.la, variational=self.variational, op=self.op)
+        if self.projection_mode:
+            return self.__projection_based_derivation_tree(self.la, variational=self.variational, op=self.op)
+        else:
+            for weight, tree in self.k_best_derivation_trees():
+                return tree
 
     def all_derivation_trees(self):
         pass

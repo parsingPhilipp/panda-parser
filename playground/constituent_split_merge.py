@@ -17,6 +17,7 @@ from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCa
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
+from parser.discodop_parser.parser import DiscodopKbestParser
 from playground.experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, VALIDATION, \
     SplitMergeExperiment
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
@@ -355,7 +356,15 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
             self.feature_log = defaultdict(lambda: 0)
 
     def initialize_parser(self):
-        self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best,
+        if "disco-dop" in self.parsing_mode:
+            self.parser = DiscodopKbestParser(grammar=self.base_grammar,
+                                              k=self.k_best,
+                                              beam_beta=self.disco_dop_params["beam_beta"],
+                                              beam_delta=self.disco_dop_params["beam_delta"],
+                                              pruning_k=self.disco_dop_params["pruning_k"],
+                                              cfg_ctf=self.disco_dop_params["cfg_ctf"])
+        else:
+          self.parser = GFParser_k_best(grammar=self.base_grammar, k=self.k_best,
                                       save_preprocessing=(self.directory, "gfgrammar"))
 
     def read_stage_file(self):

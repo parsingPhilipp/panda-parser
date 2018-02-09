@@ -395,7 +395,7 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
             parser = GFParser(smGrammar)
         elif parsing_method == "filter-ctf":
             latentAnnotation[-1].project_weights(grammar, grammarInfo)
-            parser = Coarse_to_fine_parser(grammar, GFParser_k_best, latentAnnotation[-1], grammarInfo, derivation_manager.get_nonterminal_map(), k=k_best)
+            parser = Coarse_to_fine_parser(grammar, latentAnnotation[-1], grammarInfo, derivation_manager.get_nonterminal_map(), base_parser_type=GFParser_k_best, k=k_best)
         else:
             raise(Exception())
         do_parsing(parser, test_dsgs, term_labeling_token)

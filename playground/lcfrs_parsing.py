@@ -6,6 +6,7 @@ from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, FormTerminals
 from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, my_feature_filter
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
+from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
 from constituent.filter import check_single_child_label
 import sys
@@ -104,11 +105,16 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 
     def initialize_parser(self):
         save_preprocess=(self.directory, "mygrammar")
-        if not self.organizer.disable_split_merge \
-                or self.oracle_parsing:
-            self.parser = GFParser_k_best(self.base_grammar, save_preprocessing=save_preprocess, k=self.k_best)
+        k = 1 if not self.organizer.disable_split_merge or self.oracle_parsing else self.k_best
+        if "disco-dop" in self.parsing_mode:
+            self.parser = DiscodopKbestParser(grammar=self.base_grammar, k=self.k_best,
+                                              cfg_ctf=self.disco_dop_params["cfg_ctf"],
+                                              pruning_k=self.disco_dop_params["pruning_k"],
+                                              beam_beta=self.disco_dop_params["beam_beta"],
+                                              beam_delta=self.disco_dop_params["beam_delta"]
+                                              )
         else:
-            self.parser = GFParser(self.base_grammar, save_preprocessing=save_preprocess)
+            self.parser = GFParser_k_best(self.base_grammar, save_preprocessing=save_preprocess, k=k)
 
     def compute_reducts(self, resource):
 
