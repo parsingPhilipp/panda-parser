@@ -274,6 +274,24 @@ class DiscodopAdapterTest(unittest.TestCase):
         for node in der.ids():
             print(node, der.getRule(node), der.spanned_ranges(node))
 
+    def test_la_viterbi_parsing(self):
+        grammar = self.build_grammar()
+        inp = ["a"] * 3
+        nontMap = Enumerator()
+        gi = PyGrammarInfo(grammar, nontMap)
+        sm = PyStorageManager()
+        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
+
+        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, projection_mode=True)
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        der = parser.latent_viterbi_run()
+        print(der)
+
+        for node in der.ids():
+            print(node, der.getRule(node), der.spanned_ranges(node))
+
     def test_projection_based_parser_k_best_hack(self):
         grammar = self.build_grammar()
         inp = ["a"] * 3

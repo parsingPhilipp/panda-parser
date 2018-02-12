@@ -6,6 +6,7 @@ from libcpp.map cimport map as cmap
 from libcpp.set cimport set as cset
 from grammar.lcfrs import LCFRS_rule, LCFRS
 from itertools import product
+from parser.trace_manager.sm_trainer cimport PyLatentAnnotation
 from libc.math cimport log, NAN, INFINITY, isnan, isinf
 
 
@@ -171,6 +172,56 @@ cdef class PyTraceManager:
         cdef size_t rule_id = deref(edge).get_label()
 
         return DerivationTree(rule_id, children)
+
+
+    def latent_viterbi_derivation(self, size_t traceID, PyLatentAnnotation latentAnnotation, grammar):
+        cdef Trace[NONTERMINAL, size_t]* trace = &(deref(fool_cython_unwrap(self.trace_manager))[traceID])
+        cdef pair[size_t, unordered_map[pair[Element[Node[NONTERMINAL]], size_t],
+                                   pair[Element[HyperEdge[Node[NONTERMINAL], size_t]], vector[size_t]]]] \
+                result = deref(trace).computeViterbiPath(deref(latentAnnotation.latentAnnotation))
+
+        if result.first == <size_t> (-1):
+            return None
+        return TraceManagerDerivation(
+            self.__build_viterbi_derivation_tree_rec_(
+              trace.get_goal()
+            , result.first
+            , result.second
+            )
+            , grammar
+        )
+
+    cdef DerivationTree __build_viterbi_derivation_tree_rec_(
+            self, Element[Node[NONTERMINAL]] node
+                , size_t sub
+                , unordered_map[  pair[Element[Node[NONTERMINAL]], size_t]
+                            , pair[Element[HyperEdge[Node[NONTERMINAL], size_t]], vector[size_t]]]
+                  node_best_edge
+        ):
+        # cdef size_t best_edge_idx = node_best_edge[node]
+        # if best_edge_idx == <size_t> (-1):
+        #     print("Unexpected edge idx")
+        #     raise Exception()
+        # cdef pair[Element[HyperEdge[NONTERMINAL, size_t]], vector[size_t]]& best = node_best_edge.at(node)
+        cdef pair[Element[Node[NONTERMINAL]], size_t]* sub_node = new pair[Element[Node[NONTERMINAL]], size_t](node, sub)
+        cdef Element[HyperEdge[Node[NONTERMINAL], size_t]]* edge = &node_best_edge.at(deref(sub_node)).first
+        cdef vector[size_t] index = node_best_edge.at(deref(sub_node)).second
+        cdef list children = []
+        cdef size_t child_list_idx
+        cdef Element[Node[NONTERMINAL]]* child
+
+        for child_list_idx in range(deref(edge).get().get_sources().size()):
+            children.append (
+                self.__build_viterbi_derivation_tree_rec_
+                    ( deref(edge).get().get_sources()[child_list_idx]
+                    , index[child_list_idx + 1]
+                    , node_best_edge
+                    )
+                )
+        cdef size_t rule_id = deref(edge).get().get_label()
+
+        return DerivationTree(rule_id, children)
+
 
     def enumerate_derivations(self, size_t traceId, grammar):
         cdef Trace[NONTERMINAL, size_t]* trace = &(deref(fool_cython_unwrap(self.trace_manager))[traceId])

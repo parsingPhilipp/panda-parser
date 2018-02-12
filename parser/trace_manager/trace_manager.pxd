@@ -4,7 +4,9 @@ from libcpp.string cimport string
 from util.enumerator cimport Enumerator
 from libcpp.pair cimport pair
 from libcpp.map cimport map as cmap
+from libcpp.unordered_map cimport unordered_map
 from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2
+from parser.trace_manager.sm_trainer cimport LatentAnnotation
 
 cdef extern from "Manage/Manager.h":
     cppclass Element[InfoT]:
@@ -51,6 +53,8 @@ cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
         shared_ptr[Hypergraph[Nonterminal, size_t]] get_hypergraph()
         double get_frequency()
         bint is_consistent_with_grammar(GrammarInfo2 & grammarInfo)
+        pair[size_t, unordered_map[pair[Element[Node[Nonterminal]], size_t], pair[Element[HyperEdge[Node[Nonterminal], size_t]], vector[size_t]]]] computeViterbiPath(LatentAnnotation & latentAnnotation)
+
     cdef cppclass TraceManager2[Nonterminal, TraceID]:
         Trace[Nonterminal, TraceID] operator[](size_t)
         void set_io_cycle_limit(unsigned int io_cycle_limit)
@@ -78,6 +82,14 @@ cdef class PyTraceManager:
                                                             Element[Node[NONTERMINAL]] node, # dict node_best_edge,
                                                             cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge,
                                                             shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges)
+    cdef DerivationTree __build_viterbi_derivation_tree_rec_(
+            self
+            , Element[Node[NONTERMINAL]] node
+            , size_t sub
+            , unordered_map[  pair[Element[Node[NONTERMINAL]], size_t]
+                            , pair[Element[HyperEdge[Node[NONTERMINAL], size_t]], vector[size_t]]]
+                node_best_edge
+        )
     cpdef void set_io_cycle_limit(self, unsigned int io_cycle_limit)
     cpdef void set_io_precision(self, double io_precision)
 
