@@ -667,23 +667,33 @@ class SplitMergeExperiment(Experiment):
             grammar = last_la.build_sm_grammar(self.base_grammar, self.organizer.grammarInfo, rule_pruning=0.0001,
                                                rule_smoothing=0.1)
             self.parser = GFParser_k_best(grammar=grammar, k=1, save_preprocessing=(self.directory, "gfgrammar"))
-        elif self.parsing_mode in {"k-best-rerank%s" % engine
-                                   for engine in {"-GF", "-disco-dop", ""}}:
+        elif self.parsing_mode in { method + engine
+                                    for method in {"k-best-rerank", "latent-viterbi"}
+                                    for engine in {"-GF", "-disco-dop", ""}
+                                  }:
             if self.organizer.project_weights_before_parsing: 
                 self.project_weights()
             if "disco-dop" in self.parsing_mode:
-                engine = DiscodopKbestParser(grammar=self.base_grammar, k=self.k_best,
+                engine = DiscodopKbestParser(grammar=self.base_grammar,
+                                             k=self.k_best,
+                                             la=last_la,
+                                             nontMap=self.organizer.nonterminal_map,
+                                             grammarInfo=self.organizer.grammarInfo,
                                              cfg_ctf=self.disco_dop_params["cfg_ctf"],
                                              beam_beta=self.disco_dop_params["beam_beta"],
                                              beam_delta=self.disco_dop_params["beam_beta"],
-                                             pruning_k=self.disco_dop_params["pruning_k"]
+                                             pruning_k=self.disco_dop_params["pruning_k"],
+                                             latent_viterbi_mode="latent-viterbi" in self.parsing_mode
                                              )
             else:
                 engine = GFParser_k_best(grammar=self.base_grammar, k=self.k_best, heuristics=self.heuristics, save_preprocessing=(self.directory, "gfgrammar"))
-            self.parser = Coarse_to_fine_parser(self.base_grammar, last_la,
-                                                self.organizer.grammarInfo,
-                                                self.organizer.nonterminal_map,
-                                                base_parser=engine)
+            if "latent-viterbi" in self.parsing_mode:
+                self.parser = engine
+            else:
+                self.parser = Coarse_to_fine_parser(self.base_grammar,                                  last_la,
+                                                    self.organizer.grammarInfo,
+                                                    self.organizer.nonterminal_map,
+                                                    base_parser=engine)
         elif self.parsing_mode in {method + "%s" % engine
                                    for method in {"max-rule-prod", "max-rule-sum", "variational"}
                                    for engine in {"-GF", "-disco-dop", ""}}:

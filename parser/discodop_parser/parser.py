@@ -67,10 +67,25 @@ class DiscodopDerivation(AbstractDerivation):
 
 
 class DiscodopKbestParser(AbstractParser):
-    def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None, k=50, heuristics=None,
-                 la=None, variational=False, sum_op=False, nontMap=None, cfg_ctf=False, beam_beta=0.0, beam_delta=50,
-                 pruning_k=10000, grammarInfo=None,
-                 projection_mode=False):
+    def __init__(self,
+                 grammar,
+                 input=None,
+                 save_preprocessing=None,
+                 load_preprocessing=None,
+                 k=50,
+                 heuristics=None,
+                 la=None,
+                 variational=False,
+                 sum_op=False,
+                 nontMap=None,
+                 cfg_ctf=False,
+                 beam_beta=0.0,
+                 beam_delta=50,
+                 pruning_k=10000,
+                 grammarInfo=None,
+                 projection_mode=False,
+                 latent_viterbi_mode=False
+                 ):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
         self.chart = None
@@ -91,6 +106,7 @@ class DiscodopKbestParser(AbstractParser):
         self.pruning_k = pruning_k
         self.grammarInfo = grammarInfo
         self.projection_mode = projection_mode
+        self.latent_viterbi_mode = latent_viterbi_mode
         if grammarInfo is not None:
             assert self.la.check_rule_split_alignment()
         if cfg_ctf:
@@ -153,7 +169,7 @@ class DiscodopKbestParser(AbstractParser):
             _, der = next(self.k_best_derivation_trees())
         return der
 
-    def latent_viterbi_run(self):
+    def latent_viterbi_derivation(self):
         manager = PyDerivationManager(self.grammar, self.nontMap)
         manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
         return manager.latent_viterbi_derivation(0, self.la, self.grammar)
@@ -161,6 +177,8 @@ class DiscodopKbestParser(AbstractParser):
     def best_derivation_tree(self):
         if self.projection_mode:
             return self.__projection_based_derivation_tree(self.la, variational=self.variational, op=self.op)
+        elif self.latent_viterbi_mode:
+            return self.latent_viterbi_derivation()
         else:
             for weight, tree in self.k_best_derivation_trees():
                 return tree

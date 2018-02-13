@@ -282,11 +282,11 @@ class DiscodopAdapterTest(unittest.TestCase):
         sm = PyStorageManager()
         la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
-        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, projection_mode=True)
+        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, latent_viterbi_mode=True)
         parser.set_input(inp)
         parser.parse()
         self.assertTrue(parser.recognized())
-        der = parser.latent_viterbi_run()
+        der = parser.best_derivation_tree()
         print(der)
 
         for node in der.ids():
