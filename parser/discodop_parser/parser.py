@@ -169,10 +169,12 @@ class DiscodopKbestParser(AbstractParser):
             _, der = next(self.k_best_derivation_trees())
         return der
 
-    def latent_viterbi_derivation(self):
+    def latent_viterbi_derivation(self, debug=False):
         manager = PyDerivationManager(self.grammar, self.nontMap)
-        manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
-        return manager.latent_viterbi_derivation(0, self.la, self.grammar)
+        manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=debug)
+        if debug:
+            manager.serialize(b'/tmp/my_debug_hypergraph.hg')
+        return manager.latent_viterbi_derivation(0, self.la, self.grammar, debug=debug)
 
     def best_derivation_tree(self):
         if self.projection_mode:

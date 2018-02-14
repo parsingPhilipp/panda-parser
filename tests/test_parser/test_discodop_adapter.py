@@ -14,7 +14,7 @@ from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from parser.gf_parser.gf_interface import GFParser_k_best
 import tempfile
 from parser.coarse_to_fine_parser.trace_weight_projection import py_edge_weight_projection
-from parser.trace_manager.sm_trainer import build_PyLatentAnnotation_initial
+from parser.trace_manager.sm_trainer import build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from util.enumerator import Enumerator
 from math import log, exp
@@ -280,7 +280,7 @@ class DiscodopAdapterTest(unittest.TestCase):
         nontMap = Enumerator()
         gi = PyGrammarInfo(grammar, nontMap)
         sm = PyStorageManager()
-        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
+        la = build_PyLatentAnnotation(grammar, gi, sm)
 
         parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, latent_viterbi_mode=True)
         parser.set_input(inp)
@@ -291,6 +291,27 @@ class DiscodopAdapterTest(unittest.TestCase):
 
         for node in der.ids():
             print(node, der.getRule(node), der.spanned_ranges(node))
+
+    def test_la_viterbi_parsing_2(self):
+        grammar = self.build_paper_grammar()
+        inp = ["a"] * 3
+        nontMap = Enumerator()
+        gi = PyGrammarInfo(grammar, nontMap)
+        sm = PyStorageManager()
+        print(nontMap.object_index("S"))
+        print(nontMap.object_index("B"))
+        la = build_PyLatentAnnotation([2, 1], [1.0], [[0.25, 1.0], [1.0, 0.0],
+                                                      [0.0, 0.5, 0.25, 0.0, 0.0, 0.0, 0.0, 0.0]], gi, sm)
+        self.assertTrue(la.is_proper())
+
+        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, latent_viterbi_mode=True)
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        der = parser.latent_viterbi_derivation(True)
+        print(der)
+        ranges = {der.spanned_ranges(idx)[0] for idx in der.ids()}
+        self.assertSetEqual({(0, 3), (0, 2), (0, 1), (1, 2), (2, 3)}, ranges)
 
     def test_projection_based_parser_k_best_hack(self):
         grammar = self.build_grammar()

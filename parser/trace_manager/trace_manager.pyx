@@ -174,11 +174,11 @@ cdef class PyTraceManager:
         return DerivationTree(rule_id, children)
 
 
-    def latent_viterbi_derivation(self, size_t traceID, PyLatentAnnotation latentAnnotation, grammar):
+    def latent_viterbi_derivation(self, size_t traceID, PyLatentAnnotation latentAnnotation, grammar, bint debug=False):
         cdef Trace[NONTERMINAL, size_t]* trace = &(deref(fool_cython_unwrap(self.trace_manager))[traceID])
         cdef pair[size_t, unordered_map[pair[Element[Node[NONTERMINAL]], size_t],
                                    pair[Element[HyperEdge[Node[NONTERMINAL], size_t]], vector[size_t]]]] \
-                result = deref(trace).computeViterbiPath(deref(latentAnnotation.latentAnnotation))
+                result = deref(trace).computeViterbiPath(deref(latentAnnotation.latentAnnotation), debug)
 
         if result.first == <size_t> (-1):
             return None

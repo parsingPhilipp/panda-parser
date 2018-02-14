@@ -53,7 +53,7 @@ cdef extern from "Trainer/TraceManager.h" namespace "Trainer":
         shared_ptr[Hypergraph[Nonterminal, size_t]] get_hypergraph()
         double get_frequency()
         bint is_consistent_with_grammar(GrammarInfo2 & grammarInfo)
-        pair[size_t, unordered_map[pair[Element[Node[Nonterminal]], size_t], pair[Element[HyperEdge[Node[Nonterminal], size_t]], vector[size_t]]]] computeViterbiPath(LatentAnnotation & latentAnnotation)
+        pair[size_t, unordered_map[pair[Element[Node[Nonterminal]], size_t], pair[Element[HyperEdge[Node[Nonterminal], size_t]], vector[size_t]]]] computeViterbiPath(LatentAnnotation & latentAnnotation, bint debug)
 
     cdef cppclass TraceManager2[Nonterminal, TraceID]:
         Trace[Nonterminal, TraceID] operator[](size_t)
