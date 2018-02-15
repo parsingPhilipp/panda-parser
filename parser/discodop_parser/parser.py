@@ -171,10 +171,24 @@ class DiscodopKbestParser(AbstractParser):
 
     def latent_viterbi_derivation(self, debug=False):
         manager = PyDerivationManager(self.grammar, self.nontMap)
-        manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=debug)
+        manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
         if debug:
             manager.serialize(b'/tmp/my_debug_hypergraph.hg')
-        return manager.latent_viterbi_derivation(0, self.la, self.grammar, debug=debug)
+        vit_der = manager.latent_viterbi_derivation(0, self.la, self.grammar, debug=debug)
+        # if len(self.input) < 15 and not debug:
+        #     for weight, der in self.k_best_derivation_trees():
+        #         if der != vit_der:
+        #             print(weight, der, vit_der)
+        #             vit_der2 = self.latent_viterbi_derivation(debug=True)
+        #             print("vit2", vit_der2)
+        #             if vit_der2 != vit_der:
+        #                 print("first and second viterbi derivation differ")
+        #             if vit_der2 == der:
+        #                 print("second viterbi derivation = 1-best-disco-dop derivation")
+        #         print("##############################", flush=True)
+        #         break
+        #         # raise Exception("too much to read")
+        return vit_der
 
     def best_derivation_tree(self):
         if self.projection_mode:

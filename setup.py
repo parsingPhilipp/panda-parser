@@ -17,7 +17,7 @@ sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
 the_branch = 'origin/MT_Genetic'
-the_commit = '38f4248bac360df021bdfffe04ed7d03c934c2d9'
+the_commit = 'a5784c91ee39c42301b7d23f019142c7b5c318b0'
 sterm_include = [cython_dependency_src_path]
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
@@ -79,7 +79,7 @@ class CustomBuildExtCommand(build_ext):
             retval = p.wait()
         return retval
 
-extra_compile_args = ["-std=c++14", "-gdwarf-3", "-Wall", "-rdynamic"]
+extra_compile_args = ["-std=c++17", "-gdwarf-3", "-Wall", "-rdynamic"]
 # openmp = ["-fopenmp", "-lpthread"]
 openmp = []
 # optimizations = ["-O3"]
