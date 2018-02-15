@@ -80,6 +80,21 @@ class FrequencyBiasedTerminalLabeling(TerminalLabeling):
                + '|' + str(self.fall_back) + "]"
 
 
+class CompositionalTerminalLabeling(TerminalLabeling):
+    def __init__(self, first_labeling, second_labeling, binding_string="__+__"):
+        self.first_labeling = first_labeling
+        self.second_labeling = second_labeling
+        self.binding_string = binding_string
+
+    def __str__(self):
+        return str(self.first_labeling) + '-' + str(self.second_labeling)
+
+    def token_label(self, token, _loc=None):
+        first = self.first_labeling.token_label(token, _loc)
+        second = self.second_labeling.token_label(token, _loc)
+        return first + self.binding_string + second
+
+
 class FormTerminals(TerminalLabeling):
     def token_label(self, token, _loc=None):
         return token.form()

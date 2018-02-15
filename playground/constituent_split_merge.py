@@ -262,6 +262,11 @@ class ConstituentExperiment(ScoringExperiment):
 
         return dcp_tree
 
+    def preprocess_before_induction(self, obj):
+        if self.strip_vroot:
+            obj.strip_vroot()
+        return obj
+
     @lru_cache(maxsize=500)
     def normalize_corpus(self, path, src='export', dest='export', renumber=True):
         _, first_stage = tempfile.mkstemp(suffix=".export", dir=self.directory)
@@ -425,6 +430,9 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 
     def compute_reducts(self, resource):
         corpus = self.read_corpus(resource)
+        if self.strip_vroot:
+            for tree in corpus:
+                tree.strip_vroot()
         parser = self.organizer.training_reducts.get_parser() if self.organizer.training_reducts is not None else None
         nonterminal_map = self.organizer.nonterminal_map
         frequency = self.backoff_factor if self.backoff else 1.0

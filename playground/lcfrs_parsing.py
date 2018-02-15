@@ -3,8 +3,8 @@ from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusF
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
     LCFRS_rule
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
-from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, FormTerminals
-from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, my_feature_filter
+from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, FormTerminals, StanfordUNKing, CompositionalTerminalLabeling
+from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, my_feature_filter, ScorerAndWriter
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
@@ -34,7 +34,8 @@ test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.Ge
 
 
 # fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
-fine_terminal_labeling = FormTerminals()
+# fine_terminal_labeling = FormTerminals()
+fine_terminal_labeling = CompositionalTerminalLabeling(FormTerminals(), PosTerminals())
 fallback_terminal_labeling = PosTerminals()
 
 terminal_threshold = 10
@@ -68,7 +69,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         ConstituentExperiment.__init__(self, induction_settings, directory=directory, filters=filters)
         SplitMergeExperiment.__init__(self)
 
-        self.strip_vroot = True
+        self.strip_vroot = False
         self.k_best = 500
 
     def __valid_tree(self, obj):
@@ -177,18 +178,32 @@ def main(directory=None):
     backoff_threshold = 8
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                              backoff_threshold)
+    experiment.backoff = True
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.project_weights_before_parsing = True
-    experiment.organizer.disable_em = True
-    experiment.organizer.max_sm_cycles = 4
-    experiment.backoff = True
+    experiment.organizer.disable_em = False
+    experiment.organizer.disable_split_merge = False
+    experiment.organizer.max_sm_cycles = 5
     experiment.oracle_parsing = False
-    experiment.k_best = 1000
+    experiment.k_best = 500
     experiment.read_stage_file()
-    experiment.parsing_mode = "max-rule-prod"
 
+    experiment.parsing_mode = "latent-viterbi-disco-dop"
     experiment.run_experiment()
+
+    experiment.parsing_mode = "k-best-rerank-disco-dop"
+    experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+    experiment.run_experiment()
+
+    experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+    experiment.parsing_mode = "variational-disco-dop"
+    experiment.run_experiment()
+
+    experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+    experiment.parsing_mode = "max-rule-prod-disco-dop"
+    experiment.run_experiment()
+
 
 if __name__ == '__main__':
     plac.call(main)
