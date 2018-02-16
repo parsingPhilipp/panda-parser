@@ -239,7 +239,7 @@ class ConstituentExperiment(ScoringExperiment):
             , disconnect_punctuation=self.induction_settings.disconnect_punctuation)
 
     def parsing_preprocess(self, hybrid_tree):
-        if self.strip_vroot:
+        if True or self.strip_vroot:
             hybrid_tree.strip_vroot()
         parser_input = self.terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
         # print(parser_input)
@@ -257,7 +257,7 @@ class ConstituentExperiment(ScoringExperiment):
         dcp_to_hybridtree(dcp_tree, dcp, cleaned_tokens, False, construct_constituent_token,
                           punct_positions=punctuation_positions)
 
-        if self.strip_vroot:
+        if True or self.strip_vroot:
             dcp_tree.strip_vroot()
 
         return dcp_tree
