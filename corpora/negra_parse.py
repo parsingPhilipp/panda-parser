@@ -27,8 +27,8 @@ def num_to_name(num):
 # names: list of string
 # file_name: string
 # return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name):
-    negra = codecs.open(expanduser(file_name), encoding='utf-8') #encoding='iso-8859-1')
+def sentence_names_to_hybridtrees(names, file_name, enc="utf-8"):
+    negra = codecs.open(expanduser(file_name), encoding=enc)
     trees = []
     tree = None
     name = ''
@@ -151,7 +151,7 @@ def hybridtree_to_sentence_name(tree, idNum):
 
         if leaf in tree.id_yield() and leaf not in tree.root:
             if tree.parent(leaf) is None or tree.parent(leaf) not in idNum:
-                print(tree, leaf, tree.full_yield(), map(text, tree.full_token_yield()), tree.parent(leaf), tree.parent(leaf) in idNum)
+                print(tree, leaf, tree.full_yield(), list(map(text, tree.full_token_yield())), tree.parent(leaf), tree.parent(leaf) in idNum)
             lines.append(u'\t'.join(line + [text(idNum[tree.parent(leaf)])]) + u'\n')
         else:
             lines.append(u'\t'.join(line + [u'0']) + u'\n')

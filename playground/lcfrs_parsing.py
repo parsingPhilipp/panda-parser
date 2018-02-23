@@ -10,36 +10,108 @@ from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
 from constituent.filter import check_single_child_label
 import sys
+import os
 import plac
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
 
-train_limit = 10000 # 2000
-train_limit = 40474
-# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
-# train_limit = 40474
-train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
-train_exclude = [7561, 17632, 46234, 50224]
-train_corpus = None
 
-
-validation_start = 40475
-validation_size = validation_start + 4999
-validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-
-
+# SPLIT = "SPMRL"
+SPLIT = "HN08"
 dev_mode = True
-if dev_mode:
-    test_start = validation_start
-    test_limit = validation_size
-    test_exclude = train_exclude
-    test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-else:
-    test_start = 45475
-    test_limit = test_start + 4999
-    test_exclude = train_exclude
-    test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
+
+terminal_labeling_path = '/tmp/constituent_labeling.pkl'
+if SPLIT == "SPMRL":
+    corpus_type = "TIGERXML"
+    # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+    train_start = 1
+    train_filter = None
+    train_limit = 40474
+    train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
+    train_exclude = [7561, 17632, 46234, 50224]
+    train_corpus = None
+
+    validation_start = 40475
+    validation_size = validation_start + 4999
+    validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+    validation_filter = None
+
+    if dev_mode:
+        test_start = validation_start
+        test_limit = validation_size
+        test_exclude = train_exclude
+        test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+    else:
+        test_start = 45475
+        test_limit = test_start + 4999
+        test_exclude = train_exclude
+        test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
+    test_filter = None
+#
+elif SPLIT == "HN08":
+    corpus_type = "EXPORT"
+    base_path = "../res/TIGER/tiger21"
+    train_start = 1
+    train_limit = 50474
+    # train_limit = 2500
+    train_path = os.path.join(base_path, "tigertraindev_root_attach.export")
+
+    def train_filter(x):
+        return x % 10 > 2
+
+    train_exclude = [7561, 17632, 46234, 50224]
+    train_corpus = None
+
+    validation_start = 1
+    # validation_size = 2000
+    validation_size = 50471
+    validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
+
+    def validation_filter(x):
+        return x % 10 == 1
+
+    if dev_mode:
+        test_start = 1  # validation_size  # 40475
+        test_limit = 50474 #  test_start + 200  # 4999
+        # test_limit = 2000
+        test_exclude = train_exclude
+        test_path = os.path.join(base_path, "tigertest_root_attach.export")
+
+        def test_filter(x):
+            return x % 10 == 0
+    else:
+        test_start = 1
+        test_limit = 50474
+        test_exclude = train_exclude
+        test_path = os.path.join(base_path, "tiger")
+
+
+# # train_limit = 10000 # 2000
+# train_limit = 40474
+# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+# # train_limit = 40474
+# # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
+# train_exclude = [7561, 17632, 46234, 50224]
+# train_corpus = None
+#
+#
+# validation_start = 40475
+# validation_size = validation_start + 4999
+# validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+#
+#
+# dev_mode = True
+# if dev_mode:
+#     test_start = validation_start
+#     test_limit = validation_size
+#     test_exclude = train_exclude
+#     test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+# else:
+#     test_start = 45475
+#     test_limit = test_start + 4999
+#     test_exclude = train_exclude
+#     test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
 
 # fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 # fine_terminal_labeling = FormTerminals()
@@ -178,17 +250,21 @@ def main(directory=None):
     filters = []
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
     experiment = LCFRSExperiment(induction_settings, directory=directory, filters=filters)
-    experiment.resources[TRAINING] = CorpusFile(path=train_path, start=1, end=train_limit, exclude=train_exclude)
+    experiment.resources[TRAINING] = CorpusFile(path=train_path, start=train_start, end=train_limit, exclude=train_exclude,
+                                                filter=train_filter, type=corpus_type)
     experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
-                                                  , exclude=train_exclude)
+                                                  , exclude=train_exclude, filter=validation_filter, type=corpus_type)
     experiment.resources[TESTING] = CorpusFile(path=test_path, start=test_start,
-                                               end=test_limit, exclude=train_exclude)
+                                               end=test_limit, exclude=train_exclude, filter=test_filter, type=corpus_type)
     # experiment.resources[TESTING] = CorpusFile(path=train_path, start=1, end=10, exclude=train_exclude)
 
     backoff_threshold = 8
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                              backoff_threshold)
     experiment.backoff = True
+    if SPLIT == "HN08":
+        experiment.use_output_counter = True
+
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.project_weights_before_parsing = True

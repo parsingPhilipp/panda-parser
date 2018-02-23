@@ -87,7 +87,7 @@ class Resource(object):
 
 class CorpusFile(Resource):
     def __init__(self, path=None, start=None, end=None, limit=None, length_limit=None, header=None, exclude=None,
-                 directory=None, logger=None):
+                 directory=None, logger=None, filter=None, type=None):
         super(CorpusFile, self).__init__(path, start, end)
         self.limit = limit
         self.length_limit = length_limit
@@ -99,6 +99,8 @@ class CorpusFile(Resource):
             self.exclude = []
         else:
             self.exclude = exclude
+        self.filter = filter
+        self.type = type
 
     def init(self):
         if self.path is None:
