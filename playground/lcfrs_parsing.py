@@ -16,6 +16,7 @@ if sys.version_info < (3,):
     sys.setdefaultencoding('utf8')
 
 train_limit = 10000 # 2000
+train_limit = 40474
 # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
 # train_limit = 40474
 train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
@@ -24,14 +25,21 @@ train_corpus = None
 
 
 validation_start = 40475
-validation_size = validation_start + 200 #4999
+validation_size = validation_start + 4999
 validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 
-test_start = validation_size # 40475
-test_limit = test_start + 200 # 4999
-test_exclude = train_exclude
-test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
 
+dev_mode = True
+if dev_mode:
+    test_start = validation_start
+    test_limit = validation_size
+    test_exclude = train_exclude
+    test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+else:
+    test_start = 45475
+    test_limit = test_start + 4999
+    test_exclude = train_exclude
+    test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
 
 # fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 # fine_terminal_labeling = FormTerminals()
@@ -39,7 +47,6 @@ fine_terminal_labeling = CompositionalTerminalLabeling(FormTerminals(), PosTermi
 fallback_terminal_labeling = PosTerminals()
 
 terminal_threshold = 10
-
 
 def terminal_labeling(corpus, threshold=terminal_threshold):
     return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
@@ -165,6 +172,9 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 def main(directory=None):
     induction_settings = InductionSettings()
     induction_settings.hmarkov = 1
+    induction_settings.disconnect_punctuation = False
+    induction_settings.normalize = True
+
     filters = []
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
     experiment = LCFRSExperiment(induction_settings, directory=directory, filters=filters)
@@ -185,8 +195,10 @@ def main(directory=None):
     experiment.organizer.disable_em = False
     experiment.organizer.disable_split_merge = False
     experiment.organizer.max_sm_cycles = 5
+    experiment.organizer.threads = 8
     experiment.oracle_parsing = False
     experiment.k_best = 500
+    experiment.disco_dop_params["pruning_k"] = 50000
     experiment.read_stage_file()
 
     experiment.parsing_mode = "latent-viterbi-disco-dop"
