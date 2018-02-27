@@ -73,7 +73,7 @@ cdef class PySDCPTraceManager(PyTraceManager):
             else:
                 fails += 1
                 if self.debug:
-                    output_helper_utf8(str(i) + " " + str(tree) + str(map(str, tree.token_yield())) + " " + str(tree.full_yield()) )
+                    output_helper_utf8(str(i) + " " + str(tree) + str(list(map(str, tree.token_yield()))) + " " + str(tree.full_yield()) )
 
             if (i + 1) % 100 == 0:
                 output_helper_utf8(str(i + 1) + ' ' + str(time.time() - start_time))

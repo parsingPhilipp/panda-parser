@@ -421,9 +421,13 @@ class ScoringExperiment(Experiment):
                             best_derivation = der
                             break
 
-            result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
+            if best_derivation:
+                result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(gold))
-            self.post_parsing_action(gold, result, result_resource)
+                self.post_parsing_action(gold, result, result_resource)
+            else:
+                print('x', end='', file=self.logger)
+                result_resource.failure(gold)
         else:
             print('-', end='', file=self.logger)
             result_resource.failure(gold)

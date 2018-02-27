@@ -156,7 +156,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 
     def induce_from(self, obj):
         if not self.__valid_tree(obj):
-            print(obj, map(str, obj.token_yield()), obj.full_yield())
+            print(obj, list(map(str, obj.token_yield())), obj.full_yield())
             return None, None
         grammar = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
                                        nont_labeling=self.induction_settings.nont_labeling,
