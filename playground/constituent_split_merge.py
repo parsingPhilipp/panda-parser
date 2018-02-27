@@ -77,7 +77,7 @@ elif SPLIT == "HN08":
     train_path = os.path.join(base_path, "tigertraindev_root_attach.export")
 
     def train_filter(x):
-        return x % 10 > 2
+        return x % 10 >= 2
 
     train_exclude = [7561, 17632, 46234, 50224]
     train_corpus = None
@@ -89,7 +89,7 @@ elif SPLIT == "HN08":
     def validation_filter(x):
         return x % 10 == 1
 
-    if dev_mode:
+    if not dev_mode:
         test_start = 1  # validation_size  # 40475
         test_limit = 50474 #  test_start + 200  # 4999
         test_exclude = train_exclude
@@ -101,7 +101,8 @@ elif SPLIT == "HN08":
         test_start = 1
         test_limit = 50474
         test_exclude = train_exclude
-        test_path = os.path.join(base_path, "tiger")
+        test_path = validation_path
+        test_filter = validation_filter
 
 
 # if not os.path.isfile(terminal_labeling_path):
@@ -308,11 +309,13 @@ class ConstituentExperiment(ScoringExperiment):
                 return True
         else:
             sentence_filter = resource.filter
+        # encoding = "iso-8859-1"
+        encoding = "utf-8"
         return np.sentence_names_to_hybridtrees(
             {str(i) for i in range(resource.start, resource.end + 1)
              if i not in resource.exclude and sentence_filter(i)},
             resource.path,
-            enc="iso-8859-1")
+            enc=encoding, disconnect_punctuation=self.induction_settings.disconnect_punctuation, add_vroot=True)
 
     def parsing_preprocess(self, hybrid_tree):
         if True or self.strip_vroot:

@@ -54,27 +54,27 @@ elif SPLIT == "HN08":
     base_path = "../res/TIGER/tiger21"
     train_start = 1
     train_limit = 50474
-    # train_limit = 2500
+    # train_limit = 5000 * 5 // 4
     train_path = os.path.join(base_path, "tigertraindev_root_attach.export")
 
     def train_filter(x):
-        return x % 10 > 2
+        return x % 10 >= 2
 
     train_exclude = [7561, 17632, 46234, 50224]
     train_corpus = None
 
     validation_start = 1
-    # validation_size = 2000
+    # validation_size = 200 * 5 // 4
     validation_size = 50471
     validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
 
     def validation_filter(x):
         return x % 10 == 1
 
-    if dev_mode:
+    if not dev_mode:
         test_start = 1  # validation_size  # 40475
-        test_limit = 50474 #  test_start + 200  # 4999
-        # test_limit = 2000
+        test_limit = 50474
+        # test_limit = 200 * 5 // 4
         test_exclude = train_exclude
         test_path = os.path.join(base_path, "tigertest_root_attach.export")
 
@@ -83,8 +83,10 @@ elif SPLIT == "HN08":
     else:
         test_start = 1
         test_limit = 50474
+        # test_limit = 200 * 5 // 4
         test_exclude = train_exclude
-        test_path = os.path.join(base_path, "tiger")
+        test_path = validation_path
+        test_filter = validation_filter
 
 
 # # train_limit = 10000 # 2000
