@@ -27,7 +27,7 @@ def num_to_name(num):
 # names: list of string
 # file_name: string
 # return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name, enc="utf-8"):
+def sentence_names_to_hybridtrees(names, file_name, enc="utf-8", disconnect_punctuation=True, add_vroot=False):
     negra = codecs.open(expanduser(file_name), encoding=enc)
     trees = []
     tree = None
@@ -59,6 +59,9 @@ def sentence_names_to_hybridtrees(names, file_name, enc="utf-8"):
                 tree = ConstituentTree(name)
                 n_leaves = 0
                 node_to_children = {}
+                if add_vroot:
+                    tree.set_label('0', 'VROOT')
+                    tree.add_to_root('0')
         elif match_sent_end:
             this_name = match_sent_end.group(1)
             if name == this_name:
@@ -78,7 +81,7 @@ def sentence_names_to_hybridtrees(names, file_name, enc="utf-8"):
                     parent = match_nont.group(6)
                 tree.set_label(id, nont)
                 tree.node_token(id).set_edge_label(edge)
-                if parent == '0':
+                if parent == '0' and not add_vroot:
                     tree.add_to_root(id)
                 else:
                     tree.add_child(parent, id)
@@ -94,11 +97,14 @@ def sentence_names_to_hybridtrees(names, file_name, enc="utf-8"):
                     parent = match_term.group(6)
                 n_leaves += 1
                 leaf_id = str(100 + n_leaves)
-                if parent == '0':
+                if parent == '0' and disconnect_punctuation:
                     tree.add_punct(leaf_id, pos, word)
                 else:
+                    if parent == '0' and not add_vroot:
+                        tree.add_to_root(leaf_id)
+                    else:
+                        tree.add_child(parent, leaf_id)
                     tree.add_leaf(leaf_id, pos, word)
-                    tree.add_child(parent, leaf_id)
                     tree.node_token(leaf_id).set_edge_label(edge)
     negra.close()
     return trees
