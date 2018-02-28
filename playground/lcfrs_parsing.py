@@ -19,22 +19,25 @@ if sys.version_info < (3,):
 
 # SPLIT = "SPMRL"
 SPLIT = "HN08"
-dev_mode = True
+# SPLIT = "WSJ"
+dev_mode = True  # enable to parse the DEV set instead of the TEST set
+quick = False  # enable for quick testing during debugging
 
 terminal_labeling_path = '/tmp/constituent_labeling.pkl'
 if SPLIT == "SPMRL":
+    # all files are from SPMRL shared task
+
     corpus_type = "TIGERXML"
-    # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+    train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
     train_start = 1
     train_filter = None
     train_limit = 40474
-    train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
     train_exclude = [7561, 17632, 46234, 50224]
     train_corpus = None
 
+    validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
     validation_start = 40475
     validation_size = validation_start + 4999
-    validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
     validation_filter = None
 
     if dev_mode:
@@ -48,13 +51,22 @@ if SPLIT == "SPMRL":
         test_exclude = train_exclude
         test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
     test_filter = None
+
+    if quick:
+        train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+        train_limit = train_start + 2000
+        validation_size = validation_start + 200
+        test_limit = test_start + 200
 #
 elif SPLIT == "HN08":
+    # files are based on the scripts in Coavoux's mind the gap 1.0
+    # where we commented out `rm -r tiger21 tiger22 marmot_tags` in generate_tiger_data.sh
+
     corpus_type = "EXPORT"
     base_path = "../res/TIGER/tiger21"
     train_start = 1
     train_limit = 50474
-    # train_limit = 5000 * 5 // 4
+
     train_path = os.path.join(base_path, "tigertraindev_root_attach.export")
 
     def train_filter(x):
@@ -64,7 +76,6 @@ elif SPLIT == "HN08":
     train_corpus = None
 
     validation_start = 1
-    # validation_size = 200 * 5 // 4
     validation_size = 50471
     validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
 
@@ -83,37 +94,45 @@ elif SPLIT == "HN08":
     else:
         test_start = 1
         test_limit = 50474
-        # test_limit = 200 * 5 // 4
         test_exclude = train_exclude
         test_path = validation_path
         test_filter = validation_filter
 
+    if quick:
+        train_limit = 5000 * 5 // 4
+        validation_size = 200 * 5 // 4
+        test_limit = 200 * 5 // 4
+#
+elif SPLIT == "WSJ":
+    # file is from Kilian Evang's dptb.tar.bz2
 
-# # train_limit = 10000 # 2000
-# train_limit = 40474
-# train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
-# # train_limit = 40474
-# # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
-# train_exclude = [7561, 17632, 46234, 50224]
-# train_corpus = None
-#
-#
-# validation_start = 40475
-# validation_size = validation_start + 4999
-# validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-#
-#
-# dev_mode = True
-# if dev_mode:
-#     test_start = validation_start
-#     test_limit = validation_size
-#     test_exclude = train_exclude
-#     test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-# else:
-#     test_start = 45475
-#     test_limit = test_start + 4999
-#     test_exclude = train_exclude
-#     test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
+    corpus_type = "EXPORT"
+    corpus_path = "../res/WSJ/ptb-discontinuous/dptb7.export"
+    train_path = validation_path = test_path = corpus_path
+    train_exclude = validation_exclude = test_exclude = []
+    train_filter = validation_filter = test_filter = None
+
+    # sections 2-21
+    train_start = 3915
+    train_limit = 43746
+
+    # section 24
+    validation_start = 47863
+    validation_size = 49208
+
+    if not dev_mode:
+        # section 23
+        test_start = 45447
+        test_limit = 47862
+    else:
+        test_start = validation_start
+        test_limit = validation_size
+
+    if quick:
+        train_limit = train_start + 2000
+        validation_size = validation_start + 200
+        test_limit = test_start + 200
+
 
 # fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 # fine_terminal_labeling = FormTerminals()

@@ -44,9 +44,9 @@ def sentence_names_to_hybridtrees(names, file_name, enc="utf-8", disconnect_punc
         match_sent_end = re.search(r'^#EOS\s+([0-9]+)$', line)
         if mode == "STANDARD":
             match_nont = \
-                re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(\n)?$', line)
+                re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*\n?$', line)
             match_term = \
-                re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(\n)?$', line)
+                re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*\n?$', line)
         elif mode == "DISCO-DOP":
             match_nont = \
                 re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(\s+([^\s]+))?(\n)?$', line)
