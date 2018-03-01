@@ -206,7 +206,7 @@ FANOUT = 2
 RECURSIVE_PARTITIONING = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(FANOUT) + '-left-to-right')[0]
 
 MAX_SENTENCE_LENGTH = 5000
-EM_EPOCHS = 6
+EM_EPOCHS = 20
 EM_EPOCHS_SM = 20
 SEED = 2
 MERGE_PERCENTAGE = 50.0
@@ -840,9 +840,10 @@ def main3(directory=None):
     experiment.organizer.max_sm_cycles = SM_CYCLES
 
     experiment.organizer.disable_split_merge = False
-    experiment.organizer.disable_em = True
+    experiment.organizer.disable_em = False
     experiment.organizer.merge_percentage = MERGE_PERCENTAGE
     experiment.organizer.merge_type = "PERCENT"
+    experiment.organizer.threads = 8
 
     train, dev, test = setup_corpus_resources(SPLIT, DEV_MODE, QUICK)
     experiment.resources[TRAINING] = train
@@ -856,6 +857,7 @@ def main3(directory=None):
                                                              threshold=backoff_threshold)
 
     experiment.terminal_labeling = induction_settings.terminal_labeling
+    experiment.disco_dop_params["pruning_k"] = 50000
     experiment.read_stage_file()
 
     if MULTI_OBJECTIVES:
