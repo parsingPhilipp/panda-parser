@@ -16,14 +16,16 @@ if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
 
-
+# select one of the splits from {"SPMRL", "HN08", "WSJ"}
 # SPLIT = "SPMRL"
 SPLIT = "HN08"
 # SPLIT = "WSJ"
-dev_mode = True  # enable to parse the DEV set instead of the TEST set
-quick = False  # enable for quick testing during debugging
 
-terminal_labeling_path = '/tmp/constituent_labeling.pkl'
+DEV_MODE = True  # enable to parse the DEV set instead of the TEST set
+QUICK = True  # enable for quick testing during debugging (small train/dev/test sets)
+
+MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
+
 if SPLIT == "SPMRL":
     # all files are from SPMRL shared task
 
@@ -40,7 +42,7 @@ if SPLIT == "SPMRL":
     validation_size = validation_start + 4999
     validation_filter = None
 
-    if dev_mode:
+    if DEV_MODE:
         test_start = validation_start
         test_limit = validation_size
         test_exclude = train_exclude
@@ -52,7 +54,7 @@ if SPLIT == "SPMRL":
         test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
     test_filter = None
 
-    if quick:
+    if QUICK:
         train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
         train_limit = train_start + 2000
         validation_size = validation_start + 200
@@ -82,7 +84,7 @@ elif SPLIT == "HN08":
     def validation_filter(x):
         return x % 10 == 1
 
-    if not dev_mode:
+    if not DEV_MODE:
         test_start = 1  # validation_size  # 40475
         test_limit = 50474
         # test_limit = 200 * 5 // 4
@@ -98,7 +100,7 @@ elif SPLIT == "HN08":
         test_path = validation_path
         test_filter = validation_filter
 
-    if quick:
+    if QUICK:
         train_limit = 5000 * 5 // 4
         validation_size = 200 * 5 // 4
         test_limit = 200 * 5 // 4
@@ -120,7 +122,7 @@ elif SPLIT == "WSJ":
     validation_start = 47863
     validation_size = 49208
 
-    if not dev_mode:
+    if not DEV_MODE:
         # section 23
         test_start = 45447
         test_limit = 47862
@@ -128,7 +130,7 @@ elif SPLIT == "WSJ":
         test_start = validation_start
         test_limit = validation_size
 
-    if quick:
+    if QUICK:
         train_limit = train_start + 2000
         validation_size = validation_start + 200
         test_limit = test_start + 200
@@ -140,6 +142,7 @@ fine_terminal_labeling = CompositionalTerminalLabeling(FormTerminals(), PosTermi
 fallback_terminal_labeling = PosTerminals()
 
 terminal_threshold = 10
+
 
 def terminal_labeling(corpus, threshold=terminal_threshold):
     return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
@@ -277,14 +280,12 @@ def main(directory=None):
                                                   , exclude=train_exclude, filter=validation_filter, type=corpus_type)
     experiment.resources[TESTING] = CorpusFile(path=test_path, start=test_start,
                                                end=test_limit, exclude=train_exclude, filter=test_filter, type=corpus_type)
-    # experiment.resources[TESTING] = CorpusFile(path=train_path, start=1, end=10, exclude=train_exclude)
 
     backoff_threshold = 8
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                              backoff_threshold)
     experiment.backoff = True
-    if SPLIT == "HN08":
-        experiment.use_output_counter = True
+
 
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.organizer.validator_type = "SIMPLE"
@@ -298,20 +299,28 @@ def main(directory=None):
     experiment.disco_dop_params["pruning_k"] = 50000
     experiment.read_stage_file()
 
-    experiment.parsing_mode = "latent-viterbi-disco-dop"
-    experiment.run_experiment()
+    if MULTI_OBJECTIVES:
+        experiment.parsing_mode = "discodop-multi-method"
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger,
+                                                       secondary_scores=3)
+        experiment.run_experiment()
+    else:
+        experiment.parsing_mode = "latent-viterbi-disco-dop"
+        experiment.run_experiment()
 
-    experiment.parsing_mode = "k-best-rerank-disco-dop"
-    experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
-    experiment.run_experiment()
+        experiment.parsing_mode = "k-best-rerank-disco-dop"
+        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.run_experiment()
 
-    experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
-    experiment.parsing_mode = "variational-disco-dop"
-    experiment.run_experiment()
+        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.parsing_mode = "variational-disco-dop"
+        experiment.run_experiment()
 
-    experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
-    experiment.parsing_mode = "max-rule-prod-disco-dop"
-    experiment.run_experiment()
+        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.parsing_mode = "max-rule-prod-disco-dop"
+        experiment.run_experiment()
 
 
 if __name__ == '__main__':

@@ -421,10 +421,20 @@ class ScoringExperiment(Experiment):
                             best_derivation = der
                             break
 
+            secondaries = None
+            if self.parser.secondaries:
+                secondaries = []
+                for mode in self.parser.secondaries:
+                    self.parser.set_secondary_mode(mode)
+                    der = self.parser.best_derivation_tree()
+                    result = self.parsing_postprocess(sentence=sentence, derivation=der, label=self.obtain_label(gold))
+                    secondaries.append(result)
+                self.parser.set_secondary_mode("DEFAULT")
+
             if best_derivation:
                 result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(gold))
-                self.post_parsing_action(gold, result, result_resource)
+                self.post_parsing_action(gold, result, result_resource, secondaries)
             else:
                 print('x', end='', file=self.logger)
                 result_resource.failure(gold)
@@ -454,8 +464,8 @@ class ScoringExperiment(Experiment):
                                                   label=self.obtain_label(obj))
             return_dict[0] = result
 
-    def post_parsing_action(self, gold, system, result_resource):
-        result_resource.score(system, gold)
+    def post_parsing_action(self, gold, system, result_resource, secondaries=None):
+        result_resource.score(system, gold, secondaries)
 
 
 class SplitMergeExperiment(Experiment):
@@ -669,7 +679,30 @@ class SplitMergeExperiment(Experiment):
 
     def prepare_sm_parser(self):
         last_la = self.organizer.latent_annotations[self.organizer.last_sm_cycle]
-        if self.parsing_mode == "best-latent-derivation":
+        if self.parsing_mode == "discodop-multi-method":
+            if self.organizer.project_weights_before_parsing:
+                self.project_weights()
+            self.parser = DiscodopKbestParser(self.base_grammar,
+                                              k=self.k_best,
+                                              la=last_la,
+                                              nontMap=self.organizer.nonterminal_map,
+                                              variational=False,
+                                              sum_op=False,
+                                              cfg_ctf=self.disco_dop_params["cfg_ctf"],
+                                              beam_beta=self.disco_dop_params["beam_beta"],
+                                              beam_delta=self.disco_dop_params["beam_delta"],
+                                              pruning_k=self.disco_dop_params["pruning_k"],
+                                              grammarInfo=self.organizer.grammarInfo,
+                                              projection_mode=False,
+                                              latent_viterbi_mode=True,
+                                              secondaries=["VARIATIONAL", "MAX-RULE-PRODUCT", "LATENT-RERANK"]
+            )
+            self.parser.k_best_reranker = Coarse_to_fine_parser(self.base_grammar, last_la,
+                                                                self.organizer.grammarInfo,
+                                                                self.organizer.nonterminal_map,
+                                                                base_parser=self.parser)
+
+        elif self.parsing_mode == "best-latent-derivation":
             grammar = last_la.build_sm_grammar(self.base_grammar, self.organizer.grammarInfo, rule_pruning=0.0001,
                                                rule_smoothing=0.1)
             self.parser = GFParser_k_best(grammar=grammar, k=1, save_preprocessing=(self.directory, "gfgrammar"))
@@ -815,7 +848,7 @@ class ScorerResource(Resource):
     def __init__(self, path=None, start=None, end=None):
         super(ScorerResource, self).__init__(path, start, end)
 
-    def score(self, system, gold):
+    def score(self, system, gold, secondaries=None):
         assert False
 
     def failure(self, gold):

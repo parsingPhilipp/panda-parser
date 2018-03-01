@@ -43,7 +43,7 @@ class DOGScorerResource(ScorerResource):
         super(self.__class__, self).__init__(path, start, end)
         self.scorer = PredicateArgumentScoring()
 
-    def score(self, system, gold):
+    def score(self, system, gold, secondaries=None):
         found = self.get_labeled_frames(system)
         correct = self.get_labeled_frames(gold)
         self.scorer.add_accuracy_frames(found, correct)

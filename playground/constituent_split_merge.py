@@ -51,7 +51,6 @@ if SPLIT == "SPMRL":
     train_exclude = [7561, 17632, 46234, 50224]
     train_corpus = None
 
-
     validation_start = 40475
     validation_size = validation_start + 200 #4999
     validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
@@ -203,7 +202,7 @@ class ConstituentScorer(ScorerResource):
         super(ConstituentScorer, self).__init__()
         self.scorer = ParseAccuracyPenalizeFailures()
 
-    def score(self, system, gold):
+    def score(self, system, gold, secondaries=None):
         self.scorer.add_accuracy(system.labelled_spans(), gold.labelled_spans())
 
     def failure(self, gold):
@@ -211,28 +210,37 @@ class ConstituentScorer(ScorerResource):
 
 
 class ScorerAndWriter(ConstituentScorer, CorpusFile):
-    def __init__(self, experiment, path=None, directory=None, logger=None):
+    def __init__(self, experiment, path=None, directory=None, logger=None, secondary_scores=0):
         ConstituentScorer.__init__(self)
         _, path = tempfile.mkstemp(dir=directory) if path is None else path
         CorpusFile.__init__(self, path=path, directory=directory, logger=logger)
         self.experiment = experiment
         self.reference = CorpusFile(directory=directory, logger=logger)
         self.logger = logger if logger is not None else sys.stdout
+        self.secondaries = [CorpusFile(directory=directory, logger=logger) for _ in range(secondary_scores)]
 
     def init(self):
         CorpusFile.init(self)
         self.reference.init()
+        for sec in self.secondaries:
+            sec.init()
 
     def finalize(self):
         CorpusFile.finalize(self)
         self.reference.finalize()
         print('Wrote results to', self.path, file=self.logger)
         print('Wrote reference to', self.reference.path, file=self.logger)
+        for i, sec in enumerate(self.secondaries):
+            sec.finalize()
+            print('Wrote sec %d to ' % i, sec.path, file=self.logger)
 
-    def score(self, system, gold):
+    def score(self, system, gold, secondaries=None):
         ConstituentScorer.score(self, system, gold)
         self.file.writelines(self.experiment.serialize(system))
         self.reference.file.writelines(self.experiment.serialize(gold))
+        if secondaries:
+            for system_sec, corpus in zip(secondaries, self.secondaries):
+                corpus.file.writelines(self.experiment.serialize(system_sec))
 
     def failure(self, gold):
         ConstituentScorer.failure(self, gold)
@@ -241,6 +249,8 @@ class ScorerAndWriter(ConstituentScorer, CorpusFile):
         fallback = self.experiment.compute_fallback(sentence, label)
         self.file.writelines(self.experiment.serialize(fallback))
         self.reference.file.writelines(self.experiment.serialize(gold))
+        for sec in self.secondaries:
+            sec.file.writelines(self.experiment.serialize(fallback))
 
     def __str__(self):
         return CorpusFile.__str__(self)
@@ -383,12 +393,21 @@ class ConstituentExperiment(ScoringExperiment):
 
         ref_rn = self.normalize_corpus(result_resource.reference.path)
         sys_rn = self.normalize_corpus(result_resource.path)
+        sys_secs = [self.normalize_corpus(sec.path) for sec in result_resource.secondaries]
+
         prm = "../util/proper.prm"
 
-        print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_rn, "with proper.prm", file=self.logger)
-        output = subprocess.Popen(["discodop", "eval", ref_rn, sys_rn, prm],
+        def run_eval(sys_path, mode):
+            print(mode)
+            print('running discodop evaluation on gold:', ref_rn, ' and sys:', sys_path, "with", os.path.split(prm)[1], file=self.logger)
+            output = subprocess.Popen(["discodop", "eval", ref_rn, sys_path, prm],
                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT).communicate()
-        print(str(output[0], encoding='utf-8'), file=self.logger)
+            print(str(output[0], encoding='utf-8'), file=self.logger)
+
+        run_eval(sys_rn, "DEFAULT")
+
+        for i, sec in enumerate(sys_secs):
+            run_eval(sec, self.parser.secondaries[i])
 
     @staticmethod
     def __obtain_labelled_spans(obj):
@@ -408,7 +427,11 @@ class ConstituentExperiment(ScoringExperiment):
                 self.output_counter += 1
                 number = self.output_counter
             else:
-                number = int(self.obtain_label(obj)[1:])
+                label = self.obtain_label(obj)
+                if label.startswith('s'):
+                    number = int(label[1:])
+                else:
+                    number = int(label)
             return np.hybridtrees_to_sentence_names([obj], number, max_length)
         else:
             assert False

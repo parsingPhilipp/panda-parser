@@ -5,12 +5,12 @@ __author__ = 'kilian'
 from abc import ABCMeta, abstractmethod
 from grammar.lcfrs import *
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
-from hybridtree.monadic_tokens import MonadicToken
 from collections import defaultdict
-from math import exp
+
 
 class AbstractParser:
     __metaclass__ = ABCMeta
+    secondaries = None
 
     @abstractmethod
     def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None):
@@ -118,7 +118,7 @@ def best_hybrid_tree_for_best_derivation():
     pass
 
 
-def hybird_tree_from_sdcp_evaluation_for_best_derivation(self):
+def hybrid_tree_from_sdcp_evaluation_for_best_derivation(self):
     # TODO
     pass
 

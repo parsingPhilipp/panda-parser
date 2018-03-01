@@ -84,7 +84,8 @@ class DiscodopKbestParser(AbstractParser):
                  pruning_k=10000,
                  grammarInfo=None,
                  projection_mode=False,
-                 latent_viterbi_mode=False
+                 latent_viterbi_mode=False,
+                 secondaries=None
                  ):
         rule_list = list(transform_grammar(grammar))
         self.disco_grammar = Grammar(rule_list, start=grammar.start())
@@ -107,6 +108,9 @@ class DiscodopKbestParser(AbstractParser):
         self.grammarInfo = grammarInfo
         self.projection_mode = projection_mode
         self.latent_viterbi_mode = latent_viterbi_mode
+        self.secondaries = secondaries
+        self.secondary_mode = "DEFAULT"
+        self.k_best_reranker = None
         if grammarInfo is not None:
             assert self.la.check_rule_split_alignment()
         if cfg_ctf:
@@ -169,6 +173,9 @@ class DiscodopKbestParser(AbstractParser):
             _, der = next(self.k_best_derivation_trees())
         return der
 
+    def set_secondary_mode(self, mode):
+        self.secondary_mode = mode
+
     def latent_viterbi_derivation(self, debug=False):
         manager = PyDerivationManager(self.grammar, self.nontMap)
         manager.convert_chart_to_hypergraph(self.chart, self.disco_grammar, debug=False)
@@ -191,10 +198,15 @@ class DiscodopKbestParser(AbstractParser):
         return vit_der
 
     def best_derivation_tree(self):
-        if self.projection_mode:
-            return self.__projection_based_derivation_tree(self.la, variational=self.variational, op=self.op)
-        elif self.latent_viterbi_mode:
+        if (self.projection_mode and self.secondary_mode == "DEFAULT") \
+                or self.secondary_mode in {"VARIATIONAL", "MAX-RULE-PRODUCT"}:
+            variational = self.secondary_mode == "VARIATIONAL" or self.variational and self.secondary_mode == "DEFAULT"
+            return self.__projection_based_derivation_tree(self.la, variational=variational, op=self.op)
+        elif self.latent_viterbi_mode and self.secondary_mode == "DEFAULT" \
+                or self.secondary_mode == "LATENT-VITERBI":
             return self.latent_viterbi_derivation()
+        elif self.secondary_mode == "LATENT-RERANK":
+            return self.k_best_reranker.best_derivation_tree()
         else:
             for weight, tree in self.k_best_derivation_trees():
                 return tree
@@ -202,8 +214,8 @@ class DiscodopKbestParser(AbstractParser):
     def all_derivation_trees(self):
         pass
 
-    def set_input(self, input):
-        self.input = input
+    def set_input(self, parser_input):
+        self.input = parser_input
 
     def parse(self):
         self.counter += 1
@@ -244,6 +256,10 @@ class DiscodopKbestParser(AbstractParser):
     def clear(self):
         self.input = None
         self.chart = None
+        if self.k_best_reranker:
+            self.k_best_reranker.k_best_list = None
+            self.k_best_reranker.ranking = None
+            self.k_best_reranker.ranker = None
 
     def k_best_derivation_trees(self):
         for tree_string, weight in lazykbest(self.chart, self.k):
