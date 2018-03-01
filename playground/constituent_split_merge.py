@@ -1,10 +1,12 @@
 from __future__ import print_function
 import corpora.tiger_parse as tp
 import corpora.negra_parse as np
-from grammar.induction.terminal_labeling import FormPosTerminalsUnk, FormTerminalsUnk, FormTerminalsPOS, PosTerminals, TerminalLabeling, FeatureTerminals, FrequencyBiasedTerminalLabeling
+from grammar.induction.terminal_labeling import  PosTerminals, TerminalLabeling, FeatureTerminals, \
+    FrequencyBiasedTerminalLabeling, CompositionalTerminalLabeling, FormTerminals
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs, token_to_features
-from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary, extract_feat
+from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary, \
+    extract_feat
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from constituent.dummy_tree import dummy_constituent_tree, flat_dummy_constituent_tree
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
@@ -18,8 +20,8 @@ from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceMa
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
 from parser.discodop_parser.parser import DiscodopKbestParser
-from playground.experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, VALIDATION, \
-    SplitMergeExperiment
+from playground.experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, \
+    VALIDATION, SplitMergeExperiment
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
 import tempfile
 import sys
@@ -37,71 +39,125 @@ if sys.version_info < (3,):
 # sys.stdout = codecs.getwriter('utf8')(sys.stdout)
 # sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
-SPLIT = "SPMRL"
-dev_mode = True
 
-terminal_labeling_path = '/tmp/constituent_labeling.pkl'
-if SPLIT == "SPMRL":
-    corpus_type = "TIGERXML"
-    train_limit = 1000  # 2000
-    train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
-    train_filter = None
-    # train_limit = 40474
-    # train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
-    train_exclude = [7561, 17632, 46234, 50224]
-    train_corpus = None
+def setup_corpus_resources(split, dev_mode=True, quick=False):
+    if split == "SPMRL":
+        # all files are from SPMRL shared task
 
-    validation_start = 40475
-    validation_size = validation_start + 200 #4999
-    validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-    validation_filter = None
+        corpus_type = "TIGERXML"
+        train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
+        train_start = 1
+        train_filter = None
+        train_limit = 40474
+        train_exclude = [7561, 17632, 46234, 50224]
 
-    if dev_mode:
-        test_start = validation_start
-        test_limit = validation_size
-        test_exclude = train_exclude
-        test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+        validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+        validation_start = 40475
+        validation_size = validation_start + 4999
+        validation_filter = None
+
+        if dev_mode:
+            test_start = validation_start
+            test_limit = validation_size
+            test_exclude = train_exclude
+            test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+        else:
+            test_start = 45475
+            test_limit = test_start + 4999
+            test_exclude = train_exclude
+            test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
+        test_filter = None
+
+        if quick:
+            train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+            train_limit = train_start + 2000
+            validation_size = validation_start + 200
+            test_limit = test_start + 200
+    #
+    elif split == "HN08":
+        # files are based on the scripts in Coavoux's mind the gap 1.0
+        # where we commented out `rm -r tiger21 tiger22 marmot_tags` in generate_tiger_data.sh
+
+        corpus_type = "EXPORT"
+        base_path = "../res/TIGER/tiger21"
+        train_start = 1
+        train_limit = 50474
+
+        train_path = os.path.join(base_path, "tigertraindev_root_attach.export")
+
+        def train_filter(x):
+            return x % 10 >= 2
+
+        train_exclude = [7561, 17632, 46234, 50224]
+
+        validation_start = 1
+        validation_size = 50471
+        validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
+
+        def validation_filter(x):
+            return x % 10 == 1
+
+        if not dev_mode:
+            test_start = 1  # validation_size  # 40475
+            test_limit = 50474
+            # test_limit = 200 * 5 // 4
+            test_exclude = train_exclude
+            test_path = os.path.join(base_path, "tigertest_root_attach.export")
+
+            def test_filter(x):
+                return x % 10 == 0
+        else:
+            test_start = 1
+            test_limit = 50474
+            test_exclude = train_exclude
+            test_path = validation_path
+            test_filter = validation_filter
+
+        if quick:
+            train_limit = 5000 * 5 // 4
+            validation_size = 200 * 5 // 4
+            test_limit = 200 * 5 // 4
+    #
+    elif split == "WSJ":
+        # file is from Kilian Evang's dptb.tar.bz2
+
+        corpus_type = "EXPORT"
+        corpus_path = "../res/WSJ/ptb-discontinuous/dptb7.export"
+        train_path = validation_path = test_path = corpus_path
+        train_exclude = validation_exclude = test_exclude = []
+        train_filter = validation_filter = test_filter = None
+
+        # sections 2-21
+        train_start = 3915
+        train_limit = 43746
+
+        # section 24
+        validation_start = 47863
+        validation_size = 49208
+
+        if not dev_mode:
+            # section 23
+            test_start = 45447
+            test_limit = 47862
+        else:
+            test_start = validation_start
+            test_limit = validation_size
+
+        if quick:
+            train_limit = train_start + 2000
+            validation_size = validation_start + 200
+            test_limit = test_start + 200
     else:
-        test_start = 45475
-        test_limit = test_start + 4999
-        test_exclude = train_exclude
-        test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
-    test_filter = None
+        raise ValueError("Unknown split: " + str(split))
 
-elif SPLIT == "HN08":
-    corpus_type = "EXPORT"
-    base_path = "../res/TIGER/tiger21"
-    train_start = 1
-    train_limit = 50474
-    train_path = os.path.join(base_path, "tigertraindev_root_attach.export")
+    train = CorpusFile(path=train_path, start=train_start, end=train_limit, exclude=train_exclude, filter=train_filter,
+                       type=corpus_type)
+    dev = CorpusFile(path=validation_path, start=validation_start, end=validation_size, exclude=train_exclude,
+                     filter=validation_filter, type=corpus_type)
+    test = CorpusFile(path=test_path, start=test_start, end=test_limit, exclude=test_exclude, filter=test_filter,
+                      type=corpus_type)
 
-    def train_filter(x):
-        return x % 10 >= 2
-
-    train_exclude = [7561, 17632, 46234, 50224]
-    train_corpus = None
-
-    validation_start = 1
-    validation_size = 50471
-    validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
-
-    def validation_filter(x):
-        return x % 10 == 1
-
-    if not dev_mode:
-        test_start = 1  # validation_size  # 40475
-        test_limit = 50474 #  test_start + 200  # 4999
-        test_exclude = train_exclude
-        test_path = os.path.join(base_path, "tigertest_root_attach.export")
-
-        def test_filter(x):
-            return x % 10 == 0
-    else:
-        test_start = 1
-        test_limit = 50474
-        test_exclude = train_exclude
-        test_path = validation_path
-        test_filter = validation_filter
+    return train, dev, test
 
 
 # if not os.path.isfile(terminal_labeling_path):
@@ -127,6 +183,7 @@ def my_feature_filter(elem):
 
 
 fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
+fine_terminal_labeling = CompositionalTerminalLabeling(FormTerminals(), PosTerminals())
 fallback_terminal_labeling = PosTerminals()
 
 terminal_threshold = 10
@@ -136,29 +193,27 @@ def terminal_labeling(corpus, threshold=terminal_threshold):
     return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
 
 
-fanout = 2
-recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + '-left-to-right')[0]
+# SPLIT = "HN08"
+SPLIT = "SPMRL"
+# SPLIT = "WSJ"
 
-max_length = 5000
-em_epochs = 6
-em_epochs_sm = 20
-seed = 1
-merge_percentage = 50.0
-sm_cycles = 3
-threads = 1  # 0
-smoothing_factor = 0.01
-split_randomization = 2.0
+DEV_MODE = True
+QUICK = False
 
-validationMethod = "F1"
-validationDropIterations = 6
+MULTI_OBJECTIVES = True
 
-k_best = 500
+FANOUT = 2
+RECURSIVE_PARTITIONING = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(FANOUT) + '-left-to-right')[0]
 
-# parsing_method = "single-best-annotation"
-parsing_method = "filter-ctf"
-parse_results_prefix = "/tmp"
-parse_results = "results"
-parse_results_suffix = ".export"
+MAX_SENTENCE_LENGTH = 5000
+EM_EPOCHS = 6
+EM_EPOCHS_SM = 20
+SEED = 2
+MERGE_PERCENTAGE = 50.0
+SM_CYCLES = 4
+THREADS = 1  # 0
+K_BEST = 500
+
 NEGRA = "NEGRA"
 
 
@@ -264,7 +319,7 @@ class ConstituentExperiment(ScoringExperiment):
         self.serialization_type = NEGRA
         self.use_output_counter = False
         self.output_counter = 0
-        self.strip_vroot = True
+        self.strip_vroot = False
         self.terminal_labeling = induction_settings.terminal_labeling
 
         self.discodop_scorer = DiscoDopScorer()
@@ -432,7 +487,7 @@ class ConstituentExperiment(ScoringExperiment):
                     number = int(label[1:])
                 else:
                     number = int(label)
-            return np.hybridtrees_to_sentence_names([obj], number, max_length)
+            return np.hybridtrees_to_sentence_names([obj], number, MAX_SENTENCE_LENGTH)
         else:
             assert False
 
@@ -766,48 +821,65 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
         self.terminal_labeling = PatchedTerminalLabeling2(self.induction_settings.terminal_labeling, lookup)
 
 
-
-
-
-
 @plac.annotations(
     directory=('directory in which experiment is run', 'option', None, str)
     )
 def main3(directory=None):
     induction_settings = InductionSettings()
-    induction_settings.recursive_partitioning = recursive_partitioning
-    induction_settings.normalize = False
-    induction_settings.disconnect_punctuation = True
+    induction_settings.recursive_partitioning = RECURSIVE_PARTITIONING
+    induction_settings.normalize = True
+    induction_settings.disconnect_punctuation = False
     induction_settings.naming_scheme = 'child'
     induction_settings.isolate_pos = True
-    induction_settings.feature_la = False
+
     experiment = ConstituentSMExperiment(induction_settings, directory=directory)
-    experiment.organizer.seed = 2
-    experiment.organizer.em_epochs = em_epochs
-    experiment.organizer.em_epochs_sm = em_epochs_sm
+    experiment.organizer.seed = SEED
+    experiment.organizer.em_epochs = EM_EPOCHS
+    experiment.organizer.em_epochs_sm = EM_EPOCHS_SM
     experiment.organizer.validator_type = "SIMPLE"
-    experiment.organizer.max_sm_cycles = sm_cycles
-    experiment.organizer.refresh_score_validator = True
-    experiment.organizer.project_weights_before_parsing = False
+    experiment.organizer.max_sm_cycles = SM_CYCLES
+
     experiment.organizer.disable_split_merge = False
     experiment.organizer.disable_em = True
-    experiment.organizer.merge_percentage = 60.0
+    experiment.organizer.merge_percentage = MERGE_PERCENTAGE
     experiment.organizer.merge_type = "PERCENT"
-    experiment.organizer.merge_threshold = -3.0
-    experiment.resources[TRAINING] = CorpusFile(path=train_path, start=train_start, end=train_limit, exclude=train_exclude, filter=train_filter, type=corpus_type)
-    experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
-                                                  , exclude=train_exclude, filter=train_filter, type=corpus_type)
-    experiment.resources[TESTING] = CorpusFile(path=test_path, start=test_start,
-                                               end=test_limit, exclude=train_exclude, filter=train_filter, type=corpus_type)
-    experiment.oracle_parsing = False
-    experiment.k_best = k_best
-    experiment.purge_rule_freq = None
+
+    train, dev, test = setup_corpus_resources(SPLIT, DEV_MODE, QUICK)
+    experiment.resources[TRAINING] = train
+    experiment.resources[VALIDATION] = dev
+    experiment.resources[TESTING] = test
+    experiment.k_best = K_BEST
     experiment.backoff = True
-    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]))
+
+    backoff_threshold = 8
+    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
+                                                             threshold=backoff_threshold)
+
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.read_stage_file()
-    experiment.run_experiment()
 
+    if MULTI_OBJECTIVES:
+        experiment.parsing_mode = "discodop-multi-method"
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger,
+                                                       secondary_scores=3)
+        experiment.run_experiment()
+    else:
+        experiment.parsing_mode = "latent-viterbi-disco-dop"
+        experiment.run_experiment()
+
+        experiment.parsing_mode = "k-best-rerank-disco-dop"
+        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.run_experiment()
+
+        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.parsing_mode = "variational-disco-dop"
+        experiment.run_experiment()
+
+        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.parsing_mode = "max-rule-prod-disco-dop"
+        experiment.run_experiment()
 
 if __name__ == '__main__':
     plac.call(main3)

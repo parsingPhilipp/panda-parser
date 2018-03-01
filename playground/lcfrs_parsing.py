@@ -3,8 +3,10 @@ from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusF
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
     LCFRS_rule
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
-from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, FormTerminals, StanfordUNKing, CompositionalTerminalLabeling
-from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, my_feature_filter, ScorerAndWriter
+from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, \
+    FormTerminals, StanfordUNKing, CompositionalTerminalLabeling
+from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, \
+    my_feature_filter, ScorerAndWriter, setup_corpus_resources
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
@@ -22,118 +24,9 @@ SPLIT = "HN08"
 # SPLIT = "WSJ"
 
 DEV_MODE = True  # enable to parse the DEV set instead of the TEST set
-QUICK = True  # enable for quick testing during debugging (small train/dev/test sets)
+QUICK = False  # enable for quick testing during debugging (small train/dev/test sets)
 
 MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
-
-if SPLIT == "SPMRL":
-    # all files are from SPMRL shared task
-
-    corpus_type = "TIGERXML"
-    train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
-    train_start = 1
-    train_filter = None
-    train_limit = 40474
-    train_exclude = [7561, 17632, 46234, 50224]
-    train_corpus = None
-
-    validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-    validation_start = 40475
-    validation_size = validation_start + 4999
-    validation_filter = None
-
-    if DEV_MODE:
-        test_start = validation_start
-        test_limit = validation_size
-        test_exclude = train_exclude
-        test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
-    else:
-        test_start = 45475
-        test_limit = test_start + 4999
-        test_exclude = train_exclude
-        test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
-    test_filter = None
-
-    if QUICK:
-        train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
-        train_limit = train_start + 2000
-        validation_size = validation_start + 200
-        test_limit = test_start + 200
-#
-elif SPLIT == "HN08":
-    # files are based on the scripts in Coavoux's mind the gap 1.0
-    # where we commented out `rm -r tiger21 tiger22 marmot_tags` in generate_tiger_data.sh
-
-    corpus_type = "EXPORT"
-    base_path = "../res/TIGER/tiger21"
-    train_start = 1
-    train_limit = 50474
-
-    train_path = os.path.join(base_path, "tigertraindev_root_attach.export")
-
-    def train_filter(x):
-        return x % 10 >= 2
-
-    train_exclude = [7561, 17632, 46234, 50224]
-    train_corpus = None
-
-    validation_start = 1
-    validation_size = 50471
-    validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
-
-    def validation_filter(x):
-        return x % 10 == 1
-
-    if not DEV_MODE:
-        test_start = 1  # validation_size  # 40475
-        test_limit = 50474
-        # test_limit = 200 * 5 // 4
-        test_exclude = train_exclude
-        test_path = os.path.join(base_path, "tigertest_root_attach.export")
-
-        def test_filter(x):
-            return x % 10 == 0
-    else:
-        test_start = 1
-        test_limit = 50474
-        test_exclude = train_exclude
-        test_path = validation_path
-        test_filter = validation_filter
-
-    if QUICK:
-        train_limit = 5000 * 5 // 4
-        validation_size = 200 * 5 // 4
-        test_limit = 200 * 5 // 4
-#
-elif SPLIT == "WSJ":
-    # file is from Kilian Evang's dptb.tar.bz2
-
-    corpus_type = "EXPORT"
-    corpus_path = "../res/WSJ/ptb-discontinuous/dptb7.export"
-    train_path = validation_path = test_path = corpus_path
-    train_exclude = validation_exclude = test_exclude = []
-    train_filter = validation_filter = test_filter = None
-
-    # sections 2-21
-    train_start = 3915
-    train_limit = 43746
-
-    # section 24
-    validation_start = 47863
-    validation_size = 49208
-
-    if not DEV_MODE:
-        # section 23
-        test_start = 45447
-        test_limit = 47862
-    else:
-        test_start = validation_start
-        test_limit = validation_size
-
-    if QUICK:
-        train_limit = train_start + 2000
-        validation_size = validation_start + 200
-        test_limit = test_start + 200
 
 
 # fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
@@ -274,12 +167,11 @@ def main(directory=None):
     filters = []
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
     experiment = LCFRSExperiment(induction_settings, directory=directory, filters=filters)
-    experiment.resources[TRAINING] = CorpusFile(path=train_path, start=train_start, end=train_limit, exclude=train_exclude,
-                                                filter=train_filter, type=corpus_type)
-    experiment.resources[VALIDATION] = CorpusFile(path=validation_path, start=validation_start, end=validation_size
-                                                  , exclude=train_exclude, filter=validation_filter, type=corpus_type)
-    experiment.resources[TESTING] = CorpusFile(path=test_path, start=test_start,
-                                               end=test_limit, exclude=train_exclude, filter=test_filter, type=corpus_type)
+
+    train, dev, test = setup_corpus_resources(SPLIT, DEV_MODE, QUICK)
+    experiment.resources[TRAINING] = train
+    experiment.resources[VALIDATION] = dev
+    experiment.resources[TESTING] = test
 
     backoff_threshold = 8
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
