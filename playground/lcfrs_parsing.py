@@ -18,10 +18,11 @@ if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
 
-# select one of the splits from {"SPMRL", "HN08", "WSJ"}
+# select one of the splits from {"SPMRL", "HN08", "WSJ", "WSJ-km2003"}
 # SPLIT = "SPMRL"
-SPLIT = "HN08"
+# SPLIT = "HN08"
 # SPLIT = "WSJ"
+SPLIT = "WSJ-km2003"
 
 DEV_MODE = True  # enable to parse the DEV set instead of the TEST set
 QUICK = False  # enable for quick testing during debugging (small train/dev/test sets)
@@ -173,7 +174,12 @@ def main(directory=None):
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
 
-    backoff_threshold = 8
+    if "km2003" in SPLIT:
+        experiment.eval_postprocess_options = "--reversetransforms=km2003wsj",
+        backoff_threshold = 4
+    else:
+        backoff_threshold = 8
+
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                              backoff_threshold)
     experiment.backoff = True

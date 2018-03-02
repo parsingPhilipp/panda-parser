@@ -118,11 +118,21 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
             validation_size = 200 * 5 // 4
             test_limit = 200 * 5 // 4
     #
-    elif split == "WSJ":
-        # file is from Kilian Evang's dptb.tar.bz2
+    elif "WSJ" in split:
+        # based on Kilian Evang's dptb.tar.bz2
 
         corpus_type = "EXPORT"
-        corpus_path = "../res/WSJ/ptb-discontinuous/dptb7.export"
+        corpus_path_original = "../res/WSJ/ptb-discontinuous/dptb7.export"
+        corpus_path_km2003 = "../res/WSJ/ptb-discontinuous/dptb7-km2003wsj.export"
+
+        # obtain the km2003 version from by running
+        # discodop treetransforms --transforms=km2003wsj corpus_path_original corpus_path_km2003
+
+        if "km2003" in split:
+            corpus_path = corpus_path_km2003
+        else:
+            corpus_path = corpus_path_original
+
         train_path = validation_path = test_path = corpus_path
         train_exclude = validation_exclude = test_exclude = []
         train_filter = validation_filter = test_filter = None
@@ -193,9 +203,10 @@ def terminal_labeling(corpus, threshold=terminal_threshold):
     return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
 
 
+# SPLIT = "SPMRL"
 # SPLIT = "HN08"
-SPLIT = "SPMRL"
 # SPLIT = "WSJ"
+SPLIT = "WSJ-km2003"
 
 DEV_MODE = True
 QUICK = False
@@ -321,6 +332,7 @@ class ConstituentExperiment(ScoringExperiment):
         self.output_counter = 0
         self.strip_vroot = False
         self.terminal_labeling = induction_settings.terminal_labeling
+        self.eval_postprocess_options = None
 
         self.discodop_scorer = DiscoDopScorer()
         self.max_score = 100.0
@@ -412,7 +424,7 @@ class ConstituentExperiment(ScoringExperiment):
         return obj
 
     @lru_cache(maxsize=500)
-    def normalize_corpus(self, path, src='export', dest='export', renumber=True):
+    def normalize_corpus(self, path, src='export', dest='export', renumber=True, disco_options=None):
         _, first_stage = tempfile.mkstemp(suffix=".export", dir=self.directory)
         subprocess.call(["treetools", "transform", path, first_stage, "--trans", "root_attach",
                          "--src-format", src, "--dest-format", "export"])
@@ -420,6 +432,8 @@ class ConstituentExperiment(ScoringExperiment):
         second_call = ["discodop", "treetransforms"]
         if renumber:
             second_call.append("--renumber")
+        if disco_options:
+            second_call += list(disco_options)
         subprocess.call(second_call + ["--punct=move", first_stage, second_stage,
                          "--inputfmt=export", "--outputfmt=export"])
         if dest == 'export':
@@ -446,9 +460,10 @@ class ConstituentExperiment(ScoringExperiment):
 
         print('normalize results with treetools and discodop', file=self.logger)
 
-        ref_rn = self.normalize_corpus(result_resource.reference.path)
-        sys_rn = self.normalize_corpus(result_resource.path)
-        sys_secs = [self.normalize_corpus(sec.path) for sec in result_resource.secondaries]
+        ref_rn = self.normalize_corpus(result_resource.reference.path, disco_options=self.eval_postprocess_options)
+        sys_rn = self.normalize_corpus(result_resource.path, disco_options=self.eval_postprocess_options)
+        sys_secs = [self.normalize_corpus(sec.path, disco_options=self.eval_postprocess_options)
+                    for sec in result_resource.secondaries]
 
         prm = "../util/proper.prm"
 
@@ -849,6 +864,10 @@ def main3(directory=None):
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
+
+    if "km2003" in SPLIT:
+        experiment.eval_postprocess_options = "--reversetransforms=km2003wsj",
+
     experiment.k_best = K_BEST
     experiment.backoff = True
 
