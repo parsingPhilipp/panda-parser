@@ -170,6 +170,8 @@ class DiscodopKbestParser(AbstractParser):
         der = manager.viterbi_derivation(0, edge_weights, self.grammar, op=op, log_mode=self.log_mode)
         if der is None:
             print("p", end="")
+            der = self.latent_viterbi_derivation(debug=self.debug)
+        if der is None:
             _, der = next(self.k_best_derivation_trees())
         return der
 
