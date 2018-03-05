@@ -386,12 +386,15 @@ class ConstituentExperiment(ScoringExperiment):
                 return True
         else:
             sentence_filter = resource.filter
+        path = resource.path
+        if self.induction_settings.normalize:
+            path = self.normalize_corpus(path, src='export', dest='export', renumber=False)
         # encoding = "iso-8859-1"
         encoding = "utf-8"
         return np.sentence_names_to_hybridtrees(
             {str(i) for i in range(resource.start, resource.end + 1)
              if i not in resource.exclude and sentence_filter(i)},
-            resource.path,
+            path,
             enc=encoding, disconnect_punctuation=self.induction_settings.disconnect_punctuation, add_vroot=True,
             mode=mode)
 

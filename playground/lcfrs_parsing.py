@@ -88,7 +88,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
             return
         train_resource = self.resources[TRAINING]
         if self.induction_settings.normalize:
-            train_normalized = self.normalize_corpus(train_resource.path)
+            train_normalized = self.normalize_corpus(train_resource.path, renumber=False)
         else:
             train_normalized = train_resource.path
 
