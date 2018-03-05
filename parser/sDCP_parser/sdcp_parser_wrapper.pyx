@@ -431,7 +431,7 @@ class SDCPDerivation(di.AbstractDerivation):
 
 
 class PysDCPParser(pi.AbstractParser):
-    def __init__(self, grammar, input=None, debug=False):
+    def __init__(self, grammar, input=None, debug=False, terminal_labelling=None):
         self.grammar = grammar
         self.input = input
         if input is not None:
@@ -439,7 +439,7 @@ class PysDCPParser(pi.AbstractParser):
             self.clear()
             self.parse()
         else:
-            self.parser = self.__preprocess(grammar, debug=debug)
+            self.parser = self.__preprocess(grammar, terminal_labelling, debug=debug)
 
     def parse(self):
         self.parser.set_input(self.input)
