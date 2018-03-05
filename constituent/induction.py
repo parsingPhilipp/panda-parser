@@ -170,6 +170,94 @@ def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, bina
     return nont
 
 
+def direct_extract_lcfrs_from_prebinarized_corpus(tree,
+                                                  term_labeling=PosTerminals(),
+                                                  nont_labeling=BasicNonterminalLabeling(),
+                                                  isolate_pos=True):
+    gram = LCFRS(start=start)
+    root = tree.root[0]
+    if tree.is_leaf(root):
+        lhs = LCFRS_lhs(start)
+        label = term_labeling.token_label(tree.node_token(root))
+        lhs.add_arg([label])
+        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0, edge_label=tree.node_token(root).edge()), [])])
+        gram.add_rule(lhs, [], dcp=[dcp_rule])
+    else:
+        first = direct_extract_lcfrs_prebinarized_recur(tree, root, gram, term_labeling, nont_labeling, isolate_pos)
+        lhs = LCFRS_lhs(start)
+        lhs.add_arg([LCFRS_var(0, 0)])
+        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
+        gram.add_rule(lhs, [first], dcp=[dcp_rule])
+    return gram
+
+
+def direct_extract_lcfrs_prebinarized_recur(tree, idx, gram, term_labeling, nont_labeling, isolate_pos):
+    fringe = tree.fringe(idx)
+    spans = join_spans(fringe)
+    nont_fanout = len(spans)
+    nont = nont_labeling.label_nont(tree, idx) + '/' + str(nont_fanout)
+
+    lhs = LCFRS_lhs(nont)
+
+    if tree.is_leaf(idx):
+        label = term_labeling.token_label(tree.node_token(idx))
+        lhs.add_arg([label])
+        dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0, edge_label=tree.node_token(idx).edge()), [])])
+        gram.add_rule(lhs, [], dcp=[dcp_rule])
+        return lhs.nont()
+
+    children = [(child, join_spans(tree.fringe(child)))
+                for child in tree.children(idx)]
+    edge_labels = []
+    for (low, high) in spans:
+        arg = []
+        pos = low
+        while pos <= high:
+            child_num = 0
+            for i, (child, child_spans) in enumerate(children):
+                for j, (child_low, child_high) in enumerate(child_spans):
+                    if pos == child_low:
+                        if tree.is_leaf(child) and not isolate_pos:
+                            arg += [term_labeling.token_label(tree.node_token(child))]
+                            edge_labels += [tree.node_token(child).edge()]
+                        else:
+                            arg += [LCFRS_var(child_num, j)]
+                        pos = child_high + 1
+                if not tree.is_leaf(child) or isolate_pos:
+                    child_num += 1
+        lhs.add_arg(arg)
+
+    dcp_term_args = []
+    rhs = []
+    nont_counter = 0
+    term_counter = 0
+    for (child, child_spans) in children:
+        if not tree.is_leaf(child) or isolate_pos:
+            rhs_nont_fanout = len(child_spans)
+            rhs += [nont_labeling.label_nont(tree, child) + '/' + str(rhs_nont_fanout)]
+            dcp_term_args.append(DCP_var(nont_counter, 0))
+            nont_counter += 1
+        else:
+            dcp_term_args.append(DCP_term(DCP_index(term_counter, edge_label=edge_labels[term_counter]), []))
+            term_counter += 1
+
+    dcp_lhs = DCP_var(-1, 0)
+
+    label = tree.node_token(idx).category()
+    if re.match(r'.*\|<.*>', label):
+        dcp_term = dcp_term_args
+    else:
+        dcp_term = [DCP_term(DCP_string(label, edge_label=tree.node_token(idx).edge()), dcp_term_args)]
+    dcp_rule = [DCP_rule(dcp_lhs, dcp_term)]
+
+    gram.add_rule(lhs, rhs, dcp=dcp_rule)
+
+    for (child, _) in children:
+        if not tree.is_leaf(child) or isolate_pos:
+            direct_extract_lcfrs_prebinarized_recur(tree, child, gram, term_labeling, nont_labeling, isolate_pos)
+    return nont
+
+
 def shift_var(elem):
     if isinstance(elem, LCFRS_var):
         return LCFRS_var(elem.mem - 1, elem.arg)

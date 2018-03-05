@@ -380,7 +380,7 @@ class ConstituentExperiment(ScoringExperiment):
             , hold=False
             , disconnect_punctuation=self.induction_settings.disconnect_punctuation)
 
-    def read_corpus_export(self, resource):
+    def read_corpus_export(self, resource, mode="STANDARD"):
         if resource.filter is None:
             def sentence_filter(x):
                 return True
@@ -392,7 +392,8 @@ class ConstituentExperiment(ScoringExperiment):
             {str(i) for i in range(resource.start, resource.end + 1)
              if i not in resource.exclude and sentence_filter(i)},
             resource.path,
-            enc=encoding, disconnect_punctuation=self.induction_settings.disconnect_punctuation, add_vroot=True)
+            enc=encoding, disconnect_punctuation=self.induction_settings.disconnect_punctuation, add_vroot=True,
+            mode=mode)
 
     def parsing_preprocess(self, hybrid_tree):
         if True or self.strip_vroot:

@@ -27,14 +27,17 @@ def num_to_name(num):
 # names: list of string
 # file_name: string
 # return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name, enc="utf-8", disconnect_punctuation=True, add_vroot=False):
+def sentence_names_to_hybridtrees(names, file_name,
+                                  enc="utf-8",
+                                  disconnect_punctuation=True,
+                                  add_vroot=False,
+                                  mode="STANDARD"):
     negra = codecs.open(expanduser(file_name), encoding=enc)
     trees = []
     tree = None
     name = ''
     n_leaves = 0
     node_to_children = {}
-    mode = "STANDARD"
     for line in negra:
         match_mode = re.search(r'^%%\s+word\s+lemma\s+tag\s+morph\s+edge\s+parent\s+secedge$', line)
         if match_mode:
@@ -44,14 +47,20 @@ def sentence_names_to_hybridtrees(names, file_name, enc="utf-8", disconnect_punc
         match_sent_end = re.search(r'^#EOS\s+([0-9]+)$', line)
         if mode == "STANDARD":
             match_nont = \
-                re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*\n?$', line)
+                re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$', line)
             match_term = \
-                re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s*\n?$', line)
+                re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$', line)
         elif mode == "DISCO-DOP":
             match_nont = \
                 re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(\s+([^\s]+))?(\n)?$', line)
             match_term = \
                 re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(\s+([^\s]+))?(\n)?$', line)
+            # if reading in binarized trees with discodop
+            # there might be additional columns pointing to the original head
+            if not match_term and not match_nont:
+                match_nont = \
+                    re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*(\n)?$', line)
+                match_term = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*\n?$', line)
         if match_sent_start:
             this_name = match_sent_start.group(1)
             if this_name in names:

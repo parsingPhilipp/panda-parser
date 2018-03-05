@@ -1,7 +1,7 @@
 from __future__ import print_function
 from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT, SplitMergeExperiment
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
-    LCFRS_rule
+    LCFRS_rule, direct_extract_lcfrs_from_prebinarized_corpus
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, \
     FormTerminals, StanfordUNKing, CompositionalTerminalLabeling
@@ -14,6 +14,8 @@ from constituent.filter import check_single_child_label
 import sys
 import os
 import plac
+import subprocess
+import tempfile
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
@@ -52,6 +54,13 @@ class InductionSettings:
         self.binarize = True
         self.isolate_pos = True
         self.hmarkov = 0
+        self.use_discodop_binarization = False
+        self.discodop_binarization_params = ["--headrules=../util/negra.headrules",
+                                             "--binarize",
+                                             "-h 1",
+                                             "-v 1"  #,
+                                             # '--labelfun=\"lambda n: n.label.split(\'^\')[0]\"'
+                                             ]
 
     def __str__(self):
         s = "Induction Settings {\n"
@@ -68,11 +77,73 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 
         self.strip_vroot = False
         self.k_best = 500
+        self.disco_binarized_corpus = None
+        self.dummy_flag = True
 
     def __valid_tree(self, obj):
         return obj.complete() and not obj.empty_fringe()
 
+    def run_discodop_binarization(self):
+        if self.disco_binarized_corpus is not None:
+            return
+        train_resource = self.resources[TRAINING]
+        if self.induction_settings.normalize:
+            train_normalized = self.normalize_corpus(train_resource.path)
+        else:
+            train_normalized = train_resource.path
+
+        _, second_stage = tempfile.mkstemp(suffix=".export", dir=self.directory)
+
+        subprocess.call(["discodop", "treetransforms"]
+                        + self.induction_settings.discodop_binarization_params
+                        + ["--inputfmt=export", "--outputfmt=export",
+                           train_normalized, second_stage])
+
+        disco_resource = CorpusFile(path=second_stage,
+                                    start=train_resource.start,
+                                    end=train_resource.end,
+                                    limit=train_resource.limit,
+                                    filter=train_resource.filter,
+                                    exclude=train_resource.exclude,
+                                    type=train_resource.type
+                                    )
+
+        self.disco_binarized_corpus = self.read_corpus_export(disco_resource, mode="DISCO-DOP")
+
+    def induce_from_disco_binarized(self, htree):
+        self.run_discodop_binarization()
+        htree_bin = None
+        for _htree in self.disco_binarized_corpus:
+            if _htree.sent_label() == htree.sent_label():
+                htree_bin = _htree
+                break
+        assert htree_bin is not None
+        grammar = direct_extract_lcfrs_from_prebinarized_corpus(htree_bin,
+                                                                term_labeling=self.terminal_labeling,
+                                                                nont_labeling=self.induction_settings.nont_labeling,
+                                                                isolate_pos=self.induction_settings.isolate_pos,
+                                                                )
+        if self.backoff:
+            self.terminal_labeling.backoff_mode = True
+            grammar2 \
+                = direct_extract_lcfrs_from_prebinarized_corpus(htree_bin,
+                                                                term_labeling=self.terminal_labeling,
+                                                                nont_labeling=self.induction_settings.nont_labeling,
+                                                                isolate_pos=self.induction_settings.isolate_pos,
+                                                                )
+            self.terminal_labeling.backoff_mode = False
+            grammar.add_gram(grammar2)
+
+        if self.dummy_flag:
+            print(grammar)
+            self.dummy_flag = False
+
+        return grammar, None
+
     def induce_from(self, obj):
+        if self.induction_settings.use_discodop_binarization:
+            return self.induce_from_disco_binarized(obj)
+
         if not self.__valid_tree(obj):
             print(obj, list(map(str, obj.token_yield())), obj.full_yield())
             return None, None
@@ -164,6 +235,7 @@ def main(directory=None):
     induction_settings.hmarkov = 1
     induction_settings.disconnect_punctuation = False
     induction_settings.normalize = True
+    induction_settings.use_discodop_binarization = True
 
     filters = []
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
