@@ -380,14 +380,14 @@ class ConstituentExperiment(ScoringExperiment):
             , hold=False
             , disconnect_punctuation=self.induction_settings.disconnect_punctuation)
 
-    def read_corpus_export(self, resource, mode="STANDARD"):
+    def read_corpus_export(self, resource, mode="STANDARD", skip_normalization=False):
         if resource.filter is None:
             def sentence_filter(x):
                 return True
         else:
             sentence_filter = resource.filter
         path = resource.path
-        if self.induction_settings.normalize:
+        if not skip_normalization and self.induction_settings.normalize:
             path = self.normalize_corpus(path, src='export', dest='export', renumber=False)
         # encoding = "iso-8859-1"
         encoding = "utf-8"

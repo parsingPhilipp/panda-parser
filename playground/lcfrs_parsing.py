@@ -108,7 +108,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
                                     type=train_resource.type
                                     )
 
-        self.disco_binarized_corpus = self.read_corpus_export(disco_resource, mode="DISCO-DOP")
+        self.disco_binarized_corpus = self.read_corpus_export(disco_resource, mode="DISCO-DOP", skip_normalization=True)
 
     def induce_from_disco_binarized(self, htree):
         self.run_discodop_binarization()
