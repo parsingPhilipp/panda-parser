@@ -206,6 +206,9 @@ def direct_extract_lcfrs_prebinarized_recur(tree, idx, gram, term_labeling, nont
         gram.add_rule(lhs, [], dcp=[dcp_rule])
         return lhs.nont()
 
+    if not len(tree.children(idx)) <= 2:
+        raise ValueError("Tree is not prebinarized!", tree, idx)
+
     children = [(child, join_spans(tree.fringe(child)))
                 for child in tree.children(idx)]
     edge_labels = []
