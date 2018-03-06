@@ -8,9 +8,10 @@ from corpora.conll_parse import parse_conll_corpus
 from dependency.induction import induce_grammar
 from grammar.induction.recursive_partitioning import cfg
 from grammar.induction.terminal_labeling import the_terminal_labeling_factory, PosTerminals, FormTerminals, FormPosTerminalsUnk
-from constituent.induction import fringe_extract_lcfrs
+from constituent.induction import fringe_extract_lcfrs, direct_extract_lcfrs
 from dependency.labeling import the_labeling_factory
 from hybridtree.general_hybrid_tree import HybridTree
+from hybridtree.constituent_tree import HybridTree as ConstituentTree
 from hybridtree.monadic_tokens import construct_conll_token, construct_constituent_token
 from parser.sDCP_parser.sdcp_parser_wrapper import PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
@@ -18,7 +19,7 @@ from parser.sDCP_parser.playground import split_merge_training
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
-from hybridtree.constituent_tree import ConstituentTree
+from hybridtree.constituent_tree import ConstituentTree, ConstituentCategory
 
 
 class sDCPParserTest(unittest.TestCase):
@@ -379,6 +380,63 @@ class sDCPParserTest(unittest.TestCase):
             for i, rule in enumerate(new_grammar.rules()):
                 print(i, rule, file=stderr)
             print(file=stderr)
+
+    def test_lcfrs_sdcp_parsing(self):
+        def tree1():
+            tree = ConstituentTree("1")
+            for i, t in enumerate(["a", "b", "c", "d"]):
+                tree.add_leaf(str(i), "P" + t, t)
+            tree.set_label('r0', 'C')
+            tree.set_label('r1', 'A')
+            tree.set_label('r2', 'B')
+            tree.add_to_root('r0')
+            tree.add_child('r0', 'r1')
+            tree.add_child('r0', 'r2')
+            tree.add_child('r1', '0')
+            tree.add_child('r1', '2')
+            tree.add_child('r2', '1')
+            tree.add_child('r2', '3')
+            print(tree, tree.word_yield())
+            return tree
+
+        def tree2():
+            tree = ConstituentTree("1")
+            for i, t in enumerate(["a", "b", "d", "c"]):
+                tree.add_leaf(str(i), "P" + t, t)
+            tree.set_label('r0', 'C')
+            tree.set_label('r1', 'A')
+            tree.set_label('r2', 'B')
+            tree.add_to_root('r0')
+            tree.add_child('r0', 'r1')
+            tree.add_child('r0', 'r2')
+            tree.add_child('r1', '0')
+            tree.add_child('r1', '3')
+            tree.add_child('r2', '1')
+            tree.add_child('r2', '2')
+            print(tree, tree.word_yield())
+            return tree
+
+        t1 = tree1()
+        t2 = tree2()
+
+        grammar = direct_extract_lcfrs(t1)
+        grammar.add_gram(direct_extract_lcfrs(t2))
+
+        print(grammar)
+        # LCFRS_sDCP_Parser.preprocess_grammar(grammar, PosTerminals(), debug=True)
+
+        parser = LCFRS_sDCP_Parser(grammar, terminal_labelling=PosTerminals(), debug=True)
+        for t in [t1, t2]:
+            # parser = LCFRS_sDCP_Parser(grammar, t)
+            parser.set_input(t)
+            parser.parse()
+            self.assertTrue(parser.recognized())
+            derivs = list(parser.all_derivation_trees())
+            for der in derivs:
+                print(der)
+            self.assertEqual(1, len(derivs))
+            parser.clear()
+
 
 
 if __name__ == '__main__':

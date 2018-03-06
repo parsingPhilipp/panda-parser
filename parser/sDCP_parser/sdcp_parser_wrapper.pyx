@@ -502,6 +502,16 @@ class PysDCPParser(pi.AbstractParser):
 
 
 class LCFRS_sDCP_Parser(PysDCPParser):
+    def __init__(self, grammar, input=None, debug=False, terminal_labelling=None):
+        self.grammar = grammar
+        self.input = input
+        if input is not None:
+            self.parser = grammar.sdcp_parser
+            self.clear()
+            self.parse()
+        else:
+            self.parser = LCFRS_sDCP_Parser.__preprocess(grammar, terminal_labelling, debug=debug)
+
     @staticmethod
     def __preprocess(grammar, term_labelling, debug=False):
         """
