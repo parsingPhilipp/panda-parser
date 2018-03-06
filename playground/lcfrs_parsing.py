@@ -1,21 +1,21 @@
 from __future__ import print_function
-from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT, SplitMergeExperiment
-from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
-    LCFRS_rule, direct_extract_lcfrs_from_prebinarized_corpus
+import tempfile
+import subprocess
+import sys
+from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
+from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
+from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
+import plac
+from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
+    direct_extract_lcfrs_from_prebinarized_corpus
+from constituent.filter import check_single_child_label
+from grammar.lcfrs import LCFRS_rule
 from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, \
     FormTerminals, StanfordUNKing, CompositionalTerminalLabeling
+from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT, SplitMergeExperiment
 from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, \
     my_feature_filter, ScorerAndWriter, setup_corpus_resources
-from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
-from parser.discodop_parser.parser import DiscodopKbestParser
-from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
-from constituent.filter import check_single_child_label
-import sys
-import os
-import plac
-import subprocess
-import tempfile
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
@@ -32,16 +32,15 @@ QUICK = False  # enable for quick testing during debugging (small train/dev/test
 MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
 
 
-# fine_terminal_labeling = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
-# fine_terminal_labeling = FormTerminals()
-fine_terminal_labeling = CompositionalTerminalLabeling(FormTerminals(), PosTerminals())
-fallback_terminal_labeling = PosTerminals()
+# FINE_TERMINAL_LABELING = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
+# FINE_TERMINAL_LABELING = FormTerminals()
+FINE_TERMINAL_LABELING = CompositionalTerminalLabeling(FormTerminals(), PosTerminals())
+FALLBACK_TERMINAL_LABELING = PosTerminals()
+DEFAULT_RARE_WORD_THRESHOLD = 10
 
-terminal_threshold = 10
 
-
-def terminal_labeling(corpus, threshold=terminal_threshold):
-    return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
+def terminal_labeling(corpus, threshold=DEFAULT_RARE_WORD_THRESHOLD):
+    return FrequencyBiasedTerminalLabeling(FINE_TERMINAL_LABELING, FALLBACK_TERMINAL_LABELING, corpus, threshold)
 
 
 class InductionSettings:
@@ -60,17 +59,20 @@ class InductionSettings:
                                              "-h 1",
                                              "-v 1"  #,
                                              # '--labelfun=\"lambda n: n.label.split(\'^\')[0]\"'
-                                             ]
+                                            ]
 
     def __str__(self):
-        s = "Induction Settings {\n"
+        __str = "Induction Settings {\n"
         for key in self.__dict__:
             if not key.startswith("__") and key not in []:
-                s += "\t" + key + ": " + str(self.__dict__[key]) + "\n"
-        return s + "}"
+                __str += "\t" + key + ": " + str(self.__dict__[key]) + "\n"
+        return __str + "}"
 
 
 class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
+    """
+    Holds state and methods of a LCFRS-LA parsing experiment.
+    """
     def __init__(self, induction_settings, directory=None, filters=None):
         ConstituentExperiment.__init__(self, induction_settings, directory=directory, filters=filters)
         SplitMergeExperiment.__init__(self)
@@ -80,10 +82,16 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         self.disco_binarized_corpus = None
         self.dummy_flag = True
 
-    def __valid_tree(self, obj):
+    @staticmethod
+    def __valid_tree(obj):
         return obj.complete() and not obj.empty_fringe()
 
     def run_discodop_binarization(self):
+        """
+        :rtype: None
+        Binarize the training corpus using discodop. The resulting corpus is saved to to the the
+        disco_binarized_corus member variable.
+        """
         if self.disco_binarized_corpus is not None:
             return
         train_resource = self.resources[TRAINING]
@@ -106,11 +114,16 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
                                     filter=train_resource.filter,
                                     exclude=train_resource.exclude,
                                     type=train_resource.type
-                                    )
+                                   )
 
         self.disco_binarized_corpus = self.read_corpus_export(disco_resource, mode="DISCO-DOP", skip_normalization=True)
 
     def induce_from_disco_binarized(self, htree):
+        """
+        :type htree: HybridTree
+        Induces a binarized LCFRS from a binarized version of htree, which is obtained by discodop.
+        NB: the resulting grammar parses htree, due to a suitable choice of the tree component of the induced grammar.
+        """
         self.run_discodop_binarization()
         htree_bin = None
         for _htree in self.disco_binarized_corpus:
@@ -122,7 +135,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
                                                                 term_labeling=self.terminal_labeling,
                                                                 nont_labeling=self.induction_settings.nont_labeling,
                                                                 isolate_pos=self.induction_settings.isolate_pos,
-                                                                )
+                                                               )
         if self.backoff:
             self.terminal_labeling.backoff_mode = True
             grammar2 \
@@ -130,7 +143,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
                                                                 term_labeling=self.terminal_labeling,
                                                                 nont_labeling=self.induction_settings.nont_labeling,
                                                                 isolate_pos=self.induction_settings.isolate_pos,
-                                                                )
+                                                               )
             self.terminal_labeling.backoff_mode = False
             grammar.add_gram(grammar2)
 
@@ -147,14 +160,16 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         if not self.__valid_tree(obj):
             print(obj, list(map(str, obj.token_yield())), obj.full_yield())
             return None, None
-        grammar = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
+        grammar = direct_extract_lcfrs(obj,
+                                       term_labeling=self.terminal_labeling,
                                        nont_labeling=self.induction_settings.nont_labeling,
                                        binarize=self.induction_settings.binarize,
                                        isolate_pos=self.induction_settings.isolate_pos,
                                        hmarkov=self.induction_settings.hmarkov)
         if self.backoff:
             self.terminal_labeling.backoff_mode = True
-            grammar2 = direct_extract_lcfrs(obj, term_labeling=self.terminal_labeling,
+            grammar2 = direct_extract_lcfrs(obj,
+                                            term_labeling=self.terminal_labeling,
                                             nont_labeling=self.induction_settings.nont_labeling,
                                             binarize=self.induction_settings.binarize,
                                             isolate_pos=self.induction_settings.isolate_pos,
@@ -173,7 +188,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         return grammar, None
 
     def initialize_parser(self):
-        save_preprocess=(self.directory, "mygrammar")
+        save_preprocess = (self.directory, "mygrammar")
         k = 1 if not self.organizer.disable_split_merge or self.oracle_parsing else self.k_best
         if "disco-dop" in self.parsing_mode:
             self.parser = DiscodopKbestParser(grammar=self.base_grammar, k=self.k_best,
@@ -181,7 +196,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
                                               pruning_k=self.disco_dop_params["pruning_k"],
                                               beam_beta=self.disco_dop_params["beam_beta"],
                                               beam_delta=self.disco_dop_params["beam_delta"]
-                                              )
+                                             )
         else:
             self.parser = GFParser_k_best(self.base_grammar, save_preprocessing=save_preprocess, k=k)
 
@@ -247,7 +262,7 @@ def main(directory=None):
     experiment.resources[TESTING] = test
 
     if "km2003" in SPLIT:
-        experiment.eval_postprocess_options = "--reversetransforms=km2003wsj",
+        experiment.eval_postprocess_options = ("--reversetransforms=km2003wsj",)
         backoff_threshold = 4
     else:
         backoff_threshold = 8
@@ -281,14 +296,20 @@ def main(directory=None):
         experiment.run_experiment()
 
         experiment.parsing_mode = "k-best-rerank-disco-dop"
-        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger)
         experiment.run_experiment()
 
-        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger)
         experiment.parsing_mode = "variational-disco-dop"
         experiment.run_experiment()
 
-        experiment.resources[RESULT] = ScorerAndWriter(experiment, directory=experiment.directory, logger=experiment.logger)
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger)
         experiment.parsing_mode = "max-rule-prod-disco-dop"
         experiment.run_experiment()
 
