@@ -2,16 +2,22 @@
 
 import re
 from collections import defaultdict
+import plac
 
 FILE = "/home/kilian/mnt/tulip/tmp/verbose_f1.log"
 MAXLENGTH = 200
 SMOOTH_RANGE = 5
 
-pattern = re.compile(r"^\s*\d+\s+(\d+)\s+\d+\.\d+\s+\d+\.\d+\s+(\d+)\s+(\d+)\s+(\d+).*$")
+pattern = re.compile(r"^\s*\d+\s+(\d+)\s+(\d+\.\d+|nan)\s+(\d+\.\d+|nan)\s+(\d+)\s+(\d+)\s+(\d+).*$")
 
 
-def main():
-    file = open(FILE, "r")
+@plac.annotations(
+    path=('path to file that contains output of discodop eval --verbose', 'option', None, str)
+    )
+def main(path=None):
+    if path is None:
+        path = FILE
+    file = open(path, "r")
     stats = defaultdict(lambda: (0, 0, 0, 0))
     leq_stats = defaultdict(lambda: (0, 0, 0, 0))
     smooth_stats = defaultdict(lambda: (0, 0, 0, 0))
@@ -22,9 +28,10 @@ def main():
         if match:
             # print(match.groups())
             length = int(match.group(1))
-            matched_brackets = int(match.group(2))
-            gold_brackets = int(match.group(3))
-            cand_brackets = int(match.group(4))
+            matched_brackets = int(match.group(4))
+            gold_brackets = int(match.group(5))
+            cand_brackets = int(match.group(6))
+
             stats[length] = matched_brackets + stats[length][0], \
                             gold_brackets + stats[length][1], \
                             cand_brackets + stats[length][2], \
@@ -46,24 +53,23 @@ def main():
         #     break
 
     def precicion(stat):
-        return 0 if stat[1] == 0 else stat[0] / stat[2] * 100.0
+        return 0 if stat[2] == 0 else stat[0] / stat[2] * 100.0
 
     def recall(stat):
-        return 0 if stat[2] == 0 else stat[0] / stat[1] * 100.0
+        return 0 if stat[1] == 0 else stat[0] / stat[1] * 100.0
 
     def f1(stat):
         prec = precicion(stat)
         rec = recall(stat)
-        return 0 if prec + rec == 0 else prec * rec * 2 / (prec + rec)
+        return 0.0 if prec + rec == 0.0 else prec * rec * 2 / (prec + rec)
 
-    print("length", "count", "prec", "rec", "F1", "leq_count", "leq_F1", "smooth_count", "smooth_F1")
+    print("length", "count", "prec", "rec", "F1", "gold", "leq_count", "leq_F1", "smooth_count", "smooth_F1")
     for length in sorted(lengths):
         print(length,
-              stats[length][3], precicion(stats[length]), recall(stats[length]), f1(stats[length]),
-              leq_stats[length][3], f1(leq_stats[length]),
+              stats[length][3], precicion(stats[length]), recall(stats[length]), f1(stats[length]), stats[length][1],
+              leq_stats[length][3], f1(leq_stats[length]), 
               smooth_stats[length][3], f1(smooth_stats[length])
               )
 
-
 if __name__ == "__main__":
-    main()
+    plac.call(main)
