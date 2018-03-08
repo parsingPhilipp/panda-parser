@@ -8,7 +8,20 @@ from grammar.lcfrs import LCFRS_rule, LCFRS
 from itertools import product
 from parser.trace_manager.sm_trainer cimport PyLatentAnnotation
 from libc.math cimport log, NAN, INFINITY, isnan, isinf
+from libcpp cimport bool
 
+cdef extern from "cpp_priority_queue.hpp":
+    cdef cppclass intp_std_func_priority_queue[T]:
+        intp_std_func_priority_queue(...)
+        void push(Element[T])
+        Element[T] top()
+        void pop()
+        bool empty()
+
+    cdef cppclass comperator_function[T]:
+        pass
+
+    cdef comperator_function[T] construct_comparator[T](...)
 
 cpdef double prod(double x, double y):
     return x * y
@@ -69,26 +82,30 @@ cdef class PyTraceManager:
         cdef size_t source_list_idx
         cdef size_t sources_size
 
-        cdef cset[Element[Node[NONTERMINAL]]] U
+        # cdef cset[Element[Node[NONTERMINAL]]] U
+        cdef intp_std_func_priority_queue[Node[NONTERMINAL]] U = \
+            intp_std_func_priority_queue[Node[NONTERMINAL]](construct_comparator[Node[NONTERMINAL]](node_best_weight))
         cdef cset[Element[Node[NONTERMINAL]]] Q
 
         for edge_idx in range(deref(edges).size()):
             edge = &deref(edges)[edge_idx]
             edge_weights_dict[edge] = edge_idx
 
-            U.insert(deref(edge).get_target())
 
             sources_size = deref(edge).get_sources().size()
             # print("iterated over edge", edge_idx, sources_size)
             if sources_size == 0:
                 if node_best_weight.count(deref(edge).get_target()) == 0\
                         or node_best_weight[deref(edge).get_target()] < edge_weights[edge_idx]:
-                    node_best_weight[deref(edge).get_target()] = edge_weights[edge_idx] # todo log_mode
+                    node_best_weight[deref(edge).get_target()] = edge_weights[edge_idx]
                     node_best_edge[deref(edge).get_target()] = edge_idx
+                    U.push(deref(edge).get_target())
             else:
                 if node_best_weight.count(deref(edge).get_target()) == 0:
                     node_best_weight[deref(edge).get_target()] = 0.0 if not log_mode else -INFINITY
                     node_best_edge[deref(edge).get_target()] = <size_t> (-1)
+
+            # U.insert(deref(edge).get_target())
 
         cdef cset[Element[Node[NONTERMINAL]]].iterator A
         cdef cset[Element[Node[NONTERMINAL]]].iterator it
@@ -98,20 +115,26 @@ cdef class PyTraceManager:
         cdef bint all_sources_in_Q
         cdef double weight
 
-        while U.size() > 0:
+        while not U.empty(): # U.size() > 0:
 
             # finding element with maximum weight in U, i.e.,
-            # A = max(U, key=lambda x: node_best_weight[x])
-            A = U.begin()
-            it = U.begin()
-            while it != U.end():
-                if node_best_weight[deref(A)] <= node_best_weight[deref(it)]:
-                    A = it
-                inc(it)
+            #  A = max(U, key=lambda x: node_best_weight[x])
+            if Q.count(U.top()):
+                U.pop()
+                continue
+            A = Q.insert(U.top()).first
+            U.pop()
 
-            it = A
-            A = Q.insert(deref(A)).first
-            U.erase(it)
+            # A = U.begin()
+            # it = U.begin()
+            # while it != U.end():
+            #     if node_best_weight[deref(A)] <= node_best_weight[deref(it)]:
+            #         A = it
+            #     inc(it)
+            #
+            # it = A
+            # A = Q.insert(deref(A)).first
+            # U.erase(it)
 
             # abort early since root has been found
             if deref(A).equals(deref(trace).get_goal()):
@@ -140,10 +163,11 @@ cdef class PyTraceManager:
                         for source_list_idx in range(deref(edge).get_sources().size()):
                             print("*", node_best_weight[deref(edge).get_sources()[source_list_idx]], end=" ")
                         print()
-                    if weight > node_best_weight[deref(edge).get_target()]:
-                            # or node_best_edge[deref(edge).get_target()] == <size_t> (-1):
+                    if weight > node_best_weight[deref(edge).get_target()] \
+                            or node_best_edge[deref(edge).get_target()] == <size_t> (-1):
                         node_best_weight[deref(edge).get_target()] = weight
                         node_best_edge[deref(edge).get_target()] = edge_weights_dict[edge]
+                        U.push(deref(edge).get_target())
 
         # print("best weights and incoming edges")
         # for i, target_element in enumerate(sorted(node_best_weight)):
