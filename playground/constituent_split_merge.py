@@ -214,9 +214,9 @@ def terminal_labeling(corpus, threshold=DEFAULT_RARE_WORD_THRESHOLD):
 
 
 # SPLIT = "SPMRL"
-# SPLIT = "HN08"
+SPLIT = "HN08"
 # SPLIT = "WSJ"
-SPLIT = "WSJ-km2003"
+# SPLIT = "WSJ-km2003"
 
 DEV_MODE = True
 QUICK = False
@@ -230,7 +230,7 @@ RECURSIVE_PARTITIONING \
 MAX_SENTENCE_LENGTH = 5000
 EM_EPOCHS = 20
 EM_EPOCHS_SM = 20
-SEED = 2
+SEED = 0
 MERGE_PERCENTAGE = 50.0
 SM_CYCLES = 4
 THREADS = 1  # 0
@@ -930,7 +930,7 @@ def main(directory=None):
     experiment.k_best = K_BEST
     experiment.backoff = True
 
-    backoff_threshold = 8
+    backoff_threshold = 4
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                              threshold=backoff_threshold)
 
