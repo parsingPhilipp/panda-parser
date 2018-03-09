@@ -102,6 +102,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
         validation_start = 1
         validation_size = 50471
         validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
+        validation_exclude = train_exclude
 
         def validation_filter(sent_id):
             return sent_id % 10 == 1
