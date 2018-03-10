@@ -58,7 +58,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
         train_start = 1
         train_filter = None
         train_limit = 40474
-        train_exclude = [7561, 17632, 46234, 50224]
+        train_exclude = validation_exclude = test_exclude = [7561, 17632, 46234, 50224]
 
         validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
         validation_start = 40475
@@ -68,12 +68,10 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
         if dev_mode:
             test_start = validation_start
             test_limit = validation_size
-            test_exclude = train_exclude
             test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
         else:
             test_start = 45475
             test_limit = test_start + 4999
-            test_exclude = train_exclude
             test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
         test_filter = None
 
