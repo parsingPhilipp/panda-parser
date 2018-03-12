@@ -13,7 +13,8 @@ from constituent.filter import check_single_child_label
 from grammar.lcfrs import LCFRS_rule
 from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, \
     FormTerminals, StanfordUNKing, CompositionalTerminalLabeling
-from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, CorpusFile, RESULT, SplitMergeExperiment
+from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, TESTING_INPUT, CorpusFile, RESULT, \
+    SplitMergeExperiment
 from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, \
     my_feature_filter, ScorerAndWriter, setup_corpus_resources
 if sys.version_info < (3,):
@@ -30,6 +31,7 @@ DEV_MODE = True  # enable to parse the DEV set instead of the TEST set
 QUICK = False  # enable for quick testing during debugging (small train/dev/test sets)
 
 MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
+PREDICTED_POS = True  # run parsing on predicted POS tags.
 
 
 # FINE_TERMINAL_LABELING = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
@@ -256,10 +258,11 @@ def main(directory=None):
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
     experiment = LCFRSExperiment(induction_settings, directory=directory, filters=filters)
 
-    train, dev, test = setup_corpus_resources(SPLIT, DEV_MODE, QUICK)
+    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, PREDICTED_POS)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
+    experiment.resources[TESTING_INPUT] = test_input
 
     if "km2003" in SPLIT:
         experiment.eval_postprocess_options = ("--reversetransforms=km2003wsj",)

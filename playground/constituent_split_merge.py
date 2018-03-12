@@ -11,6 +11,8 @@ import pickle
 import sys
 import subprocess
 import tempfile
+import itertools
+from hybridtree.general_hybrid_tree import HybridTree
 from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
@@ -28,10 +30,11 @@ from constituent.dummy_tree import dummy_constituent_tree, flat_dummy_constituen
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 import corpora.tiger_parse as tp
 import corpora.negra_parse as np
+import corpora.tagged_parse as tagged_parse
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
 from playground.experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, \
-    VALIDATION, SplitMergeExperiment
+    VALIDATION, TESTING_INPUT, SplitMergeExperiment
 if sys.version_info < (3,):
     reload(sys)
     sys.setdefaultencoding('utf8')
@@ -40,7 +43,7 @@ if sys.version_info < (3,):
 # sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
 
-def setup_corpus_resources(split, dev_mode=True, quick=False):
+def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False):
     """
     :param split: A string specifying a particular corpus and split from the literature.
     :type split: str
@@ -48,17 +51,19 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
     :type dev_mode: bool
     :param quick: If true, then a smaller version of the corpora are returned.
     :type quick: bool
+    :param test_pred: If true, then predicted POS tags are used for testing.
+    :type test_pred: bool
     :return: A tuple with train/dev/test (in this order) of type CorpusResource
     """
     if split == "SPMRL":
         # all files are from SPMRL shared task
 
-        corpus_type = "TIGERXML"
+        corpus_type = corpus_type_test = "TIGERXML"
         train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
         train_start = 1
         train_filter = None
         train_limit = 40474
-        train_exclude = validation_exclude = test_exclude = [7561, 17632, 46234, 50224]
+        train_exclude = validation_exclude = test_exclude = test_input_exclude = [7561, 17632, 46234, 50224]
 
         validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
         validation_start = 40475
@@ -66,26 +71,28 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
         validation_filter = None
 
         if dev_mode:
-            test_start = validation_start
-            test_limit = validation_size
-            test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+            test_start = test_input_start = validation_start
+            test_limit = test_input_limit = validation_size
+            test_path = test_input_path \
+                = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
         else:
-            test_start = 45475
-            test_limit = test_start + 4999
-            test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
-        test_filter = None
+            test_start = test_input_start = 45475
+            test_limit = test_input_limit = test_start + 4999
+            test_path = test_input_path \
+                = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
+        test_filter = test_input_filter = None
 
         if quick:
             train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
             train_limit = train_start + 2000
             validation_size = validation_start + 200
-            test_limit = test_start + 200
+            test_limit = test_input_limit = test_start + 200
     #
     elif split == "HN08":
         # files are based on the scripts in Coavoux's mind the gap 1.0
         # where we commented out `rm -r tiger21 tiger22 marmot_tags` in generate_tiger_data.sh
 
-        corpus_type = "EXPORT"
+        corpus_type = corpus_type_test = "EXPORT"
         base_path = "../res/TIGER/tiger21"
         train_start = 1
         train_limit = 50474
@@ -106,30 +113,52 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
             return sent_id % 10 == 1
 
         if not dev_mode:
-            test_start = 1  # validation_size  # 40475
-            test_limit = 50474
+            test_start = test_input_start = 1  # validation_size  # 40475
+            test_limit = test_input_limit = 50474
             # test_limit = 200 * 5 // 4
-            test_exclude = train_exclude
+            test_exclude = test_input_exclude = train_exclude
             test_path = os.path.join(base_path, "tigertest_root_attach.export")
 
             def test_filter(sent_id):
                 return sent_id % 10 == 0
+
+            if test_pred:
+                corpus_type_test = "WORD/POS"
+                test_input_start = 0
+                test_input_path = '../res/TIGER/tigerHN08-test.pred_tags.raw'
+                test_input_filter = None
+            else:
+                test_input_path = test_path
+                test_input_filter = test_filter
+
         else:
-            test_start = 1
-            test_limit = 50474
-            test_exclude = train_exclude
+            test_start = test_input_start = 1
+            test_limit = test_input_limit = 50474
+            test_exclude = test_input_exclude = train_exclude
             test_path = validation_path
             test_filter = validation_filter
 
+            if test_pred:
+                corpus_type_test = "WORD/POS"
+                test_input_start = 0
+                test_input_path = '../res/TIGER/tigerHN08-dev.pred_tags.raw'
+                test_input_filter = None
+            else:
+                test_input_path = validation_path
+                test_input_filter = test_filter
+
         if quick:
             train_limit = 5000 * 5 // 4
-            validation_size = 200 * 5 // 4
-            test_limit = 200 * 5 // 4
+            validation_size = 200 * 10 // 1
+            TEST_LIMIT = 200
+            test_limit = test_input_limit = TEST_LIMIT * 10 // 1
+            if test_pred:
+                test_input_limit = TEST_LIMIT + 1
     #
     elif "WSJ" in split:
         # based on Kilian Evang's dptb.tar.bz2
 
-        corpus_type = "EXPORT"
+        corpus_type = corpus_type_test = "EXPORT"
         corpus_path_original = "../res/WSJ/ptb-discontinuous/dptb7.export"
         corpus_path_km2003 = "../res/WSJ/ptb-discontinuous/dptb7-km2003wsj.export"
 
@@ -141,9 +170,9 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
         else:
             corpus_path = corpus_path_original
 
-        train_path = validation_path = test_path = corpus_path
-        train_exclude = validation_exclude = test_exclude = []
-        train_filter = validation_filter = test_filter = None
+        train_path = validation_path = test_path = test_input_path = corpus_path
+        train_exclude = validation_exclude = test_exclude = test_input_exclude = []
+        train_filter = validation_filter = test_filter = test_input_filter = None
 
         # sections 2-21
         train_start = 3915
@@ -155,16 +184,16 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
 
         if not dev_mode:
             # section 23
-            test_start = 45447
-            test_limit = 47862
+            test_start = test_input_start = 45447
+            test_limit = test_input_limit = 47862
         else:
-            test_start = validation_start
-            test_limit = validation_size
+            test_start = test_input_start = validation_start
+            test_limit = test_input_limit = validation_size
 
         if quick:
             train_limit = train_start + 2000
             validation_size = validation_start + 200
-            test_limit = test_start + 200
+            test_limit = test_input_limit = test_start + 200
     else:
         raise ValueError("Unknown split: " + str(split))
 
@@ -174,8 +203,14 @@ def setup_corpus_resources(split, dev_mode=True, quick=False):
                      filter=validation_filter, type=corpus_type)
     test = CorpusFile(path=test_path, start=test_start, end=test_limit, exclude=test_exclude, filter=test_filter,
                       type=corpus_type)
+    test_input = CorpusFile(path=test_input_path,
+                            start=test_input_start,
+                            end=test_input_limit,
+                            exclude=test_input_exclude,
+                            filter=test_input_filter,
+                            type=corpus_type_test)
 
-    return train, dev, test
+    return train, dev, test, test_input
 
 
 # if not os.path.isfile(terminal_labeling_path):
@@ -364,10 +399,15 @@ class ConstituentExperiment(ScoringExperiment):
         self.backoff = False
         self.backoff_factor = 10.0
 
-    def obtain_sentence(self, hybrid_tree):
-        sentence = hybrid_tree.full_yield(), hybrid_tree.id_yield(), \
-                   hybrid_tree.full_token_yield(), hybrid_tree.token_yield()
-        return sentence
+    def obtain_sentence(self, obj):
+        if isinstance(obj, HybridTree):
+            sentence = obj.full_yield(), obj.id_yield(), \
+                       obj.full_token_yield(), obj.token_yield()
+            return sentence
+        elif isinstance(obj, list):
+            return [i for i in range(len(obj))], [i for i in range(len(obj))], obj, obj
+        else:
+            raise ValueError("Unsupported obj type", type(obj), "instance", obj)
 
     def obtain_label(self, hybrid_tree):
         return hybrid_tree.sent_label()
@@ -381,6 +421,8 @@ class ConstituentExperiment(ScoringExperiment):
             return self.read_corpus_tigerxml(resource)
         elif resource.type == "EXPORT":
             return self.read_corpus_export(resource)
+        elif resource.type == "WORD/POS":
+            return self.read_corpus_tagged(resource)
         else:
             raise ValueError("Unsupport resource type " + resource.type)
 
@@ -434,12 +476,18 @@ class ConstituentExperiment(ScoringExperiment):
             enc=encoding, disconnect_punctuation=self.induction_settings.disconnect_punctuation, add_vroot=True,
             mode=mode)
 
-    def parsing_preprocess(self, hybrid_tree):
-        if True or self.strip_vroot:
-            hybrid_tree.strip_vroot()
-        parser_input = self.terminal_labeling.prepare_parser_input(hybrid_tree.token_yield())
-        # print(parser_input)
-        return parser_input
+    def read_corpus_tagged(self, resource):
+        return itertools.islice(tagged_parse.parse_tagged_sentences(resource.path), resource.start, resource.limit)
+
+    def parsing_preprocess(self, obj):
+        if isinstance(obj, HybridTree):
+            if True or self.strip_vroot:
+                obj.strip_vroot()
+            parser_input = self.terminal_labeling.prepare_parser_input(obj.token_yield())
+            # print(parser_input)
+            return parser_input
+        else:
+            return self.terminal_labeling.prepare_parser_input(obj)
 
     def parsing_postprocess(self, sentence, derivation, label=None):
         full_yield, id_yield, full_token_yield, token_yield = sentence
@@ -918,10 +966,11 @@ def main(directory=None):
     experiment.organizer.merge_type = "PERCENT"
     experiment.organizer.threads = 8
 
-    train, dev, test = setup_corpus_resources(SPLIT, DEV_MODE, QUICK)
+    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
+    experiment.resources[TESTING_INPUT] = test_input
 
     if "km2003" in SPLIT:
         experiment.eval_postprocess_options = ("--reversetransforms=km2003wsj",)

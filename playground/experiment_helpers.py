@@ -21,6 +21,7 @@ import pickle
 TRAINING = "TRAIN"
 VALIDATION = "VALIDATION"
 TESTING = "TEST"
+TESTING_INPUT = "TEST_INPUT"
 RESULT = "RESULT"
 
 
@@ -230,24 +231,24 @@ class Experiment(object):
     def mk_obj(self, args):
         assert False
 
-    def do_parse(self, corpus, result_resource):
+    def do_parse(self, gold_corpus, test_inputs, result_resource):
         print("parsing, ", end='', file=self.logger)
         result_resource.init()
         from time import clock
         begin = clock()
         if self.parsing_timeout is None:
-            for obj in corpus:
+            for gold_obj, obj in zip(gold_corpus, test_inputs):
                 parser_input = self.parsing_preprocess(obj)
                 self.parser.set_input(parser_input)
                 self.parser.parse()
-                self.process_parse(obj, result_resource)
+                self.process_parse(gold_obj, obj, result_resource)
                 self.parser.clear()
         else:
-            self.do_parse_with_timeout(corpus, result_resource)
+            self.do_parse_with_timeout(test_inputs, result_resource)
         print("\nParsing time, ", clock() - begin, file=self.logger)
         result_resource.finalize()
 
-    def process_parse(self, obj, result_resource):
+    def process_parse(self, gold_obj, obj, result_resource):
         sentence = self.obtain_sentence(obj)
 
         if self.parser.recognized():
@@ -295,12 +296,12 @@ class Experiment(object):
     def evaluate(self, result_resource, gold_resource):
         assert False
 
-    def do_parse_with_timeout(self, corpus, result_resource):
+    def do_parse_with_timeout(self, test_inputs, result_resource):
         manager = multiprocessing.Manager()
         return_dict = manager.dict()
         recognized = 0
 
-        for obj in corpus:
+        for obj in test_inputs:
             parser_input = self.parsing_preprocess(obj)
             self.parser.set_input(parser_input)
 
@@ -330,10 +331,11 @@ class Experiment(object):
             self.parser.clear()
 
         print(file=self.logger)
-        print("From {} sentences, {} were recognized.".format(len(corpus), recognized), file=self.logger)
+        print("From {} sentences, {} were recognized.".format(len(test_inputs), recognized), file=self.logger)
 
     def post_parsing_action(self, gold, system, result_resource):
         result_resource.write(self.serialize(system))
+
     def timeout_worker(self, parser, obj, return_dict):
         parser.parse()
         if parser.recognized():
@@ -402,21 +404,21 @@ class ScoringExperiment(Experiment):
         Experiment.__init__(self, directory=directory)
         self.filters = [] if filters is None else filters
 
-    def process_parse(self, gold, result_resource):
-        sentence = self.obtain_sentence(gold)
+    def process_parse(self, gold_obj, test_input, result_resource):
+        sentence = self.obtain_sentence(test_input)
 
         if self.parser.recognized():
             print('.', end='', file=self.logger)
             self.logger.flush()
             if self.oracle_parsing:
                 derivations = [der for _, der in self.parser.k_best_derivation_trees()]
-                best_derivation = self.compute_oracle_derivation(derivations, gold)
+                best_derivation = self.compute_oracle_derivation(derivations, gold_obj)
             else:
                 best_derivation = self.parser.best_derivation_tree()
                 if self.filters:
                     for _, der in self.parser.k_best_derivation_trees():
                         tree = self.parsing_postprocess(sentence=sentence, derivation=der,
-                                                        label=self.obtain_label(gold))
+                                                        label=self.obtain_label(gold_obj))
                         if all([predicate(tree) for predicate in self.filters]):
                             best_derivation = der
                             break
@@ -427,20 +429,20 @@ class ScoringExperiment(Experiment):
                 for mode in self.parser.secondaries:
                     self.parser.set_secondary_mode(mode)
                     der = self.parser.best_derivation_tree()
-                    result = self.parsing_postprocess(sentence=sentence, derivation=der, label=self.obtain_label(gold))
+                    result = self.parsing_postprocess(sentence=sentence, derivation=der, label=self.obtain_label(gold_obj))
                     secondaries.append(result)
                 self.parser.set_secondary_mode("DEFAULT")
 
             if best_derivation:
                 result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
-                                              label=self.obtain_label(gold))
-                self.post_parsing_action(gold, result, result_resource, secondaries)
+                                              label=self.obtain_label(gold_obj))
+                self.post_parsing_action(gold_obj, result, result_resource, secondaries)
             else:
                 print('x', end='', file=self.logger)
-                result_resource.failure(gold)
+                result_resource.failure(gold_obj)
         else:
             print('-', end='', file=self.logger)
-            result_resource.failure(gold)
+            result_resource.failure(gold_obj)
 
     def timeout_worker(self, parser, obj, return_dict):
         parser.parse()
@@ -828,8 +830,9 @@ class SplitMergeExperiment(Experiment):
                 self.prepare_sm_parser()
 
             # testing
-            test_corpus = self.read_corpus(self.resources[TESTING])
-            self.do_parse(test_corpus, self.resources[RESULT])
+            test_gold = self.read_corpus(self.resources[TESTING])
+            test_input = self.read_corpus(self.resources[TESTING_INPUT])
+            self.do_parse(test_gold, test_input, self.resources[RESULT])
 
         if self.stage[0] <= 5:
             self.evaluate(self.resources[RESULT], self.resources[TESTING])
