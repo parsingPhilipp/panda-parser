@@ -280,7 +280,7 @@ class DiscodopAdapterTest(unittest.TestCase):
         nontMap = Enumerator()
         gi = PyGrammarInfo(grammar, nontMap)
         sm = PyStorageManager()
-        la = build_PyLatentAnnotation(grammar, gi, sm)
+        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
 
         parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, latent_viterbi_mode=True)
         parser.set_input(inp)
