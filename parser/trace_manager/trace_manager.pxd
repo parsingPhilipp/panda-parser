@@ -81,7 +81,8 @@ cdef class PyTraceManager:
     cdef DerivationTree __build_viterbi_derivation_tree_rec(self,
                                                             Element[Node[NONTERMINAL]] node, # dict node_best_edge,
                                                             cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge,
-                                                            shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges)
+                                                            shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges,
+                                                            vector[Element[Node[NONTERMINAL]]] history)
     cdef DerivationTree __build_viterbi_derivation_tree_rec_(
             self
             , Element[Node[NONTERMINAL]] node

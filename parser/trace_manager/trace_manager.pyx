@@ -31,6 +31,16 @@ cpdef double add(double x, double y):
     return x + y
 
 
+cdef bint in_vector(Element[Node[NONTERMINAL]] t, vector[Element[Node[NONTERMINAL]]] vec):
+    cdef size_t idx = 0
+    while idx < vec.size():
+        if t.equals(vec[idx]):
+            return True
+        else:
+            idx = idx + 1
+    return False
+
+
 cdef class PyTraceManager:
     cpdef serialize(self, string path):
         serialize_trace(self.trace_manager, path)
@@ -164,7 +174,8 @@ cdef class PyTraceManager:
                             print("*", node_best_weight[deref(edge).get_sources()[source_list_idx]], end=" ")
                         print()
                     if weight > node_best_weight[deref(edge).get_target()] \
-                            or node_best_edge[deref(edge).get_target()] == <size_t> (-1):
+                            or (node_best_edge[deref(edge).get_target()] == <size_t> (-1)
+                                and not in_vector(deref(edge).get_target(), deref(edge).get_sources())):
                         node_best_weight[deref(edge).get_target()] = weight
                         node_best_edge[deref(edge).get_target()] = edge_weights_dict[edge]
                         U.push(deref(edge).get_target())
@@ -174,26 +185,39 @@ cdef class PyTraceManager:
         #     print(i, node_best_weight[target_element], node_best_edge[target_element])
 
         cdef DerivationTree tree
+        cdef vector[Element[Node[NONTERMINAL]]] history
 
         if node_best_edge[deref(trace).get_goal()] != <size_t> (-1):
-            tree = self.__build_viterbi_derivation_tree_rec(deref(trace).get_goal(), node_best_edge, edges)
-            return TraceManagerDerivation(tree, grammar)
+            try:
+                tree = self.__build_viterbi_derivation_tree_rec(deref(trace).get_goal(), node_best_edge, edges, history)
+                return TraceManagerDerivation(tree, grammar)
+            except Exception:
+                pass
         return None
 
-    cdef DerivationTree __build_viterbi_derivation_tree_rec(self, Element[Node[NONTERMINAL]] node,
+    cdef DerivationTree __build_viterbi_derivation_tree_rec(self,
+                                                            Element[Node[NONTERMINAL]] node,
                                                             cmap[Element[Node[NONTERMINAL]], size_t] node_best_edge,
-                                                            shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges):
+                                                            shared_ptr[Manager[HyperEdge[Node[NONTERMINAL], size_t]]] edges,
+                                                            vector[Element[Node[NONTERMINAL]]] history):
         cdef size_t best_edge_idx = node_best_edge[node]
         if best_edge_idx == <size_t> (-1):
             print("Unexpected edge idx")
             raise Exception()
+        if in_vector(node, history):
+            print("Cyclic derivation")
+            raise Exception()
+        history.push_back(node)
+
         cdef HyperEdge[Node[NONTERMINAL], size_t]* edge = &(deref(edges)[best_edge_idx])
         cdef list children = []
         cdef size_t child_list_idx
 
         for child_list_idx in range(deref(edge).get_sources().size()):
-            children.append(self.__build_viterbi_derivation_tree_rec(deref(edge).get_sources()[child_list_idx], node_best_edge, edges))
+            children.append(self.__build_viterbi_derivation_tree_rec(deref(edge).get_sources()[child_list_idx], node_best_edge, edges, history))
         cdef size_t rule_id = deref(edge).get_label()
+
+        history.pop_back()
 
         return DerivationTree(rule_id, children)
 
