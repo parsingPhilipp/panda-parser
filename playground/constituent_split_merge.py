@@ -125,7 +125,8 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False):
             if test_pred:
                 corpus_type_test = "WORD/POS"
                 test_input_start = 0
-                test_input_path = '../res/TIGER/tigerHN08-test.pred_tags.raw'
+                # predicted by MATE trained on tigerHN08 train + dev
+                test_input_path = '../res/TIGER/tigerHN08-test.train+dev.pred_tags.raw'
                 test_input_filter = None
             else:
                 test_input_path = test_path
@@ -141,7 +142,8 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False):
             if test_pred:
                 corpus_type_test = "WORD/POS"
                 test_input_start = 0
-                test_input_path = '../res/TIGER/tigerHN08-dev.pred_tags.raw'
+                # predicted by MATE trained on tigerHN08 train
+                test_input_path = '../res/TIGER/tigerHN08-dev.train.pred_tags.raw'
                 test_input_filter = None
             else:
                 test_input_path = validation_path
