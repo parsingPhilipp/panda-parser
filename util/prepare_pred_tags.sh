@@ -12,7 +12,9 @@ cat /tmp/tigerHN08-test.raw | ./raw2conll.py > /tmp/tigerHN08-test.raw.conll2
 
 # mate-tools are required:
 # https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/mate-tools/anna-3.61.jar
-# https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/mate-tools/ger-tagger+lemmatizer+morphology+graph-based-3.6+.tgz
+# used tiger2.2 in conll9 format for training
+# filter training data using filter_conll.py script, i.e., ./filter_conll.py tiger_release_aug07.corrected.16012013.conll09.conll > ../res/TIGER/tigerHN08-train+dev-split.release2.2.conll09
+# train using: java -Xmx2G -cp anna-3.61.jar is2.tag.Tagger -model models/tag-v1-de-train+dev.model -train ../res/TIGER/tigerHN08-train+dev-split.release2.2.conll09
 
 java -cp anna-3.61.jar is2.tag.Tagger -model tag-ger-3.6.model -test /tmp/tigerHN08-test.raw.conll2 -out /tmp/tigerHN08-test.tagged.conll
 
