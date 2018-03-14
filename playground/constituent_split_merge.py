@@ -106,6 +106,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False):
 
         validation_start = 1
         validation_size = 50471
+        validation_exclude = train_exclude
         validation_path = os.path.join(base_path, "tigerdev_root_attach.export")
         validation_exclude = train_exclude
 
@@ -258,6 +259,7 @@ DEV_MODE = True
 QUICK = False
 
 MULTI_OBJECTIVES = True
+BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
 
 FANOUT = 2
 RECURSIVE_PARTITIONING \
@@ -994,6 +996,14 @@ def main(directory=None):
                                                        directory=experiment.directory,
                                                        logger=experiment.logger,
                                                        secondary_scores=3)
+        experiment.run_experiment()
+    elif BASE_GRAMMAR:
+        experiment.k_best = 1
+        experiment.organizer.project_weights_before_parsing = False
+        experiment.parsing_mode = "k-best-rerank-disco-dop"
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger)
         experiment.run_experiment()
     else:
         experiment.parsing_mode = "latent-viterbi-disco-dop"

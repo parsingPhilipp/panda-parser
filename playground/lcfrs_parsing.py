@@ -32,7 +32,7 @@ QUICK = False  # enable for quick testing during debugging (small train/dev/test
 
 MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
 PREDICTED_POS = True  # run parsing on predicted POS tags.
-
+BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
 
 # FINE_TERMINAL_LABELING = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 # FINE_TERMINAL_LABELING = FormTerminals()
@@ -268,7 +268,7 @@ def main(directory=None):
         experiment.eval_postprocess_options = ("--reversetransforms=km2003wsj",)
         backoff_threshold = 4
     else:
-        backoff_threshold = 8
+        backoff_threshold = 4
 
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                              backoff_threshold)
@@ -293,6 +293,14 @@ def main(directory=None):
                                                        directory=experiment.directory,
                                                        logger=experiment.logger,
                                                        secondary_scores=3)
+        experiment.run_experiment()
+    elif BASE_GRAMMAR:
+        experiment.k_best = 1
+        experiment.organizer.project_weights_before_parsing = False
+        experiment.parsing_mode = "k-best-rerank-disco-dop"
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger)
         experiment.run_experiment()
     else:
         experiment.parsing_mode = "latent-viterbi-disco-dop"
