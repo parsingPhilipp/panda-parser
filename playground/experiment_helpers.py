@@ -164,6 +164,7 @@ class Experiment(object):
         self.purge_rule_freq = None
         self.feature_log = None
         self.__stage_path = os.path.join(self.directory, "STAGEFILE")
+        self.max_sentence_length_for_parsing = None
 
     @property
     def stage(self):
@@ -240,7 +241,9 @@ class Experiment(object):
             for gold_obj, obj in zip(gold_corpus, test_inputs):
                 parser_input = self.parsing_preprocess(obj)
                 self.parser.set_input(parser_input)
-                self.parser.parse()
+                if self.max_sentence_length_for_parsing is None \
+                        or self.max_sentence_length_for_parsing >= len(parser_input):
+                    self.parser.parse()
                 self.process_parse(gold_obj, obj, result_resource)
                 self.parser.clear()
         else:
@@ -257,7 +260,11 @@ class Experiment(object):
             result = self.parsing_postprocess(sentence=sentence, derivation=best_derivation,
                                               label=self.obtain_label(obj))
         else:
-            print("-", end='', file=self.logger)
+            if self.max_sentence_length_for_parsing is None \
+                    or len(self.parsing_preprocess(obj)) > self.max_sentence_length_for_parsing:
+                print("s", end='', file=self.logger)
+            else:
+                print("-", end='', file=self.logger)
             result = self.compute_fallback(sentence=sentence)
 
         result_resource.write(self.serialize(result))
@@ -441,7 +448,11 @@ class ScoringExperiment(Experiment):
                 print('x', end='', file=self.logger)
                 result_resource.failure(gold_obj)
         else:
-            print('-', end='', file=self.logger)
+            if self.max_sentence_length_for_parsing is not None and \
+                    len(self.parsing_preprocess(test_input)) > self.max_sentence_length_for_parsing:
+                print('s', end='', file=self.logger)
+            else:
+                print('-', end='', file=self.logger)
             result_resource.failure(gold_obj)
 
     def timeout_worker(self, parser, obj, return_dict):

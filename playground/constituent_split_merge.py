@@ -260,6 +260,8 @@ QUICK = False
 
 MULTI_OBJECTIVES = True
 BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
+MAX_RULE_PRODUCT_ONLY = False
+LENGTH_40 = True
 
 FANOUT = 2
 RECURSIVE_PARTITIONING \
@@ -979,6 +981,9 @@ def main(directory=None):
     if "km2003" in SPLIT:
         experiment.eval_postprocess_options = ("--reversetransforms=km2003wsj",)
 
+    if LENGTH_40:
+        experiment.max_sentence_length_for_parsing = 40
+
     experiment.k_best = K_BEST
     experiment.backoff = True
 
@@ -1004,6 +1009,12 @@ def main(directory=None):
         experiment.resources[RESULT] = ScorerAndWriter(experiment,
                                                        directory=experiment.directory,
                                                        logger=experiment.logger)
+        experiment.run_experiment()
+    elif MAX_RULE_PRODUCT_ONLY:
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
+                                                       logger=experiment.logger)
+        experiment.parsing_mode = "max-rule-prod-disco-dop"
         experiment.run_experiment()
     else:
         experiment.parsing_mode = "latent-viterbi-disco-dop"

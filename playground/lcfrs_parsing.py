@@ -33,6 +33,8 @@ QUICK = False  # enable for quick testing during debugging (small train/dev/test
 MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
 PREDICTED_POS = True  # run parsing on predicted POS tags.
 BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
+MAX_RULE_PRODUCT_ONLY = False
+LENGTH_40 = True # parse only sentences up to length 40
 
 # FINE_TERMINAL_LABELING = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 # FINE_TERMINAL_LABELING = FormTerminals()
@@ -270,6 +272,9 @@ def main(directory=None):
     else:
         backoff_threshold = 4
 
+    if LENGTH_40:
+        experiment.max_sentence_length_for_parsing = 40
+
     induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                              backoff_threshold)
     experiment.backoff = True
@@ -300,7 +305,14 @@ def main(directory=None):
         experiment.parsing_mode = "k-best-rerank-disco-dop"
         experiment.resources[RESULT] = ScorerAndWriter(experiment,
                                                        directory=experiment.directory,
+                                                       logger=experiment.logger,
+                                                       secondary_scores=0)
+        experiment.run_experiment()
+    elif MAX_RULE_PRODUCT_ONLY:
+        experiment.resources[RESULT] = ScorerAndWriter(experiment,
+                                                       directory=experiment.directory,
                                                        logger=experiment.logger)
+        experiment.parsing_mode = "max-rule-prod-disco-dop"
         experiment.run_experiment()
     else:
         experiment.parsing_mode = "latent-viterbi-disco-dop"

@@ -108,7 +108,7 @@ class DiscodopKbestParser(AbstractParser):
         self.grammarInfo = grammarInfo
         self.projection_mode = projection_mode
         self.latent_viterbi_mode = latent_viterbi_mode
-        self.secondaries = secondaries
+        self.secondaries = [] if secondaries is None else secondaries
         self.secondary_mode = "DEFAULT"
         self.k_best_reranker = None
         if grammarInfo is not None:
