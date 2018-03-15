@@ -35,6 +35,7 @@ PREDICTED_POS = True  # run parsing on predicted POS tags.
 BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
 MAX_RULE_PRODUCT_ONLY = False
 LENGTH_40 = True # parse only sentences up to length 40
+TEST_SECOND_HALF = False  # parse second half of test set
 
 # FINE_TERMINAL_LABELING = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
 # FINE_TERMINAL_LABELING = FormTerminals()
@@ -260,7 +261,7 @@ def main(directory=None):
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
     experiment = LCFRSExperiment(induction_settings, directory=directory, filters=filters)
 
-    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, PREDICTED_POS)
+    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, PREDICTED_POS, TEST_SECOND_HALF)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test

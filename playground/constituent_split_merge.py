@@ -43,7 +43,7 @@ if sys.version_info < (3,):
 # sys.stderr = codecs.getwriter('utf8')(sys.stderr)
 
 
-def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False):
+def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, test_second_half=False):
     """
     :param split: A string specifying a particular corpus and split from the literature.
     :type split: str
@@ -135,6 +135,8 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False):
 
         else:
             test_start = test_input_start = 1
+            if test_second_half:
+                test_input_start = 25240
             test_limit = test_input_limit = 50474
             test_exclude = test_input_exclude = train_exclude
             test_path = validation_path
@@ -143,6 +145,8 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False):
             if test_pred:
                 corpus_type_test = "WORD/POS"
                 test_input_start = 0
+                if test_second_half:
+                    test_input_start = 2524 - 1
                 # predicted by MATE trained on tigerHN08 train
                 test_input_path = '../res/TIGER/tigerHN08-dev.train.pred_tags.raw'
                 test_input_filter = None
