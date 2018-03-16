@@ -140,7 +140,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
         else:
             test_start = test_input_start = 1
             if test_second_half:
-                test_start = test_input_start = 25240
+                test_start = test_input_start = 25241
             test_limit = test_input_limit = 50474
             test_exclude = test_input_exclude = train_exclude
             test_path = validation_path
@@ -150,7 +150,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
                 corpus_type_test = "WORD/POS"
                 test_input_start = 0
                 if test_second_half:
-                    test_input_start = 2524 - 1
+                    test_input_start = 2524
                 # predicted by MATE trained on tigerHN08 train
                 test_input_path = '../res/TIGER/tigerHN08-dev.train.pred_tags.raw'
                 test_input_filter = None
@@ -270,6 +270,7 @@ MULTI_OBJECTIVES = True
 BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
 MAX_RULE_PRODUCT_ONLY = False
 LENGTH_40 = True
+TEST_SECOND_HALF = True
 
 FANOUT = 2
 RECURSIVE_PARTITIONING \
@@ -980,7 +981,7 @@ def main(directory=None):
     experiment.organizer.merge_type = "PERCENT"
     experiment.organizer.threads = 8
 
-    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK)
+    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, test_second_half=TEST_SECOND_HALF)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
