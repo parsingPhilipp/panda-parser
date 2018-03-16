@@ -115,6 +115,8 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
 
         if not dev_mode:
             test_start = test_input_start = 1  # validation_size  # 40475
+            if test_second_half:
+                test_start = test_input_start = 25240
             test_limit = test_input_limit = 50474
             # test_limit = 200 * 5 // 4
             test_exclude = test_input_exclude = train_exclude
@@ -126,6 +128,8 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
             if test_pred:
                 corpus_type_test = "WORD/POS"
                 test_input_start = 0
+                if test_second_half:
+                    test_input_start = 2524 - 1
                 # predicted by MATE trained on tigerHN08 train + dev
                 test_input_path = '../res/TIGER/tigerHN08-test.train+dev.pred_tags.raw'
                 test_input_filter = None
@@ -136,7 +140,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
         else:
             test_start = test_input_start = 1
             if test_second_half:
-                test_input_start = 25240
+                test_start = test_input_start = 25240
             test_limit = test_input_limit = 50474
             test_exclude = test_input_exclude = train_exclude
             test_path = validation_path
