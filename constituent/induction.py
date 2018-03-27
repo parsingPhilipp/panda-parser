@@ -506,6 +506,9 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isola
     return nont, spans, id_seq, nont_feat
 
 
+strict_markov_regex = re.compile(r'strict-markov-(\d+)')
+
+
 def id_nont(id_seq, tree, naming):
     """
     :type id_seq: list[list[str]]
@@ -518,6 +521,9 @@ def id_nont(id_seq, tree, naming):
         return id_nont_strict(id_seq, tree)
     elif naming == 'child':
         return id_nont_child(id_seq, tree)
+    elif strict_markov_regex.match(naming):
+        h = int(strict_markov_regex.match(naming).group(1))
+        return id_nont_markov(id_seq, tree, h)
     else:
         raise Exception('unknown naming ' + naming)
 
@@ -564,6 +570,32 @@ def id_nont_strict(id_seqs, tree):
         if i < len(id_seqs) - 1:
             s += '-'
     return s
+
+
+def id_nont_markov(id_seqs, tree, h=1, cutoff_symbol='...'):
+    """
+    :type id_seqs: [[str]]
+    :type tree: ConstituentTree
+    :rtype: str
+    Making naming on exact derived nonterminals
+    while markovizing sequences of consecutive children.
+    Consecutive children are separated by /.
+    Where there is child missing, we have -.
+    """
+    ss = []
+    for i, seq in enumerate(id_seqs):
+        s = []
+        for j, idx in enumerate(seq):
+            if j < h:
+                if tree.is_leaf(idx):
+                    s.append(tree.leaf_pos(idx))
+                else:
+                    s.append(tree.node_token(idx).category())
+            else:
+                s.append(cutoff_symbol)
+                break
+        ss.append(s)
+    return '-'.join(['/'.join(s) for s in ss])
 
 
 def id_nont_child(id_seq, tree):

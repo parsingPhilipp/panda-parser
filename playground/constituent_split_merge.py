@@ -965,7 +965,7 @@ def main(directory=None):
     induction_settings.recursive_partitioning = RECURSIVE_PARTITIONING
     induction_settings.normalize = True
     induction_settings.disconnect_punctuation = False
-    induction_settings.naming_scheme = 'child'
+    induction_settings.naming_scheme = 'strict-markov-1'
     induction_settings.isolate_pos = True
 
     experiment = ConstituentSMExperiment(induction_settings, directory=directory)
