@@ -506,7 +506,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isola
     return nont, spans, id_seq, nont_feat
 
 
-strict_markov_regex = re.compile(r'strict-markov-(\d+)')
+strict_markov_regex = re.compile(r'strict-markov-v-(\d+)-h-(\d+)')
 
 
 def id_nont(id_seq, tree, naming):
@@ -521,11 +521,14 @@ def id_nont(id_seq, tree, naming):
         return id_nont_strict(id_seq, tree)
     elif naming == 'child':
         return id_nont_child(id_seq, tree)
-    elif strict_markov_regex.match(naming):
-        h = int(strict_markov_regex.match(naming).group(1))
-        return id_nont_markov(id_seq, tree, h)
     else:
-        raise Exception('unknown naming ' + naming)
+        m = strict_markov_regex.match(naming)
+        if m:
+            h = int(m.group(2))
+            v = int(m.group(1))
+            return id_nont_markov(id_seq, tree, v, h)
+        else:
+            raise Exception('unknown naming ' + naming)
 
 
 def token_to_features(token, isleaf=True):
@@ -572,7 +575,7 @@ def id_nont_strict(id_seqs, tree):
     return s
 
 
-def id_nont_markov(id_seqs, tree, h=1, cutoff_symbol='...'):
+def id_nont_markov(id_seqs, tree, v=0, h=1, cutoff_symbol='...'):
     """
     :type id_seqs: [[str]]
     :type tree: ConstituentTree
@@ -585,6 +588,15 @@ def id_nont_markov(id_seqs, tree, h=1, cutoff_symbol='...'):
     ss = []
     for i, seq in enumerate(id_seqs):
         s = []
+        p = []
+        _v = 0
+        pid = seq[0]
+        while _v < v:
+            pid = tree.parent(pid)
+            if pid is None:
+                break
+            p.append(tree.node_token(pid).category())
+            _v += 1
         for j, idx in enumerate(seq):
             if j < h:
                 if tree.is_leaf(idx):
@@ -594,8 +606,11 @@ def id_nont_markov(id_seqs, tree, h=1, cutoff_symbol='...'):
             else:
                 s.append(cutoff_symbol)
                 break
-        ss.append(s)
-    return '-'.join(['/'.join(s) for s in ss])
+        if p:
+            ss.append('|'.join(p) + '|' + '/'.join(s))
+        else:
+            ss.append('/'.join(s))
+    return '-'.join(ss)
 
 
 def id_nont_child(id_seq, tree):
