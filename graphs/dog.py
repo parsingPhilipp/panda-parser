@@ -877,9 +877,9 @@ class DeepSyntaxGraph:
             if len(new_child_list) == 1 and covered == new_child_list[0][0]:
                 return new_child_list[0]
             else:
-                return covered, new_child_list
+                return covered, sorted(new_child_list, key=lambda pair: min(pair[0]))
         else:
-            return covered, children
+            return covered, sorted(children, key=lambda pair: min(pair[0]))
 
     def id_yield(self):
         return list(map(lambda x: self.get_graph_position(x), [i for i in range(len(self.sentence))]))
