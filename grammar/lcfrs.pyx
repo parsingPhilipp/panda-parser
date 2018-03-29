@@ -3,12 +3,8 @@
 # Together this forms LCFRS/DCP hybrid grammars.
 
 from collections import defaultdict, namedtuple
-import codecs
-import re
-import time
-
-
-from grammar.dcp import parse_dcp, dcp_rules_to_str, dcp_rules_to_key
+from grammar.dcp import dcp_rules_to_str, dcp_rules_to_key
+from grammar.rtg import RTG_like, RTG
 
 # ##########################################################################
 # Parts of the grammar.
@@ -320,7 +316,18 @@ cdef class LCFRS_rule:
 # that is added. Its fanout must be 1.
 # Grammar is assumed to be monotone: no re-ordering of variables from LHS to
 # RHS.
-class LCFRS:
+class LCFRS(RTG_like):
+    def to_rtg(self):
+        rtg = RTG(self.__start)
+        for rule in self.rules():
+            rtg.construct_and_add_rule(rule.lhs().nont(),
+                                       rule.get_idx(),
+                                       rule.rhs())
+        return rtg
+
+    def initial(self):
+        return self.__start
+
     tmp = None
     # Constructor.
     # start: string
