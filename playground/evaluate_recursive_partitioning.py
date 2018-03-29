@@ -1,3 +1,5 @@
+__author__ = "Johann Seltmann"
+
 from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
 from hybridtree.dependency_tree import disconnect_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
@@ -28,19 +30,19 @@ train_limit = 2000
 test_limit = 5100
 
 
-#add command line arguments
-argParser = argparse.ArgumentParser(description='Train a hybrid grammar using different strategies for recursive partitioning transformation.')
-argParser.add_argument('-s', nargs='*', choices=['rtl', 'ltr', 'nnont', 'random', 'argmax']) #choose strategies
-argParser.add_argument('-l', nargs='*', choices=['strict', 'child']) #choose strict and/or child labelling
-argParser.add_argument('-t', nargs='*', choices=['pos', 'deprel', 'pos+deprel']) #choose pos, deprel, pos+deprel labelling
-argParser.add_argument('-f', nargs='*') #choose maximal fanout(s)
-argParser.add_argument('-n', nargs='*', choices=['rtl', 'ltr', 'random', 'argmax']) #choose fallback strategy if no-new-nont is used
-argParser.add_argument('-r', nargs='*') #set random seed(s) for random strategy
-argParser.add_argument('-c', choices=['german','polish']) #choose corpus
-argParser.add_argument('-d', choices=['yes', 'y', 'no', 'n']) #decide whether or not to count derivation trees
-argParser.add_argument('-q', choices=['yes', 'no']) #use shortened version of german dev-corpus
-argParser.add_argument('-e', choices=['yes', 'no']) #decide whether or not to run string parser
-
+# add command line arguments
+argParser = argparse.ArgumentParser(
+    description='Train a hybrid grammar using different strategies for recursive partitioning transformation.')
+argParser.add_argument('-s', nargs='*', choices=['rtl', 'ltr', 'nnont', 'random', 'argmax'])  # choose strategies
+argParser.add_argument('-l', nargs='*', choices=['strict', 'child'])  # choose strict and/or child labelling
+argParser.add_argument('-t', nargs='*', choices=['pos', 'deprel', 'pos+deprel'])  # choose pos, deprel, pos+deprel labelling
+argParser.add_argument('-f', nargs='*')  # choose maximal fanout(s)
+argParser.add_argument('-n', nargs='*', choices=['rtl', 'ltr', 'random', 'argmax'])  # choose fallback strategy if no-new-nont is used
+argParser.add_argument('-r', nargs='*')  # set random seed(s) for random strategy
+argParser.add_argument('-c', choices=['german', 'polish'])  # choose corpus
+argParser.add_argument('-d', choices=['yes', 'y', 'no', 'n'])  # decide whether or not to count derivation trees
+argParser.add_argument('-q', choices=['yes', 'no'])  # use shortened version of german dev-corpus
+argParser.add_argument('-e', choices=['yes', 'no'])  # decide whether or not to run string parser
 
 
 def main(ignore_punctuation=False):
@@ -55,8 +57,8 @@ def main(ignore_punctuation=False):
 
     args = vars(argParser.parse_args())
 
-    #parse command line arguments for transformation strategies,
-    #random seed, fallback strategy for no-new-nont and corpora
+    # parse command line arguments for transformation strategies,
+    # random seed, fallback strategy for no-new-nont and corpora
     if args['c'] is None or args['c'] == 'german':
         if args['q'] == 'no':
             test = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/pred/conll/dev/dev.German.pred.conll'
@@ -67,7 +69,6 @@ def main(ignore_punctuation=False):
     else:
         test = '../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/dev/dev.Polish.pred.conll'
         train ='../res/SPMRL_SHARED_2014_NO_ARABIC/POLISH_SPMRL/pred/conll/train/train.Polish.pred.conll'
-    
 
     strategies = []
     if args['s'] is None:
@@ -100,22 +101,21 @@ def main(ignore_punctuation=False):
             else: #argmax strategy
                 strategies += ['-' + strategy]
 
-    #parse command line argument for child vs. strict labelling
+    # parse command line argument for child vs. strict labelling
     labellings1 = []
     if args['l'] is None:
         labellings1 = ['strict']
     else:
         labellings1 = args['l']
 
-    #for pos vs. deprel
+    # for pos vs. deprel
     labellings2 = []
     if args['t'] is None:
         labellings2 = ['pos']
     else:
         labellings2 = args['t']
 
-    
-    #parse command line argument for fanout
+    # parse command line argument for fanout
     fanouts = []
     if args['f'] is None:
         fanouts = ['1']
@@ -134,9 +134,9 @@ def main(ignore_punctuation=False):
 
     #for string parser
     if args['e'] is None or args['e'] == 'yes':
-	parseStrings = True
+        parseStrings = True
     else:
-	parseStrings = False
+        parseStrings = False
 
     for fanout in fanouts:
         for strategy in  strategies:
@@ -147,8 +147,6 @@ def main(ignore_punctuation=False):
                             trainAndEval(strategy, labelling1, labelling2, fanout, parser1, train, test, cDT, parseStrings, ignore_punctuation)
                         else:
                             trainAndEval(strategy, labelling1, labelling2, fanout, parser23, train, test, cDT, parseStrings, ignore_punctuation)
-
-
 
 
 def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, test, cDT, parseStrings, ignore_punctuation=False):
@@ -163,7 +161,7 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
         trees = disconnect_punctuation(trees)
     (n_trees, grammar) = d_i.induce_grammar(trees, primary_labelling, term_labelling.token_label, recursive_partitioning, start)
     
-    #write current transformation strategy and hyperparameters to results.txt
+    # write current transformation strategy and hyperparameters to results.txt
     if strategy == '':
             file.write('rtl ' + labelling1 + ' ' + labelling2 + '    maximal fanout:' + fanout)
     else:
@@ -184,7 +182,6 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
         else:#argmax
             file.write('argmax ' + labelling1 + ' ' + labelling2 + ' maximal fanout:' + fanout)
     file.write('\n')
-    
     
     res = ''
 
@@ -214,7 +211,7 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
     
         res += "\n#derivation trees:  average: " + str(1.0*derCount/n_trees)
         res += " maximal: " + str(derMax)
-	file.write(res)   
+    file.write(res)
    
     res = ''
     total_time = 0.0
@@ -260,8 +257,6 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
                     result_file.write(tree_to_conll_str(fall_back_left_branching_token(cleaned_tokens)))
                     result_file.write('\n\n')
 
-    
-    
         res += "\nattachment scores:\nno punctuation: "
         out = subprocess.check_output(["perl", "../util/eval.pl", "-g", test, "-s", result, "-q"])
         match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
@@ -272,23 +267,13 @@ def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, t
         match = re.search(r'[^=]*= (\d+\.\d+)[^=]*= (\d+.\d+).*', out)
         res += ' labelled:' + match.group(1)
         res += ' unlabelled:' + match.group(2)
-    
 
-    
         res += "\nparse time: " + str(total_time)
-    
-
 
     file.write(res)
     file.write('\n\n\n')
     file.close()
 
 
-
-
-
 if __name__ == '__main__':
     main()
-
-
-
