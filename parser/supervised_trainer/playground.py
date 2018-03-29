@@ -8,7 +8,7 @@ from grammar.induction.recursive_partitioning import cfg
 from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from hybridtree.monadic_tokens import construct_constituent_token
-from parser.derivation_interface import derivation_to_hybrid_tree
+from grammar.lcfrs_derivation import derivation_to_hybrid_tree
 from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager

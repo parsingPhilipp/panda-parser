@@ -129,6 +129,9 @@ ext_modules=[
               extra_compile_args=extra_compile_args + openmp + optimizations_tensors,
               extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include
               , undef_macros=["NDEBUG"]),
+    Extension("parser.lcfrs_la", sources=["parser/lcfrs_la.pyx"], language='c++',
+              extra_compile_args=extra_compile_args + openmp + optimizations_tensors,
+              extra_link_args=linker_args + openmp, include_dirs=eigen_include+sterm_include),
     Extension("parser.coarse_to_fine_parser.trace_weight_projection",
               sources=["parser/coarse_to_fine_parser/trace_weight_projection.pyx"],
               language='c++',

@@ -2,7 +2,9 @@ from libcpp.vector cimport vector
 from libcpp.memory cimport shared_ptr
 from libcpp cimport bool as c_bool
 from parser.commons.commons cimport unsigned_int
-from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2
+from parser.trace_manager.sm_trainer_util cimport PyGrammarInfo, GrammarInfo2, PyStorageManager
+from libcpp.memory cimport make_shared
+from cython.operator cimport dereference as deref
 
 cdef extern from "Trainer/TrainingCommon.h":
     pass
@@ -40,3 +42,17 @@ cdef class PyLatentAnnotation:
     cpdef c_bool is_proper(self)
     cpdef c_bool check_for_validity(self, double delta = *)
     cpdef c_bool check_rule_split_alignment(self)
+
+
+cpdef inline PyLatentAnnotation build_PyLatentAnnotation(vector[size_t] nonterminalSplits
+                                                        , vector[double] rootWeights
+                                                        , vector[vector[double]] ruleWeights
+                                                        , PyGrammarInfo grammarInfo
+                                                        , PyStorageManager storageManager):
+    cdef PyLatentAnnotation latentAnnotation = PyLatentAnnotation()
+    latentAnnotation.latentAnnotation = make_shared[LatentAnnotation](nonterminalSplits
+                                                                      , rootWeights
+                                                                      , ruleWeights
+                                                                      , deref(grammarInfo.grammarInfo)
+                                                                      , deref(storageManager.storageManager))
+    return latentAnnotation

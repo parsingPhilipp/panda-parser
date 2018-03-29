@@ -18,7 +18,7 @@ from grammar.dcp import DCP_string
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
-from parser.derivation_interface import derivation_to_hybrid_tree
+from grammar.lcfrs_derivation import derivation_to_hybrid_tree
 try:
     from parser.fst.fst_export import compile_wfst_from_right_branching_grammar, fsa_from_list_of_symbols, compose, shortestpath, shortestdistance, retrieve_rules, PolishDerivation, ReversePolishDerivation, compile_wfst_from_left_branching_grammar, local_rule_stats, paths, LeftBranchingFSTParser
     test_pynini = True

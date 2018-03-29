@@ -14,5 +14,14 @@ cdef extern from "Trainer/AnnotationProjection.h" namespace "Trainer":
     )
 
 
-cpdef vector[double] py_edge_weight_projection(PyLatentAnnotation annotation, PyTraceManager traceManager, size_t traceId=0, bint variational=False, debug=False, log_mode=True):
-    return edge_weight_projection(deref(annotation.latentAnnotation), deref(fool_cython_unwrap(traceManager.trace_manager))[traceId], variational, debug, log_mode)
+cpdef vector[double] py_edge_weight_projection(PyLatentAnnotation annotation,
+                                               PyTraceManager traceManager,
+                                               size_t traceId=0,
+                                               bint variational=False,
+                                               debug=False,
+                                               log_mode=True):
+    return edge_weight_projection(deref(annotation.latentAnnotation),
+                                  deref(fool_cython_unwrap(traceManager.trace_manager))[traceId],
+                                  variational,
+                                  debug,
+                                  log_mode)

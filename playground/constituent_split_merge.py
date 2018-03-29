@@ -18,6 +18,7 @@ from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
+from parser.lcfrs_la import construct_fine_grammar
 import plac
 from grammar.induction.terminal_labeling import  PosTerminals, TerminalLabeling, FeatureTerminals, \
     FrequencyBiasedTerminalLabeling, CompositionalTerminalLabeling, FormTerminals
@@ -829,11 +830,12 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
             print("Constructing fine grammar", file=self.logger)
             (grammar_fine, grammar_fine_LA_full, grammar_fine_info,
              grammar_fine_nonterminal_map, nont_translation, smooth_rules) \
-                = fine_grammar__la.construct_fine_grammar(self.base_grammar,
-                                                          self.organizer.grammarInfo,
-                                                          id_arg,
-                                                          merged_la,
-                                                          smooth_transform=smooth_transform)
+                = construct_fine_grammar(fine_grammar__la,
+                                         self.base_grammar,
+                                         self.organizer.grammarInfo,
+                                         id_arg,
+                                         merged_la,
+                                         smooth_transform=smooth_transform)
 
             self.rule_smooth_list = smooth_rules
             _, path = tempfile.mkstemp(".rule_smooth_list.pkl", dir=self.directory)

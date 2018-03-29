@@ -6,7 +6,7 @@ from discodop.kbest import lazykbest
 from discodop.estimates import getestimates
 from discodop.coarsetofine import prunechart
 from parser.parser_interface import AbstractParser
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation, LCFRSDerivationWrapper
 import nltk
 from math import log, exp
 from parser.trace_manager.trace_manager import add, prod
@@ -17,7 +17,7 @@ import re
 from sys import stderr
 
 
-class DiscodopDerivation(AbstractDerivation):
+class DiscodopDerivation(LCFRSDerivation):
     def __init__(self, nltk_tree, grammar):
         """
         :param nltk_tree:
@@ -171,6 +171,8 @@ class DiscodopKbestParser(AbstractParser):
         if der is None:
             print("p", end="")
             der = self.latent_viterbi_derivation(debug=self.debug)
+        if der is not None:
+            der = LCFRSDerivationWrapper(der)
         if der is None:
             _, der = next(self.k_best_derivation_trees())
         return der
@@ -197,6 +199,8 @@ class DiscodopKbestParser(AbstractParser):
         #         print("##############################", flush=True)
         #         break
         #         # raise Exception("too much to read")
+        if vit_der is not None:
+            vit_der = LCFRSDerivationWrapper(vit_der)
         return vit_der
 
     def best_derivation_tree(self):

@@ -1,6 +1,6 @@
 import pgf
 from parser.parser_interface import AbstractParser
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 from parser.gf_parser.gf_export import compile_gf_grammar, export, LANGUAGE, COMPILED_SUFFIX
 from util.enumerator import Enumerator
 from math import exp
@@ -11,7 +11,7 @@ default_prefix = '/tmp/'
 default_name = 'gfgrammar'
 
 
-class GFDerivation(AbstractDerivation):
+class GFDerivation(LCFRSDerivation):
     def __init__(self, grammar, expr):
         """
         :param grammar:

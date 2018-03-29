@@ -1,4 +1,5 @@
 import grammar.lcfrs as gl
+import grammar.lcfrs_derivation
 from grammar.lcfrs import LCFRS
 import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
@@ -386,7 +387,7 @@ cdef class PySDCPParser(object):
         del self.parser
 
 
-class SDCPDerivation(di.AbstractDerivation):
+class SDCPDerivation(grammar.lcfrs_derivation.LCFRSDerivation):
     def __init__(self, max_idx, grammar, idx_to_rule=defaultdict(lambda: None), children=defaultdict(lambda: []), parent=defaultdict(lambda: None)):
         self.max_idx = max_idx
         self.idx_to_rule = idx_to_rule.copy()

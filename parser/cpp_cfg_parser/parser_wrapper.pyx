@@ -1,6 +1,6 @@
 from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs, LCFRS_var
 from util.enumerator cimport Enumerator
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 from parser.parser_interface import AbstractParser
 cimport cython
 from libc.stdlib cimport malloc, free
@@ -214,7 +214,7 @@ cdef PyCYKItem convert_items(CYKItem root):
     return root_
 
 
-class CFGDerivation(AbstractDerivation):
+class CFGDerivation(LCFRSDerivation):
     def __init__(self, root_item, rule_map):
         """
         :param root_item:

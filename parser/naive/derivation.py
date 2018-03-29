@@ -1,10 +1,10 @@
 __author__ = 'kilian'
 
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 import re
 
 
-class Derivation(AbstractDerivation):
+class Derivation(LCFRSDerivation):
     def child_id(self, id, i):
         return id + self.gorn_delimiter() + str(i)
 

@@ -8,6 +8,7 @@ from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from parser.gf_parser.gf_interface import GFParser_k_best
 from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
+from parser.lcfrs_la import build_sm_grammar
 from collections import defaultdict
 import tempfile
 import multiprocessing
@@ -716,8 +717,11 @@ class SplitMergeExperiment(Experiment):
                                                                 base_parser=self.parser)
 
         elif self.parsing_mode == "best-latent-derivation":
-            grammar = last_la.build_sm_grammar(self.base_grammar, self.organizer.grammarInfo, rule_pruning=0.0001,
-                                               rule_smoothing=0.1)
+            grammar = build_sm_grammar(last_la,
+                                       self.base_grammar,
+                                       self.organizer.grammarInfo,
+                                       rule_pruning=0.0001,
+                                       rule_smoothing=0.1)
             self.parser = GFParser_k_best(grammar=grammar, k=1, save_preprocessing=(self.directory, "gfgrammar"))
         elif self.parsing_mode in { method + engine
                                     for method in {"k-best-rerank", "latent-viterbi"}

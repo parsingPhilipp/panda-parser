@@ -1,7 +1,7 @@
 from __future__ import print_function
 from graphs.dog import DirectedOrderedGraph, DeepSyntaxGraph
 from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs, LCFRS_var
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 from decomposition import join_spans
 from copy import deepcopy
 
@@ -221,7 +221,7 @@ def fill_lcfrs_lhs(lhs, sent_positions, children, sentence, terminal_labeling):
 
 
 def dog_evaluation(derivation, compress=True):
-    assert isinstance(derivation, AbstractDerivation)
+    assert isinstance(derivation, LCFRSDerivation)
     dog, sync = dog_evaluation_rec(derivation, derivation.root_id())
 
     if compress:

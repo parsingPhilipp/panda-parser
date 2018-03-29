@@ -9,6 +9,7 @@ from itertools import product
 from parser.trace_manager.sm_trainer cimport PyLatentAnnotation
 from libc.math cimport log, NAN, INFINITY, isnan, isinf
 from libcpp cimport bool
+from grammar.rtg import RTG_like
 
 cdef extern from "cpp_priority_queue.hpp":
     cdef cppclass intp_std_func_priority_queue[T]:
@@ -70,7 +71,7 @@ cdef class PyTraceManager:
         :param edge_weights: non-negative weights for each edge (ordered according to edge ordering in hypergraph)
         :type edge_weights: list[double]
         :param grammar:
-        :type grammar: LCFRS
+        :type grammar: RTG_like
         :return: the Viterbi derivation
         :param op: path operation (binary operation on double)
         :rtype: AbstractDerivation

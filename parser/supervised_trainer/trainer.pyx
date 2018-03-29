@@ -3,6 +3,7 @@
 from __future__ import print_function
 from cython.operator cimport dereference as deref
 from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 from grammar.rtg import RTG
 from parser.discodop_parser.grammar_adapter import rule_idx_from_label, striplabelre, unescape_brackets
 
@@ -86,9 +87,10 @@ cdef class PyDerivationManager(PyTraceManager):
     cpdef void convert_derivations_to_hypergraph(self, corpus):
         """
         :param corpus: nonempty iterable of derivations for the same sentence   
-        :type corpus: iterable[AbstractDerivation]
+        :type corpus: iterable[LCFRSDerivation]
         Joins a list/iterator over derivations of a single sentence into a single packed hypergraph. 
-        The nodes of the hypergraph are nonterminals from the rules annotated by the string positions they span. Duplicate edges which may arise this way are removed.  
+        The nodes of the hypergraph are nonterminals from the rules annotated by the string positions they span. 
+        Duplicate edges which may arise this way are removed.  
         """
         cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
         cdef vector[Element[Node[NONTERMINAL]]] sources

@@ -3,7 +3,6 @@ from __future__ import print_function
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-from grammar.lcfrs import *
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
 from collections import defaultdict
 

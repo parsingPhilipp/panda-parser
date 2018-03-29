@@ -7,7 +7,7 @@ from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
-from parser.derivation_interface import derivation_to_hybrid_tree
+from grammar.lcfrs_derivation import derivation_to_hybrid_tree
 from parser.gf_parser.gf_export import *
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree

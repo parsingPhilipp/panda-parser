@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 from corpora.conll_parse import is_punctuation
 from grammar.dcp import DCP_evaluator, DCP_term, DCP_position, DCP_string
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 
 
 class The_DCP_evaluator(DCP_evaluator):
@@ -10,7 +10,7 @@ class The_DCP_evaluator(DCP_evaluator):
     def __init__(self, der):
         """
         :param der:
-        :type der: AbstractDerivation
+        :type der: LCFRSDerivation
         :return:
         """
         self.__der = der

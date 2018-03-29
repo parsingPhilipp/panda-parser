@@ -3,7 +3,7 @@ from pynini import *
 from grammar.lcfrs import LCFRS
 from grammar.linearization import Enumerator
 from math import log, e
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 from parser.parser_interface import AbstractParser
 from collections import defaultdict
 import sys
@@ -178,6 +178,7 @@ def retrieve_rules(linear_fst):
                 linear_rules += [lab]
     return linear_rules
 
+
 def retrieve_rules_(ids, terminals):
     linear_rules = []
     for i in ids:
@@ -217,7 +218,7 @@ def paths(fst):
         yield path_
 
 
-class PolishDerivation(AbstractDerivation):
+class PolishDerivation(LCFRSDerivation):
     def child_ids(self, id):
         if id % 2 == 1 or id == self._len - 1:
             return []
@@ -264,7 +265,7 @@ class PolishDerivation(AbstractDerivation):
         self._ids = range(self._len)
 
 
-class ReversePolishDerivation(AbstractDerivation):
+class ReversePolishDerivation(LCFRSDerivation):
     def child_ids(self, id):
         if id % 2 == 1 or id == 0:
             return []
@@ -311,7 +312,6 @@ class ReversePolishDerivation(AbstractDerivation):
         self._ids = range(self._len)
 
 
-
 class RightBranchingFSTParserLazy(AbstractParser):
     def recognized(self):
         if self._polish_rules:
@@ -332,6 +332,8 @@ class RightBranchingFSTParserLazy(AbstractParser):
 
     def __init__(self, grammar, input=None):
         self.input = input
+        self._best_ = None
+        self._polish_rules = None
         if input is not None:
             self.fst, self._rules = grammar.tmp_fst
             self.__composer = DelayedFstComposer(self.fst)
@@ -346,8 +348,8 @@ class RightBranchingFSTParserLazy(AbstractParser):
         self._polish_rules = retrieve_rules_(self._best_, terminals=self.fst.output_symbols())
 
     def clear(self):
-        self._best_ = None
         self.input = None
+        self._best_ = None
         self._polish_rules = None
 
     def best(self):
@@ -381,6 +383,8 @@ class RightBranchingFSTParser(AbstractParser):
 
     def __init__(self, grammar, input=None):
         self.input = input
+        self._best = None
+        self._polish_rules = None
         if input is not None:
             self.fst, self._rules = grammar.tmp_fst
             self.parse()
@@ -396,8 +400,8 @@ class RightBranchingFSTParser(AbstractParser):
         self._polish_rules = retrieve_rules(self._best)
 
     def clear(self):
-        self._best = None
         self.input = None
+        self._best = None
         self._polish_rules = None
 
     def best(self):
@@ -432,6 +436,8 @@ class LeftBranchingFSTParserLazy(AbstractParser):
 
     def __init__(self, grammar, input=None, load_preprocess=None, save_preprocess=None):
         self.input = input
+        self._best_ = None
+        self._reverse_polish_rules = None
         if input is not None:
             self.fst, self._rules = grammar.tmp_fst
             self.__composer = DelayedFstComposer(self.fst)
@@ -449,7 +455,6 @@ class LeftBranchingFSTParserLazy(AbstractParser):
 
         self._reverse_polish_rules = retrieve_rules_(self._best_, self.fst.output_symbols())
 
-
     def best(self):
         # return pow(e, -float(shortestdistance(self._best)[-1]))
         pass
@@ -465,6 +470,7 @@ class LeftBranchingFSTParserLazy(AbstractParser):
     @staticmethod
     def preprocess_grammar(grammar):
         grammar.tmp_fst = compile_wfst_from_left_branching_grammar(grammar)
+
 
 class LeftBranchingFSTParser(AbstractParser):
     def recognized(self):
@@ -487,6 +493,8 @@ class LeftBranchingFSTParser(AbstractParser):
 
     def __init__(self, grammar, input=None, load_preprocess=None, save_preprocess=None):
         self.input = input
+        self._best = None
+        self._reverse_polish_rules = None
         if input is not None:
             self.fst, self._rules = grammar.tmp_fst
             self.parse()
@@ -504,7 +512,6 @@ class LeftBranchingFSTParser(AbstractParser):
         self._best.topsort()
 
         self._reverse_polish_rules = retrieve_rules(self._best)
-
 
     def best(self):
         return pow(e, -float(shortestdistance(self._best)[-1]))

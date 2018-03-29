@@ -13,7 +13,7 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import *
 from parser.active.derivation import Derivation
 from parser.active.parsing import *
-from parser.derivation_interface import derivation_to_hybrid_tree
+from grammar.lcfrs_derivation import derivation_to_hybrid_tree
 from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 

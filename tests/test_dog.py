@@ -6,6 +6,7 @@ from graphs.graph_bimorphism_json_export import export_dog_grammar_to_json, expo
 from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
 from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
+from grammar.lcfrs_derivation import LCFRSDerivationWrapper
 from parser.naive.parsing import LCFRS_parser
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory, fanout_limited_partitioning, \
@@ -487,7 +488,7 @@ class GraphTests(unittest.TestCase):
         f = lambda token: token.pos() if isinstance(token, ConstituentTerminal) else token
 
         for i, (rtg, dsg) in enumerate(zip(rtgs, dsgs)):
-            derivations = [der for der in derivation_manager.enumerate_derivations(i, grammar)]
+            derivations = [LCFRSDerivationWrapper(der) for der in derivation_manager.enumerate_derivations(i, grammar)]
             self.assertGreaterEqual(len(derivations), 1)
             if len(derivations) > 1:
                 print("Sentence", i)
