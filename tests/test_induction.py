@@ -25,7 +25,7 @@ try:
 except ModuleNotFoundError:
     test_pynini = False
 
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from parser.naive.parsing import LCFRS_parser
 from tests.test_multiroot import multi_dep_tree
 
@@ -202,7 +202,7 @@ class InductionTest(unittest.TestCase):
             print(i, "th path:", path, end=' ')
             r = list(map(rules.index_object, path))
             d = PolishDerivation(r[1::])
-            dcp = The_DCP_evaluator(d).getEvaluation()
+            dcp = DCP_evaluator(d).getEvaluation()
             h = HybridTree()
             dcp_to_hybridtree(h, dcp, token_sequence, False, construct_conll_token)
             h.reorder()
@@ -220,7 +220,7 @@ class InductionTest(unittest.TestCase):
         print("Shortest path probability")
         best = shortestpath(b)
         best.topsort()
-        self.assertAlmostEquals(pow(e, -float(shortestdistance(best)[-1])), 1.80844898756e-05)
+        self.assertAlmostEqual(1.80844898756e-05, pow(e, -float(shortestdistance(best)[-1])))
         print(best.text())
 
         polish_rules = retrieve_rules(best)
@@ -236,7 +236,7 @@ class InductionTest(unittest.TestCase):
 
         print(derivation_to_hybrid_tree(der, string, "Piet Marie helpen lezen leren".split(), construct_conll_token))
 
-        dcp = The_DCP_evaluator(der).getEvaluation()
+        dcp = DCP_evaluator(der).getEvaluation()
 
         h_tree_2 = HybridTree()
         dcp_to_hybridtree(h_tree_2, dcp, token_sequence, False,
@@ -301,7 +301,7 @@ class InductionTest(unittest.TestCase):
 
         print(derivation_to_hybrid_tree(der_, string, "Piet Marie helpen lezen leren".split(), construct_conll_token))
 
-        dcp = The_DCP_evaluator(der).getEvaluation()
+        dcp = DCP_evaluator(der).getEvaluation()
 
         h_tree_2 = HybridTree()
         token_sequence = [construct_conll_token(form, lemma) for form, lemma in
@@ -339,7 +339,7 @@ class InductionTest(unittest.TestCase):
 
             print(derivation_to_hybrid_tree(der, string, "Piet Marie helpen lezen leren".split(), construct_conll_token))
 
-            dcp = The_DCP_evaluator(der).getEvaluation()
+            dcp = DCP_evaluator(der).getEvaluation()
 
             h_tree_2 = HybridTree()
             token_sequence = [construct_conll_token(form, lemma) for form, lemma in

@@ -1,11 +1,11 @@
 __author__ = 'kilian'
 
 from corpora.conll_parse import is_punctuation
-from grammar.dcp import DCP_evaluator, DCP_term, DCP_position, DCP_string
+from grammar.dcp import DCP_visitor, DCP_term, DCP_position, DCP_string
 from grammar.lcfrs_derivation import LCFRSDerivation
 
 
-class The_DCP_evaluator(DCP_evaluator):
+class DCP_evaluator(DCP_visitor):
     # der: Derivation
     def __init__(self, der):
         """
@@ -42,28 +42,28 @@ class The_DCP_evaluator(DCP_evaluator):
     # der: 'derivation'
     # return: list of DCP_term/DCP_pos
     def __eval_dcp_term(self, term, id):
-        return term.evaluateMe(self, id)
+        return term.visitMe(self, id)
 
     # Evaluation Methods for term-heads
     # s: DCP_string
-    def evaluateString(self, s, id):
+    def visit_string(self, s, id):
         return s
 
     # index: DCP_index
-    def evaluateIndex(self, index, id):
+    def visit_index(self, index, id):
         i = index.index()
         position = sorted(self.__der.terminal_positions(id))[i]
         return DCP_position(position, index.edge_label())
 
     # term: DCP_term
-    def evaluateTerm(self, term, id):
+    def visit_term(self, term, id):
         head = term.head()
         arg = term.arg()
-        evaluated_head = head.evaluateMe(self, id)
+        evaluated_head = head.visitMe(self, id)
         ground = [t for arg_term in arg for t in self.__eval_dcp_term(arg_term, id)]
         return [DCP_term(evaluated_head, ground)]
 
-    def evaluateVariable(self, var, id):
+    def visit_variable(self, var, id):
         mem = var.mem()
         arg = var.arg()
         if mem >= 0:
@@ -125,3 +125,6 @@ def dcp_to_hybridtree_recur(dcp, tree, next_id, construct_token):
             dcp_to_hybridtree_recur(child, tree, next_id, construct_token)
         tree.add_child(id, tree_child)
     return id, next_id
+
+
+__all__ = ["DCP_evaluator", "dcp_to_hybridtree"]

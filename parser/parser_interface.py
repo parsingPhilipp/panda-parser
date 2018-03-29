@@ -3,7 +3,7 @@ from __future__ import print_function
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, DCP_evaluator
 from collections import defaultdict
 
 
@@ -74,7 +74,7 @@ class AbstractParser:
             if not der.check_integrity_recursive(der.root_id(), der.getRule(der.root_id()).lhs().nont()):
                 print(der)
                 raise Exception()
-            return The_DCP_evaluator(der).getEvaluation()
+            return DCP_evaluator(der).getEvaluation()
         else:
             return []
 

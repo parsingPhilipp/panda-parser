@@ -22,7 +22,7 @@ from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.trace_manager.sm_trainer_util import PyStorageManager, PyGrammarInfo
 from parser.trace_manager.sm_trainer import PyEMTrainer, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 
 def build_corpus(path, start, stop, exclude):
     return sentence_names_to_hybridtrees(
@@ -210,7 +210,7 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
 
             h_tree = ConstituentTree()
             cleaned_tokens = copy.deepcopy(gold_tree.full_token_yield())
-            dcp = The_DCP_evaluator(der).getEvaluation()
+            dcp = DCP_evaluator(der).getEvaluation()
             dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_constituent_token)
 
             retrieved = set([tuple(t) for t in h_tree.labelled_spans()])

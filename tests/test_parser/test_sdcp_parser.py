@@ -16,7 +16,7 @@ from hybridtree.monadic_tokens import construct_conll_token, construct_constitue
 from parser.sDCP_parser.sdcp_parser_wrapper import PysDCPParser, LCFRS_sDCP_Parser, SDCPDerivation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCP_parser.playground import split_merge_training
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from hybridtree.constituent_tree import ConstituentTree, ConstituentCategory
@@ -55,7 +55,7 @@ class sDCPParserTest(unittest.TestCase):
             print(der)
             output_tree = HybridTree()
             tokens = tree1.token_yield()
-            dcp_to_hybridtree(output_tree, The_DCP_evaluator(der).getEvaluation(), tokens, False, construct_conll_token)
+            dcp_to_hybridtree(output_tree, DCP_evaluator(der).getEvaluation(), tokens, False, construct_conll_token)
             print(tree1)
             print(output_tree)
 
@@ -98,7 +98,7 @@ class sDCPParserTest(unittest.TestCase):
             print(der)
             output_tree = ConstituentTree(tree1.sent_label())
             tokens = tree1.token_yield()
-            dcp_to_hybridtree(output_tree, The_DCP_evaluator(der).getEvaluation(), tokens, False, construct_constituent_token)
+            dcp_to_hybridtree(output_tree, DCP_evaluator(der).getEvaluation(), tokens, False, construct_constituent_token)
             print(tree1)
             print(output_tree)
 
@@ -225,7 +225,7 @@ class sDCPParserTest(unittest.TestCase):
                 # print >>stderr, the_yield
                 tokens2 = list(map(lambda pos: construct_conll_token('_', pos), the_yield))
 
-                dcp_to_hybridtree(output_tree, The_DCP_evaluator(der).getEvaluation(), tokens2, False, construct_conll_token, reorder=False)
+                dcp_to_hybridtree(output_tree, DCP_evaluator(der).getEvaluation(), tokens2, False, construct_conll_token, reorder=False)
                 print(tree, file=stderr)
                 print(output_tree, file=stderr)
 

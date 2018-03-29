@@ -10,7 +10,7 @@ from hybridtree.monadic_tokens import construct_conll_token
 from grammar.lcfrs_derivation import derivation_to_hybrid_tree
 from parser.gf_parser.gf_export import *
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
 from sys import stderr
@@ -58,7 +58,7 @@ class MyTestCase(unittest.TestCase):
 
         print(derivation_to_hybrid_tree(der, string, "Piet Marie helpen lezen leren".split(), construct_conll_token))
 
-        dcp = The_DCP_evaluator(der).getEvaluation()
+        dcp = DCP_evaluator(der).getEvaluation()
 
         h_tree_2 = HybridTree()
         token_sequence = [construct_conll_token(form, lemma) for form, lemma in
@@ -116,7 +116,7 @@ class MyTestCase(unittest.TestCase):
                 # self.assertGreaterEqual(weight, current_weight)
                 current_weight = weight
 
-                dcp = The_DCP_evaluator(der).getEvaluation()
+                dcp = DCP_evaluator(der).getEvaluation()
                 h_tree = HybridTree()
                 cleaned_tokens = copy.deepcopy(tree.full_token_yield())
                 dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
@@ -180,7 +180,7 @@ class MyTestCase(unittest.TestCase):
 
                 derivation_list.append(der)
 
-                dcp = The_DCP_evaluator(der).getEvaluation()
+                dcp = DCP_evaluator(der).getEvaluation()
                 h_tree = HybridTree()
                 cleaned_tokens = copy.deepcopy(tree.full_token_yield())
                 dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
@@ -237,7 +237,7 @@ class MyTestCase(unittest.TestCase):
                 derivation_list.append(der)
 
 
-                dcp = The_DCP_evaluator(der).getEvaluation()
+                dcp = DCP_evaluator(der).getEvaluation()
                 h_tree = HybridTree()
                 cleaned_tokens = copy.deepcopy(tree.full_token_yield())
                 dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
@@ -282,7 +282,7 @@ class MyTestCase(unittest.TestCase):
             viterbi_weight = parser.viterbi_weight()
             viterbi_deriv = parser.viterbi_derivation()
 
-            der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(), copy.deepcopy(tree.full_token_yield()), False, construct_conll_token)
+            der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), DCP_evaluator(der).getEvaluation(), copy.deepcopy(tree.full_token_yield()), False, construct_conll_token)
 
             viterbi_tree = der_to_tree(viterbi_deriv)
 

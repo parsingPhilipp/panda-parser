@@ -8,7 +8,7 @@ from hybridtree.constituent_tree import HybridTree
 from hybridtree.monadic_tokens import construct_constituent_token
 from copy import deepcopy
 from parser.sDCP_parser.sdcp_parser_wrapper import PysDCPParser, LCFRS_sDCP_Parser
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from parser.discodop_parser.parser import DiscodopKbestParser
 
 
@@ -60,7 +60,7 @@ class MyTestCase(unittest.TestCase):
             # print("derivations:", len(derivs))
 
             for der in derivs:
-                dcp = The_DCP_evaluator(der).getEvaluation()
+                dcp = DCP_evaluator(der).getEvaluation()
                 sys_tree = HybridTree(htree.sent_label())
 
                 sys_tree = dcp_to_hybridtree(sys_tree, dcp, deepcopy(htree.token_yield()), ignore_punctuation=False,

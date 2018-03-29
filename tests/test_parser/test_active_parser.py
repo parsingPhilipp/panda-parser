@@ -14,7 +14,7 @@ from hybridtree.monadic_tokens import *
 from parser.active.derivation import Derivation
 from parser.active.parsing import *
 from grammar.lcfrs_derivation import derivation_to_hybrid_tree
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 
 
@@ -221,7 +221,7 @@ class ActiveParserTest(unittest.TestCase):
                                                     construct_constituent_token)
             print(hybrid_tree)
 
-            dcp = The_DCP_evaluator(der).getEvaluation()
+            dcp = DCP_evaluator(der).getEvaluation()
             h_tree_2 = HybridTree()
             token_sequence = [construct_conll_token(form, lemma) for form, lemma in
                               zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]

@@ -16,7 +16,7 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTraceManager
 from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
@@ -86,9 +86,9 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preproce
             h_tree = HybridTree(tree.sent_label())
 
             if parser_type == GFParser_k_best and parser.recognized():
-                der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(),
-                                                        copy.deepcopy(tree.full_token_yield()), False,
-                                                        construct_conll_token)
+                der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), DCP_evaluator(der).getEvaluation(),
+                                                            copy.deepcopy(tree.full_token_yield()), False,
+                                                            construct_conll_token)
                 h_tree = parser.best_trees(der_to_tree)[0][0]
             elif parser_type == CFGParser \
                      or parser_type == GFParser \

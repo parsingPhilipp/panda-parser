@@ -2,8 +2,8 @@ from __future__ import print_function
 from sys import stdout
 
 from grammar.lcfrs import *
-
 from grammar.dcp import *
+from collections import defaultdict
 
 
 def linearize(grammar, nonterminal_labeling, terminal_labeling, file):
@@ -145,21 +145,22 @@ class Enumerator:
             print(i, self.index_object(i), fanout, inh[i], syn[i], file=self.file)
         return max_fanout, max_inh, max_syn, max_args, fanouts, inherits, synths, args
 
-class DCP_Labels(DCP_evaluator):
-    def evaluateString(self, s, id):
+
+class DCP_Labels(DCP_visitor):
+    def visit_string(self, s, id):
         self.labels.add(s)
 
-    def evaluateTerm(self, term, id):
+    def visit_term(self, term, id):
         """
         :type term: DCP_term
         :param id:
         :return:
         """
-        term.head().evaluateMe(self)
+        term.head().visitMe(self)
         for child in term.arg():
-            child.evaluateMe(self)
+            child.visitMe(self)
 
-    def evaluateIndex(self, index, id):
+    def visit_index(self, index, id):
         """
         :type index: DCP_index
         :param id:
@@ -167,34 +168,35 @@ class DCP_Labels(DCP_evaluator):
         """
         self.labels.add(index.edge_label())
 
-    def evaluateVariable(self, var, id):
+    def visit_variable(self, var, id):
         pass
 
     def __init__(self):
         self.labels = set()
 
-class CountLHSVars(DCP_evaluator):
-    def evaluateVariable(self, var, id):
+
+class CountLHSVars(DCP_visitor):
+    def visit_variable(self, var, id):
         if var.mem() == -1:
             return 1
         else:
             return 0
 
-    def evaluateString(self, s, id):
+    def visit_string(self, s, id):
         return 0
 
-    def evaluateTerm(self, term, id):
-        return term.head().evaluateMe(self) + self.evaluateList(term.arg())
+    def visit_term(self, term, id):
+        return term.head().visitMe(self) + self.evaluateList(term.arg())
 
     def evaluateList(self, xs):
-        return sum([x.evaluateMe(self) for x in xs])
+        return sum([x.visitMe(self) for x in xs])
 
-    def evaluateIndex(self, index, id):
+    def visit_index(self, index, id):
         return 0
 
 
-class OUTPUT_DCP(DCP_evaluator):
-    def evaluateVariable(self, var, id):
+class OUTPUT_DCP(DCP_visitor):
+    def visit_variable(self, var, id):
         if (var.mem() != -1):
             self.string += 'x<' + str(var.mem() + 1) + "," + str(var.arg() + 1 - self.inh_args[var.mem()]) + "> "
         else:
@@ -207,11 +209,11 @@ class OUTPUT_DCP(DCP_evaluator):
         self.sync_index = sync_index
         self.inh_args = inh_args
 
-    def evaluateString(self, s, id):
+    def visit_string(self, s, id):
         self.string += str(self.terminal_to_index[s]) + ' '
 
-    def evaluateTerm(self, term, id):
-        term.head().evaluateMe(self)
+    def visit_term(self, term, id):
+        term.head().visitMe(self)
         self.string += '('
         self.evaluateList(term.arg())
         self.string += ') '
@@ -222,11 +224,11 @@ class OUTPUT_DCP(DCP_evaluator):
         for arg in list:
             if not first:
                 self.string += ', '
-            arg.evaluateMe(self)
+            arg.visitMe(self)
             first = False
         self.string += "]"
 
-    def evaluateIndex(self, index, id):
+    def visit_index(self, index, id):
         if not index.index() in self.sync_index:
             self.sync_index[index.index()] = len(self.sync_index) + 1
         i = 0

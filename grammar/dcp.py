@@ -14,12 +14,12 @@ from abc import ABCMeta, abstractmethod
 class DCP_rhs_object:
     __metaclass__ = ABCMeta
 
-    # evaluator: DCP_evaluator
+    # evaluator: DCP_visitor
     # id: string (gorn term of LCFRS-Derivation tree)
     @abstractmethod
-    def evaluateMe(self, evaluator, id=None):
+    def visitMe(self, visitor, id=None):
         """
-        :type evaluator: DCP_evaluator
+        :type visitor: DCP_visitor
         :param id: node id (gorn term) in LCFRS-derivation tree
         :type id: str
         :return: evaluated DCP_rhs object
@@ -28,11 +28,11 @@ class DCP_rhs_object:
 
 
 # Interface for DCP_evaluation
-class DCP_evaluator:
+class DCP_visitor:
     __metaclass__ = ABCMeta
 
     @abstractmethod
-    def evaluateString(self, s, id):
+    def visit_string(self, s, id):
         """
         :type s: DCP_string
         :param id: node id (gorn term) in LCFRS-derivation tree
@@ -43,7 +43,7 @@ class DCP_evaluator:
         pass
 
     @abstractmethod
-    def evaluateIndex(self, index, id):
+    def visit_index(self, index, id):
         """
         :type index: DCP_index
         :param id: node id (gorn term) in LCFRS-derivation tree
@@ -54,7 +54,7 @@ class DCP_evaluator:
         pass
 
     @abstractmethod
-    def evaluateTerm(self, term, id):
+    def visit_term(self, term, id):
         """
         :type term: DCP_term
         :param id: node id (gorn term) in LCFRS-derivation tree
@@ -65,11 +65,7 @@ class DCP_evaluator:
         pass
 
     @abstractmethod
-    def evaluateIndex(self, var, id):
-        pass
-
-    @abstractmethod
-    def evaluateVariable(self, var, id):
+    def visit_variable(self, var, id):
         pass
 
 
@@ -102,8 +98,8 @@ class DCP_var(DCP_rhs_object):
         else:
             return '<' + str(self.mem()) + ',' + str(self.arg()) + '>'
 
-    def evaluateMe(self, evaluator, id=None):
-        return evaluator.evaluateVariable(self, id)
+    def visitMe(self, visitor, id=None):
+        return visitor.visit_variable(self, id)
 
     def __eq__(self, other):
         if not isinstance(other, DCP_var):
@@ -139,8 +135,8 @@ class DCP_index(DCP_rhs_object):
         return '[' + str(self.index()) + s + ']'
 
     # Evaluator Invocation
-    def evaluateMe(self, evaluator, id=None):
-        return evaluator.evaluateIndex(self, id)
+    def visitMe(self, visitor, id=None):
+        return visitor.visit_index(self, id)
 
 
 # A terminal of DCP_rule that is not linked to some terminal
@@ -157,8 +153,8 @@ class DCP_string(DCP_rhs_object):
         return self.__edge_label
 
     # Evaluator invocation
-    def evaluateMe(self, evaluator, id=None):
-        return evaluator.evaluateString(self, id)
+    def visitMe(self, visitor, id=None):
+        return visitor.visit_string(self, id)
 
         # String representation.
         # return: string
@@ -172,6 +168,7 @@ class DCP_string(DCP_rhs_object):
         else:
             s = ''
         return self.__string + s
+
 
 # An index replaced by an input position, according to parsing of a string with
 # the left (LCFRS) component of hybrid grammar.
@@ -230,8 +227,8 @@ class DCP_term(DCP_rhs_object):
         return str(self.head()) + '(' + dcp_terms_to_str(self.arg()) + ')'
 
     # Evaluator invocation
-    def evaluateMe(self, evaluator, id=None):
-        return evaluator.evaluateTerm(self, id)
+    def visitMe(self, visitor, id=None):
+        return visitor.visit_term(self, id)
 
 
 # Rule defining argument value by term.

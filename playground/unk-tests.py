@@ -26,7 +26,7 @@ from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTrace
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, DCP_evaluator
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, \
@@ -474,7 +474,7 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
 
                         for weight, der in parser.k_best_derivation_trees():
 
-                            dcp = The_DCP_evaluator(der).getEvaluation()
+                            dcp = DCP_evaluator(der).getEvaluation()
                             h_tree = HybridTree()
                             cleaned_tokens = copy.deepcopy(tree.full_token_yield())
                             dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
@@ -487,7 +487,7 @@ def do_parsing(grammar, test_corpus, term_labelling, result, grammar_identifier,
                         if oracle_parse:
                             h_tree_oracle = compute_oracle_tree(h_trees, tree)
 
-                    der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(),
+                    der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), DCP_evaluator(der).getEvaluation(),
                                                                 copy.deepcopy(tree.full_token_yield()), False,
                                                                 construct_conll_token)
                     # h_tree = parser.best_trees(der_to_tree)[0][0]
@@ -593,7 +593,7 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
             der_count += 1
             h_tree = HybridTree()
             cleaned_tokens = copy.deepcopy(gold_tree.full_token_yield())
-            dcp = The_DCP_evaluator(der).getEvaluation()
+            dcp = DCP_evaluator(der).getEvaluation()
             dcp_to_hybridtree(h_tree, dcp, cleaned_tokens, False, construct_conll_token)
 
             las, uas, lac = 0, 0, 0

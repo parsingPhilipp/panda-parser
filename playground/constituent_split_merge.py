@@ -16,7 +16,7 @@ from hybridtree.general_hybrid_tree import HybridTree
 from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
 from parser.lcfrs_la import construct_fine_grammar
 import plac
@@ -513,7 +513,7 @@ class ConstituentExperiment(ScoringExperiment):
                                  if idx not in id_yield]
 
         cleaned_tokens = copy.deepcopy(full_token_yield)
-        dcp = The_DCP_evaluator(derivation).getEvaluation()
+        dcp = DCP_evaluator(derivation).getEvaluation()
         dcp_to_hybridtree(dcp_tree, dcp, cleaned_tokens, False, construct_constituent_token,
                           punct_positions=punctuation_positions)
 

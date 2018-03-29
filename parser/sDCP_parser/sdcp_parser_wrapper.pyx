@@ -14,6 +14,7 @@ DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 # ctypedef unsigned_int TERMINAL
 
+
 cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, term_labelling, terminal_encoding=str) except * :
     # output_helper_utf8("convert hybrid tree: " + str(p_tree))
     cdef HybridTree[TERMINAL, int]* c_tree = new HybridTree[TERMINAL, int]()
@@ -115,6 +116,7 @@ def print_grammar(grammar):
     cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=True)
     sdcp.output()
 
+
 def print_grammar_and_parse_tree(grammar, tree, term_labelling):
     # cdef Enumerator rule_map = Enumerator()
     cdef Enumerator nonterminal_map = Enumerator()
@@ -158,8 +160,8 @@ cdef class PySTermBuilder:
         self.builder.add_to_rule(rule)
 
 
-class STermConverter(gd.DCP_evaluator):
-    def evaluateIndex(self, index, id):
+class STermConverter(gd.DCP_visitor):
+    def visit_index(self, index, id):
         # print index
         cdef int i = index.index()
         rule = self.rule
@@ -185,14 +187,14 @@ class STermConverter(gd.DCP_evaluator):
         else:
             self.builder.add_linked_terminal(self.terminal_encoder(terminal), i)
 
-    def evaluateString(self, s, id):
+    def visit_string(self, s, id):
         # print s
         if s.edge_label() is not None:
             self.builder.add_terminal(self.terminal_encoder(s.get_string() + " : " + str(s.edge_label())))
         else:
             self.builder.add_terminal(self.terminal_encoder(s.get_string()))
 
-    def evaluateVariable(self, var, id):
+    def visit_variable(self, var, id):
         # print var
         cdef int offset = 0
         if var.mem() >= 0:
@@ -201,8 +203,8 @@ class STermConverter(gd.DCP_evaluator):
                     offset += 1
         self.builder.add_var(var.mem() + 1, var.arg() + 1 - offset)
 
-    def evaluateTerm(self, term, id):
-        term.head().evaluateMe(self)
+    def visit_term(self, term, id):
+        term.head().visitMe(self)
         if term.arg():
             self.builder.add_children()
             self.evaluateSequence(term.arg())
@@ -210,7 +212,7 @@ class STermConverter(gd.DCP_evaluator):
 
     def evaluateSequence(self, sequence):
         for element in sequence:
-            element.evaluateMe(self)
+            element.visitMe(self)
 
     def __init__(self, py_builder, terminal_encoder):
         self.builder = py_builder
@@ -222,7 +224,7 @@ class STermConverter(gd.DCP_evaluator):
     def get_evaluation(self):
         return self.builder.get_sTerm()
 
-    def  get_pybuilder(self):
+    def get_pybuilder(self):
         return self.builder
 
     def clear(self):
