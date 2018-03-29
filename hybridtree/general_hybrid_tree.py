@@ -2,7 +2,7 @@
 __author__ = 'kilian'
 
 from collections import defaultdict
-from decomposition import join_spans
+from grammar.induction.decomposition import join_spans
 from hybridtree.monadic_tokens import MonadicToken
 
 

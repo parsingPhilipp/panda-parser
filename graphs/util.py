@@ -1,7 +1,7 @@
 from __future__ import print_function
 import subprocess
 from collections import defaultdict
-from decomposition import n_spans
+from grammar.induction.decomposition import n_spans
 
 def render_and_view_dog(dog, name, path="/tmp/"):
     dot = dog.export_dot(name)

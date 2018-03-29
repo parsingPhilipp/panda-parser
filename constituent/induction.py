@@ -3,7 +3,7 @@ from __future__ import print_function
 # Extracting grammars out of hybrid trees.
 
 # from hybridtree import *
-from decomposition import *
+from grammar.induction.decomposition import *
 from grammar.lcfrs import *
 from grammar.dcp import *
 from grammar.induction.terminal_labeling import PosTerminals

@@ -4,7 +4,7 @@ from parser.gf_parser.gf_interface import GFParser
 from graphs.graph_decomposition import induce_grammar_from, compute_decomposition, dog_evaluation, consecutive_spans
 from graphs.dog import DeepSyntaxGraph
 from graphs.util import extract_recursive_partitioning
-from decomposition import left_branching_partitioning, fanout_limited_partitioning_left_to_right
+from grammar.induction.decomposition import fanout_limited_partitioning_left_to_right
 from subprocess import call
 from playground.experiment_helpers import Experiment, RESULT, CorpusFile
 from sys import stdout

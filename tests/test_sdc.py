@@ -1,7 +1,7 @@
 from __future__ import print_function
 import unittest
 from corpora.sdc_parse import parse_sentence, parse_file, export_sentence, export_corpus
-from decomposition import left_branching_partitioning
+from grammar.induction.decomposition import left_branching_partitioning
 from graphs.util import render_and_view_dog, extract_recursive_partitioning, pretty_print_rec_partitioning
 from graphs.graph_decomposition import compute_decomposition, induce_grammar_from, dog_evaluation
 from graphs.dog_generator import generate, generate_sdg

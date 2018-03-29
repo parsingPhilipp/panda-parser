@@ -3,7 +3,7 @@ __author__ = 'kilian'
 import re
 from random import seed
 
-from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
+from grammar.induction.decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
     right_branching_partitioning, fanout_limited_partitioning_left_to_right, fanout_limited_partitioning_argmax, fanout_limited_partitioning_random_choice, fanout_limited_partitioning_no_new_nont
 
 from dependency.labeling import AbstractLabeling

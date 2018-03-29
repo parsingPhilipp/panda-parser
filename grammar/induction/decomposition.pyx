@@ -1,5 +1,6 @@
 from __future__ import print_function
 import random
+from libcpp.vector cimport vector
 from dependency.top_bottom_max import top_max, bottom_max
 
 # Auxiliary routines for dealing with spans in an input string.
@@ -12,10 +13,12 @@ from dependency.top_bottom_max import top_max, bottom_max
 # element.
 # indices: list of int
 # return: list of pair of int
-def join_spans(indices):
+cpdef list join_spans(vector[int] indices):
     indices = sorted(set(indices))
     spans = []
-    low = -1
+    cdef int low = -1
+    cdef int i
+    cdef int high
     for i in indices:
         if low < 0:
             low = i
@@ -48,7 +51,7 @@ def expand_spans(spans):
 # E.g. (set([0, 1]), [(set([0]), []), (set([1]), [])])
 # len: int
 # return: recursive partitioning
-def left_branching_partitioning(len):
+def left_branching_partitioning(int len):
     if len == 0:
         return set(), []
     elif len == 1:
@@ -59,11 +62,11 @@ def left_branching_partitioning(len):
             ({len - 1}, [])])
 
 
-def right_branching_partitioning(len):
+def right_branching_partitioning(int len):
     return right_branching_partitioning_recur(0, len)
 
 
-def right_branching_partitioning_recur(low, high):
+def right_branching_partitioning_recur(int low, int high):
     if low >= high:
         return set(), []
     elif low == high - 1:
@@ -81,7 +84,7 @@ def right_branching_partitioning_recur(low, high):
 # part: recursive partitioning
 # fanout: int
 # return: recursive partitioning
-def fanout_limited_partitioning(part, fanout):
+def fanout_limited_partitioning(part, int fanout):
     (root, children) = part
     agenda = children[::-1]  # reversed to favour left branching
     while len(agenda) > 0:
@@ -110,7 +113,7 @@ def fanout_limited_partitioning(part, fanout):
 # part: recursive partitioning
 # fanout: int
 # return: recursive partitioning
-def fanout_limited_partitioning_left_to_right(part, fanout):
+def fanout_limited_partitioning_left_to_right(part, int fanout):
     (root, children) = part
     agenda = children  
     while len(agenda) > 0:
@@ -137,7 +140,7 @@ def fanout_limited_partitioning_left_to_right(part, fanout):
 # part: recursive partitioning
 # fanout: int
 # return: recursive partitioning
-def fanout_limited_partitioning_argmax(part, fanout):
+def fanout_limited_partitioning_argmax(part, int fanout):
     (root, children) = part
     if children == []:
         return part
@@ -432,7 +435,7 @@ def restrict_part(part, relevant):
 # Number of spans.
 # l: list of int
 # return: int
-def n_spans(l):
+cpdef int n_spans(vector[int] l):
     return len(join_spans(l))
 
 

@@ -2,7 +2,7 @@ from __future__ import print_function
 from graphs.dog import DirectedOrderedGraph, DeepSyntaxGraph
 from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs, LCFRS_var
 from grammar.lcfrs_derivation import LCFRSDerivation
-from decomposition import join_spans
+from grammar.induction.decomposition import join_spans
 from copy import deepcopy
 
 

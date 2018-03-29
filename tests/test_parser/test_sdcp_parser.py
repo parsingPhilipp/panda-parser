@@ -3,7 +3,7 @@ import unittest
 from sys import stderr
 
 from grammar.lcfrs import LCFRS
-from decomposition import fanout_limited_partitioning
+from grammar.induction.decomposition import fanout_limited_partitioning
 from corpora.conll_parse import parse_conll_corpus
 from dependency.induction import induce_grammar
 from grammar.induction.recursive_partitioning import cfg

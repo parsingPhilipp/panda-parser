@@ -13,7 +13,7 @@ from parser.naive.parsing import *
 from parser.viterbi.left_branching import LeftBranchingParser
 from parser.viterbi.viterbi import RightBranchingParser, ViterbiParser
 from parser.parser_factory import the_parser_factory
-from decomposition import *
+from grammar.induction.decomposition import *
 
 # Different corpora and subsets of the corpora
 # can be used for the experiments.

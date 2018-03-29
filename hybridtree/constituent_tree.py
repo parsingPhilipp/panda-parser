@@ -2,7 +2,7 @@ __author__ = 'kilian'
 
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
-from decomposition import join_spans
+from grammar.induction.decomposition import join_spans
 
 
 class ConstituentTree(HybridTree):
