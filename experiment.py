@@ -51,10 +51,10 @@ tiger_fanout_4 = \
 def sentence_names_to_hybridtrees(names):
     if corpus == 'negra nonproj':
         return corpora.negra_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.negra_parse.negra_nonproj)
+                                                                 corpora.negra_parse.NEGRA_NONPROJECTIVE)
     elif corpus == 'negra proj':
         return corpora.negra_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.negra_parse.negra_proj)
+                                                                 corpora.negra_parse.NEGRA_PROJECTIVE)
     elif corpus == 'tiger':
         return corpora.tiger_parse.sentence_names_to_hybridtrees(names, \
                                                                  corpora.tiger_parse.tiger)

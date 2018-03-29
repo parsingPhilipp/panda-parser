@@ -8,11 +8,10 @@ import sys
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken
 
-
-def match_line(line):
-    match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)'
-                      r'\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)$', line)
-    return match
+CONLL_LINE = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)'
+                             r'\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)$')
+MULTI_TOKEN = re.compile(r'^[^\s]+-[^\s]+')
+EMPTY_LINE = re.compile(r'^[^\s]*$')
 
 
 delete_puntcuation = str.maketrans("", "", '!"&()*+#,/-:.?;<=>@[\\]^_{|}~')
@@ -52,7 +51,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxsize, start=0):
             except StopIteration:
                 break
 
-            match = match_line(line)
+            match = CONLL_LINE.match(line)
             while match:
                 if match.group(1) == '1':
                     tree_count += 1
@@ -68,7 +67,7 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxsize, start=0):
                 deprel = match.group(8)
 
                 # We ignore information about multiple token's as present in the UD version of Prague Dep. TB
-                if re.search(r'^[^\s]+-[^\s]+', node_id):
+                if MULTI_TOKEN.search(node_id):
                   pass
                 else:
                     # If punctuation is to be ignored, we
@@ -92,13 +91,13 @@ def parse_conll_corpus(path, ignore_punctuation, limit=sys.maxsize, start=0):
                     line = next(file_content)
                     while line.startswith('#'):
                         line = next(file_content)
-                    match = match_line(line)
+                    match = CONLL_LINE.search(line)
                 except StopIteration:
                     line = ''
                     match = None
 
             # Assume empty line, otherwise raise exception
-            match = re.search(r'^[^\s]*$', line)
+            match = EMPTY_LINE.match(line)
             if not match:
                 raise Exception("Unexpected input in CoNLL corpus file.")
 

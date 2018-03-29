@@ -9,12 +9,27 @@ except ImportError:
     text = str
 
 # Location of Negra corpus.
-negra_dir = 'res/negra-corpus/downloadv2'
+NEGRA_DIRECTORY = 'res/negra-corpus/downloadv2'
 
 # The non-projective and projective versions of the negra corpus.
-negra_nonproj = negra_dir + '/negra-corpus.export'
-negra_proj = negra_dir + '/negra-corpus.cfg'
+NEGRA_NONPROJECTIVE = NEGRA_DIRECTORY + '/negra-corpus.export'
+NEGRA_PROJECTIVE = NEGRA_DIRECTORY + '/negra-corpus.cfg'
 
+DISCODOP_HEADER = re.compile(r'^%%\s+word\s+lemma\s+tag\s+morph\s+edge\s+parent\s+secedge$')
+BOS = re.compile(r'^#BOS\s+([0-9]+)')
+EOS = re.compile(r'^#EOS\s+([0-9]+)$')
+
+STANDARD_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$')
+STANDARD_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$')
+
+DISCODOP_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
+                                  r'([^\s]+)\s+([^\s]+)(\s+([^\s]+))?(\n)?$')
+DISCODOP_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
+                               r'([^\s]+)(\s+([^\s]+))?(\n)?$')
+DISCDOP_BIN_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
+                                     r'([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*(\n)?$')
+DISCODOP_BIN_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
+                                   r'([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*\n?$')
 
 # Sentence number to name.
 # file_name: int
@@ -39,28 +54,25 @@ def sentence_names_to_hybridtrees(names, file_name,
     n_leaves = 0
     node_to_children = {}
     for line in negra:
-        match_mode = re.search(r'^%%\s+word\s+lemma\s+tag\s+morph\s+edge\s+parent\s+secedge$', line)
+        match_mode = DISCODOP_HEADER.match(line)
         if match_mode:
             mode = "DISCO-DOP"
             continue
-        match_sent_start = re.search(r'^#BOS\s+([0-9]+)', line)
-        match_sent_end = re.search(r'^#EOS\s+([0-9]+)$', line)
+        match_sent_start = BOS.search(line)
+        match_sent_end = EOS.match(line)
         if mode == "STANDARD":
             match_nont = \
-                re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$', line)
+                STANDARD_NONTERMINAL.match(line)
             match_term = \
-                re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$', line)
+                STANDARD_TERMINAL.match(line)
         elif mode == "DISCO-DOP":
-            match_nont = \
-                re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(\s+([^\s]+))?(\n)?$', line)
-            match_term = \
-                re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)(\s+([^\s]+))?(\n)?$', line)
+            match_nont = DISCODOP_NONTERMINAL.match(line)
+            match_term = DISCODOP_TERMINAL.match(line)
             # if reading in binarized trees with discodop
             # there might be additional columns pointing to the original head
             if not match_term and not match_nont:
-                match_nont = \
-                    re.search(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*(\n)?$', line)
-                match_term = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*\n?$', line)
+                match_nont = DISCDOP_BIN_NONTERMINAL.match(line)
+                match_term = DISCODOP_BIN_TERMINAL.match(line)
         if match_sent_start:
             this_name = match_sent_start.group(1)
             if this_name in names:
