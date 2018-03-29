@@ -3,10 +3,6 @@ import grammar.induction.terminal_labeling
 
 __author__ = 'kilian'
 
-conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
-conll_train = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
-sample_db = 'examples/sampledb.db'
-
 import re
 import os
 import copy
@@ -22,6 +18,11 @@ from parser.parser_factory import the_parser_factory
 from corpora.conll_parse import parse_conll_corpus, score_cmp_dep_trees
 from evaluation import experiment_database
 from grammar.linearization import linearize
+import grammar
+
+CONLL_TEST = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
+CONLL_TRAIN = '../dependency_conll/german/tiger/train/german_tiger_train.conll'
+SAMPLE_DB = 'examples/sampledb.db'
 
 
 def add_trees_to_db(path, connection, trees):
@@ -85,13 +86,13 @@ def induce_grammar_from_file(path
                                                     , None)
 
     if not quiet:
-        print 'Inducing grammar'
-        print 'file: ' + path
-        print 'Nonterminal labelling strategy: ', nont_labelling.__str__()
-        print 'Terminal labelling strategy:    ', str(term_labelling)
-        print 'Recursive partitioning strategy:', ','.join([rec_par.func_name for rec_par in recursive_partitioning])
-        print 'limit:                          ', str(limit)
-        print 'Ignoring punctuation            ', ignore_punctuation
+        print('Inducing grammar')
+        print('file: ' + path)
+        print('Nonterminal labelling strategy: ', nont_labelling.__str__())
+        print('Terminal labelling strategy:    ', str(term_labelling))
+        print('Recursive partitioning strategy:', ','.join([rec_par.func_name for rec_par in recursive_partitioning]))
+        print('limit:                          ', str(limit))
+        print('Ignoring punctuation            ', ignore_punctuation)
     start_clock = time.clock()
 
     trees = parse_conll_corpus(path, False, limit)
@@ -103,14 +104,14 @@ def induce_grammar_from_file(path
 
     end_clock = time.clock()
     if not quiet:
-        print 'Number of trees:                ', str(n_trees)
-        print 'Number of nonterminals:         ', len(grammar.nonts())
-        print 'Number of rules:                ', len(grammar.rules())
-        print 'Total size:                     ', grammar.size()
-        print 'Fanout:                         ', max(map(grammar.fanout, grammar.nonts()))
-        print 'Induction time:                 ', end_clock - start_clock, 'seconds'
+        print('Number of trees:                ', str(n_trees))
+        print('Number of nonterminals:         ', len(grammar.nonts()))
+        print('Number of rules:                ', len(grammar.rules()))
+        print('Total size:                     ', grammar.size())
+        print('Fanout:                         ', max(map(grammar.fanout, grammar.nonts())))
+        print('Induction time:                 ', end_clock - start_clock, 'seconds')
 
-    print experiment
+    print(experiment)
     experiment_database.add_grammar(connection, grammar, experiment)
     grammar_output = open('.tmp/grammar-' + str(experiment) + '.gra', 'w')
     linearize(grammar, nont_labelling, term_labelling, grammar_output)
@@ -150,7 +151,7 @@ def parse_sentences_from_file(grammar
     Parse sentences from corpus and compare derived dependency structure with gold standard information.
     """
     if not quiet:
-        print "Building lookahead tables for grammar"
+        print("Building lookahead tables for grammar")
         parser_type.preprocess_grammar(grammar)
 
     experiment_database.set_experiment_test_corpus(connection, experiment, path)
@@ -160,7 +161,7 @@ def parse_sentences_from_file(grammar
             s = ', ignoring sentences with length > ' + str(max_length)
         else:
             s = ''
-        print 'Start parsing sentences' + s
+        print('Start parsing sentences' + s)
 
     trees = parse_conll_corpus(path, False, limit)
     trees = add_trees_to_db(path, connection, trees)
@@ -209,21 +210,21 @@ def parse_sentences_from_file(grammar
     end_at = time.clock()
     total = parse + no_parse
     if not quiet:
-        print 'Parsed ' + str(parse) + ' out of ' + str(total) + ' (skipped ' + str(skipped) + ')'
-        print 'fail: ', no_parse
+        print('Parsed ' + str(parse) + ' out of ' + str(total) + ' (skipped ' + str(skipped) + ')')
+        print('fail: ', no_parse)
         if parse > 0:
-            print 'UAS: ', UAS / parse
-            print 'LAS: ', LAS / parse
-            print 'UEM: ', UEM / parse
-            print 'LEM: ', LEM / parse
-            print 'n gaps (gold): ', n_gaps_gold * 1.0 / parse
-            print 'n gaps (test): ', n_gaps_test * 1.0 / parse
-        print 'parse time: ', end_at - start_at, 's'
-        print
+            print('UAS: ', UAS / parse)
+            print('LAS: ', LAS / parse)
+            print('UEM: ', UEM / parse)
+            print('LEM: ', LEM / parse)
+            print('n gaps (gold): ', n_gaps_gold * 1.0 / parse)
+            print('n gaps (test): ', n_gaps_test * 1.0 / parse)
+        print('parse time: ', end_at - start_at, 's')
+        print()
 
 
 def test_conll_grammar_induction():
-    db_connection = experiment_database.initialize_database(sample_db)
+    db_connection = experiment_database.initialize_database(SAMPLE_DB)
 
     root_default_deprel = 'ROOT'
     disconnected_default_deprel = 'PUNC'
@@ -235,11 +236,11 @@ def test_conll_grammar_induction():
             nont_labelling = label.the_labeling_factory().create_simple_labeling_strategy(top_level, node_to_string)
             for rec_par_s in ['direct_extraction', 'left_branching', 'right_branching', 'fanout-1', 'fanout_2']:
                 rec_par = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning(rec_par_s)
-                grammar, experiment = induce_grammar_from_file(conll_train, db_connection, nont_labelling,
+                grammar, experiment = induce_grammar_from_file(CONLL_TRAIN, db_connection, nont_labelling,
                                                                terminal_labeling_strategy.token_label, rec_par,
                                                                sys.maxint, False, 'START', ignore_punctuation)
-                print
-                parse_sentences_from_file(grammar, experiment, db_connection, conll_test,
+                print()
+                parse_sentences_from_file(grammar, experiment, db_connection, CONLL_TEST,
                                           terminal_labeling_strategy.prepare_parser_input, 20, sys.maxint,
                                           False, ignore_punctuation, root_default_deprel, disconnected_default_deprel)
 
@@ -288,7 +289,7 @@ def run_experiment(db_file, training_corpus, test_corpus, do_parse, ignore_punct
 
 def single_experiment_from_config_file(config_path):
     if not os.path.isfile(config_path):
-        print "Error: File not found: " + config_path
+        print("Error: File not found: " + config_path)
         exit(1)
 
     db_file = ''
@@ -375,26 +376,26 @@ def single_experiment_from_config_file(config_path):
         if match is not None:
             max_length = match
             continue
-        print "Error: could not parse line " + str(line_nr) + ": " + line
+        print("Error: could not parse line " + str(line_nr) + ": " + line)
         exit(1)
 
     if not db_file:
-        print "Error: no database file specified."
+        print("Error: no database file specified.")
         exit(1)
     if not test_corpus:
-        print "Error: no test corpus specified."
+        print("Error: no test corpus specified.")
         exit(1)
     if not training_corpus:
-        print "Error: no training corpus specified."
+        print("Error: no training corpus specified.")
         exit(1)
     if not labeling:
-        print "Error: no nonterminal labeling strategy specified."
+        print("Error: no nonterminal labeling strategy specified.")
         exit(1)
     if not terminal_labeling:
-        print "Error: no terminal labeling strategy specified."
+        print("Error: no terminal labeling strategy specified.")
         exit(1)
     if not partitioning:
-        print "Error: no recursive partitioning strategy specified."
+        print("Error: no recursive partitioning strategy specified.")
         exit(1)
 
     run_experiment(db_file, training_corpus, test_corpus, do_parse, ignore_punctuation, max_length, labeling, terminal_labeling,
@@ -418,10 +419,10 @@ def match_integer_argument(keyword, line):
 
 
 if __name__ == '__main__':
-    print sys.argv
+    print(sys.argv)
     if len(sys.argv) > 2 and sys.argv[1] == "run-experiment":
         config = sys.argv[2]
         if os.path.isfile(config):
             single_experiment_from_config_file(config)
         else:
-            print "File not found: " + config
+            print("File not found: " + config)
