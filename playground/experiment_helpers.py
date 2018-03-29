@@ -9,7 +9,6 @@ from parser.gf_parser.gf_interface import GFParser_k_best
 from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from parser.lcfrs_la import build_sm_grammar
-from collections import defaultdict
 import tempfile
 import multiprocessing
 import sys
@@ -290,7 +289,7 @@ class Experiment(object):
 
             # testing
             test_corpus = self.read_corpus(self.resources[TESTING])
-            self.do_parse(test_corpus, self.resources[RESULT])
+            self.do_parse(test_corpus, test_corpus, self.resources[RESULT])
 
         if self.stage[0] <= 5:
             self.evaluate(self.resources[RESULT], self.resources[TESTING])

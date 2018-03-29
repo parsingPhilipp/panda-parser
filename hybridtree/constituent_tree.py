@@ -126,3 +126,6 @@ class ConstituentTree(HybridTree):
         else:
             # print self
             pass
+
+
+__all__ = ["ConstituentTree"]

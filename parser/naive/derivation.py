@@ -90,3 +90,6 @@ def der_to_str_rec(der, id):
     for child in der.child_ids(id):
         s += der_to_str_rec(der, child)
     return s
+
+
+__all__ = ["Derivation"]

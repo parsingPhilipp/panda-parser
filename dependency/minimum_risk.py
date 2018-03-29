@@ -2,14 +2,12 @@ from collections import defaultdict
 import copy
 from hybridtree.dependency_tree import HybridTree
 
+
 def compute_minimum_risk_tree(trees, probabilities):
     """
-    :param trees: 
-    :type trees: list[HybridTrees] 
-    :param op: 
-    :type op: 
-    :return: 
-    :rtype: 
+    :type trees: list[HybridTree] 
+    :type probabilities: list[float]
+    :rtype: HybridTree
     """
     heads = defaultdict(lambda: defaultdict(lambda : 0.0))
     for tree, probability in zip(trees, probabilities):
@@ -45,3 +43,6 @@ def compute_minimum_risk_tree(trees, probabilities):
             min_risk_tree.add_child(best_head[0], position)
 
     return min_risk_tree
+
+
+__all__ = ["compute_minimum_risk_tree"]

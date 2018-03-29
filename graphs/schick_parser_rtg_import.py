@@ -1,9 +1,11 @@
 from grammar.rtg import RTG
 import re
 
+NONTERMINAL_EXPRESSION = re.compile(r'^\((.*), (<(H(\d)+, )*H\d+>)\)$')
+
 
 def read_nonterminal(nonterminal):
-    match = re.search(r'^\((.*), (<(H(\d)+, )*H\d+>)\)$', nonterminal)
+    match = NONTERMINAL_EXPRESSION.search(nonterminal)
     if match:
         return match.group(1), match.group(2)
     else:
@@ -41,3 +43,6 @@ def read_rtg(path):
                 else:
                     raise IOError("Could not parse line " + line)
         return rtg
+
+
+__all__ = ["read_rtg"]

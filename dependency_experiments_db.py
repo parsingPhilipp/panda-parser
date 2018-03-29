@@ -47,7 +47,7 @@ def induce_grammar_from_file(path
                              , nont_labelling
                              , term_labelling
                              , recursive_partitioning
-                             , limit=sys.maxint
+                             , limit=sys.maxsize
                              , quiet=False
                              , start='START'
                              , ignore_punctuation=True
@@ -126,8 +126,8 @@ def parse_sentences_from_file(grammar
                               , connection
                               , path
                               , tree_yield
-                              , max_length=sys.maxint
-                              , limit=sys.maxint
+                              , max_length=sys.maxsize
+                              , limit=sys.maxsize
                               , quiet=False
                               , ignore_punctuation=True
                               , root_default_deprel=None
@@ -235,7 +235,7 @@ def test_conll_grammar_induction():
         for top_level, node_to_string in itertools.product(['strict', 'child'], ['pos', 'deprel']):
             nont_labelling = label.the_labeling_factory().create_simple_labeling_strategy(top_level, node_to_string)
             for rec_par_s in ['direct_extraction', 'left_branching', 'right_branching', 'fanout-1', 'fanout_2']:
-                rec_par = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning(rec_par_s)
+                rec_par = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().get_partitioning(rec_par_s)
                 grammar, experiment = induce_grammar_from_file(CONLL_TRAIN, db_connection, nont_labelling,
                                                                terminal_labeling_strategy.token_label, rec_par,
                                                                sys.maxint, False, 'START', ignore_punctuation)
@@ -261,7 +261,7 @@ def run_experiment(db_file, training_corpus, test_corpus, do_parse, ignore_punct
         print("Error: Invalid labeling strategy: " + labeling)
         exit(1)
 
-    rec_par = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning(partitioning)
+    rec_par = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().get_partitioning(partitioning)
     if rec_par is None:
         print("Error: Invalid recursive partitioning strategy: " + partitioning)
         exit(1)

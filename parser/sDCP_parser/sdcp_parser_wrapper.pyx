@@ -544,3 +544,6 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         :type grammar: LCFRS
         """
         grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar, term_labelling, debug)
+
+
+__all__ = ["PysDCPParser", "LCFRS_sDCP_Parser", "print_grammar"]

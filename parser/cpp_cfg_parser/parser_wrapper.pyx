@@ -271,3 +271,6 @@ class CFGDerivation(LCFRSDerivation):
         for child in self.child_ids(item):
             s += self.der_to_str_rec(child, indentation + 1)
         return s
+
+
+__all__ = ["CFGParser"]

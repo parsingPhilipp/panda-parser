@@ -68,7 +68,7 @@ test_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.Ge
 test_corpus = build_corpus(test_path, test_start, test_limit, test_exclude)
 
 terminal_labeling = FormPosTerminalsUnk(train_corpus, 20)
-recursive_partitioning = the_recursive_partitioning_factory().getPartitioning('fanout-1-left-to-right')[0]
+recursive_partitioning = the_recursive_partitioning_factory().get_partitioning('fanout-1-left-to-right')[0]
 
 max_length = 2000
 em_epochs = 5

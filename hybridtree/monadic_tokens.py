@@ -4,7 +4,7 @@ __author__ = 'kilian'
 from abc import ABCMeta, abstractmethod
 
 
-class MonadicToken:
+class MonadicToken(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -88,6 +88,7 @@ class CoNLLToken(MonadicToken):
 class ConstituencyToken(MonadicToken):
     def __init__(self):
         super(ConstituencyToken, self).__init__()
+        self._edge = None
 
     @abstractmethod
     def rank(self):
@@ -180,3 +181,7 @@ def construct_constituent_token(form, pos, terminal):
         return ConstituentCategory(form)
     else:
         return ConstituentCategory(form.get_string(), edge=form.edge_label())
+
+
+__all__ = ["ConstituencyToken", "ConstituentTerminal", "ConstituentCategory", "CoNLLToken", "construct_conll_token",
+           "construct_constituent_token"]

@@ -2,6 +2,7 @@
 from __future__ import print_function
 import math
 import sys
+import re
 
 from grammar.lcfrs import *
 
@@ -673,3 +674,6 @@ def new_extract_spans(key):
     for low, high in list(key[1][1]):
         spans.append(Span(low, high))
     return spans
+
+
+__all__ = ["LCFRS_parser", "LHS_instance", "Span"]

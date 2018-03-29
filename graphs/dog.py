@@ -974,3 +974,6 @@ def pairwise_disjoint(lists):
                 if elem in l2:
                     return False
     return True
+
+
+__all__ = ["DeepSyntaxGraph", "Edge", "DirectedOrderedGraph"]

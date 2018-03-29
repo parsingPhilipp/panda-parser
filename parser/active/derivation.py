@@ -1,7 +1,8 @@
 __author__ = 'kilian'
 
+from grammar.lcfrs import LCFRS_var
 from grammar.lcfrs_derivation import LCFRSDerivation
-from parser.active.parse_items import *
+from parser.active.parse_items import PassiveItem, Range
 import collections
 
 
@@ -118,3 +119,6 @@ class Derivation(LCFRSDerivation):
         for child in self.child_ids(id):
             s += self.der_to_str_rec(child, indent + 1)
         return s
+
+
+__all__ = ["Derivation", "DerivationItem"]

@@ -19,6 +19,7 @@ from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
 from parser.cpp_cfg_parser.parser_wrapper import CFGParser
 from grammar.lcfrs_derivation import derivation_to_hybrid_tree
+
 try:
     from parser.fst.fst_export import compile_wfst_from_right_branching_grammar, fsa_from_list_of_symbols, compose, shortestpath, shortestdistance, retrieve_rules, PolishDerivation, ReversePolishDerivation, compile_wfst_from_left_branching_grammar, local_rule_stats, paths, LeftBranchingFSTParser
     test_pynini = True
@@ -45,14 +46,9 @@ class InductionTest(unittest.TestCase):
         self.assertEqual(tree.recursive_partitioning(), (set([0, 1, 2, 3]), [(set([0]), []), (set([1]), []), (set([2]), []), (set([3]), [])]))
         print(tree.recursive_partitioning())
 
-        [fanout_1] = the_recursive_partitioning_factory().getPartitioning('fanout-1')
+        [fanout_1] = the_recursive_partitioning_factory().get_partitioning('fanout-1')
 
         print(fanout_1(tree))
-
-
-
-        # self.assertEqual(True, True)
-
 
     def test_single_root_induction(self):
         tree = hybrid_tree_1()
@@ -141,7 +137,7 @@ class InductionTest(unittest.TestCase):
     def test_multiroot(self):
         tree = multi_dep_tree()
         term_pos = the_terminal_labeling_factory().get_strategy('pos').token_label
-        fanout_1 = the_recursive_partitioning_factory().getPartitioning('fanout-1')
+        fanout_1 = the_recursive_partitioning_factory().get_partitioning('fanout-1')
         for top_level_labeling_strategy in ['strict', 'child']:
             labeling_strategy = the_labeling_factory().create_simple_labeling_strategy(top_level_labeling_strategy,
                                                                                        'pos+deprel')
@@ -316,8 +312,6 @@ class InductionTest(unittest.TestCase):
         tree2 = hybrid_tree_2()
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
 
-
-
         (_, grammar) = induce_grammar([tree, tree2],
                                       the_labeling_factory().create_simple_labeling_strategy('empty', 'pos'),
                                       terminal_labeling.token_label, [cfg], 'START')
@@ -348,7 +342,6 @@ class InductionTest(unittest.TestCase):
                               construct_conll_token)
 
             print(h_tree_2)
-
 
 
 def hybrid_tree_1():

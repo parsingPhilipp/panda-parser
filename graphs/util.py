@@ -3,6 +3,11 @@ import subprocess
 from collections import defaultdict
 from grammar.induction.decomposition import n_spans
 
+
+# change to your local PDF viewer
+VIEWER = "zathura"
+
+
 def render_and_view_dog(dog, name, path="/tmp/"):
     dot = dog.export_dot(name)
     dot_path = path + name + '.dot'
@@ -15,7 +20,7 @@ def render_and_view_dog(dog, name, path="/tmp/"):
     p.communicate()
     # print(command, p.returncode, p.stderr, p.stdout)
 
-    q = subprocess.Popen(["zathura", pdf_path])
+    q = subprocess.Popen([VIEWER, pdf_path])
     return q
 
 
@@ -28,7 +33,6 @@ def extract_recursive_partitioning(dsg, alpha=0.9, beta=0.2):
     natural_roots = [node for node in dsg.dog.nodes
                      if (node not in dsg.dog.parents or dsg.dog.parents[node] == [])
                      and (node in dsg.dog.outputs or dsg.dog.children(node))]
-
 
     tree_map = defaultdict(list)
     distance = {VROOT: 1}
@@ -170,3 +174,6 @@ def pretty_print_rec_partitioning(rec_par):
             print_rec(child, indent+1)
 
     print_rec(rec_par, 0)
+
+
+__all__ = ["render_and_view_dog", "extract_recursive_partitioning", "pretty_print_rec_partitioning"]

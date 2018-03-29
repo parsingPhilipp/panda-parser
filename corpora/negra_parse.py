@@ -3,6 +3,8 @@ from __future__ import print_function, unicode_literals
 from os.path import expanduser
 from hybridtree.constituent_tree import ConstituentTree
 from grammar.lcfrs import *
+import re
+import codecs
 try:
     from __builtin__ import str as text
 except ImportError:
@@ -30,6 +32,7 @@ DISCDOP_BIN_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]
                                      r'([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*(\n)?$')
 DISCODOP_BIN_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
                                    r'([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*\n?$')
+
 
 # Sentence number to name.
 # file_name: int
@@ -218,3 +221,6 @@ def hybridtrees_to_sentence_names(trees, counter, length):
             counter += 1
 
     return sentence_names
+
+
+__all__ = ["sentence_names_to_hybridtrees", "hybridtrees_to_sentence_names", "hybridtree_to_sentence_name"]

@@ -14,14 +14,14 @@ from util.enumerator import Enumerator
 from hybridtree.monadic_tokens import ConstituentTerminal
 
 # Location of Tiger corpus.
-tiger_dir = 'res/tiger'
+TIGER_DIR = 'res/tiger'
 
 # Uncomment depending on whether complete corpus is used or subsets.
 # For testing purposes, smaller portions where manually extracted from the
 # complete XML file, which takes a long time to parse.
 # Results were put in tiger_8000.xml and test.xml.
-tiger = tiger_dir + '/tiger_release_aug07.corrected.16012013.xml'
-tiger_test = tiger_dir + '/tiger_8000.xml'
+TIGER = TIGER_DIR + '/tiger_release_aug07.corrected.16012013.xml'
+TIGER_TEST = TIGER_DIR + '/tiger_8000.xml'
 
 
 # To hold parsed XML file. Cached for efficiency.
@@ -103,13 +103,13 @@ def sentence_name_to_hybridtree(name, file_name, disconnect_punctuation=True):
             tree.set_label(ident, cat)
             for child in nont.iterfind('edge'):
                 child_id = child.get('idref')
-                if not is_punct(graph, child_id) or not disconnect_punctuation:
+                if not is_punctuation(graph, child_id) or not disconnect_punctuation:
                     tree.add_child(ident, child_id)
         for nont in graph.iterfind('nonterminals/nt'):
             for child in nont.iterfind('edge'):
                 child_id = child.get('idref')
                 edge_label = child.get('label')
-                if (not is_punct(graph, child_id) or not disconnect_punctuation) and edge_label is not None:
+                if (not is_punctuation(graph, child_id) or not disconnect_punctuation) and edge_label is not None:
                     tree.node_token(child_id).set_edge_label(edge_label)
         tree.reorder()
         return tree
@@ -201,7 +201,7 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
                 child_id = child.get('idref')
                 child_idx = node_enum.object_index(child_id)
                 edge_label = child.get('label')
-                if not is_punct(graph, child_id):
+                if not is_punctuation(graph, child_id):
                     inner_nodes[idx][1].append((child_idx, 'p', edge_label))
 
             for parent in nont.iterfind('secedge'):
@@ -244,11 +244,14 @@ def is_word(pos, word):
 # In graph, is element specified by id punctuation?
 # graph: XML element
 # id: string
-def is_punct(graph, ident):
-    term = graph.find('terminals/t[@id="%s"]' % ident)
+def is_punctuation(graph, identifier):
+    term = graph.find('terminals/t[@id="%s"]' % identifier)
     if term is not None:
         word = term.get('word')
         pos = term.get('pos')
         return not is_word(pos, word)
     else:
         return False
+
+
+__all__ = ["sentence_names_to_hybridtrees", "sentence_names_to_deep_syntax_graphs"]

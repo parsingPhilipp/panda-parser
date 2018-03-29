@@ -267,10 +267,11 @@ BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
 MAX_RULE_PRODUCT_ONLY = False
 LENGTH_40 = True
 TEST_SECOND_HALF = True
+PREDICTED_POS = False
 
 FANOUT = 2
 RECURSIVE_PARTITIONING \
-    = the_recursive_partitioning_factory().getPartitioning('fanout-' + str(FANOUT) + '-left-to-right')[0]
+    = the_recursive_partitioning_factory().get_partitioning('fanout-' + str(FANOUT) + '-left-to-right')[0]
 
 MAX_SENTENCE_LENGTH = 5000
 EM_EPOCHS = 20
@@ -978,7 +979,7 @@ def main(directory=None):
     experiment.organizer.merge_type = "PERCENT"
     experiment.organizer.threads = 8
 
-    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, test_second_half=TEST_SECOND_HALF)
+    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, test_pred=PREDICTED_POS, test_second_half=TEST_SECOND_HALF)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test

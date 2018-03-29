@@ -196,5 +196,6 @@ class ConstituentTreeTest(unittest.TestCase):
         self.tree3.set_label("NP", "NP")
         self.tree3.add_to_root("NP")
 
+
 if __name__ == '__main__':
     unittest.main()

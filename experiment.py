@@ -4,14 +4,12 @@ import time
 
 import corpora.negra_parse
 import corpora.tiger_parse
-from constituent.parse_accuracy import ParseAccuracy, ParseAccuracyPenalizeFailures
+from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from hybridtree.constituent_tree import *
 from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
     start as induction_start
 from parser.naive.parsing import *
-from parser.viterbi.left_branching import LeftBranchingParser
-from parser.viterbi.viterbi import RightBranchingParser, ViterbiParser
 from parser.parser_factory import the_parser_factory
 from grammar.induction.decomposition import *
 
@@ -57,10 +55,10 @@ def sentence_names_to_hybridtrees(names):
                                                                  corpora.negra_parse.NEGRA_PROJECTIVE)
     elif corpus == 'tiger':
         return corpora.tiger_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.tiger_parse.tiger)
+                                                                 corpora.tiger_parse.TIGER)
     elif corpus == 'tiger subset':
         return corpora.tiger_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.tiger_parse.tiger_test)
+                                                                 corpora.tiger_parse.TIGER_TEST)
     else:
         raise Exception('wrong corpus')
 

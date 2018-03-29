@@ -18,7 +18,7 @@ result = 'cascade-parse-results.conll'
 start = 'START'
 term_labelling = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy('pos')
 recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().\
-    getPartitioning('fanout-1')
+    get_partitioning('fanout-1')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')

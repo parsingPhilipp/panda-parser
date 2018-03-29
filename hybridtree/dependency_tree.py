@@ -51,3 +51,6 @@ def disconnect_punctuation(trees):
                 print("full yield: ", len(tree2.full_yield()))
                 raise Exception()
             yield tree2
+
+
+__all__ = ["disconnect_punctuation"]

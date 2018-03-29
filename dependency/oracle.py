@@ -49,3 +49,6 @@ def compute_oracle_tree(trees, gold_tree):
             correct_labels = lac
 
     return best_hypothesis
+
+
+__all__ = ["compute_oracle_tree"]

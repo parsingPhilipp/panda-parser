@@ -154,7 +154,7 @@ def main(ignore_punctuation=False):
 def trainAndEval(strategy, labelling1, labelling2, fanout, parser_type, train, test, cDT, parseStrings, ignore_punctuation=False):
     file = open('results.txt', 'a')
     term_labelling = the_terminal_labeling_factory().get_strategy('pos')
-    recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-' + str(fanout) + strategy)
+    recursive_partitioning = d_i.the_recursive_partitioning_factory().get_partitioning('fanout-' + str(fanout) + strategy)
     primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy(labelling1, labelling2)
     
 

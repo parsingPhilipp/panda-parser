@@ -4,7 +4,7 @@ from corpora.sdc_parse import parse_sentence, parse_file, export_sentence, expor
 from grammar.induction.decomposition import left_branching_partitioning
 from graphs.util import render_and_view_dog, extract_recursive_partitioning, pretty_print_rec_partitioning
 from graphs.graph_decomposition import compute_decomposition, induce_grammar_from, dog_evaluation
-from graphs.dog_generator import generate, generate_sdg
+from graphs.dog_generator import generate_sdg
 from parser.naive.parsing import LCFRS_parser
 from itertools import product
 from random import randint

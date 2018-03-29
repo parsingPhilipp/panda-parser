@@ -102,3 +102,6 @@ def rule_idx_from_label(label):
     assert len(split) == 4
     rule_idx = int(split[-2])
     return rule_idx
+
+
+__all__ = ["rule_idx_from_label", "transform_grammar", "transform_grammar_cfg_approx"]

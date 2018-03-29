@@ -261,3 +261,5 @@ cdef class PyDerivationManager(PyTraceManager):
         add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
         # nodeMap.clear()
 
+
+__all__ = ["PyDerivationManager"]

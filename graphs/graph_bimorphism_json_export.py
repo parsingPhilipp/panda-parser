@@ -75,3 +75,6 @@ def export_corpus_to_json(corpus, terminals, terminal_labeling=str):
     for dsg in corpus:
         data["corpus"].append(dsg.export_bihypergraph_json(terminals, terminal_labeling=terminal_labeling))
     return data
+
+
+__all__ = ["export_dog_grammar_to_json", "export_corpus_to_json"]

@@ -498,3 +498,6 @@ class HybridTree:
                     self_child, other_child in zip(self.children(self_node), other.children(other_node))]
 
         return all(children)
+
+
+__all__ = ["HybridTree"]

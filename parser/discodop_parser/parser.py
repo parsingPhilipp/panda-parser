@@ -274,3 +274,6 @@ class DiscodopKbestParser(AbstractParser):
                 yield weight, DiscodopDerivation(tree, self.grammar)
             except ValueError:
                 print("\nill-bracketed string:", tree_string, file=stderr)
+
+
+__all__ = ["DiscodopKbestParser"]

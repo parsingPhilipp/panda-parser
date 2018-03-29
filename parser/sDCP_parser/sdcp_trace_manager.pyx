@@ -92,3 +92,6 @@ def compute_reducts(grammar, corpus, term_labelling, PySDCPParser parser=None, E
     output_helper_utf8("computing reducts")
     trace.compute_reducts(corpus, frequency=frequency)
     return trace
+
+
+__all__ = ["compute_reducts", "PySDCPTraceManager"]

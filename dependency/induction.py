@@ -83,10 +83,10 @@ class RecursivePartitioningFactory:
     def __init__(self):
         self.__partitionings = {}
 
-    def registerPartitioning(self, name, partitioning):
+    def register_partitioning(self, name, partitioning):
         self.__partitionings[name] = partitioning
 
-    def getPartitioning(self, name):
+    def get_partitioning(self, name):
         partitioning_names = name.split(',')
         partitionings = []
         for name in partitioning_names:
@@ -106,21 +106,21 @@ class RecursivePartitioningFactory:
                     rec_par = lambda tree: fanout_k_argmax(tree, k)
                     rec_par.__name__ = 'fanout_' + str(k) + '_argmax'
                     partitionings.append(rec_par)
-                #set seed, if random strategy is chosen
-                randMatch = re.search(r'-random-(\d*)', trans)
-                if randMatch:
-                    s = int(randMatch.group(1))
+                # set seed, if random strategy is chosen
+                rand_match = re.search(r'-random-(\d*)', trans)
+                if rand_match:
+                    s = int(rand_match.group(1))
                     seed(s)
                     rec_par = lambda tree: fanout_k_random(tree, k)
                     rec_par.__name__ = 'fanout_' + str(k) + '_random'
                     partitionings.append(rec_par)
-                #set fallback strategy if no position corresponds to an existing nonterminal
-                noNewMatch = re.search(r'-no-new-nont([-\w]*)', trans)
-                if noNewMatch:
-                    fallback = noNewMatch.group(1)
-                    randMatch = re.search(r'-random-(\d*)', fallback)
-                    if randMatch:
-                        s = int(randMatch.group(1))
+                # set fallback strategy if no position corresponds to an existing nonterminal
+                no_new_nont_match = re.search(r'-no-new-nont([-\w]*)', trans)
+                if no_new_nont_match:
+                    fallback = no_new_nont_match.group(1)
+                    rand_match = re.search(r'-random-(\d*)', fallback)
+                    if rand_match:
+                        s = int(rand_match.group(1))
                         seed(s)
                         fallback = '-random'
                     rec_par = lambda tree, nonts, nont_labelling: fanout_k_no_new_nont(tree, nonts, nont_labelling, k, fallback)
@@ -137,13 +137,15 @@ class RecursivePartitioningFactory:
         else:
             return None
 
+
 def the_recursive_partitioning_factory():
     factory = RecursivePartitioningFactory()
-    factory.registerPartitioning('left-branching', left_branching)
-    factory.registerPartitioning('right-branching', right_branching)
-    factory.registerPartitioning('direct-extraction', direct_extraction)
-    factory.registerPartitioning('cfg', cfg)
+    factory.register_partitioning('left-branching', left_branching)
+    factory.register_partitioning('right-branching', right_branching)
+    factory.register_partitioning('direct-extraction', direct_extraction)
+    factory.register_partitioning('cfg', cfg)
     return factory
+
 
 ###################################### Recursive Rule extraction method ###################################
 def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labelling):
@@ -356,3 +358,5 @@ def create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_lab
     lhs.add_arg(arg)
     return lhs
 
+
+__all__ = ["induce_grammar", "the_recursive_partitioning_factory"]

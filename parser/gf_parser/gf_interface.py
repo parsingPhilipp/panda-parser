@@ -2,13 +2,12 @@ import pgf
 from parser.parser_interface import AbstractParser
 from grammar.lcfrs_derivation import LCFRSDerivation
 from parser.gf_parser.gf_export import compile_gf_grammar, export, LANGUAGE, COMPILED_SUFFIX
-from util.enumerator import Enumerator
 from math import exp
 import os.path
 from functools import reduce
 
-default_prefix = '/tmp/'
-default_name = 'gfgrammar'
+DEFAULT_PREFIX = '/tmp/'
+DEFAULT_NAME = 'gfgrammar'
 
 
 class GFDerivation(LCFRSDerivation):
@@ -80,8 +79,8 @@ class GFParser(AbstractParser):
                     name = save_preprocessing[1]
                     override = True
                 else:
-                    prefix = default_prefix
-                    name = default_name
+                    prefix = DEFAULT_PREFIX
+                    name = DEFAULT_NAME
                     override = False
                 self.gf_grammar = self._preprocess(grammar, prefix=prefix, name=name, override=override)
 
@@ -95,7 +94,6 @@ class GFParser(AbstractParser):
         self.input = input
 
     def parse(self):
-        # assert isinstance(self.rules, Enumerator)
         try:
             i = self.gf_grammar.parse(' '.join(self.input), n=1, heuristics=self._heuristics)
             self._best, self._goal = next(i)
@@ -121,7 +119,7 @@ class GFParser(AbstractParser):
             return None
 
     @staticmethod
-    def _preprocess(grammar, prefix=default_prefix, name=default_name, override=False):
+    def _preprocess(grammar, prefix=DEFAULT_PREFIX, name=DEFAULT_NAME, override=False):
         name_ = export(grammar, prefix, name, override)
         return_code = compile_gf_grammar(prefix, name_)
         if return_code != 0:
@@ -188,3 +186,6 @@ class GFParser_k_best(GFParser):
 
     def viterbi_weight(self):
         return exp(-self._viterbi_weigth)
+
+
+__all__ = ["GFParser", "GFParser_k_best"]

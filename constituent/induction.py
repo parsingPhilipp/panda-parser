@@ -9,6 +9,7 @@ from grammar.dcp import *
 from grammar.induction.terminal_labeling import PosTerminals
 from hybridtree.constituent_tree import ConstituentTree
 import copy
+import re
 # The root symbol.
 start = 'START'
 
@@ -506,7 +507,7 @@ def fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isola
     return nont, spans, id_seq, nont_feat
 
 
-strict_markov_regex = re.compile(r'strict-markov-v-(\d+)-h-(\d+)')
+STRICT_MARKOV_REGEX = re.compile(r'strict-markov-v-(\d+)-h-(\d+)')
 
 
 def id_nont(id_seq, tree, naming):
@@ -522,7 +523,7 @@ def id_nont(id_seq, tree, naming):
     elif naming == 'child':
         return id_nont_child(id_seq, tree)
     else:
-        m = strict_markov_regex.match(naming)
+        m = STRICT_MARKOV_REGEX.match(naming)
         if m:
             h = int(m.group(2))
             v = int(m.group(1))

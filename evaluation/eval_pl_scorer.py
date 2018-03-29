@@ -7,9 +7,7 @@ import corpora.conll_parse
 import dependency_experiments_db
 from hybridtree.general_hybrid_tree import HybridTree
 
-# use the subprocess32 module (python3 backport) instead of subprocess
-# import subprocess
-import subprocess32 as subprocess
+import subprocess
 import re
 
 hypothesis_prefix = '.tmp/sys-output'
@@ -125,6 +123,7 @@ def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
 
     return corpora.conll_parse.tree_to_conll_str(hypothesis_tree)
 
+
 # Sample evaluation
 if __name__ == '__main__':
     conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
@@ -137,6 +136,6 @@ if __name__ == '__main__':
     common = experiment_database.common_recognised_sentences(connection, [experiment])
     las, uas, la = eval_pl_scores(connection, corpus, experiment, common)
     experiment_database.finalize_database(connection)
-    print "Labeled attachment score {:.2f}".format(las)
-    print "Unlabeled attachment score {:.2f}".format(uas)
-    print "Label accuracy {:.2f}".format(la)
+    print("Labeled attachment score {:.2f}".format(las))
+    print("Unlabeled attachment score {:.2f}".format(uas))
+    print("Label accuracy {:.2f}".format(la))

@@ -141,3 +141,6 @@ def compile_gf_grammar(prefix, name):
     return call(' '.join(["gf", "-make", "-D", prefix, "--probs=" + os.path.join(prefix, name + PROBS_SUFFIX)
                 , "+RTS", "-K100M", "-RTS" # compilation of large grammars requires larger run-time stack
                 , os.path.join(prefix, name + LANGUAGE + SUFFIX)]), shell=True)
+
+
+__all__ = ["compile_gf_grammar", "export", "LANGUAGE", "COMPILED_SUFFIX"]

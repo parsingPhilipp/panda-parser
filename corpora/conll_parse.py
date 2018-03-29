@@ -227,3 +227,6 @@ def score_cmp_dep_trees(reference, test):
     """
     (UAS, LAS, UEM, LEM, length) = compare_dependency_trees(reference, test)
     return UAS * 1.0 / length, LAS * 1.0 / length, UEM, LEM
+
+
+__all__ = ["parse_conll_corpus", "tree_to_conll_str", "score_cmp_dep_trees", "compare_dependency_trees"]

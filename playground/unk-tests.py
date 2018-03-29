@@ -223,7 +223,7 @@ def main(limit=3000
         else:
             return os.path.join(dir, gram + '_experiment_parse_results.conll')
 
-    recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning(recursive_partitioning)
+    recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().get_partitioning(recursive_partitioning)
     top_level, low_level = tuple(nonterminal_labeling.split('-'))
     nonterminal_labeling = d_l.the_labeling_factory().create_simple_labeling_strategy(top_level, low_level)
 

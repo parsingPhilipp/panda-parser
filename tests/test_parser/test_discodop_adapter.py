@@ -22,7 +22,8 @@ import re
 
 
 class DiscodopAdapterTest(unittest.TestCase):
-    def build_grammar(self):
+    @staticmethod
+    def build_grammar():
         grammar = LCFRS("START")
         # rule 0
         lhs = LCFRS_lhs("START")
@@ -62,7 +63,8 @@ class DiscodopAdapterTest(unittest.TestCase):
         grammar.make_proper()
         return grammar
 
-    def build_nm_grammar(self):
+    @staticmethod
+    def build_nm_grammar():
         grammar = LCFRS("START")
         # rule 0
         lhs = LCFRS_lhs("START")
@@ -98,6 +100,27 @@ class DiscodopAdapterTest(unittest.TestCase):
             lhs.add_arg([LCFRS_var(0, 0)])
             lhs.add_arg([LCFRS_var(0, 1), LCFRS_var(1, 0)])
             grammar.add_rule(lhs, [nont, c2])
+
+        grammar.make_proper()
+        return grammar
+
+    @staticmethod
+    def build_paper_grammar():
+        grammar = LCFRS("S")
+        # rule 0
+        lhs = LCFRS_lhs("B")
+        lhs.add_arg(["a"])
+        grammar.add_rule(lhs, [])
+
+        # rule 1
+        lhs = LCFRS_lhs("S")
+        lhs.add_arg([LCFRS_var(0, 0)])
+        grammar.add_rule(lhs, ["B"])
+
+        # rule 2
+        lhs = LCFRS_lhs("B")
+        lhs.add_arg([LCFRS_var(0,0), LCFRS_var(1, 0)])
+        grammar.add_rule(lhs, ["B", "B"])
 
         grammar.make_proper()
         return grammar
@@ -206,10 +229,8 @@ class DiscodopAdapterTest(unittest.TestCase):
         print(chart.getEdgeForItem(root, 0))
         # print(lazykbest(chart, 5))
 
-
         manager = PyDerivationManager(grammar)
         manager.convert_chart_to_hypergraph(chart, disco_grammar, debug=True)
-
 
         file = tempfile.mktemp()
         print(file)
@@ -255,6 +276,9 @@ class DiscodopAdapterTest(unittest.TestCase):
         #     edge = chart.parseforest[item]
         #     print(item, item.binrepr(), item.__repr__(), item.lexidx())
         #     print(type(edge))
+        for _ in range(5):
+            vec2 = py_edge_weight_projection(la, manager, debug=True, log_mode=True)
+            print(vec2)
 
     def test_projection_based_parser(self):
         grammar = self.build_grammar()
@@ -312,6 +336,61 @@ class DiscodopAdapterTest(unittest.TestCase):
         print(der)
         ranges = {der.spanned_ranges(idx)[0] for idx in der.ids()}
         self.assertSetEqual({(0, 3), (0, 2), (0, 1), (1, 2), (2, 3)}, ranges)
+
+    def test_la_viterbi_parsing_3(self):
+        grammar = LCFRS("S")
+
+        # rule 0
+        lhs = LCFRS_lhs("B")
+        lhs.add_arg(["a"])
+        grammar.add_rule(lhs, [], 0.25)
+
+        # rule 1
+        lhs = LCFRS_lhs("A")
+        lhs.add_arg(["a"])
+        grammar.add_rule(lhs, [], 0.5)
+
+        # rule 2
+        lhs = LCFRS_lhs("S")
+        lhs.add_arg([LCFRS_var(0, 0)])
+        grammar.add_rule(lhs, ["B"], 1.0)
+
+        # rule 3
+        lhs = LCFRS_lhs("A")
+        lhs.add_arg([LCFRS_var(0, 0), LCFRS_var(1, 0)])
+        grammar.add_rule(lhs, ["A", "B"], 0.5)
+
+        # rule 4
+        lhs = LCFRS_lhs("B")
+        lhs.add_arg([LCFRS_var(0, 0), LCFRS_var(1, 0)])
+        grammar.add_rule(lhs, ["A", "B"], 0.75)
+
+        grammar.make_proper()
+
+        inp = ["a"] * 3
+
+        nontMap = Enumerator()
+        gi = PyGrammarInfo(grammar, nontMap)
+        sm = PyStorageManager()
+        print(nontMap.object_index("S"))
+        print(nontMap.object_index("B"))
+
+        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
+        parser = DiscodopKbestParser(grammar, la=la, nontMap=nontMap, grammarInfo=gi, latent_viterbi_mode=True)
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        der = parser.latent_viterbi_derivation(True)
+        print(der)
+
+        der2 = None
+
+        for w, der_ in parser.k_best_derivation_trees():
+            if der2 is None:
+                der2 = der_
+            print(w, der_)
+
+        print(der2)
 
     def test_projection_based_parser_k_best_hack(self):
         grammar = self.build_grammar()

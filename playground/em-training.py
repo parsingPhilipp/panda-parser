@@ -37,7 +37,7 @@ def sm_path(cycles):
 
 
 term_labelling = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy('pos')
-recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning('fanout-1')
+recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().get_partitioning('fanout-1')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('strict', 'deprel')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')
@@ -122,10 +122,12 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preproce
         ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
     p.communicate()
 
+
 def length_limit(trees, max_length=50):
     for tree in trees:
         if len(tree.full_token_yield()) <= max_length:
             yield tree
+
 
 def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
     max_length = 20
@@ -223,6 +225,7 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
             print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
             if parsing:
                 do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
+
 
 if __name__ == '__main__':
     main()

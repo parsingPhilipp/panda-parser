@@ -22,7 +22,7 @@ def terminal_labeling(corpus, threshold=terminal_threshold):
     return FrequencyBiasedTerminalLabeling(fine_terminal_labeling, fallback_terminal_labeling, corpus, threshold)
 
 
-class MyTestCase(unittest.TestCase):
+class TestDiscodopLCFRSInduction(unittest.TestCase):
     def test_something(self):
         limit = 55000
         # limit = 30
@@ -93,8 +93,6 @@ class MyTestCase(unittest.TestCase):
 
         grammar.make_proper()
         disco_parser = DiscodopKbestParser(grammar)
-
-
 
 
 if __name__ == '__main__':

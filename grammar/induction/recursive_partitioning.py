@@ -2,6 +2,7 @@ import re
 from grammar.induction.decomposition import left_branching_partitioning, right_branching_partitioning, fanout_limited_partitioning, fanout_limited_partitioning_left_to_right, fanout_limited_partitioning_argmax, fanout_limited_partitioning_random_choice, fanout_limited_partitioning_no_new_nont
 from random import seed
 
+
 # Recursive partitioning strategies
 
 def left_branching(tree):
@@ -31,10 +32,10 @@ class RecursivePartitioningFactory:
     def __init__(self):
         self.__partitionings = {}
 
-    def registerPartitioning(self, name, partitioning):
+    def register_partitioning(self, name, partitioning):
         self.__partitionings[name] = partitioning
 
-    def getPartitioning(self, name):
+    def get_partitioning(self, name):
         partitioning_names = name.split(',')
         partitionings = []
         for name in partitioning_names:
@@ -88,8 +89,11 @@ class RecursivePartitioningFactory:
 
 def the_recursive_partitioning_factory():
     factory = RecursivePartitioningFactory()
-    factory.registerPartitioning('left-branching', left_branching)
-    factory.registerPartitioning('right-branching', right_branching)
-    factory.registerPartitioning('direct-extraction', direct_extraction)
-    factory.registerPartitioning('cfg', cfg)
+    factory.register_partitioning('left-branching', left_branching)
+    factory.register_partitioning('right-branching', right_branching)
+    factory.register_partitioning('direct-extraction', direct_extraction)
+    factory.register_partitioning('cfg', cfg)
     return factory
+
+
+__all__ = ["RecursivePartitioningFactory", "left_branching", "right_branching", "cfg", "direct_extraction"]

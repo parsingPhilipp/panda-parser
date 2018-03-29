@@ -12,25 +12,26 @@ from dependency.labeling import the_labeling_factory
 from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from grammar.induction.recursive_partitioning import direct_extraction
 from hybridtree.monadic_tokens import construct_conll_token
-from hybridtree.dependency_tree import disconnect_punctuation
+from hybridtree.dependency_tree import disconnect_punctuation, HybridTree
 from parser.naive.parsing import LCFRS_parser
 from corpora.conll_parse import *
 import subprocess
 import os
+import re
 
-test_file = 'res/tests/Dependency_Corpus.conll'
-test_file_modified = 'res/tests/Dependency_Corpus_modified.conll'
-slovene = 'res/tests/slovene_multi_root.conll'
+TEST_FILE = 'res/tests/Dependency_Corpus.conll'
+TEST_FILE_MODIFIED = 'res/tests/Dependency_Corpus_modified.conll'
+SLOVENE = 'res/tests/slovene_multi_root.conll'
 
-conll_test = 'res/dependency_conll/german/tiger/test/german_tiger_test.conll'
-conll_train = 'res/dependency_conll/german/tiger/train/german_tiger_train.conll'
+CONLL_TEST = 'res/dependency_conll/german/tiger/test/german_tiger_test.conll'
+CONLL_TRAIN = 'res/dependency_conll/german/tiger/train/german_tiger_train.conll'
 
-hypothesis_prefix = '.tmp/sys-output'
-eval_pl = 'util/eval.pl'
-test_file_path = '/tmp/no-punctuation.conll'
-test_file_path2 = '/tmp/sent-leq-20.conll'
+HYPOTHESIS_PREFIX = '.tmp/sys-output'
+EVAL_PL = 'util/eval.pl'
+TEST_FILE_PATH = '/tmp/no-punctuation.conll'
+TEST_FILE_PATH_LE_20 = '/tmp/sent-leq-20.conll'
 
-global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4       NK
+GLOBAL_SAMPLE = """1       Viele   _       PIAT    PIAT    _       4       NK      4       NK
 2       Göttinger       _       ADJA    ADJA    _       4       NK      4       NK
 3       ``      _       $(      $(      _       4       PUNC    4       PUNC
 4       Autonome        _       NN      NN      _       6       SB      6       SB
@@ -49,16 +50,17 @@ global_s = """1       Viele   _       PIAT    PIAT    _       4       NK      4 
 
 
 class CoNLLParserTest(unittest.TestCase):
-    def test_conll_grammar_induction(self):
+    @staticmethod
+    def test_conll_grammar_induction():
         ignore_punctuation = True
-        trees = parse_conll_corpus(test_file, False)
+        trees = parse_conll_corpus(TEST_FILE, False)
         trees = disconnect_punctuation(trees)
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
         nonterminal_labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
         (_, grammar) = d_i.induce_grammar(trees, nonterminal_labeling, terminal_labeling.token_label,
                                           [direct_extraction], 'START')
 
-        trees2 = parse_conll_corpus(test_file_modified, False)
+        trees2 = parse_conll_corpus(TEST_FILE_MODIFIED, False)
         trees2 = disconnect_punctuation(trees2)
 
         for tree in trees2:
@@ -78,7 +80,7 @@ class CoNLLParserTest(unittest.TestCase):
             print(tree_to_conll_str(h_tree))
 
     def test_multi_root_parsing(self):
-        trees = parse_conll_corpus(slovene, False)
+        trees = parse_conll_corpus(SLOVENE, False)
 
         counter = 0
 
@@ -90,8 +92,8 @@ class CoNLLParserTest(unittest.TestCase):
         self.assertEqual(counter, 1)
 
     def test_conll_parse(self):
-        trees = parse_conll_corpus(conll_test, True)
-        test_trees = parse_conll_corpus(conll_test, True)
+        trees = parse_conll_corpus(CONLL_TEST, True)
+        test_trees = parse_conll_corpus(CONLL_TEST, True)
 
         # for i in range (len(trees)):
         # if i < len(test_trees):
@@ -120,7 +122,7 @@ class CoNLLParserTest(unittest.TestCase):
             # print tree_to_conll_str(trees[0])
 
     def test_conll_generation(self):
-        test_trees = disconnect_punctuation(parse_conll_corpus(conll_test, True))
+        test_trees = disconnect_punctuation(parse_conll_corpus(CONLL_TEST, True))
         CoNLL_strings = []
         for tree in test_trees:
             CoNLL_strings.append(tree_to_conll_str(tree))
@@ -129,27 +131,25 @@ class CoNLLParserTest(unittest.TestCase):
 
         # Remove file if exists
         try:
-            os.remove(test_file_path)
+            os.remove(TEST_FILE_PATH)
         except OSError:
             pass
 
-        test_file = open(test_file_path, 'a+')
+        test_file = open(TEST_FILE_PATH, 'a+')
         test_file.write('\n\n'.join(CoNLL_strings))
         test_file.close()
 
-        eval_pl_call_strings = ["-g {!s}".format(conll_test), "-s {!s}".format(test_file_path), ""]
-        print(eval_pl_call_strings)
-        p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        eval_pl_call_strings = ["-g {!s}".format(CONLL_TEST), "-s {!s}".format(TEST_FILE_PATH), ""]
+        # print(eval_pl_call_strings)
+        p = subprocess.Popen(['perl', EVAL_PL] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
-
-        # print out
-        # print err
 
         self.assertEqual(p.returncode, 0)
 
-        out = str(out)
-        lines = out.split('\n')
-        # print lines
+        out = str(out, encoding='utf8')
+        lines = str(out).splitlines()
+        # for line in lines:
+        #     print(line)
         uas = 0.0
         las = 0.0
         la = 0.0
@@ -164,11 +164,14 @@ class CoNLLParserTest(unittest.TestCase):
             if m:
                 la = float(m.group(1)) / 100
 
-        print(uas, las, la)
+        # print(uas, las, la)
+        self.assertEqual(1.0, uas)
+        self.assertEqual(1.0, las)
+        self.assertEqual(1.0, la)
 
     def test_conll_generation_2(self):
-        test_trees = parse_conll_corpus(conll_test, True)
-        dis = disconnect_punctuation(parse_conll_corpus(conll_test, True))
+        test_trees = parse_conll_corpus(CONLL_TEST, True)
+        dis = disconnect_punctuation(parse_conll_corpus(CONLL_TEST, True))
         dis_labs = []
         CoNLL_strings = []
         for tree in dis:
@@ -183,18 +186,19 @@ class CoNLLParserTest(unittest.TestCase):
 
         # Remove file if exists
         try:
-            os.remove(test_file_path2)
+            os.remove(TEST_FILE_PATH_LE_20)
         except OSError:
             pass
 
-        test_file = open(test_file_path2, 'a+')
+        test_file = open(TEST_FILE_PATH_LE_20, 'a+')
         test_file.write('\n\n'.join(CoNLL_strings))
         test_file.close()
 
     def test_compare_rec_par(self):
-        test_trees = disconnect_punctuation(parse_conll_corpus(conll_train, True))
+        test_trees = disconnect_punctuation(parse_conll_corpus(CONLL_TRAIN, True))
         mylist = []
-        [leftb,cfg] = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().getPartitioning('left-branching,fanout-1')
+        factory = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory()
+        [leftb, cfg] = factory.get_partitioning('left-branching,fanout-1')
         i = 0
         for tree in test_trees:
             i = i + 1
@@ -203,6 +207,7 @@ class CoNLLParserTest(unittest.TestCase):
             if i == 1000:
                 break
         print(mylist)
+
 
 if __name__ == '__main__':
     unittest.main()

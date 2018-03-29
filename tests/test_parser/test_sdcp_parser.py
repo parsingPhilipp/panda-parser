@@ -7,7 +7,7 @@ from grammar.induction.decomposition import fanout_limited_partitioning
 from corpora.conll_parse import parse_conll_corpus
 from dependency.induction import induce_grammar
 from grammar.induction.recursive_partitioning import cfg
-from grammar.induction.terminal_labeling import the_terminal_labeling_factory, PosTerminals, FormTerminals, FormPosTerminalsUnk
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory, PosTerminals, FormPosTerminalsUnk
 from constituent.induction import fringe_extract_lcfrs, direct_extract_lcfrs
 from dependency.labeling import the_labeling_factory
 from hybridtree.general_hybrid_tree import HybridTree
@@ -19,7 +19,7 @@ from parser.sDCP_parser.playground import split_merge_training
 from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
-from hybridtree.constituent_tree import ConstituentTree, ConstituentCategory
+from hybridtree.constituent_tree import ConstituentTree
 
 
 class sDCPParserTest(unittest.TestCase):
@@ -62,8 +62,8 @@ class sDCPParserTest(unittest.TestCase):
         print("completed test", file=stderr)
 
     def test_basic_sdcp_parsing_constituency(self):
-        tree1 = conTree1()
-        tree2 = conTree2()
+        tree1 = constituent_tree_1()
+        tree2 = constituent_tree_2()
 
 
         terminal_labeling = FormPosTerminalsUnk([tree1, tree2], 1, filter=["VP"])
@@ -438,12 +438,7 @@ class sDCPParserTest(unittest.TestCase):
             parser.clear()
 
 
-
-if __name__ == '__main__':
-    unittest.main()
-
-
-def conTree1():
+def constituent_tree_1():
     tree = ConstituentTree("s1")
     tree.add_leaf("f1", "VP", "hat")
     tree.add_leaf("f2", "ADV", "schnell")
@@ -466,7 +461,7 @@ def conTree1():
     return tree
 
 
-def conTree2():
+def constituent_tree_2():
     tree = ConstituentTree("s2")
     tree.add_leaf("l1", "N", "John")
     tree.add_leaf("l2", "V", "hit")
@@ -489,3 +484,8 @@ def conTree2():
     tree.add_to_root("S")
 
     return tree
+
+
+
+if __name__ == '__main__':
+    unittest.main()

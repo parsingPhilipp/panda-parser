@@ -45,3 +45,6 @@ def generate_sdg(n_nodes, maximum_inputs=4, upward_closed=False, new_output=0.1,
     sync = [[node] for node in dog.nodes]
     dsg = DeepSyntaxGraph(sentence, dog, sync)
     return dsg
+
+
+__all__ = ["generate", "generate_sdg"]

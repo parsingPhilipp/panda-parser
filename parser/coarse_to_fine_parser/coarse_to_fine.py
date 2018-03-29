@@ -145,6 +145,4 @@ class Coarse_to_fine_parser(AbstractParser):
         return self.base_parser.resolve_path(preprocess_path)
 
 
-
-
-
+__all__ = ["Coarse_to_fine_parser"]

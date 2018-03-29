@@ -23,10 +23,10 @@ from parser.supervised_trainer.trainer import PyDerivationManager
 from graphs.parse_accuracy import PredicateArgumentScoring
 from graphs.dog_generator import generate
 from random import randint
+from copy import deepcopy
 
 # from setup import schick_executable
-schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
-
+SCHICK_PARSER_JAR = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 
 
 class GraphTests(unittest.TestCase):
@@ -191,7 +191,7 @@ class GraphTests(unittest.TestCase):
 
     def test_induction_with_labeling_strategies(self):
         dsg = build_dsg()
-        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('right-branching')[0]
+        rec_part_strategy = the_recursive_partitioning_factory().get_partitioning('right-branching')[0]
         rec_part = rec_part_strategy(dsg)
         dcmp = compute_decomposition(dsg, rec_part)
 
@@ -258,7 +258,7 @@ class GraphTests(unittest.TestCase):
             else:
                 return token
 
-        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
+        rec_part_strategy = the_recursive_partitioning_factory().get_partitioning('cfg')[0]
         rec_part = rec_part_strategy(dsg)
         dcmp = compute_decomposition(dsg, rec_part)
 
@@ -286,7 +286,7 @@ class GraphTests(unittest.TestCase):
             , path
             , hold=False)
 
-        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
+        rec_part_strategy = the_recursive_partitioning_factory().get_partitioning('cfg')[0]
 
         def label_edge(edge):
             if isinstance(edge.label, ConstituentTerminal):
@@ -395,7 +395,7 @@ class GraphTests(unittest.TestCase):
         terminals.print_index()
 
         dsg = build_dsg()
-        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('right-branching')[0]
+        rec_part_strategy = the_recursive_partitioning_factory().get_partitioning('right-branching')[0]
         rec_part = rec_part_strategy(dsg)
         dcmp = compute_decomposition(dsg, rec_part)
 
@@ -420,7 +420,7 @@ class GraphTests(unittest.TestCase):
             , path
             , hold=False)
 
-        rec_part_strategy = the_recursive_partitioning_factory().getPartitioning('cfg')[0]
+        rec_part_strategy = the_recursive_partitioning_factory().get_partitioning('cfg')[0]
 
         def label_edge(edge):
             if isinstance(edge.label, ConstituentTerminal):
@@ -460,7 +460,7 @@ class GraphTests(unittest.TestCase):
             shutil.rmtree(reduct_dir)
         os.makedirs(reduct_dir)
         p = subprocess.Popen([' '.join(
-            ["java", "-jar", os.path.join("util", schick_executable), 'dog-reduct', '-g', grammar_path, '-t',
+            ["java", "-jar", os.path.join("util", SCHICK_PARSER_JAR), 'dog-reduct', '-g', grammar_path, '-t',
              corpus_path, "-o", reduct_dir])], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
         print("stdout", p.stdout.name)
@@ -738,9 +738,6 @@ class GraphTests(unittest.TestCase):
             dog = generate(randint(2, 12), maximum_inputs=4, new_output=0.4, upward_closed=True)
             render_and_view_dog(dog, 'random_dog_' + str(i))
 
-if __name__ == '__main__':
-    unittest.main()
-
 
 def build_acyclic_dog():
     dog = DirectedOrderedGraph()
@@ -919,3 +916,7 @@ def build_dsg():
     sentence = ["Sie", "entwickelt", "und", "druckt", "Verpackungen", "und", "Etiketten"]
     synchronization = [[4], [5], [2], [7], [8], [9], [10]]
     return DeepSyntaxGraph(sentence, dog, synchronization)
+
+
+if __name__ == '__main__':
+    unittest.main()

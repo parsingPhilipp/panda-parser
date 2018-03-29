@@ -365,7 +365,7 @@ def dbtest():
 
     c = connection.cursor()
     for row in c.execute('SELECT * FROM experiments'):
-        print row
+        print(row)
 
     create_tree_table(connection)
     create_tree_node_table(connection)
@@ -374,12 +374,12 @@ def dbtest():
         add_tree(connection, tree, test_corpus)
 
     for row in c.execute('SELECT * FROM trees'):
-        print row
+        print(row)
 
     for row2 in c.execute('SELECT * FROM tree_nodes'):
-        print row2
+        print(row2)
 
-    print
+    print()
 
     create_result_tree_table(connection)
     create_result_tree_node_table(connection)
@@ -389,16 +389,16 @@ def dbtest():
         time_stamp = time.clock()
 
     for row3 in c.execute('SELECT  * FROM result_tree_nodes'):
-        print row3, type(row3[0]).__name__
+        print(row3, type(row3[0]).__name__)
 
-    print
+    print()
 
-    print experiment, type(experiment).__name__
+    print(experiment, type(experiment).__name__)
 
     for row4 in c.execute(
             '''SELECT * FROM result_trees INNER JOIN result_tree_nodes ON result_trees.rt_id = result_tree_nodes.rt_id WHERE exp_id = ?''',
             (experiment,)):
-        print row4
+        print(row4)
 
     connection.close()
 
@@ -482,7 +482,7 @@ def punct(p):
         assert ()
 
 
-def common_recognised_sentences(connection, experiments, max_length=sys.maxint, ignore_punctuation = False):
+def common_recognised_sentences(connection, experiments, max_length=sys.maxsize, ignore_punctuation = False):
     statement = '''
       SELECT trees.t_id
       FROM trees INNER JOIN result_trees
@@ -652,7 +652,7 @@ def uas(connection, tree_id, e_id):
                 # print "Error:", tree_id, e_id, incorrect, length
                 assert ()
         except TypeError:
-            print tree_id, e_id
+            print(tree_id, e_id)
             assert ()
 
 
@@ -689,7 +689,7 @@ def las(connection, tree_id, e_id):
             else:
                 assert ()
         except TypeError:
-            print tree_id, e_id
+            print(tree_id, e_id)
             assert ()
 
 

@@ -20,16 +20,13 @@ from dependency.minimum_risk import compute_minimum_risk_tree
 from dependency.oracle import compute_oracle_tree
 
 
-
-class MyTestCase(unittest.TestCase):
+class GrammaticalFrameworkTest(unittest.TestCase):
     def test_grammar_export(self):
         tree = hybrid_tree_1()
         tree2 = hybrid_tree_2()
         terminal_labeling = the_terminal_labeling_factory().get_strategy('pos')
 
-
-
-        (_, grammar) = induce_grammar([tree, tree2],
+        _, grammar = induce_grammar([tree, tree2],
                                       the_labeling_factory().create_simple_labeling_strategy('empty','pos'),
                                       # the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel'),
                                       terminal_labeling.token_label, [direct_extraction], 'START')
@@ -194,7 +191,6 @@ class MyTestCase(unittest.TestCase):
                     print(h_trees[0])
                     print(min_risk_tree)
 
-
     def test_oracle_parsing(self):
         limit_train = 20
         limit_test = 10
@@ -307,9 +303,6 @@ class MyTestCase(unittest.TestCase):
                     print("gold tree", file=stderr)
                     print(tree, file=stderr)
                     print(tree_to_conll_str(tree), file=stderr)
-
-
-
 
 
 if __name__ == '__main__':
