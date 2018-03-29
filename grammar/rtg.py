@@ -1,7 +1,8 @@
+from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 
 
-class RTG:
+class RTG(object):
     def __init__(self, initial):
         self._initial = initial
         self._rules = []
@@ -33,7 +34,7 @@ class RTG:
         return self._lhs_nont_to_rules[nont]
 
 
-class RTGRule:
+class RTGRule(object):
     def __init__(self, lhs, symbol, rhs):
         self._lhs = lhs
         self._symbol = symbol
@@ -50,3 +51,22 @@ class RTGRule:
     @property
     def symbol(self):
         return self._symbol
+
+
+class RTG_like(object):
+    __metaclass__ = ABCMeta
+
+    @abstractmethod
+    def to_rtg(self):
+        """
+        :rtype: RTG
+        """
+        pass
+
+    @abstractmethod
+    def rule_index(self, i=None):
+        pass
+
+    @abstractmethod
+    def initial(self):
+        pass
