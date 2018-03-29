@@ -1,10 +1,9 @@
 from __future__ import print_function
-from parser.derivation_interface import AbstractDerivation
+from grammar.derivation_interface import AbstractDerivation
 from cython.operator cimport dereference as deref, preincrement as inc
 from libcpp.memory cimport make_shared
 from libcpp.map cimport map as cmap
 from libcpp.set cimport set as cset
-from grammar.lcfrs import LCFRS_rule, LCFRS
 from itertools import product
 from parser.trace_manager.sm_trainer cimport PyLatentAnnotation
 from libc.math cimport log, NAN, INFINITY, isnan, isinf

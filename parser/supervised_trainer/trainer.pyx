@@ -2,8 +2,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
 from cython.operator cimport dereference as deref
-from parser.derivation_interface import AbstractDerivation
-from grammar.lcfrs_derivation import LCFRSDerivation
+from grammar.derivation_interface import AbstractDerivation
 from grammar.rtg import RTG
 from parser.discodop_parser.grammar_adapter import rule_idx_from_label, striplabelre, unescape_brackets
 

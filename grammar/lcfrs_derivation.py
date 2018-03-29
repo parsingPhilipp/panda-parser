@@ -3,7 +3,7 @@ from collections import defaultdict
 
 from grammar.lcfrs import LCFRS_var
 from hybridtree.general_hybrid_tree import HybridTree
-from parser.derivation_interface import AbstractDerivation
+from grammar.derivation_interface import AbstractDerivation
 
 
 class LCFRSDerivation(AbstractDerivation):
