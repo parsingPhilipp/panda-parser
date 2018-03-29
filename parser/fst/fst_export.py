@@ -5,7 +5,6 @@ from grammar.linearization import Enumerator
 from math import log, e
 from grammar.lcfrs_derivation import LCFRSDerivation
 from parser.parser_interface import AbstractParser
-from collections import defaultdict
 import sys
 from parser.fst.lazy_composition import DelayedFstComposer
 

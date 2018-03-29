@@ -4,8 +4,6 @@ from grammar.lcfrs import LCFRS
 import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
 import parser.parser_interface as pi
-import parser.derivation_interface as di
-from grammar.induction.terminal_labeling import TerminalLabeling
 from collections import defaultdict
 
 # this needs to be consistent

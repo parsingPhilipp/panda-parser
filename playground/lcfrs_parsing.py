@@ -17,9 +17,6 @@ from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, TESTING
     SplitMergeExperiment
 from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, \
     my_feature_filter, ScorerAndWriter, setup_corpus_resources
-if sys.version_info < (3,):
-    reload(sys)
-    sys.setdefaultencoding('utf8')
 
 # select one of the splits from {"SPMRL", "HN08", "WSJ", "WSJ-km2003"}
 # SPLIT = "SPMRL"

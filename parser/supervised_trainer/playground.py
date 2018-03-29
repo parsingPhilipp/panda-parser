@@ -13,6 +13,7 @@ from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
 from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
+from parser.lcfrs_la import build_sm_grammar
 
 
 limit_train = 20
@@ -83,10 +84,11 @@ def main():
     for i in range(max_cycles + 1):
         latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
         # pickle.dump(map(lambda la: la.serialize(), latentAnnotation), open(sm_info_path, 'wb'))
-        smGrammar = latentAnnotation[i].build_sm_grammar( grammar
-                                                         , grammarInfo
-                                                         , rule_pruning=0.0001
-                                                         , rule_smoothing=0.01)
+        smGrammar = build_sm_grammar(latentAnnotation[i]
+                                     , grammar
+                                     , grammarInfo
+                                     , rule_pruning=0.0001
+                                     , rule_smoothing=0.01)
         print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
 
         if parsing:

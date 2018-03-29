@@ -580,3 +580,4 @@ class LCFRS(RTG_like):
         return self.__lhs_nont_to_rules[nont]
 
 
+__all__ = ["LCFRS", "LCFRS_var", "LCFRS_lhs", "LCFRS_rule"]

@@ -1,14 +1,15 @@
 from __future__ import print_function
 from grammar.derivation_interface import AbstractDerivation
-from cython.operator cimport dereference as deref, preincrement as inc
 from libcpp.memory cimport make_shared
 from libcpp.map cimport map as cmap
 from libcpp.set cimport set as cset
+from cython.operator cimport dereference as deref, preincrement as inc
+from libc.math cimport log, NAN, INFINITY, isnan, isinf
 from itertools import product
 from parser.trace_manager.sm_trainer cimport PyLatentAnnotation
-from libc.math cimport log, NAN, INFINITY, isnan, isinf
 from libcpp cimport bool
 from grammar.rtg import RTG_like
+
 
 cdef extern from "cpp_priority_queue.hpp":
     cdef cppclass intp_std_func_priority_queue[T]:

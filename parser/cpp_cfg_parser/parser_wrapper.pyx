@@ -50,6 +50,7 @@ cdef class PyCFG:
         self.terminal_map = terminal_map
         self.rule_map = rule_map
 
+
 cdef PyCFG grammar_to_cfg(grammar, Enumerator terminal_map, Enumerator nonterminal_map, Enumerator rule_map):
     """
     :param grammar:
@@ -111,6 +112,7 @@ cdef PyCFG grammar_to_cfg(grammar, Enumerator terminal_map, Enumerator nontermin
     py_cfg.set_cfg(cfg)
     py_cfg.set_enumerators(nonterminal_map, terminal_map, rule_map)
     return py_cfg
+
 
 cdef class PyCFGParser:
     cdef CYKParser cpp_parser

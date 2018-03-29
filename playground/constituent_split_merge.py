@@ -36,12 +36,7 @@ from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
 from playground.experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, \
     VALIDATION, TESTING_INPUT, SplitMergeExperiment
-if sys.version_info < (3,):
-    reload(sys)
-    sys.setdefaultencoding('utf8')
-# import codecs
-# sys.stdout = codecs.getwriter('utf8')(sys.stdout)
-# sys.stderr = codecs.getwriter('utf8')(sys.stderr)
+
 
 
 def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, test_second_half=False):

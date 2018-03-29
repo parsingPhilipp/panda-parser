@@ -8,7 +8,6 @@ from grammar.lcfrs import LCFRS
 from hybridtree.general_hybrid_tree import HybridTree
 from dependency.labeling import the_labeling_factory
 from hybridtree.monadic_tokens import CoNLLToken, construct_conll_token
-from sys import stderr
 from parser.LCFRS.LCFRS_Parser_Wrapper import PyLCFRSFactory
 from corpora.conll_parse import parse_conll_corpus
 
@@ -53,8 +52,6 @@ def play_with_parser():
     print("No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item()))
 
 
-
-
 def play_with_corpus():
     train = '../../res/dependency_conll/german/tiger/train/german_tiger_train.conll'
     limit_train = 100
@@ -88,7 +85,6 @@ def play_with_corpus():
         print("Word length: ", len(word),
               " - #passive Items: ", len(passiveItems),
               " - #parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item()))
-
 
 
 def play_with_manual_grammar():
@@ -135,7 +131,6 @@ def play_with_manual_grammar():
     factory.complete_argument()
     factory.add_rule_to_grammar("", 7)
 
-
     word = "ab"
 
     parser = factory.build_parser()
@@ -152,8 +147,6 @@ def play_with_manual_grammar():
         print(i, ': ', pItem)
 
     print("No of parses: ", count_parses(passiveItems, trace, parser.get_initial_passive_item()))
-
-
 
 
 def count_parses(passiveItems, trace, initial_passive_item):
@@ -178,11 +171,6 @@ def parses_per_pitem(trace, pItemNo, resultMap):
         result += noPerTrace
     resultMap[pItemNo] = result
     return result, resultMap
-
-
-
-
-
 
 
 def hybrid_tree_1():

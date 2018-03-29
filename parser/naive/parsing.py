@@ -8,6 +8,7 @@ from grammar.lcfrs import *
 from parser.naive.derivation import Derivation
 from grammar.dcp import *
 from parser.parser_interface import AbstractParser
+from collections import namedtuple, defaultdict
 
 RULE = 0
 PAIR = 1

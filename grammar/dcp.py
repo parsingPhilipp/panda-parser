@@ -2,8 +2,6 @@
 # part of a LCFRS/DCP hybrid grammar rule.
 
 from __future__ import print_function
-
-# abc (abstract base classes)
 from abc import ABCMeta, abstractmethod
 
 ###########################################################################

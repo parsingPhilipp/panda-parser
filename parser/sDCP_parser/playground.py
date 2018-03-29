@@ -7,7 +7,18 @@ from math import exp
 from parser.lcfrs_la import build_sm_grammar
 
 
-def split_merge_training(grammar, term_labelling, corpus, cycles, em_epochs, init="rfe", tie_breaking=False, sigma=0.005, seed=0, merge_threshold=0.5, debug=False, rule_pruning=exp(-100)):
+def split_merge_training(grammar,
+                         term_labelling,
+                         corpus,
+                         cycles,
+                         em_epochs,
+                         init="rfe",
+                         tie_breaking=False,
+                         sigma=0.005,
+                         seed=0,
+                         merge_threshold=0.5,
+                         debug=False,
+                         rule_pruning=exp(-100)):
     print("creating trace", file=stderr)
     trace = PySDCPTraceManager(grammar, term_labelling, debug=debug)
     print("computing reducts", file=stderr)
