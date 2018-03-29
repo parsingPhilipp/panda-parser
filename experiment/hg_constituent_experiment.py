@@ -14,7 +14,7 @@ import tempfile
 import itertools
 from hybridtree.general_hybrid_tree import HybridTree
 from parser.discodop_parser.parser import DiscodopKbestParser
-from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
+from parser.gf_parser.gf_interface import GFParser_k_best
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
@@ -24,19 +24,19 @@ from grammar.induction.terminal_labeling import  PosTerminals, TerminalLabeling,
     FrequencyBiasedTerminalLabeling, CompositionalTerminalLabeling, FormTerminals
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs, token_to_features
-from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_feats, pos_cat_and_lex_in_unary, \
+from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_and_lex_in_unary, \
     extract_feat
 from constituent.discodop_adapter import TreeComparator as DiscoDopScorer
-from constituent.dummy_tree import dummy_constituent_tree, flat_dummy_constituent_tree
+from constituent.dummy_tree import flat_dummy_constituent_tree
 from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 import corpora.tiger_parse as tp
 import corpora.negra_parse as np
 import corpora.tagged_parse as tagged_parse
 from hybridtree.constituent_tree import ConstituentTree
-from hybridtree.monadic_tokens import construct_constituent_token, ConstituentCategory
-from playground.experiment_helpers import ScoringExperiment, CorpusFile, ScorerResource, RESULT, TRAINING, TESTING, \
-    VALIDATION, TESTING_INPUT, SplitMergeExperiment
-
+from hybridtree.monadic_tokens import construct_constituent_token
+from experiment.base_experiment import ScoringExperiment
+from experiment.resources import TRAINING, VALIDATION, TESTING, TESTING_INPUT, RESULT, CorpusFile, ScorerResource
+from experiment.split_merge_experiment import SplitMergeExperiment
 
 
 def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, test_second_half=False):
@@ -218,21 +218,6 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
                             type=corpus_type_test)
 
     return train, dev, test, test_input
-
-
-# if not os.path.isfile(terminal_labeling_path):
-#     terminal_labeling = FormPosTerminalsUnk(get_train_corpus(), 10)
-#     pickle.dump(terminal_labeling, open(terminal_labeling_path, "wb"))
-# else:
-#     terminal_labeling = pickle.load(open(terminal_labeling_path, "rb"))
-
-# terminal_labeling = PosTerminals()
-
-# terminal_labeling = FeatureTerminals(token_to_features,
-#                                      feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
-
-# fine_terminal_labeling = FeatureTerminals(token_to_features,
-#                                           feature_filter=lambda x: pos_cat_and_lex_in_unary(x, no_function=True))
 
 
 def my_feature_filter(elem):
@@ -1048,3 +1033,6 @@ def main(directory=None):
 
 if __name__ == '__main__':
     plac.call(main)
+
+
+__all__ = ["ConstituentExperiment", "setup_corpus_resources"]

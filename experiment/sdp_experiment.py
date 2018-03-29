@@ -6,7 +6,8 @@ from graphs.dog import DeepSyntaxGraph
 from graphs.util import extract_recursive_partitioning
 from grammar.induction.decomposition import fanout_limited_partitioning_left_to_right
 from subprocess import call
-from playground.experiment_helpers import Experiment, RESULT, CorpusFile
+from experiment.base_experiment import Experiment
+from experiment.resources import RESULT, CorpusFile
 from sys import stdout
 
 
@@ -106,7 +107,7 @@ def main():
     training_last = 21999042
     dev_start = 22000001
     # limit corpus sizes for testing purpose
-    train_limit = 50
+    train_limit = 100
     dev_limit = 50
 
     def terminal_labeling(x):
@@ -145,7 +146,7 @@ def main():
     experiment = SDPExperiment(induction_settings)
     experiment.resources['TRAIN'] = CorpusFile(train_dev_corpus_path, end=training_last, limit=train_limit)
     experiment.resources['TEST'] = CorpusFile(train_dev_corpus_path, start=dev_start, limit=dev_limit)
-
+    experiment.oracle_parsing = True
     experiment.parsing_timeout = 150  # seconds
 
     experiment.run_experiment()

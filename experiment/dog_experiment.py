@@ -30,12 +30,13 @@ from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from graphs.parse_accuracy import PredicateArgumentScoring
 from graphs.util import render_and_view_dog
-from playground.experiment_helpers import ScoringExperiment, TRAINING, TESTING, RESULT, CorpusFile, ScorerResource
+from experiment.base_experiment import ScoringExperiment
+from experiment.resources import TRAINING, TESTING, RESULT, CorpusFile, ScorerResource
 from sys import stdout
 
 
-schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
-threads = 1
+SCHICK_PARSER_JAR = 'HypergraphReduct-1.0-SNAPSHOT.jar'
+THREADS = 1
 
 
 class DOGScorerResource(ScorerResource):
@@ -316,7 +317,7 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
         shutil.rmtree(reduct_dir)
     os.makedirs(reduct_dir)
     p = subprocess.Popen([' '.join(
-        ["java", "-jar", os.path.join("util", schick_executable), 'dog-reduct', '-g', grammar_path, '-t', corpus_path,
+        ["java", "-jar", os.path.join("util", SCHICK_PARSER_JAR), 'dog-reduct', '-g', grammar_path, '-t', corpus_path,
          "-o", reduct_dir])], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
     while True:
@@ -350,7 +351,7 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
 
     em_builder = PySplitMergeTrainerBuilder(derivation_manager, grammarInfo)
     em_builder.set_em_epochs(em_epochs)
-    em_builder.set_simple_expector(threads=threads)
+    em_builder.set_simple_expector(threads=THREADS)
     emTrainer = em_builder.build()
 
     # randomize initial weights and do em training
@@ -365,7 +366,7 @@ def run_experiment(rec_part_strategy, nonterminal_labeling, exp, reorder_childre
     builder = PySplitMergeTrainerBuilder(derivation_manager, grammarInfo)
     builder.set_em_epochs(em_epochs)
     builder.set_split_randomization(1.0, seed + 1)
-    builder.set_simple_expector(threads=threads)
+    builder.set_simple_expector(threads=THREADS)
     builder.set_smoothing_factor(smoothingFactor=smoothing_factor)
     builder.set_split_randomization(percent=split_randomization)
     # builder.set_scc_merger(-0.2)

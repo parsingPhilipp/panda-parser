@@ -1,34 +1,29 @@
 from __future__ import print_function
 import tempfile
 import subprocess
-import sys
 from parser.discodop_parser.parser import DiscodopKbestParser
-from parser.gf_parser.gf_interface import GFParser, GFParser_k_best
-from parser.sDCP_parser.sdcp_parser_wrapper import print_grammar
+from parser.gf_parser.gf_interface import GFParser_k_best
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 import plac
-from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, NonterminalsWithFunctions, binarize, \
+from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, \
     direct_extract_lcfrs_from_prebinarized_corpus
-from constituent.filter import check_single_child_label
-from grammar.lcfrs import LCFRS_rule
-from grammar.induction.terminal_labeling import PosTerminals, FeatureTerminals, FrequencyBiasedTerminalLabeling, \
-    FormTerminals, StanfordUNKing, CompositionalTerminalLabeling
-from playground.experiment_helpers import TRAINING, VALIDATION, TESTING, TESTING_INPUT, CorpusFile, RESULT, \
-    SplitMergeExperiment
-from playground.constituent_split_merge import ConstituentExperiment, ScoringExperiment, token_to_features, \
-    my_feature_filter, ScorerAndWriter, setup_corpus_resources
+from grammar.induction.terminal_labeling import PosTerminals, FrequencyBiasedTerminalLabeling, \
+    FormTerminals, CompositionalTerminalLabeling
+from experiment.resources import TRAINING, VALIDATION, TESTING, TESTING_INPUT, RESULT, CorpusFile
+from experiment.split_merge_experiment import SplitMergeExperiment
+from experiment.hg_constituent_experiment import ConstituentExperiment, ScoringExperiment, ScorerAndWriter, setup_corpus_resources
 
 # select one of the splits from {"SPMRL", "HN08", "WSJ", "WSJ-km2003"}
 # SPLIT = "SPMRL"
-# SPLIT = "HN08"
+SPLIT = "HN08"
 # SPLIT = "WSJ"
-SPLIT = "WSJ-km2003"
+# SPLIT = "WSJ-km2003"
 
 DEV_MODE = True  # enable to parse the DEV set instead of the TEST set
 QUICK = False  # enable for quick testing during debugging (small train/dev/test sets)
 
 MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
-PREDICTED_POS = True  # run parsing on predicted POS tags.
+PREDICTED_POS = False  # run parsing on predicted POS tags.
 BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
 MAX_RULE_PRODUCT_ONLY = False
 LENGTH_40 = True # parse only sentences up to length 40
@@ -277,7 +272,7 @@ def main(directory=None):
                                                              backoff_threshold)
     experiment.backoff = True
 
-
+    # induction_settings.terminal_labeling = StanfordUNKing(experiment.read_corpus(experiment.resources[TRAINING]))
     experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.project_weights_before_parsing = True
@@ -337,3 +332,6 @@ def main(directory=None):
 
 if __name__ == '__main__':
     plac.call(main)
+
+
+__all__ = []
