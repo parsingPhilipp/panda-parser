@@ -56,7 +56,7 @@ def flat_dummy_constituent_tree(token_yield, full_token_yield, dummy_label, dumm
     :type full_token_yield: list[ConstituentTerminal]
     :return: dummy constituent tree
     :rtype: ConstituentTree
-    generates a dummy tree for a given yield using dummy_label as inner node symbol
+    generates a flat dummy tree for a given yield where all nodes are attached under the root
     """
     tree = ConstituentTree(label)
 
