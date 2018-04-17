@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from hybridtree.monadic_tokens import MonadicToken
 from discodop.lexicon import getunknownwordmodel, unknownword4, replaceraretestwords, YEARRE, NUMBERRE, UNK
-import string
 
 
 class TerminalLabeling:
@@ -26,6 +25,14 @@ class TerminalLabeling:
 
     def prepare_parser_input(self, tokens):
         return [self.token_label(token, _loc) for _loc, token in enumerate(tokens)]
+
+    def serialize(self):
+        return {'type': self.__class__.__name__}
+
+    @staticmethod
+    @abstractmethod
+    def deserialize(json_object):
+        pass
 
 # class ConstituentTerminalLabeling(TerminalLabeling):
 #     def token_label(self, token):
@@ -54,17 +61,21 @@ class FeatureTerminals(TerminalLabeling):
 
 
 class FrequencyBiasedTerminalLabeling(TerminalLabeling):
-    def __init__(self, fine_labeling, fall_back, corpus, threshold):
+    def __init__(self, fine_labeling, fall_back, corpus=None, threshold=4, fine_label_count=None):
         self.fine_labeling = fine_labeling
         self.fall_back = fall_back
-        self.fine_label_count = defaultdict(lambda: 0)
-        self.threshold = threshold
         self.backoff_mode = False
-        for tree in corpus:
-            for token in tree.token_yield():
-                label = self.fine_labeling.token_label(token)
-                self.fine_label_count[label] += 1
-        self.fine_label_count = {label for label in self.fine_label_count if self.fine_label_count[label] >= threshold}
+        self.threshold = threshold
+
+        if fine_label_count is None:
+            self.fine_label_count = defaultdict(lambda: 0)
+            for tree in corpus:
+                for token in tree.token_yield():
+                    label = self.fine_labeling.token_label(token)
+                    self.fine_label_count[label] += 1
+            self.fine_label_count = frozenset({label for label in self.fine_label_count if self.fine_label_count[label] >= threshold})
+        else:
+            self.fine_label_count = fine_label_count
 
     def token_label(self, token, _loc=None):
         fine_label = self.fine_labeling.token_label(token)
@@ -78,6 +89,24 @@ class FrequencyBiasedTerminalLabeling(TerminalLabeling):
                + str(self.threshold) \
                + '|' + str(self.fine_labeling) \
                + '|' + str(self.fall_back) + "]"
+
+    def serialize(self):
+        return {'type': self.__class__.__name__,
+                'threshold': self.threshold,
+                'fine lexicon': [x for x in self.fine_label_count],
+                'fine labeling': self.fine_labeling.serialize(),
+                'fallback labeling': self.fall_back.serialize()}
+
+    @staticmethod
+    def deserialize(json_object):
+        fine = deserialize_labeling(json_object['fine labeling'])
+        fall_back = deserialize_labeling(json_object['fallback labeling'])
+        fine_lexicon = frozenset({x for x in json_object['fine lexicon']})
+        return FrequencyBiasedTerminalLabeling(
+            fine_labeling=fine,
+            fall_back=fall_back,
+            fine_label_count=fine_lexicon
+        )
 
 
 class CompositionalTerminalLabeling(TerminalLabeling):
@@ -94,6 +123,20 @@ class CompositionalTerminalLabeling(TerminalLabeling):
         second = self.second_labeling.token_label(token, _loc)
         return first + self.binding_string + second
 
+    def serialize(self):
+        return {
+            'type': self.__class__.__name__,
+            'first': self.first_labeling.serialize(),
+            'second': self.second_labeling.serialize(),
+            'binding string': self.binding_string
+        }
+
+    @staticmethod
+    def deserialize(json_object):
+        first = deserialize_labeling(json_object['first'])
+        second = deserialize_labeling(json_object['second'])
+        return CompositionalTerminalLabeling(first, second, json_object['binding string'])
+
 
 class FormTerminals(TerminalLabeling):
     def token_label(self, token, _loc=None):
@@ -101,6 +144,11 @@ class FormTerminals(TerminalLabeling):
 
     def __str__(self):
         return 'form'
+
+    @staticmethod
+    def deserialize(json_object):
+        assert json_object['type'] == 'FormTerminals'
+        return FormTerminals()
 
 
 class CPosTerminals(TerminalLabeling):
@@ -110,6 +158,11 @@ class CPosTerminals(TerminalLabeling):
     def __str__(self):
         return 'cpos'
 
+    @staticmethod
+    def deserialize(json_object):
+        assert json_object['type'] == 'CPosTerminals'
+        return CPosTerminals()
+
 
 class PosTerminals(TerminalLabeling):
     def token_label(self, token, _loc=None):
@@ -117,6 +170,11 @@ class PosTerminals(TerminalLabeling):
 
     def __str__(self):
         return 'pos'
+
+    @staticmethod
+    def deserialize(json_object):
+        assert json_object['type'] == 'PosTerminals'
+        return PosTerminals()
 
 
 class CPOS_KON_APPR(TerminalLabeling):
@@ -129,6 +187,11 @@ class CPOS_KON_APPR(TerminalLabeling):
 
     def __str__(self):
         return 'cpos-KON-APPR'
+
+    @staticmethod
+    def deserialize(json_object):
+        assert json_object['type'] == 'CPOS_KON_APPR'
+        return CPOS_KON_APPR()
 
 
 class FormTerminalsUnk(TerminalLabeling):
@@ -258,24 +321,27 @@ class FormPosTerminalsUnkMorph(TerminalLabeling):
 
 
 class StanfordUNKing(TerminalLabeling):
-    def __init__(self, trees, unknown_threshold=4, openclass_threshold=150):
+    def __init__(self, trees=None, unknown_threshold=4, openclass_threshold=150, data=None):
         self.unknown_threshold = unknown_threshold
         self.openclass_threshold = openclass_threshold
-        sentences = []
-        for tree in trees:
-            sentence = []
-            for token in tree.token_yield():
-                sentence.append((token.form(), token.pos()))
-            sentences.append(sentence)
-        (sigs, words, lexicon, wordsfortag, openclasstags,
-            openclasswords, tags, wordtags,
-            wordsig, sigtag), msg \
-            = getunknownwordmodel(sentences, unknownword4, self.unknown_threshold, self.openclass_threshold)
-        self.openclasswords = openclasswords
-        self.sigs = sigs
-        self.words = words
-        self.lexicon = lexicon
         self.backoff_mode = False
+        if data:
+            self.openclasswords, self.sigs, self.words, self.lexicon = data
+        else:
+            sentences = []
+            for tree in trees:
+                sentence = []
+                for token in tree.token_yield():
+                    sentence.append((token.form(), token.pos()))
+                sentences.append(sentence)
+            (sigs, words, lexicon, wordsfortag, openclasstags,
+                openclasswords, tags, wordtags,
+                wordsig, sigtag), msg \
+                = getunknownwordmodel(sentences, unknownword4, self.unknown_threshold, self.openclass_threshold)
+            self.openclasswords = openclasswords
+            self.sigs = sigs
+            self.words = words
+            self.lexicon = lexicon
 
     def __str__(self):
         return "stanford-unk-" + str(self.unknown_threshold) \
@@ -312,6 +378,28 @@ class StanfordUNKing(TerminalLabeling):
                 else:
                     return UNK
 
+    def serialize(self):
+        return {
+            'type': self.__class__.__name__,
+            'unknown_threshold': self.unknown_threshold,
+            'openclass_threshold': self.openclass_threshold,
+            'openclasswords': self.openclasswords,
+            'sigs': self.sigs,
+            'words': self.words,
+            'lexicon': self.lexicon
+        }
+
+    @staticmethod
+    def deserialize(json_object):
+        assert json_object['type'] == 'StanfordUNKing'
+        openclasswords = json_object['openclasswords']
+        sigs = json_object['sigs']
+        words = json_object['words']
+        lexicon = json_object['lexicon']
+        return StanfordUNKing(unknown_threshold=json_object['unknown_threshold'],
+                              openclass_threshold=json_object['openclass_threshold'],
+                              data=(openclasswords, sigs, words, lexicon))
+
 
 class TerminalLabelingFactory:
     def __init__(self):
@@ -342,3 +430,7 @@ def the_terminal_labeling_factory():
     factory.register_strategy('cpos', CPosTerminals())
     factory.register_strategy('cpos-KON-APPR', CPOS_KON_APPR())
     return factory
+
+
+def deserialize_labeling(json_object):
+    return globals().get(json_object['type']).deserialize(json_object)

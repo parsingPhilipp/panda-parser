@@ -20,8 +20,9 @@ from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
 from parser.lcfrs_la import construct_fine_grammar
 import plac
+import json
 from grammar.induction.terminal_labeling import  PosTerminals, TerminalLabeling, FeatureTerminals, \
-    FrequencyBiasedTerminalLabeling, CompositionalTerminalLabeling, FormTerminals
+    FrequencyBiasedTerminalLabeling, CompositionalTerminalLabeling, FormTerminals, deserialize_labeling
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from constituent.induction import fringe_extract_lcfrs, token_to_features
 from constituent.construct_morph_annotation import build_nont_splits_dict, pos_cat_and_lex_in_unary, \
@@ -387,7 +388,7 @@ class ConstituentExperiment(ScoringExperiment):
         self.use_output_counter = False
         self.output_counter = 0
         self.strip_vroot = False
-        self.terminal_labeling = induction_settings.terminal_labeling
+        self.terminal_labeling = None
         self.eval_postprocess_options = None
 
         self.discodop_scorer = DiscoDopScorer()
@@ -412,6 +413,14 @@ class ConstituentExperiment(ScoringExperiment):
     def compute_fallback(self, sentence, label=None):
         full_yield, id_yield, full_token_yield, token_yield = sentence
         return flat_dummy_constituent_tree(token_yield, full_token_yield, 'NP', 'S', label)
+
+    def read_stage_file(self):
+        ScoringExperiment.read_stage_file(self)
+        if "terminal_labeling" in self.stage_dict:
+            terminal_labeling_path = self.stage_dict["terminal_labeling"]
+            with open(terminal_labeling_path, "r") as tlf:
+                self.terminal_labeling = deserialize_labeling(json.load(tlf))
+                self.induction_settings.terminal_labeling = self.terminal_labeling
 
     def read_corpus(self, resource):
         if resource.type == "TIGERXML":
@@ -606,6 +615,19 @@ class ConstituentExperiment(ScoringExperiment):
         print("Backoff", self.backoff, file=file)
         print("Backoff-factor", self.backoff_factor, file=file)
 
+    def set_terminal_labeling(self, terminal_labeling):
+        """
+        :type terminal_labeling: TerminalLabeling
+        Sets a terminal labeling, serializes it, and adds it to the stage file.
+        """
+        self.terminal_labeling = terminal_labeling
+        self.induction_settings.terminal_labeling = terminal_labeling
+        _, path = tempfile.mkstemp(dir=self.directory, suffix=".lexicon")
+        with open(path, 'w') as fd:
+            self.stage_dict["terminal_labeling"] = path
+            json.dump(self.terminal_labeling.serialize(), fd)
+        self.write_stage_file()
+
 
 class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
     """
@@ -636,7 +658,7 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
                                           save_preprocessing=(self.directory, "gfgrammar"))
 
     def read_stage_file(self):
-        ScoringExperiment.read_stage_file(self)
+        ConstituentExperiment.read_stage_file(self)
 
         if "training_reducts" in self.stage_dict:
             self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
@@ -980,12 +1002,14 @@ def main(directory=None):
     experiment.backoff = True
 
     backoff_threshold = 4
-    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
-                                                             threshold=backoff_threshold)
-
-    experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.disco_dop_params["pruning_k"] = 50000
     experiment.read_stage_file()
+
+    # only effective if no terminal labeling was read from stage file
+    if experiment.terminal_labeling is None:
+        experiment.set_terminal_labeling(terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
+                                                           threshold=backoff_threshold))
+
 
     if MULTI_OBJECTIVES:
         experiment.parsing_mode = "discodop-multi-method"

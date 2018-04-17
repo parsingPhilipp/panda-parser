@@ -224,7 +224,7 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
         SplitMergeExperiment.print_config(self, file=file)
 
     def read_stage_file(self):
-        ScoringExperiment.read_stage_file(self)
+        ConstituentExperiment.read_stage_file(self)
 
         if "training_reducts" in self.stage_dict:
             self.organizer.training_reducts = PySDCPTraceManager(self.base_grammar, self.terminal_labeling)
@@ -268,12 +268,7 @@ def main(directory=None):
     if LENGTH_40:
         experiment.max_sentence_length_for_parsing = 40
 
-    induction_settings.terminal_labeling = terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
-                                                             backoff_threshold)
     experiment.backoff = True
-
-    # induction_settings.terminal_labeling = StanfordUNKing(experiment.read_corpus(experiment.resources[TRAINING]))
-    experiment.terminal_labeling = induction_settings.terminal_labeling
     experiment.organizer.validator_type = "SIMPLE"
     experiment.organizer.project_weights_before_parsing = True
     experiment.organizer.disable_em = False
@@ -285,6 +280,11 @@ def main(directory=None):
     experiment.disco_dop_params["pruning_k"] = 50000
     experiment.read_stage_file()
 
+    # only effective if no terminal labeling was read from stage file
+    if experiment.terminal_labeling is None:
+        # StanfordUNKing(experiment.read_corpus(experiment.resources[TRAINING]))
+        experiment.set_terminal_labeling(terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
+                                                           threshold=backoff_threshold))
     if MULTI_OBJECTIVES:
         experiment.parsing_mode = "discodop-multi-method"
         experiment.resources[RESULT] = ScorerAndWriter(experiment,
