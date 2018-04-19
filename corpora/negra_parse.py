@@ -49,7 +49,8 @@ def sentence_names_to_hybridtrees(names,
                                   enc="utf-8",
                                   disconnect_punctuation=True,
                                   add_vroot=False,
-                                  mode="STANDARD"):
+                                  mode="STANDARD",
+                                  secedge=False):
     negra = codecs.open(expanduser(file_name), encoding=enc)
     trees = []
     tree = None
@@ -88,6 +89,7 @@ def sentence_names_to_hybridtrees(names,
                 trees += [tree]
                 tree = None
         elif tree:
+            secedges = []
             if match_nont:
                 id = match_nont.group(1)
                 if mode == "STANDARD":
@@ -97,12 +99,22 @@ def sentence_names_to_hybridtrees(names,
                 nont = match_nont.group(2 + OFFSET)
                 edge = match_nont.group(4 + OFFSET)
                 parent = match_nont.group(5 + OFFSET)
+                # print(match_nont.groups(), len(match_nont.groups()))
+                secedges = [] if not secedge or match_nont.group(6 + OFFSET) is None else \
+                    match_nont.group(6 + OFFSET).split()
                 tree.set_label(id, nont)
                 tree.node_token(id).set_edge_label(edge)
                 if parent == '0' and not add_vroot:
                     tree.add_to_root(id)
                 else:
                     tree.add_child(parent, id)
+                if secedge and secedges:
+                    # print(secedges)
+                    for sei in range(0, len(secedges) // 2, 2):
+                        # sec_label = secedges[sei]
+                        assert secedges[sei] == edge
+                        sec_parent = secedges[sei + 1]
+                        tree.add_child(sec_parent, id)
             elif match_term:
                 if mode == "STANDARD":
                     OFFSET = 0
@@ -113,6 +125,10 @@ def sentence_names_to_hybridtrees(names,
                 pos = match_term.group(2 + OFFSET)
                 edge = match_term.group(4 + OFFSET)
                 parent = match_term.group(5 + OFFSET)
+                # print(match_term.groups(), len(match_term.groups()))
+                secedges = [] if not secedge or match_term.group(6 + OFFSET) is None else \
+                    match_term.group(6 + OFFSET).split()
+
                 n_leaves += 1
                 leaf_id = str(100 + n_leaves)
                 if parent == '0' and disconnect_punctuation:
@@ -124,6 +140,13 @@ def sentence_names_to_hybridtrees(names,
                         tree.add_child(parent, leaf_id)
                     tree.add_leaf(leaf_id, pos, word)
                     tree.node_token(leaf_id).set_edge_label(edge)
+                    if secedge and secedges:
+                        # print(secedges)
+                        for sei in range(0, len(secedges) // 2, 2):
+                            # sec_label = secedges[sei]
+                            assert secedges[sei] == edge
+                            sec_parent = secedges[sei + 1]
+                            tree.add_child(sec_parent, leaf_id)
     negra.close()
     return trees
 
