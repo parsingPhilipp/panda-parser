@@ -24,12 +24,14 @@ def terminal_labeling(corpus, threshold=terminal_threshold):
 
 class TestDiscodopLCFRSInduction(unittest.TestCase):
     def test_something(self):
+        normal_corpus = 'res/tiger/tiger_8000.export'
+        binarized_corpus = 'res/tiger/tiger_8000_bin.export'
         limit = 55000
         # limit = 30
-        corpus_bin = sentence_names_to_hybridtrees({str(x) for x in range(limit)}, "/tmp/tiger-bin.export",
+        corpus_bin = sentence_names_to_hybridtrees({str(x) for x in range(limit)}, binarized_corpus,
                                                disconnect_punctuation=False, add_vroot=True, mode="DISCO-DOP")
 
-        corpus = sentence_names_to_hybridtrees({str(x) for x in range(limit)}, "/tmp/tiger.export",
+        corpus = sentence_names_to_hybridtrees({str(x) for x in range(limit)}, normal_corpus,
                                                disconnect_punctuation=False, add_vroot=True, mode="DISCO-DOP")
         term_labeling = terminal_labeling(corpus, threshold=4)
 

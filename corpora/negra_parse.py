@@ -24,17 +24,13 @@ DISCODOP_HEADER = re.compile(r'^%%\s+word\s+lemma\s+tag\s+morph\s+edge\s+parent\
 BOS = re.compile(r'^#BOS\s+([0-9]+)')
 EOS = re.compile(r'^#EOS\s+([0-9]+)$')
 
-STANDARD_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$')
-STANDARD_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)\s*\n?$')
+STANDARD_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)((\s+[^\s]+\s+[0-9]+)*)\s*$')
+STANDARD_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([0-9]+)((\s+[^\s]+\s+[0-9]+)*)\s*$')
 
 DISCODOP_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
-                                  r'([^\s]+)\s+([^\s]+)(\s+([^\s]+))?(\n)?$')
+                                  r'([^\s]+)\s+([0-9]+)((\s+[^\s]+\s+[0-9]+)*)\s*$')
 DISCODOP_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
-                               r'([^\s]+)(\s+([^\s]+))?(\n)?$')
-DISCDOP_BIN_NONTERMINAL = re.compile(r'^#([0-9]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
-                                     r'([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*(\n)?$')
-DISCODOP_BIN_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+'
-                                   r'([0-9]+)(\s+([^\s]+)\s+([0-9]+))*\s*\n?$')
+                               r'([0-9]+)((\s+[^\s]+\s+[0-9]+)*)\s*$')
 
 
 # Sentence number to name.
@@ -48,7 +44,8 @@ def num_to_name(num):
 # names: list of string
 # file_name: string
 # return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name,
+def sentence_names_to_hybridtrees(names,
+                                  file_name,
                                   enc="utf-8",
                                   disconnect_punctuation=True,
                                   add_vroot=False,
@@ -74,11 +71,6 @@ def sentence_names_to_hybridtrees(names, file_name,
         elif mode == "DISCO-DOP":
             match_nont = DISCODOP_NONTERMINAL.match(line)
             match_term = DISCODOP_TERMINAL.match(line)
-            # if reading in binarized trees with discodop
-            # there might be additional columns pointing to the original head
-            if not match_term and not match_nont:
-                match_nont = DISCDOP_BIN_NONTERMINAL.match(line)
-                match_term = DISCODOP_BIN_TERMINAL.match(line)
         if match_sent_start:
             this_name = match_sent_start.group(1)
             if this_name in names:
@@ -99,13 +91,12 @@ def sentence_names_to_hybridtrees(names, file_name,
             if match_nont:
                 id = match_nont.group(1)
                 if mode == "STANDARD":
-                    nont = match_nont.group(2)
-                    edge = match_nont.group(4)
-                    parent = match_nont.group(5)
-                elif mode == "DISCO-DOP":
-                    nont = match_nont.group(3)
-                    edge = match_nont.group(5)
-                    parent = match_nont.group(6)
+                    OFFSET = 0
+                else:
+                    OFFSET = 1
+                nont = match_nont.group(2 + OFFSET)
+                edge = match_nont.group(4 + OFFSET)
+                parent = match_nont.group(5 + OFFSET)
                 tree.set_label(id, nont)
                 tree.node_token(id).set_edge_label(edge)
                 if parent == '0' and not add_vroot:
@@ -113,15 +104,15 @@ def sentence_names_to_hybridtrees(names, file_name,
                 else:
                     tree.add_child(parent, id)
             elif match_term:
-                word = match_term.group(1)
                 if mode == "STANDARD":
-                    pos = match_term.group(2)
-                    edge = match_term.group(4)
-                    parent = match_term.group(5)
-                elif mode == "DISCO-DOP":
-                    pos = match_term.group(3)
-                    edge = match_term.group(5)
-                    parent = match_term.group(6)
+                    OFFSET = 0
+                else:
+                    OFFSET = 1
+
+                word = match_term.group(1)
+                pos = match_term.group(2 + OFFSET)
+                edge = match_term.group(4 + OFFSET)
+                parent = match_term.group(5 + OFFSET)
                 n_leaves += 1
                 leaf_id = str(100 + n_leaves)
                 if parent == '0' and disconnect_punctuation:
