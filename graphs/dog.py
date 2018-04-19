@@ -801,6 +801,28 @@ class DirectedOrderedGraph:
 
         return dog
 
+    def topological_order(self):
+        """
+        :return: if acyclic, list of nodes from inputs to outputs in a topological order, else empty list
+        :rtype: list
+        """
+        order = []
+        added = set()
+        changed = True
+        while changed:
+            changed = False
+            for node in self.nodes:
+                if node in added:
+                    continue
+                if all([child in added for child in self.children(node)]):
+                    added.add(node)
+                    order.append(node)
+                    changed = True
+        if len(order) == len(self.nodes):
+            return order
+        else:
+            return []
+
 
 class DeepSyntaxGraph:
     def __init__(self, sentence, dog, synchronization, label=None):
