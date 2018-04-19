@@ -188,7 +188,7 @@ cdef class PyDerivationManager(PyTraceManager):
             add_hypergraph_to_trace[NONTERMINAL, size_t](self.trace_manager, hg, deref(pyElement.element), 1.0)
             # nodeMap.clear()
 
-    cpdef void convert_chart_to_hypergraph(self, chart, disco_grammar, bint debug=False):
+    cpdef void convert_chart_to_hypergraph(self, chart, disco_grammar, bint debug=False) except +:
         cdef shared_ptr[Hypergraph[NONTERMINAL, size_t]] hg
         cdef vector[Element[Node[NONTERMINAL]]] sources
         cdef PyElement pyElement
@@ -204,7 +204,7 @@ cdef class PyDerivationManager(PyTraceManager):
         intermediate_nodes = set()
 
         # create nodes
-        for node in range(1, chart.numitems()):
+        for node in range(1, chart.numitems() + 1):
             orig_nont = disco_grammar.nonterminalstr(chart.label(node))
             orig_nont = unescape_brackets(orig_nont)
             # print(orig_nont)
@@ -219,7 +219,7 @@ cdef class PyDerivationManager(PyTraceManager):
             nodeMap[node] = pyElement2
 
         # create edges
-        for node_prim in range(1, chart.numitems()):
+        for node_prim in range(1, chart.numitems() + 1):
             # skip intermediate nodes
             if node_prim in intermediate_nodes:
                 continue

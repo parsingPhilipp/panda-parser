@@ -13,6 +13,6 @@ cdef class PyDerivationManager(PyTraceManager):
     cpdef void convert_derivations_to_hypergraphs(self, corpus)
     cpdef void convert_derivations_to_hypergraph(self, corpus)
     cpdef void convert_rtgs_to_hypergraphs(self, rtgs)
-    cpdef void convert_chart_to_hypergraph(self, chart, disco_grammar, bint debug=?)
+    cpdef void convert_chart_to_hypergraph(self, chart, disco_grammar, bint debug=?) except +
 
     cpdef Enumerator get_nonterminal_map(self)
