@@ -2,9 +2,12 @@
 from __future__ import print_function, unicode_literals
 from os.path import expanduser
 from hybridtree.constituent_tree import ConstituentTree
+from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
+from graphs.dog import DeepSyntaxGraph, DirectedOrderedGraph
 from grammar.lcfrs import *
 import re
 import codecs
+from util.enumerator import Enumerator
 try:
     from __builtin__ import str as text
 except ImportError:
@@ -223,4 +226,125 @@ def hybridtrees_to_sentence_names(trees, counter, length):
     return sentence_names
 
 
-__all__ = ["sentence_names_to_hybridtrees", "hybridtrees_to_sentence_names", "hybridtree_to_sentence_name"]
+def acyclic_syntax_graph_to_sentence_name(dsg, sec_edge_to_terminal=False):
+    """
+    :type dsg: DeepSyntaxGraph
+    :type sec_edge_to_terminal: bool
+    :param sec_edge_to_terminal: if true, exports secondary edges with terminals as target
+    """
+    assert not dsg.dog.cyclic()
+    assert len(dsg.sentence) < 500
+
+    enum = Enumerator(first_index=500)
+    # NB: contrary to the export standard, we index words starting from 1 (and not starting from 0)
+    # NB: because 0 also refers to the virtual root (important for sec_edge_to_terminal == True)
+    # NB: see http://www.coli.uni-saarland.de/~thorsten/publications/Brants-CLAUS98.pdf
+    # NB: only relevant for TiGer s22084, probably annotation error
+    synced_idxs = {idx: i + 1 for i, l in enumerate(dsg.synchronization) for idx in l}
+
+    def idNum(tree_idx):
+        if tree_idx in synced_idxs:
+            return str(synced_idxs[tree_idx])
+        else:
+            return str(enum.object_index(tree_idx))
+
+    # NB: here we enforce the indices to be topologically ordered as required by the export standard
+    for idx in dsg.dog.topological_order():
+        if idx not in synced_idxs:
+            idNum(idx)
+
+    lines = []
+
+    for idx, token in enumerate(dsg.sentence):
+        assert isinstance(token, ConstituentTerminal)
+        # if not isinstance(token.form(), str):
+        #     print(token.form(), type(token.form()))
+        #     assert isinstance(token.form(), str)
+        morph_order = ['person', 'case', 'number', 'tense', 'mood', 'gender', 'degree']
+        morph = sorted(token.morph_feats(), key=lambda x: morph_order.index(x[0]))
+        morph = '.'.join([str(x[1]) for x in morph if str(x[1]) != '--'])
+        if morph == '':
+            morph = u'--'
+        line = [token.form(), token.pos(), morph]
+        tree_idx = dsg.get_graph_position(idx)
+        assert len(tree_idx) == 1
+        tree_idx = tree_idx[0]
+
+        parents = []
+        if tree_idx in dsg.dog.outputs:
+            parents.append(u'--')
+            parents.append(u'0')
+
+        for parent_idx in dsg.dog.parents:
+            if not sec_edge_to_terminal and parent_idx in synced_idxs:
+                continue
+            edge = dsg.dog.incoming_edge(parent_idx)
+            for j, child_idx in enumerate(edge.inputs):
+                if child_idx == tree_idx:
+                    if j in edge.primary_inputs:
+                        parents = [edge.get_function(j), idNum(parent_idx)] + parents
+                    else:
+                        parents.append(edge.get_function(j))
+                        parents.append(idNum(parent_idx))
+        line += parents
+        lines.append(u'\t'.join(line) + u'\n')
+
+    category_lines = []
+    for tree_idx in dsg.dog.nodes:
+        token = dsg.dog.incoming_edge(tree_idx).label
+        if isinstance(token, ConstituentTerminal):
+            continue
+        morph = u'--'
+
+        line = ['#' + text(idNum(tree_idx)), token, morph]
+
+        parents = []
+        if tree_idx in dsg.dog.outputs:
+            parents.append(u'--')
+            parents.append(u'0')
+
+        for parent_idx in dsg.dog.parents:
+            if not sec_edge_to_terminal and parent_idx in synced_idxs:
+                continue
+            edge = dsg.dog.incoming_edge(parent_idx)
+            for j, child_idx in enumerate(edge.inputs):
+                if child_idx == tree_idx:
+                    if j in edge.primary_inputs:
+                        parents = [edge.get_function(j), idNum(parent_idx)] + parents
+                    else:
+                        parents.append(edge.get_function(j))
+                        parents.append(idNum(parent_idx))
+        line += parents
+
+        category_lines.append(line)
+
+    category_lines = sorted(category_lines, key=lambda x: x[0])
+
+    for line in category_lines:
+        lines.append(u'\t'.join(line) + u'\n')
+
+    return lines
+
+
+def acyclic_graphs_to_sentence_names(dsgs, counter, length):
+    """
+    converts a sequence of parse tree to the export format
+    :param trees: list of parse trees
+    :type: list of ConstituentTrees
+    :return: list of export format lines
+    :rtype: list of str
+    """
+    sentence_names = []
+
+    for dsg in dsgs:
+        if len(dsg.sentence) <= length:
+            sentence_names.append(u'#BOS ' + text(counter) + u'\n')
+            sentence_names.extend(acyclic_syntax_graph_to_sentence_name(dsg))
+            sentence_names.append(u'#EOS ' + text(counter) + u'\n')
+            counter += 1
+
+    return sentence_names
+
+
+__all__ = ["sentence_names_to_hybridtrees", "hybridtrees_to_sentence_names", "hybridtree_to_sentence_name",
+           "acyclic_syntax_graph_to_sentence_name", "acyclic_graphs_to_sentence_names"]
