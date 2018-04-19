@@ -117,15 +117,14 @@ def sentence_name_to_hybridtree(name, file_name, disconnect_punctuation=True):
         return None
 
 
-def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True, reorder_children=False):
+def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True, reorder_children=False, ignore_puntcuation=True):
         dsgs = []
         for name in names:
-            dsg = sentence_name_to_deep_syntax_graph(name, file_name, reorder_children)
+            dsg = sentence_name_to_deep_syntax_graph(name, file_name, reorder_children, ignore_puntcuation)
             if dsg is not None:
                 dsgs += [dsg]
             else:
                 print('missing', name)
-
         if not hold:
             clear()
         return dsgs
@@ -135,7 +134,7 @@ def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True, reorder_ch
 # name: string
 # file_name: string
 # return: ConstituentTree
-def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
+def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False, ignore_punctuation=True):
     initialize(expanduser(file_name))
     sent = xml_file.find('.//body/s[@id="%s"]' % name)
     if sent is not None:
@@ -148,6 +147,8 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
         node_enum = Enumerator()
 
         inner_nodes = {}
+        terminal_labels = {}
+        indices = set()
 
         graph = sent.find('graph')
 
@@ -165,12 +166,14 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
             morph_feats = [("case", case), ("number", number), ("gender", gender), ("person", person),
                            ("tense", tense),
                            ("degree", degree), ("mood", mood)]
-            if is_word(pos, word):
+            if not ignore_punctuation or is_word(pos, word):
                 output_idx = node_enum.object_index(ident)
                 dog.add_node(output_idx)
+                indices.add(output_idx)
                 terminal = ConstituentTerminal(word,  # .encode('utf_8'),
                                                pos, morph=morph_feats)
-                dog.add_terminal_edge([], ConstituentTerminal(word, pos, morph=morph_feats), output_idx)
+                terminal_labels[output_idx] = ConstituentTerminal(word, pos, morph=morph_feats)
+                # dog.add_terminal_edge([], ConstituentTerminal(word, pos, morph=morph_feats), output_idx)
                 sentence.append(terminal)
                 sync.append([output_idx])
                 # tree.add_leaf(id, pos, word.encode('utf_8'), morph=morph_feats)
@@ -190,6 +193,7 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
             ident = nont.get('id')
             cat = nont.get('cat')
             idx = node_enum.object_index(ident)
+            indices.add(idx)
             dog.add_node(idx)
 
             if idx not in inner_nodes:
@@ -201,7 +205,7 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
                 child_id = child.get('idref')
                 child_idx = node_enum.object_index(child_id)
                 edge_label = child.get('label')
-                if not is_punctuation(graph, child_id):
+                if not ignore_punctuation or not is_punctuation(graph, child_id):
                     inner_nodes[idx][1].append((child_idx, 'p', edge_label))
 
             for parent in nont.iterfind('secedge'):
@@ -213,14 +217,22 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False):
                 else:
                     inner_nodes[parent_idx][1].append((idx, 's', edge_label))
 
-        for idx in inner_nodes:
-            if reorder_children:
-                reordered = sorted(inner_nodes[idx][1], key=lambda x: (x[2], inner_nodes[idx][1].index(x)))
+        for idx in indices:
+            if idx not in inner_nodes:
+                inputs = []
             else:
-                reordered = inner_nodes[idx][1]
-            edge = dog.add_terminal_edge(reordered, inner_nodes[idx][0], idx)
-            for i, tentacle in enumerate(reordered):
-                edge.set_function(i, reordered[i][2])
+                if reorder_children:
+                    inputs = sorted(inner_nodes[idx][1], key=lambda x: (x[2], inner_nodes[idx][1].index(x)))
+                else:
+                    inputs = inner_nodes[idx][1]
+            if idx in terminal_labels:
+                label = terminal_labels[idx]
+            else:
+                label = inner_nodes[idx][0]
+
+            edge = dog.add_terminal_edge(inputs, label, idx)
+            for i, tentacle in enumerate(inputs):
+                edge.set_function(i, inputs[i][2])
 
         root = graph.get('root')
         root_idx = node_enum.object_index(root)
