@@ -2,6 +2,7 @@
 from __future__ import print_function, unicode_literals
 from os.path import expanduser
 from hybridtree.constituent_tree import ConstituentTree
+from hybridtree.general_hybrid_tree import HybridDag
 from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
 from graphs.dog import DeepSyntaxGraph, DirectedOrderedGraph
 from grammar.lcfrs import *
@@ -76,7 +77,10 @@ def sentence_names_to_hybridtrees(names,
             this_name = match_sent_start.group(1)
             if this_name in names:
                 name = this_name
-                tree = ConstituentTree(name)
+                if secedge:
+                    tree = HybridDag(name)
+                else:
+                    tree = ConstituentTree(name)
                 n_leaves = 0
                 node_to_children = {}
                 if add_vroot:
@@ -102,7 +106,9 @@ def sentence_names_to_hybridtrees(names,
                 # print(match_nont.groups(), len(match_nont.groups()))
                 secedges = [] if not secedge or match_nont.group(6 + OFFSET) is None else \
                     match_nont.group(6 + OFFSET).split()
-                tree.set_label(id, nont)
+
+                tree.add_node(id, ConstituentCategory(nont), False, True)
+
                 tree.node_token(id).set_edge_label(edge)
                 if parent == '0' and not add_vroot:
                     tree.add_to_root(id)
@@ -114,7 +120,7 @@ def sentence_names_to_hybridtrees(names,
                         # sec_label = secedges[sei]
                         assert secedges[sei] == edge
                         sec_parent = secedges[sei + 1]
-                        tree.add_child(sec_parent, id)
+                        tree.add_sec_child(sec_parent, id)
             elif match_term:
                 if mode == "STANDARD":
                     OFFSET = 0
@@ -138,7 +144,10 @@ def sentence_names_to_hybridtrees(names,
                         tree.add_to_root(leaf_id)
                     else:
                         tree.add_child(parent, leaf_id)
-                    tree.add_leaf(leaf_id, pos, word)
+
+                    token = ConstituentTerminal(word, pos, edge, None, '--')
+                    tree.add_node(leaf_id, token, True, True)
+
                     tree.node_token(leaf_id).set_edge_label(edge)
                     if secedge and secedges:
                         # print(secedges)
@@ -146,7 +155,7 @@ def sentence_names_to_hybridtrees(names,
                             # sec_label = secedges[sei]
                             assert secedges[sei] == edge
                             sec_parent = secedges[sei + 1]
-                            tree.add_child(sec_parent, leaf_id)
+                            tree.add_sec_child(sec_parent, leaf_id)
     negra.close()
     return trees
 

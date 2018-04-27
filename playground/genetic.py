@@ -188,6 +188,7 @@ def do_parsing(parser, corpus):
 
     return accuracy
 
+
 def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManager, term_labelling, parser, corpus_validation, validationMethod):
     validator = PyCandidateScoreValidator(grammarInfo, storageManager, validationMethod)
 
@@ -243,6 +244,7 @@ def build_score_validator(baseline_grammar, grammarInfo, nont_map, storageManage
     print("trees used for validation ", tree_count, "with", der_count * 1.0 / tree_count, "derivations on average")
 
     return validator
+
 
 def main():
     # # induce or load grammar

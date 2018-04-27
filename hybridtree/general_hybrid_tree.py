@@ -500,4 +500,32 @@ class HybridTree:
         return all(children)
 
 
+class HybridDag(HybridTree):
+    def __init__(self, sent_label):
+        super().__init__(sent_label)
+        self._id_to_sec_children = {}
+        self._sec_parents = {}
+
+    def add_sec_child(self, parent, child):
+        if parent in self._id_to_sec_children:
+            self._id_to_sec_children[parent].append(child)
+        else:
+            self._id_to_sec_children[parent] = [child]
+
+        if child in self._sec_parents and parent not in self._sec_parents[child]:
+            self._sec_parents[child].append(child)
+        else:
+            self._sec_parents[child] = [parent]
+
+    def sec_children(self, node):
+        if node in self._id_to_sec_children:
+            return self._id_to_sec_children.get(node)
+        return []
+
+    def sec_parents(self, node):
+        if node in self._sec_parents:
+            return self._sec_parents.get(node)
+        return []
+
+
 __all__ = ["HybridTree"]
