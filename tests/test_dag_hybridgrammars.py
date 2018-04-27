@@ -12,8 +12,10 @@ class MyTestCase(unittest.TestCase):
     def test_negra_to_dag_parsing(self):
         pass
         names = list(map(str, [26954]))
-        corpus = np.sentence_names_to_hybridtrees(names, "res/tiger/tiger_s26954.export", secedge=True)
-        corpus2 = np.sentence_names_to_hybridtrees(names, "res/tiger/tiger_s26954_bin.export", secedge=True)
+        primary_file = "res/tiger/tiger_s26954.export"
+        binarized_file = "res/tiger/tiger_s26954_bin.export"
+        corpus = np.sentence_names_to_hybridtrees(names, primary_file, secedge=True)
+        corpus2 = np.sentence_names_to_hybridtrees(names, binarized_file, secedge=True)
         dag = corpus[0]
         print(dag)
         assert isinstance(dag, HybridDag)
@@ -69,7 +71,17 @@ class MyTestCase(unittest.TestCase):
             elif token.type() == "CONSTITUENT-TERMINAL":
                 label = token.form(), token.pos()
 
-            print(node, label, dag_eval.children(node), dag_eval.sec_children(node))
+            print(node, label, dag_eval.children(node), dag_eval.sec_children(node), dag_eval.sec_parents(node))
+
+        lines = np.hybridtrees_to_sentence_names([dag_eval], 1, 500)
+        for line in lines:
+            print(line, end='')
+
+        print()
+
+        with open(primary_file) as pcf:
+            for line in pcf:
+                print(line, end='')
 
 
 if __name__ == '__main__':

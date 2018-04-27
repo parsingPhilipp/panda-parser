@@ -190,10 +190,12 @@ def dcp_to_hybriddag_recur(dcp, tree, next_idx, construct_token, cache, parent):
     elif isinstance(head, DCP_string):
         if head.get_string() == 'SECEDGE':
             assert len(dcp.arg()) == 1
-            if dcp.arg()[0] in cache:
+            if isinstance(dcp.arg()[0].head(), DCP_position):
+                self_idx = str(dcp.arg()[0].head().position() - 1)
+            elif dcp.arg()[0] in cache:
                 self_idx = cache[dcp.arg()[0]]
             else:
-                cache[dcp.arg()[0]] = self_idx = next_idx
+                cache[dcp.arg()[0]] = self_idx = str(next_idx)
                 next_idx += 1
             tree.add_sec_child(parent, self_idx)
             return None, next_idx
@@ -218,4 +220,4 @@ def dcp_to_hybriddag_recur(dcp, tree, next_idx, construct_token, cache, parent):
     return idx, next_idx
 
 
-__all__ = ["DCP_evaluator", "dcp_to_hybridtree"]
+__all__ = ["DCP_evaluator", "dcp_to_hybridtree", "dcp_to_hybriddag"]

@@ -160,6 +160,38 @@ def sentence_names_to_hybridtrees(names,
     return trees
 
 
+def topological_order(dag):
+    """
+    :param dag:
+    :type dag: HybridDag
+    :return:
+    :rtype:
+    """
+    order = []
+    added = set()
+    changed = True
+    while changed:
+        changed = False
+        for node in dag.nodes():
+            if node in added:
+                continue
+            if all([c in added for c in dag.children(node) + dag.sec_children(node)]):
+                added.add(node)
+                order.append(node)
+                changed = True
+    assert len(added) == len(dag.nodes())
+    print("Order", order)
+    return order
+
+
+def generate_ids_for_inner_nodes_dag(dag, order, idNum):
+    counter = 500
+    for node in order:
+        if node not in dag.full_yield():
+            idNum[node] = counter
+            counter += 1
+
+
 def generate_ids_for_inner_nodes(tree, node_id, idNum):
     """
     generates a dictionary which assigns each tree id an numeric id like specified in export format
@@ -171,7 +203,7 @@ def generate_ids_for_inner_nodes(tree, node_id, idNum):
     :type: dict
     :return: nothing
     """
-    count = 500+len(tree.ids())
+    count = 500+len([n for n in tree.nodes() if n not in tree.full_yield()])
 
     if len(idNum) is not 0:
         count = min(idNum.values())
@@ -205,23 +237,43 @@ def hybridtree_to_sentence_name(tree, idNum):
         #     assert isinstance(token.form(), str)
         line = [token.form(), token.pos(), morph, token.edge()]
 
+        # special handling of disconnected punctuation
         if leaf in tree.id_yield() and leaf not in tree.root:
             if tree.parent(leaf) is None or tree.parent(leaf) not in idNum:
                 print(tree, leaf, tree.full_yield(), list(map(text, tree.full_token_yield())), tree.parent(leaf), tree.parent(leaf) in idNum)
-            lines.append(u'\t'.join(line + [text(idNum[tree.parent(leaf)])]) + u'\n')
+            line.append(text(idNum[tree.parent(leaf)]))
         else:
-            lines.append(u'\t'.join(line + [u'0']) + u'\n')
+            line.append(u'0')
 
-    for id in tree.ids():
-        token = tree.node_token(id)
+        if isinstance(tree, HybridDag):
+            for p in tree.sec_parents(leaf):
+                line.append(token.edge())
+                line.append(text(idNum[p]))
+
+        lines.append(u'\t'.join(line) + u'\n')
+
+    category_lines = []
+
+    for node in [n for n in tree.nodes() if n not in tree.full_yield()]:
+        token = tree.node_token(node)
         morph = u'--'
 
-        line = [u'#' + text(idNum[id]), text(token.category()), morph, token.edge()]
+        line = [u'#' + text(idNum[node]), text(token.category()), morph, token.edge()]
 
-        if id in tree.root:
-            lines.append(u'\t'.join(line + [u'0']) + u'\n')
-        elif id not in tree.root:
-            lines.append(u'\t'.join(line + [text(idNum[tree.parent(id)])]) + u'\n')
+        if node in tree.root:
+            line.append(u'0')
+        elif node not in tree.root:
+            line.append(text(idNum[tree.parent(node)]))
+
+        if isinstance(tree, HybridDag):
+            for p in tree.sec_parents(node):
+                line.append(token.edge())
+                line.append(text(idNum[p]))
+
+        category_lines.append(line)
+
+    for line in sorted(category_lines, key=lambda l: l[0]):
+        lines.append(u'\t'.join(line) + u'\n')
 
     return lines
 
@@ -238,9 +290,13 @@ def hybridtrees_to_sentence_names(trees, counter, length):
 
     for tree in trees:
         if len(tree.full_yield()) <= length:
-            idNum = dict()
-            for root in tree.root:
-                generate_ids_for_inner_nodes(tree, root, idNum)
+            idNum = {}
+            if isinstance(tree, HybridDag):
+                generate_ids_for_inner_nodes_dag(tree, topological_order(tree), idNum)
+                print(idNum)
+            else:
+                for root in tree.root:
+                    generate_ids_for_inner_nodes(tree, root, idNum)
             sentence_names.append(u'#BOS ' + text(counter) + u'\n')
             sentence_names.extend(hybridtree_to_sentence_name(tree, idNum))
             sentence_names.append(u'#EOS ' + text(counter) + u'\n')
