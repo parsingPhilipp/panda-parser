@@ -1,7 +1,7 @@
-# Parsing of the Tiger corpus and capture of hybrid trees or dee syntax graphs
+"""Parsing of the Tiger corpus and capture of hybrid trees or deep syntax graphs"""
 from __future__ import print_function
 import re
-from os.path import expanduser
+from os.path import expanduser, join
 
 try:
     import xml.etree.cElementTree as cET
@@ -20,8 +20,8 @@ TIGER_DIR = 'res/tiger'
 # For testing purposes, smaller portions where manually extracted from the
 # complete XML file, which takes a long time to parse.
 # Results were put in tiger_8000.xml and test.xml.
-TIGER = TIGER_DIR + '/tiger_release_aug07.corrected.16012013.xml'
-TIGER_TEST = TIGER_DIR + '/tiger_8000.xml'
+TIGER = join(TIGER_DIR, '/tiger_release_aug07.corrected.16012013.xml')
+TIGER_TEST = join(TIGER_DIR, '/tiger_8000.xml')
 
 
 # To hold parsed XML file. Cached for efficiency.
@@ -33,30 +33,42 @@ def clear():
     xml_file = None
 
 
-# Determine XML file holding data, given file name.
-# file_name: string
-def initialize(file_name):
+def initialize(path):
+    """
+    :type path: str
+    Determine XML file holding data, given file name.
+    file_name: string
+    """
     global xml_file
     if xml_file is None:
-        xml_file = cET.parse(file_name)
+        xml_file = cET.parse(path)
 
 
-# Sentence number to name.
-# file_name: int
-# return: string
 def num_to_name(num):
+    """
+    :type num: int
+    :rtype: str
+    Sentence number to name.
+    """
     return 's' + str(num)
 
 
-# Return trees for names.
-# names: list of string
-# file_name: string
-# hold: boolean
-# return: list of hybrid trees obtained
-def sentence_names_to_hybridtrees(names, file_name, hold=True, disconnect_punctuation=True):
+def sentence_names_to_hybridtrees(names, path, hold=True, disconnect_punctuation=True):
+    """
+    :param names: list of names
+    :type names: list[str]
+    :param path: path of corpus file
+    :type path: str
+    :param hold: keep xml file opened
+    :type hold: bool
+    :param disconnect_punctuation: separate treatment of punctuation
+    :type disconnect_punctuation: bool
+    :return: trees from xml corpus with name in names.
+    :rtype: list[ConstituentTree]
+    """
     trees = []
     for name in names:
-        tree = sentence_name_to_hybridtree(name, file_name, disconnect_punctuation)
+        tree = sentence_name_to_hybridtree(name, path, disconnect_punctuation)
         if tree is not None:
             trees += [tree]
         else:
@@ -67,12 +79,18 @@ def sentence_names_to_hybridtrees(names, file_name, hold=True, disconnect_punctu
     return trees
 
 
-# Return tree for name. Return None if none.
-# name: string 
-# file_name: string
-# return: ConstituentTree
-def sentence_name_to_hybridtree(name, file_name, disconnect_punctuation=True):
-    initialize(expanduser(file_name))
+def sentence_name_to_hybridtree(name, path, disconnect_punctuation=True):
+    """
+    :param name: tree name
+    :type name: str
+    :param path: path of corpus file
+    :type path: str
+    :param disconnect_punctuation:
+    :type disconnect_punctuation:
+    :rtype: ConstituentTree
+    Searches for tree with name in corpus file and returns it or none if not present
+    """
+    initialize(expanduser(path))
     sent = xml_file.find('.//body/s[@id="%s"]' % name)
     if sent is not None:
         tree = ConstituentTree(name)
@@ -130,12 +148,20 @@ def sentence_names_to_deep_syntax_graphs(names, file_name, hold=True, reorder_ch
         return dsgs
 
 
-# Return tree for name. Return None if none.
-# name: string
-# file_name: string
-# return: ConstituentTree
-def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False, ignore_punctuation=True):
-    initialize(expanduser(file_name))
+def sentence_name_to_deep_syntax_graph(name, path, reorder_children=False, ignore_punctuation=True):
+    """
+    :param name: sentence identifier
+    :type name: str
+    :param path: path to corpus
+    :type path: str
+    :param reorder_children: order children according to edge label in alphabetic order
+    :type reorder_children: bool
+    :param ignore_punctuation: handle punctuation separately
+    :type ignore_punctuation: bool
+    :rtype: DeepSyntaxGraph
+    Searches for graph with name in corpus file and returns it or none if not present
+    """
+    initialize(expanduser(path))
     sent = xml_file.find('.//body/s[@id="%s"]' % name)
     if sent is not None:
         dog = DirectedOrderedGraph()
@@ -243,20 +269,26 @@ def sentence_name_to_deep_syntax_graph(name, file_name, reorder_children=False, 
         return None
 
 
-# Is word? Exclude bullet, POS starting with $, and words tagged as
-# XY ('Nichtwort, Sonderzeichen').
-# pos: string (part of speech)
-# word: string
-# return: boolean 
 def is_word(pos, word):
+    """
+    :param pos: part of speech
+    :type pos: str
+    :param word: a word
+    :type word: str
+    :return: Is word? Exclude bullet, POS starting with $, and words tagged as XY ('Nichtwort, Sonderzeichen').
+    :rtype: bool
+    """
     return not (re.search(r'&bullet;', word) or re.search(r'^\$', pos) or
                 (re.search(r'^XY$', pos) and re.search(r'^[a-z]$', word)))
 
 
-# In graph, is element specified by id punctuation?
-# graph: XML element
-# id: string
 def is_punctuation(graph, identifier):
+    """
+    :param identifier: id in tigerxml graph
+    :type identifier: str
+    :return: In graph, is element specified by id punctuation?
+    :rtype: bool
+    """
     term = graph.find('terminals/t[@id="%s"]' % identifier)
     if term is not None:
         word = term.get('word')

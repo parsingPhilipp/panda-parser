@@ -24,7 +24,7 @@ def main():
     train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
     names = ["s" + str(i) for i in range(40675, 40700)]
     names = ['s40564']
-    corpus = sentence_names_to_hybridtrees(names, file_name=train_path, hold=False)
+    corpus = sentence_names_to_hybridtrees(names, path=train_path, hold=False)
 
     cp = TreeComparator()
 
