@@ -1,6 +1,7 @@
 from __future__ import print_function
 from corpora.conll_parse import is_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
+from hybridtree.monadic_tokens import construct_conll_token
 
 
 def disconnect_punctuation(trees):
@@ -53,4 +54,29 @@ def disconnect_punctuation(trees):
             yield tree2
 
 
-__all__ = ["disconnect_punctuation"]
+def fall_back_left_branching(forms, poss):
+    tree = HybridTree()
+    for i, (form, pos) in enumerate(zip(forms, poss)):
+        token = construct_conll_token(form, pos)
+        token.set_edge_label('_')
+        tree.add_node(i, token, True)
+        if i == 0:
+            tree.add_to_root(i)
+        else:
+            tree.add_child(i-1, i)
+    return tree
+
+
+def fall_back_left_branching_token(clean_tokens):
+    tree = HybridTree()
+    for i, token in enumerate(clean_tokens):
+        token.set_edge_label('_')
+        tree.add_node(i, token, True)
+        if i == 0:
+            tree.add_to_root(i)
+        else:
+            tree.add_child(i-1, i)
+    return tree
+
+
+__all__ = ["disconnect_punctuation", "fall_back_left_branching", "fall_back_left_branching_token"]

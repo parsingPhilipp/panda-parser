@@ -4,8 +4,7 @@ import os
 
 from evaluation import experiment_database
 import corpora.conll_parse
-import dependency_experiments_db
-from hybridtree.general_hybrid_tree import HybridTree
+from experiment import cl_dependency_experiments
 
 import subprocess
 import re
@@ -33,7 +32,7 @@ def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = "
     else:
         gold_file_path = hypothesis_test_path(gold_prefix, corpus, experiment, filter_descr)
 
-    trees = dependency_experiments_db.parse_conll_corpus(corpus, False)
+    trees = cl_dependency_experiments.parse_conll_corpus(corpus, False)
 
     # Remove file if exists
     try:
@@ -78,7 +77,7 @@ def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = "
     p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
 
-    lines = out.split('\n')
+    lines = str(out, encoding='utf-8').split('\n')
     # print lines
     uas = 0.0
     las = 0.0

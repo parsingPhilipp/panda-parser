@@ -5,6 +5,7 @@ import pgf
 import os
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token, construct_constituent_token
+from hybridtree.dependency_tree import fall_back_left_branching
 from collections import defaultdict
 import subprocess
 from corpora.conll_parse import tree_to_conll_str
@@ -181,33 +182,6 @@ def match_line(line):
     return match
 
 
-def fall_back_left_branching(forms, poss):
-    tree = HybridTree()
-    n = len(poss)
-    for i, (form, pos) in enumerate(zip(forms, poss)):
-        token = construct_conll_token(form, pos)
-        token.set_edge_label('_')
-        tree.add_node(i, token, True)
-        if i == 0:
-            tree.add_to_root(i)
-        else:
-            tree.add_child(i-1, i)
-    return tree
-
-
-def fall_back_left_branching_token(clean_tokens):
-    tree = HybridTree()
-    n = len(clean_tokens)
-    for i, token in enumerate(clean_tokens):
-        token.set_edge_label('_')
-        tree.add_node(i, token, True)
-        if i == 0:
-            tree.add_to_root(i)
-        else:
-            tree.add_child(i-1, i)
-    return tree
-
-
 def parse(gf, input, output, verbose=False, bin=''):
     parse_failures = 0
     parse_time = 0.0
@@ -252,7 +226,8 @@ def parse(gf, input, output, verbose=False, bin=''):
     return parse_failures, parse_time
 
 
-rparse_path = "../util/rparse.jar"
+RPARSE_PATH = "../util/rparse.jar"
+
 
 @plac.annotations(
       forceRecompile=('force Recompilation', 'flag')
@@ -274,7 +249,7 @@ def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forc
     #
     if forceRecompile or not os.path.isfile(grammarName + grammar_prefix + "abstract.gf"):
         print("Extracting grammar with rparse")
-        p = subprocess.Popen(['java', "-jar", rparse_path] + rparse_params, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = subprocess.Popen(['java', "-jar", RPARSE_PATH] + rparse_params, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         out, err = p.communicate()
         print(str(out, encoding="utf-8"))
         print(str(err, encoding="utf-8"))

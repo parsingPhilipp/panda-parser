@@ -513,7 +513,7 @@ def filter_by_length(connection, ids, max_length, ignore_punctuation):
         nodes = cursor.execute(statement, [id]).fetchall()
         if (not ignore_punctuation and len(nodes) <= max_length) \
                 or (ignore_punctuation and len(
-                    filter(lambda x: not conll_parse.is_punctuation(x[0]), nodes)) <= max_length):
+                    list(filter(lambda x: not conll_parse.is_punctuation(x[0]), nodes))) <= max_length):
             ids2.append(id)
     return ids2
 

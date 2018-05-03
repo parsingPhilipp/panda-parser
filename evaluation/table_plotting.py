@@ -94,7 +94,7 @@ def compute_line(connection, ids, exp, max_length, ignore_punctuation):
     line['LAS^c_avg'] = percentify(LAS_c_a, precicion)
     line['UAS^c_t'] = percentify(UAS_c_t, precicion)
     line['LAS^c_t'] = percentify(LAS_c_t, precicion)
-    if max_length == sys.maxint:
+    if max_length == sys.maxsize:
         line['limit'] = "$\infty$"
     else:
         line['limit'] = max_length
@@ -106,7 +106,7 @@ def compute_line(connection, ids, exp, max_length, ignore_punctuation):
     return line
 
 
-def create_latex_table_from_database(connection, experiments, max_length=sys.maxint, ignore_punctuation = False, pipe=sys.stdout):
+def create_latex_table_from_database(connection, experiments, max_length=sys.maxsize, ignore_punctuation = False, pipe=sys.stdout):
     columns_style = defaultdict(lambda: 'r')
     table_columns = ['exp'
         , 'nont_labelling', 'rec_par', 'training_corpus', 'n_nonterminals', 'n_rules', 'fanout'
@@ -217,7 +217,7 @@ def create_latex_table_from_database(connection, experiments, max_length=sys.max
 
     pipe.write(
         '\t \multicolumn{8}{l}{Intersection of recognised sentences')
-    if max_length < sys.maxint:
+    if max_length < sys.maxsize:
         pipe.write(' of length $\leq$ ' + str(max_length))
     pipe.write(': ' + str(
         len(common_results)) + ' / ' + str(

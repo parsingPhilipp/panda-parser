@@ -60,17 +60,17 @@ def list_experiments(exp_db):
 
             tab.add_row(t_row)
         s = tab.draw()
-        print s
+        print(s)
         experiment_database.finalize_database(connection)
     except DatabaseError as e:
-        print 'file at \'' + exp_db + '\' is not a valid experiment database:'
-        print e.message
+        print('file at \'' + exp_db + '\' is not a valid experiment database:')
+        print(e.message)
 
 
 def plot_table(exp_db):
     experiments = []
     outfile = ''
-    max_length = sys.maxint
+    max_length = sys.maxsize
     ignore_punctuation = False
     for arg in sys.argv:
         match = re.search(r'^--experiments=((?:[0-9]|,|-)+)$', arg)
@@ -89,24 +89,24 @@ def plot_table(exp_db):
                     if low < high:
                         experiments += range(low, high + 1)
                     else:
-                        print "Error: Parse failure at " + string + ": " + str(low) + " is not smaller than " + str(
-                            high)
+                        print("Error: Parse failure at " + string + ": " + str(low) + " is not smaller than " + str(
+                            high))
                         exit(1)
                     string = match.group(3)
                     continue
-                print "Error: Parse failure at " + string
+                print("Error: Parse failure at " + string)
                 exit(1)
 
         match = re.search(r'^--outfile=(.+)$', arg)
         if match:
             path = match.group(1)
-            print path
+            print(path)
             if not os.path.isfile(exp_db):
                 try:
                     open(path, 'w').close()
                     os.unlink(path)
                 except IOError:
-                    print 'invalid path: \'' + path + '\''
+                    print('invalid path: \'' + path + '\'')
                     exit(1)
 
             outfile = path
@@ -123,12 +123,12 @@ def plot_table(exp_db):
     experiments = list(OrderedDict.fromkeys(experiments))
 
     # TODO: print information on what table was created
-    print "exp: ", experiments
-    print "out: ", outfile
-    print "max_length: ", max_length
-    print "ignore punctuation ", ignore_punctuation
+    print("exp: ", experiments)
+    print("out: ", outfile)
+    print("max_length: ", max_length)
+    print( "ignore punctuation ", ignore_punctuation)
     if not outfile:
-        print "No outfile specified!"
+        print("No outfile specified!")
         exit(1)
 
     file = open(outfile, 'w')
@@ -148,7 +148,7 @@ if __name__ == '__main__':
         command = sys.argv[2]
 
     if not os.path.isfile(exp_db):
-        print 'file not found \'' + exp_db + '\''
+        print('file not found \'' + exp_db + '\'')
     elif command == 'list':
         list_experiments(exp_db)
     elif command == 'plot':

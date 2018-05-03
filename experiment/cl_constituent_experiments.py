@@ -8,33 +8,36 @@ from constituent.parse_accuracy import ParseAccuracyPenalizeFailures
 from hybridtree.constituent_tree import *
 from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.induction import direct_extract_lcfrs, fringe_extract_lcfrs, \
-    start as induction_start
+    START as induction_start
 from parser.naive.parsing import *
 from parser.parser_factory import the_parser_factory
 from grammar.induction.decomposition import *
+from grammar.lcfrs import LCFRS
+import sys
+import re
 
 # Different corpora and subsets of the corpora
 # can be used for the experiments.
-negra_any = ['negra nonproj', 'negra proj', 'negra nonproj subset']
-tiger_any = ['tiger', 'tiger subset']
+NEGRA_ANY = {'negra nonproj', 'negra proj', 'negra nonproj subset'}
+TIGER_ANY = {'tiger', 'tiger subset'}
 
 # Unselect precisely one:
-# corpus = 'negra nonproj'
-# corpus = 'negra proj'
-# corpus = 'negra nonproj subset'
-# corpus = 'tiger'
-corpus = 'tiger subset'
+# CORPUS = 'negra nonproj'
+# CORPUS = 'negra proj'
+# CORPUS = 'negra nonproj subset'
+# CORPUS = 'tiger'
+CORPUS = 'tiger subset'
 
 # ## negra
 # The one sentence with fanout 3:
-negra_proj_fanout_3 = [18332]
+NEGRA_NONPROJ_FANOUT_3 = [18332]
 # The sentences with fanout 4:
-negra_nonproj_fanout_4 = \
+NEGRA_NONPROJ_FANOUT_4 = \
     [448, 1572, 2055, 3269, 4664, 6684, 8232, 19485]
 
-### tiger
+# ## tiger
 # The sentences with fanout 4:
-tiger_fanout_4 = \
+TIGER_FANOUT_4 = \
     [3789, 8632, 11766, 11788, \
      12085, 13915, 15469, 17940, \
      23100, 24262, 25798, 32179, 39489, 39650]
@@ -47,18 +50,14 @@ tiger_fanout_4 = \
 # names: list of string
 # return: list of ConstituentTree
 def sentence_names_to_hybridtrees(names):
-    if corpus == 'negra nonproj':
-        return corpora.negra_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.negra_parse.NEGRA_NONPROJECTIVE)
-    elif corpus == 'negra proj':
-        return corpora.negra_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.negra_parse.NEGRA_PROJECTIVE)
-    elif corpus == 'tiger':
-        return corpora.tiger_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.tiger_parse.TIGER)
-    elif corpus == 'tiger subset':
-        return corpora.tiger_parse.sentence_names_to_hybridtrees(names, \
-                                                                 corpora.tiger_parse.TIGER_TEST)
+    if CORPUS == 'negra nonproj':
+        return corpora.negra_parse.sentence_names_to_hybridtrees(names, corpora.negra_parse.NEGRA_NONPROJECTIVE)
+    elif CORPUS == 'negra proj':
+        return corpora.negra_parse.sentence_names_to_hybridtrees(names, corpora.negra_parse.NEGRA_PROJECTIVE)
+    elif CORPUS == 'tiger':
+        return corpora.tiger_parse.sentence_names_to_hybridtrees(names, corpora.tiger_parse.TIGER)
+    elif CORPUS == 'tiger subset':
+        return corpora.tiger_parse.sentence_names_to_hybridtrees(names, corpora.tiger_parse.TIGER_TEST)
     else:
         raise Exception('wrong corpus')
 
@@ -66,9 +65,9 @@ def sentence_names_to_hybridtrees(names):
 # Get first and last sentence (number) of corpus.
 # return int
 def first_sentence():
-    if corpus in negra_any:
+    if CORPUS in NEGRA_ANY:
         return 1
-    elif corpus in tiger_any:
+    elif CORPUS in TIGER_ANY:
         return 1
     else:
         raise Exception('wrong corpus')
@@ -76,11 +75,11 @@ def first_sentence():
 
 # return int
 def last_sentence():
-    if corpus in negra_any:
+    if CORPUS in NEGRA_ANY:
         return 20602
-    elif corpus == 'tiger':
+    elif CORPUS == 'tiger':
         return 50474
-    elif corpus == 'tiger subset':
+    elif CORPUS == 'tiger subset':
         return 500
     else:
         raise Exception('wrong corpus')
@@ -89,9 +88,9 @@ def last_sentence():
 # To be excluded for different reasons.
 # return list of int
 def excluded_sentences():
-    if corpus in negra_any:
+    if CORPUS in NEGRA_ANY:
         return []
-    elif corpus in tiger_any:
+    elif CORPUS in TIGER_ANY:
         # Missing, reentrant, resp.
         return [7561, 17632] + [46234, 50224]
     else:
@@ -100,9 +99,9 @@ def excluded_sentences():
 
 # return int
 def first_training_sentence():
-    if corpus in negra_any:
+    if CORPUS in NEGRA_ANY:
         return 1
-    elif corpus in tiger_any:
+    elif CORPUS in TIGER_ANY:
         return 1
     else:
         raise Exception('wrong corpus')
@@ -110,14 +109,13 @@ def first_training_sentence():
 
 # return int
 def last_training_sentence():
-    if corpus == 'negra nonproj subset':
+    if CORPUS == 'negra nonproj subset':
         return 30  # for testing
-    elif corpus in negra_any:
+    elif CORPUS in NEGRA_ANY:
         return 18602  # corresponding to Dubey & Keller (ACL2003)
-    elif corpus == 'tiger':
-        # return 7000
-	return 40000
-    elif corpus == 'tiger subset':
+    elif CORPUS == 'tiger':
+        return 40000
+    elif CORPUS == 'tiger subset':
         return 450
     else:
         raise Exception('wrong corpus')
@@ -125,14 +123,13 @@ def last_training_sentence():
 
 # return int
 def first_test_sentence():
-    if corpus == 'negra nonproj subset':
+    if CORPUS == 'negra nonproj subset':
         return 7001  # for testing
-    elif corpus in negra_any:
+    elif CORPUS in NEGRA_ANY:
         return 18603  # corresponding to Dubey & Keller (ACL2003)
-    elif corpus == 'tiger':
-#        return 7001
-	return 40001
-    elif corpus == 'tiger subset':
+    elif CORPUS == 'tiger':
+        return 40001
+    elif CORPUS == 'tiger subset':
         return 451
     else:
         raise Exception('wrong corpus')
@@ -140,14 +137,13 @@ def first_test_sentence():
 
 # return int
 def last_test_sentence():
-    if corpus == 'negra nonproj subset':
+    if CORPUS == 'negra nonproj subset':
         return 7050  # for testing
-    elif corpus in negra_any:
+    elif CORPUS in NEGRA_ANY:
         return 19602  # corresponding to Dubey & Keller (ACL2003)
-    elif corpus == 'tiger':
-#        return 7500
-	return 50474
-    elif corpus == 'tiger subset':
+    elif CORPUS == 'tiger':
+        return 50474
+    elif CORPUS == 'tiger subset':
         return 500
     else:
         raise Exception('wrong corpus')
@@ -157,9 +153,9 @@ def last_test_sentence():
 # i: int
 # return: string
 def make_name(i):
-    if corpus in negra_any:
+    if CORPUS in NEGRA_ANY:
         return corpora.negra_parse.num_to_name(i)
-    elif corpus in tiger_any:
+    elif CORPUS in TIGER_ANY:
         return corpora.tiger_parse.num_to_name(i)
     else:
         raise Exception('wrong corpus')
@@ -172,8 +168,7 @@ def make_name(i):
 # j: int
 # return: list of string
 def make_names(i, j):
-    return [make_name(k) for k in range(i, j + 1) \
-            if k not in excluded_sentences()]
+    return [make_name(k) for k in range(i, j + 1) if k not in excluded_sentences()]
 
 
 # Turn range into hybrid trees.
@@ -209,19 +204,15 @@ def print_canvas(tree):
 
 
 def print_graph(tree):
-    print tree.graph()
+    print(tree.graph())
 
 
 def print_label(tree):
-    print tree.sent_label()
+    print(tree.sent_label())
 
 
 def print_label_and_spans(tree):
-    print tree.sent_label(), tree.max_n_spans()
-
-
-def print_unicode(tree):
-    print unicode(tree)
+    print(tree.sent_label(), tree.max_n_spans())
 
 
 # In list of tuples, replace e.g. NP/2 by NP.
@@ -247,12 +238,11 @@ def normalize_labelled_spans(spans):
 def print_trees_with_empty_yields():
     first = first_sentence()
     last = last_sentence()
-    print 'Print trees with empty yields', \
-        corpus, first, '-', last
+    print('Print trees with empty yields', CORPUS, first, '-', last)
     n = do_range(first, last,
                  print_label,
                  lambda tree: tree.complete() and tree.empty_fringe())
-    print 'Investigated:', n
+    print('Investigated:', n)
 
 
 # UNCOMMENT to run experiment
@@ -263,13 +253,11 @@ def print_trees_with_empty_yields():
 def print_trees_with_spans(min_span):
     first = first_sentence()
     last = last_sentence()
-    print 'Print trees with spans exceeding', min_span, \
-        corpus, first, '-', last
+    print('Print trees with spans exceeding', min_span, CORPUS, first, '-', last)
     n = do_range(first, last,
                  print_label_and_spans,
-                 lambda tree: tree.complete() and not tree.empty_fringe() \
-                              and tree.max_n_spans() >= min_span)
-    print 'Investigated:', n
+                 lambda tree: tree.complete() and not tree.empty_fringe() and tree.max_n_spans() >= min_span)
+    print('Investigated:', n)
 
 
 # UNCOMMENT to run experiment
@@ -278,9 +266,10 @@ def print_trees_with_spans(min_span):
 # Print properties of grammar.
 # g: LCFRS
 def print_grammar_properties(g):
-    print 'Number of rules:', len(g.rules())
-    print 'Number of nonterminals:', len(g.nonts())
-    print 'Grammar size:', g.size()
+    print('Number of rules:', len(g.rules()))
+    print('Number of nonterminals:', len(g.nonts()))
+    print('Grammar size:', g.size())
+
 
 # Particular global variables for statistics about number of gaps.
 n_nodes_gold = 0
@@ -300,9 +289,9 @@ def clear_globals():
 # Average global variables.
 def eval_globals():
     if n_nodes_gold > 0:
-        print "gaps per word (gold)", 1.0 * n_gaps_gold / n_nodes_gold
+        print("gaps per word (gold)", 1.0 * n_gaps_gold / n_nodes_gold)
     if n_nodes_test > 0:
-        print "gaps per word (test)", 1.0 * n_gaps_test / n_nodes_test
+        print("gaps per word (test)", 1.0 * n_gaps_test / n_nodes_test)
 
 
 #############################################################
@@ -316,9 +305,11 @@ def basic_extraction(t):
     tree_part = t.unlabelled_structure()
     return fringe_extract_lcfrs(t, tree_part)
 
+
 def basic_extraction_child(t):
     tree_part = t.unlabelled_structure()
     return fringe_extract_lcfrs(t, tree_part, naming="child")
+
 
 # Novel way of extracting LCFRS, placing maximum on fanout of LCFRS.
 def cfg_extraction(t):
@@ -400,25 +391,19 @@ def fanout_extraction_child(t, fanout):
 
 
 def left_branch_extraction(t):
-    return fringe_extract_lcfrs(t, \
-                                left_branching_partitioning(len(t.pos_yield())))
+    return fringe_extract_lcfrs(t, left_branching_partitioning(len(t.pos_yield())))
 
 
 def left_branch_extraction_child(t):
-    return fringe_extract_lcfrs(t, \
-                                left_branching_partitioning(len(t.pos_yield())), \
-                                naming='child')
+    return fringe_extract_lcfrs(t, left_branching_partitioning(len(t.pos_yield())), naming='child')
 
 
 def right_branch_extraction(t):
-    return fringe_extract_lcfrs(t, \
-                                right_branching_partitioning(len(t.pos_yield())))
+    return fringe_extract_lcfrs(t, right_branching_partitioning(len(t.pos_yield())))
 
 
 def right_branch_extraction_child(t):
-    return fringe_extract_lcfrs(t, \
-                                right_branching_partitioning(len(t.pos_yield())), \
-                                naming='child')
+    return fringe_extract_lcfrs(t, right_branching_partitioning(len(t.pos_yield())), naming='child')
 
 
 #############################################################
@@ -430,12 +415,12 @@ def right_branch_extraction_child(t):
 def test_induction(method=direct_extract_lcfrs):
     first = 1  # first_sentence()
     last = 100  # last_sentence()
-    print 'Testing grammar induction from', corpus, first, '-', last, \
-        'using method', method.__name__
+    print('Testing grammar induction from', CORPUS, first, '-', last, \
+        'using method', method.__name__)
     n = do_range(first, last,
                  lambda tree: induct_and_parse(tree, method),
                  lambda tree: tree.complete() and not tree.empty_fringe())
-    print 'Tested on size:', n
+    print('Tested on size:', n)
 
 
 # Do induction and parsing.
@@ -444,13 +429,13 @@ def test_induction(method=direct_extract_lcfrs):
 def induct_and_parse(tree, method):
     gram = method(tree)
     # print gram
-    print "n gaps:", tree.n_gaps()
+    print("n gaps:", tree.n_gaps())
     # if tree.n_gaps() > 0:
     # tree.canvas()
     inp = tree.pos_yield()
     p = LCFRS_parser(gram, inp)
     if not p.recognized():
-        print 'failure', tree.sent_label()
+        print('failure', tree.sent_label())
 
 
 # UNCOMMENT for running sanity check
@@ -467,12 +452,12 @@ def induce(method=direct_extract_lcfrs):
     merged_gram = LCFRS(start=induction_start)
     first = first_training_sentence()
     last = last_training_sentence()
-    print 'Inducing grammar from', corpus, first, '-', last, \
-        'using method', method.__name__
+    print('Inducing grammar from', CORPUS, first, '-', last, \
+        'using method', method.__name__)
     n = do_range(first, last,
                  lambda tree: add_gram(tree, merged_gram, method),
                  lambda tree: tree.complete() and not tree.empty_fringe())
-    print 'Trained on size:', n
+    print('Trained on size:', n)
     merged_gram.make_proper()
     return merged_gram
 
@@ -503,7 +488,7 @@ def parse_test(max_length, method=direct_extract_lcfrs, parser=LCFRS_parser):
     last = last_test_sentence()
     print_grammar_properties(g)
     parser.preprocess_grammar(g)
-    print 'Parsing', corpus, first, '-', last
+    print('Parsing', CORPUS, first, '-', last)
     start_at = time.time()
     n = do_range(first, last,
                  lambda tree: parse_tree_by_gram(tree, g, parser, accuracy),
@@ -512,17 +497,17 @@ def parse_test(max_length, method=direct_extract_lcfrs, parser=LCFRS_parser):
                  # UNCOMMENT following line to restrict attention to sentences with gaps   # and tree.n_gaps() > 0
                  )
     end_at = time.time()
-    print 'Parsed:', n
+    print('Parsed:', n)
     if accuracy.n() > 0:
-        print 'Recall:', accuracy.recall()
-        print 'Precision:', accuracy.precision()
-        print 'F-measure:', accuracy.fmeasure()
-        print 'Parse failures:', accuracy.n_failures()
+        print('Recall:', accuracy.recall())
+        print('Precision:', accuracy.precision())
+        print('F-measure:', accuracy.fmeasure())
+        print('Parse failures:', accuracy.n_failures())
     else:
-        print 'No successful parsing'
+        print('No successful parsing')
     eval_globals()
-    print 'time:', end_at - start_at
-    print ''
+    print('time:', end_at - start_at)
+    print()
     sys.stdout.flush()
 
 
@@ -554,6 +539,7 @@ def parse_tree_by_gram(tree, gram, parser, accuracy):
         n_gaps_test += dcp_tree.n_gaps()
         # print 'success', tree.sent_label() # for testing
 
+
 # UNCOMMENT one or more of the following for running experiments
 # parse_test(25)
 # parse_test(20, method=basic_extraction, parser=the_parser_factory().getParser("gf-parser"))
@@ -583,7 +569,7 @@ def parse_compare(max_length, method=direct_extract_lcfrs):
     # print g # testing
     first = first_test_sentence()
     last = last_test_sentence()
-    print 'Parsing', corpus, first, '-', last
+    print('Parsing', CORPUS, first, '-', last)
     n = do_range(first, last,
                  lambda tree: parse_tree_by_gram_and_compare(tree, g),
                  lambda tree: tree.complete() and not tree.empty_fringe() \
@@ -602,7 +588,7 @@ def parse_tree_by_gram_and_compare(tree, gram):
     words = tree.word_yield()
     p = LCFRS_parser(gram, poss)
     if not p.recognized():
-        print 'failure', tree.sent_label()
+        print('failure', tree.sent_label())
     else:
         # dcp_tree = p.dcp_hybrid_tree(poss, words)
         tree = ConstituentTree()
@@ -610,8 +596,8 @@ def parse_tree_by_gram_and_compare(tree, gram):
         # retrieved = normalize_labelled_spans(p.labelled_spans())
         retrieved = dcp_tree.labelled_spans()
         relevant = tree.labelled_spans()
-        print 'retrieved', retrieved
-        print 'relevant', relevant
+        print('retrieved', retrieved)
+        print('relevant', relevant)
         # tree.canvas()
         # dcp_tree.canvas()
 
