@@ -10,7 +10,7 @@ import subprocess
 here = path.abspath(path.dirname(__file__))
 
 # Get the long description from the README file
-with open(path.join(here, 'README.rst')) as f:
+with open(path.join(here, 'README.md')) as f:
     long_description = f.read()
 
 sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
@@ -149,6 +149,7 @@ if __name__ == '__main__':
         name='hyberparse',
         version='0.3.0a',
         description='Implementation of LCFRS/sDCP hybrid grammars',
+        long_description=long_description,
         url='https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars',
         author='Kilian Gebhardt',
         author_email='kilian.gebhardt@tu-dresden.de',
