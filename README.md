@@ -70,7 +70,7 @@ TODO: complete the description according to wiki at
 
         pip3 setup -r requirements.txt [--user]
 
-2. Install this patched version of `disco-dop` from branch [chart-exposure](https://github.com/kilian-gebhardt/disco-dop/tree/chart-exposure).
+2. Install the patched version of `disco-dop` from branch [chart-exposure-merge](https://github.com/kilian-gebhardt/disco-dop/tree/chart-exposure-merge).
 
 3. Compile Cython modules by running
 
