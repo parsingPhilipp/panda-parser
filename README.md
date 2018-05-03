@@ -49,7 +49,7 @@ Functionality:
 Some of these concepts/algorithms have been described in the following articles:
 - LCFRS/sDCP hybrid grammars and induction from discontinuous constituent structures 
     [[Nederhof/Vogler 2014]](https://www.aclweb.org/anthology/C14-1130)
-- aligned hypergraph bimorphism, reducts and EM training [[Drewes/Gebhardt/Vogler 2016]](https://may want to uwww.aclweb.org/anthology/W16-2407)
+- aligned hypergraph bimorphism, reducts and EM training [[Drewes/Gebhardt/Vogler 2016]](https://www.aclweb.org/anthology/W16-2407)
 - general hybrid grammars, induction of LCFRS/sDCP hybrid grammars from discontinuous constituent trees and
     non-projective dependency trees [[Gebhardt/Nederhof/Vogler 2017]](https://doi.org/10.1162/COLI_a_00291)
 - generic split/merge training, in partiuclar for LCFRS and LCFRS/sDCP hybrid grammars 
@@ -84,15 +84,15 @@ Resources / Corpora
 For many scripts it is assumed that various corpora are available in the res directory. You
 may want to download or symlink them there:
 
-`res/dependency\_conll` -\> various corpora of CONLL-X shared task
+`res/dependency_conll` -\> various corpora of CONLL-X shared task
 
-`res/tiger/tiger\_release\_aug07.corrected.16012013.xml` -\> the tiger
+`res/tiger/tiger_release_aug07.corrected.16012013.xml` -\> the tiger
 corpus
 
 `res/negra-corpus/downloadv2/negra-corpus.{cfg,export}` -\> the
 negra-corpus
 
-`res/wsj\_dependency/{02-22,23,24}.conll` -\> various section of PTB/WSJ
+`res/wsj_dependency/{02-22,23,24}.conll` -\> various section of PTB/WSJ
 in conll format
 
 `res/negra-dep/negra-lower-punct-{train,test}.conll` -\> a conversion of negra
@@ -208,10 +208,10 @@ No separate evaluation is required.
 
 Acquire the Tiger and/or the Negra corpus.
 
-In `corpus/tiger_parse.py`: Change the definitions of `tiger_dir` and
-tiger.
+In `corpora/tiger_parse.py`: Change the definitions of `TIGER_DIR` and
+`TIGER`.
 
-In `corpus/negra_parse.py`: Change the definition of `negra_dir`.
+In `corpora/negra_parse.py`: Change the definition of `NEGRA_DIRECTORY`.
 
 Uncomment the relevant lines of `experiment/cl_constituent_experiment.py` to select the desired
 experiments.
