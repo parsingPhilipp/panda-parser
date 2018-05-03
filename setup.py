@@ -79,6 +79,7 @@ class CustomBuildExtCommand(build_ext):
             retval = p.wait()
         return retval
 
+
 extra_compile_args = ["-std=c++17", "-gdwarf-3", "-Wall", "-rdynamic"]
 # openmp = ["-fopenmp", "-lpthread"]
 openmp = []
@@ -88,7 +89,7 @@ optimizations = []
 optimizations_tensors = ["-mfpmath=sse", "-msse2"]
 linker_args = ["-rdynamic"]
 
-ext_modules=[
+ext_modules = [
     Extension("grammar.induction.decomposition", ["grammar/induction/decomposition.pyx"], language='c++'),
     Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++',
               extra_compile_args=['-std=c++14', '-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl'],
@@ -146,13 +147,13 @@ if __name__ == '__main__':
             'build_ext': CustomBuildExtCommand,
         },
         name='hyberparse',
-        version='0.2.1',
+        version='0.3.0a',
         description='Implementation of LCFRS/sDCP hybrid grammars',
         url='https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars',
         author='Kilian Gebhardt',
         author_email='kilian.gebhardt@tu-dresden.de',
 
-        license=None,
+        license='GNU General Public License (GPL)',
 
         classifiers=[
             # How mature is this project? Common values are
@@ -166,16 +167,12 @@ if __name__ == '__main__':
             'Topic :: Syntactic Parsing :: Grammar-based parsing formalisms',
 
             # Pick your license as you wish (should match "license" above)
-            # 'License :: OSI Approved :: MIT License',
+            'License :: OSI Approved :: GNU General Public License (GPL)',
 
             # Specify the Python versions you support here. In particular, ensure
             # that you indicate whether you support Python 2, Python 3 or both.
-            'Programming Language :: Python :: 2',
-            'Programming Language :: Python :: 2.7',
-            # 'Programming Language :: Python :: 3',
-            # 'Programming Language :: Python :: 3.3',
-            # 'Programming Language :: Python :: 3.4',
-            # 'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.5',
+            'Programming Language :: Python :: 3.6'
         ],
 
         # What does your project relate to?
