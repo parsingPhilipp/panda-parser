@@ -5,7 +5,7 @@ from graphs.util import render_and_view_dog
 from graphs.graph_bimorphism_json_export import export_dog_grammar_to_json, export_corpus_to_json
 from graphs.graph_decomposition import *
 from corpora.tiger_parse import sentence_names_to_deep_syntax_graphs
-from corpora.negra_parse import acyclic_syntax_graph_to_sentence_name, acyclic_graphs_to_sentence_names
+from corpora.negra_parse import serialize_acyclic_dogs_to_negra, serialize_hybrid_dag_to_negra
 from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
 from grammar.lcfrs_derivation import LCFRSDerivationWrapper
 from parser.naive.parsing import LCFRS_parser
@@ -244,7 +244,7 @@ class GraphTests(unittest.TestCase):
     def test_tiger_to_export_conversion(self):
         for s in ["s26954", "s22084"]:
             dsg = sentence_names_to_deep_syntax_graphs([s], "res/tiger/tiger_%s.xml" % s, hold=False, ignore_puntcuation=False)[0]
-            lines = acyclic_syntax_graph_to_sentence_name(dsg)
+            lines = serialize_acyclic_dogs_to_negra(dsg)
             print(''.join(lines))
 
     def test_corpus_conversion(self):
@@ -254,7 +254,7 @@ class GraphTests(unittest.TestCase):
                                                     "res/tiger/tiger_release_aug07.corrected.16012013.utf8.xml",
                                                     hold=False,
                                                     ignore_puntcuation=False)
-        lines = acyclic_graphs_to_sentence_names(dsgs, 1, 500)
+        lines = serialize_hybrid_dag_to_negra(dsgs, 1, 500)
         with open('/tmp/tiger_full_with_sec_edges.export', 'w') as fd:
             fd.write(''.join(lines))
 

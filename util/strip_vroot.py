@@ -1,7 +1,7 @@
 from __future__ import print_function
 import sys
 import codecs
-from corpora.negra_parse import sentence_names_to_hybridtrees, hybridtrees_to_sentence_names
+from corpora.negra_parse import sentence_names_to_hybridtrees, serialize_hybridtrees_to_negra
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     corpus = sentence_names_to_hybridtrees(sent_ids, inpath)
     map(lambda x: x.strip_vroot(), corpus)
     with codecs.open(outpath, mode='w', encoding="utf-8") as file:
-        lines = hybridtrees_to_sentence_names(corpus, begin, 2000)
+        lines = serialize_hybridtrees_to_negra(corpus, begin, 2000)
         for line in lines:
             if not (isinstance(line, unicode) or isinstance(line, str)):
                 print(line)

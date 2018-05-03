@@ -599,7 +599,7 @@ class ConstituentExperiment(ScoringExperiment):
                     number = int(label[1:])
                 else:
                     number = int(label)
-            return np.hybridtrees_to_sentence_names([obj], number, MAX_SENTENCE_LENGTH)
+            return np.serialize_hybridtrees_to_negra([obj], number, MAX_SENTENCE_LENGTH)
         raise ValueError("Unsupported serialization type", self.serialization_type)
 
     def print_config(self, file=None):

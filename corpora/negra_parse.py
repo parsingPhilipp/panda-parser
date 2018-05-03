@@ -1,25 +1,23 @@
-# Parsing of the Negra corpus and capture of hybrid trees.
+"""Parsing/Serialization from and to the Negra export format into HybridTrees, HybridDags, and (only to)
+DeepSyntaxGraphs."""
 from __future__ import print_function, unicode_literals
 from os.path import expanduser
 from hybridtree.constituent_tree import ConstituentTree
 from hybridtree.general_hybrid_tree import HybridDag
 from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
-from graphs.dog import DeepSyntaxGraph, DirectedOrderedGraph
-from grammar.lcfrs import *
+from graphs.dog import DeepSyntaxGraph
 import re
 import codecs
+import os
 from util.enumerator import Enumerator
-try:
-    from __builtin__ import str as text
-except ImportError:
-    text = str
 
+# Used only by CL experiments
 # Location of Negra corpus.
 NEGRA_DIRECTORY = 'res/negra-corpus/downloadv2'
-
 # The non-projective and projective versions of the negra corpus.
-NEGRA_NONPROJECTIVE = NEGRA_DIRECTORY + '/negra-corpus.export'
-NEGRA_PROJECTIVE = NEGRA_DIRECTORY + '/negra-corpus.cfg'
+NEGRA_NONPROJECTIVE = os.path.join(NEGRA_DIRECTORY, '/negra-corpus.export')
+NEGRA_PROJECTIVE = os.path.join(NEGRA_DIRECTORY, '/negra-corpus.cfg')
+
 
 DISCODOP_HEADER = re.compile(r'^%%\s+word\s+lemma\s+tag\s+morph\s+edge\s+parent\s+secedge$')
 BOS = re.compile(r'^#BOS\s+([0-9]+)')
@@ -34,30 +32,44 @@ DISCODOP_TERMINAL = re.compile(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([
                                r'([0-9]+)((\s+[^\s]+\s+[0-9]+)*)\s*$')
 
 
-# Sentence number to name.
-# file_name: int
-# return: string
 def num_to_name(num):
+    """
+    :type num: int
+    :rtype: str
+    convert sentence number to name
+    """
     return str(num)
 
 
-# Return trees for names:
-# names: list of string
-# file_name: string
-# return: list of hybrid trees obtained
 def sentence_names_to_hybridtrees(names,
-                                  file_name,
+                                  path,
                                   enc="utf-8",
                                   disconnect_punctuation=True,
                                   add_vroot=False,
                                   mode="STANDARD",
                                   secedge=False):
-    negra = codecs.open(expanduser(file_name), encoding=enc)
+    """
+    :param names:  list of sentence identifiers
+    :type names: list[str]
+    :param path: path to corpus
+    :type path: str
+    :param enc: file encoding
+    :type enc: str
+    :param disconnect_punctuation: disconnect
+    :type disconnect_punctuation: bool
+    :param add_vroot: adds a virtual root node labelled 'VROOT'
+    :type add_vroot: bool
+    :param mode: either 'STANDARD' (no lemma field) or 'DISCODOP' (lemma field)
+    :type mode: str
+    :param secedge: add secondary edges
+    :type secedge: bool
+    :return: list of constituent structures (HybridTrees or HybridDags) from file_name whose names are in names
+    """
+    negra = codecs.open(expanduser(path), encoding=enc)
     trees = []
     tree = None
     name = ''
     n_leaves = 0
-    node_to_children = {}
     for line in negra:
         match_mode = DISCODOP_HEADER.match(line)
         if match_mode:
@@ -82,7 +94,6 @@ def sentence_names_to_hybridtrees(names,
                 else:
                     tree = ConstituentTree(name)
                 n_leaves = 0
-                node_to_children = {}
                 if add_vroot:
                     tree.set_label('0', 'VROOT')
                     tree.add_to_root('0')
@@ -93,7 +104,6 @@ def sentence_names_to_hybridtrees(names,
                 trees += [tree]
                 tree = None
         elif tree:
-            secedges = []
             if match_nont:
                 id = match_nont.group(1)
                 if mode == "STANDARD":
@@ -162,10 +172,9 @@ def sentence_names_to_hybridtrees(names,
 
 def topological_order(dag):
     """
-    :param dag:
     :type dag: HybridDag
-    :return:
-    :rtype:
+    :return: list of nodes of dag in topological order
+    :rtype: list
     """
     order = []
     added = set()
@@ -194,7 +203,7 @@ def generate_ids_for_inner_nodes_dag(dag, order, idNum):
 
 def generate_ids_for_inner_nodes(tree, node_id, idNum):
     """
-    generates a dictionary which assigns each tree id an numeric id like specified in export format
+    generates a dictionary which assigns each tree id an numeric id as required by export format
     :param tree: parse tree
     :type: ConstituentTree
     :param node_id: id of current node
@@ -240,15 +249,17 @@ def hybridtree_to_sentence_name(tree, idNum):
         # special handling of disconnected punctuation
         if leaf in tree.id_yield() and leaf not in tree.root:
             if tree.parent(leaf) is None or tree.parent(leaf) not in idNum:
-                print(tree, leaf, tree.full_yield(), list(map(text, tree.full_token_yield())), tree.parent(leaf), tree.parent(leaf) in idNum)
-            line.append(text(idNum[tree.parent(leaf)]))
+                print(tree, leaf, tree.full_yield(), list(map(str, tree.full_token_yield())), tree.parent(leaf),
+                      tree.parent(leaf) in idNum)
+                assert False and "Words (i.e. leaves) should not have secondary children!"
+            line.append(str(idNum[tree.parent(leaf)]))
         else:
             line.append(u'0')
 
         if isinstance(tree, HybridDag):
             for p in tree.sec_parents(leaf):
                 line.append(token.edge())
-                line.append(text(idNum[p]))
+                line.append(str(idNum[p]))
 
         lines.append(u'\t'.join(line) + u'\n')
 
@@ -258,17 +269,17 @@ def hybridtree_to_sentence_name(tree, idNum):
         token = tree.node_token(node)
         morph = u'--'
 
-        line = [u'#' + text(idNum[node]), text(token.category()), morph, token.edge()]
+        line = [u'#' + str(idNum[node]), str(token.category()), morph, token.edge()]
 
         if node in tree.root:
             line.append(u'0')
         elif node not in tree.root:
-            line.append(text(idNum[tree.parent(node)]))
+            line.append(str(idNum[tree.parent(node)]))
 
         if isinstance(tree, HybridDag):
             for p in tree.sec_parents(node):
                 line.append(token.edge())
-                line.append(text(idNum[p]))
+                line.append(str(idNum[p]))
 
         category_lines.append(line)
 
@@ -278,9 +289,9 @@ def hybridtree_to_sentence_name(tree, idNum):
     return lines
 
 
-def hybridtrees_to_sentence_names(trees, counter, length):
+def serialize_hybridtrees_to_negra(trees, counter, length):
     """
-    converts a sequence of parse tree to the export format
+    converts a sequence of parse tree to the negra export format
     :param trees: list of parse trees
     :type: list of ConstituentTrees
     :return: list of export format lines
@@ -297,16 +308,17 @@ def hybridtrees_to_sentence_names(trees, counter, length):
             else:
                 for root in tree.root:
                     generate_ids_for_inner_nodes(tree, root, idNum)
-            sentence_names.append(u'#BOS ' + text(counter) + u'\n')
+            sentence_names.append(u'#BOS ' + str(counter) + u'\n')
             sentence_names.extend(hybridtree_to_sentence_name(tree, idNum))
-            sentence_names.append(u'#EOS ' + text(counter) + u'\n')
+            sentence_names.append(u'#EOS ' + str(counter) + u'\n')
             counter += 1
 
     return sentence_names
 
 
-def acyclic_syntax_graph_to_sentence_name(dsg, sec_edge_to_terminal=False):
+def serialize_acyclic_dogs_to_negra(dsg, sec_edge_to_terminal=False):
     """
+    converts a sequence of acyclic syntax graphs to the negra export format
     :type dsg: DeepSyntaxGraph
     :type sec_edge_to_terminal: bool
     :param sec_edge_to_terminal: if true, exports secondary edges with terminals as target
@@ -375,7 +387,7 @@ def acyclic_syntax_graph_to_sentence_name(dsg, sec_edge_to_terminal=False):
             continue
         morph = u'--'
 
-        line = ['#' + text(idNum(tree_idx)), token, morph]
+        line = ['#' + str(idNum(tree_idx)), token, morph]
 
         parents = []
         if tree_idx in dsg.dog.outputs:
@@ -405,7 +417,7 @@ def acyclic_syntax_graph_to_sentence_name(dsg, sec_edge_to_terminal=False):
     return lines
 
 
-def acyclic_graphs_to_sentence_names(dsgs, counter, length):
+def serialize_hybrid_dag_to_negra(dsgs, counter, length):
     """
     converts a sequence of parse tree to the export format
     :param trees: list of parse trees
@@ -417,13 +429,13 @@ def acyclic_graphs_to_sentence_names(dsgs, counter, length):
 
     for dsg in dsgs:
         if len(dsg.sentence) <= length:
-            sentence_names.append(u'#BOS ' + text(counter) + u'\n')
-            sentence_names.extend(acyclic_syntax_graph_to_sentence_name(dsg))
-            sentence_names.append(u'#EOS ' + text(counter) + u'\n')
+            sentence_names.append(u'#BOS ' + str(counter) + u'\n')
+            sentence_names.extend(serialize_acyclic_dogs_to_negra(dsg))
+            sentence_names.append(u'#EOS ' + str(counter) + u'\n')
             counter += 1
 
     return sentence_names
 
 
-__all__ = ["sentence_names_to_hybridtrees", "hybridtrees_to_sentence_names", "hybridtree_to_sentence_name",
-           "acyclic_syntax_graph_to_sentence_name", "acyclic_graphs_to_sentence_names"]
+__all__ = ["sentence_names_to_hybridtrees", "serialize_hybridtrees_to_negra", "hybridtree_to_sentence_name",
+           "serialize_acyclic_dogs_to_negra", "serialize_hybrid_dag_to_negra"]

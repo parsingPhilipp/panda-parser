@@ -73,7 +73,7 @@ class MyTestCase(unittest.TestCase):
 
             print(node, label, dag_eval.children(node), dag_eval.sec_children(node), dag_eval.sec_parents(node))
 
-        lines = np.hybridtrees_to_sentence_names([dag_eval], 1, 500)
+        lines = np.serialize_hybridtrees_to_negra([dag_eval], 1, 500)
         for line in lines:
             print(line, end='')
 

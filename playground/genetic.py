@@ -1,6 +1,6 @@
 from __future__ import print_function
 from corpora.tiger_parse import sentence_names_to_hybridtrees
-from corpora.negra_parse import hybridtrees_to_sentence_names
+from corpora.negra_parse import serialize_hybridtrees_to_negra
 from grammar.induction.terminal_labeling import FormPosTerminalsUnk
 from grammar.induction.recursive_partitioning import the_recursive_partitioning_factory
 from grammar.lcfrs import LCFRS
@@ -416,7 +416,7 @@ def main2():
 
      with open(path, 'w') as result_file:
          print('Exporting parse trees of length <=', max_length, 'to', str(path))
-         result_file.writelines(hybridtrees_to_sentence_names(corpus, test_start, max_length))
+         result_file.writelines(serialize_hybridtrees_to_negra(corpus, test_start, max_length))
 
 
 if __name__ == '__main__':
