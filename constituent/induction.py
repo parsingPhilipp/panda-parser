@@ -11,7 +11,7 @@ from hybridtree.constituent_tree import ConstituentTree
 import copy
 import re
 # The root symbol.
-start = 'START'
+START = 'START'
 
 
 class BasicNonterminalLabeling:
@@ -32,8 +32,12 @@ class NonterminalsWithFunctions:
             return token.pos() + "/" + token.edge()
 
 
-def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=BasicNonterminalLabeling(), binarize=False,
-                         isolate_pos=False, hmarkov=0):
+def direct_extract_lcfrs(tree,
+                         term_labeling=PosTerminals(),
+                         nont_labeling=BasicNonterminalLabeling(),
+                         binarize=False,
+                         isolate_pos=False,
+                         hmarkov=0):
     """
     :type tree: ConstituentTree
     :type term_labeling: ConstituentTerminalLabeling
@@ -73,10 +77,10 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=Basic
     # TODO: Thus, each BAR/.. nonterminal gets a uniform number of sDCP arguments, some may be empty.
     # TODO: The term.args() string can be analyzed to construct appropriate sDCP rules for the binarization artifacts.
 
-    gram = LCFRS(start=start)
+    gram = LCFRS(start=START)
     root = tree.root[0]
     if tree.is_leaf(root):
-        lhs = LCFRS_lhs(start)
+        lhs = LCFRS_lhs(START)
         label = term_labeling.token_label(tree.node_token(root))
         lhs.add_arg([label])
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0, edge_label=tree.node_token(root).edge()), [])])
@@ -84,14 +88,21 @@ def direct_extract_lcfrs(tree, term_labeling=PosTerminals(), nont_labeling=Basic
     else:
         first = direct_extract_lcfrs_from(tree, root, gram, term_labeling, nont_labeling, binarize, isolate_pos,
                                           hmarkov=hmarkov)
-        lhs = LCFRS_lhs(start)
+        lhs = LCFRS_lhs(START)
         lhs.add_arg([LCFRS_var(0, 0)])
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
         gram.add_rule(lhs, [first], dcp=[dcp_rule])
     return gram
 
 
-def direct_extract_lcfrs_from(tree, id, gram, term_labeling, nont_labeling, binarization, isolate_pos=False, hmarkov=0):
+def direct_extract_lcfrs_from(tree,
+                              id,
+                              gram,
+                              term_labeling,
+                              nont_labeling,
+                              binarization,
+                              isolate_pos=False,
+                              hmarkov=0):
     """
     :type tree: ConstituentTree
     :type id: str
@@ -175,24 +186,29 @@ def direct_extract_lcfrs_from_prebinarized_corpus(tree,
                                                   term_labeling=PosTerminals(),
                                                   nont_labeling=BasicNonterminalLabeling(),
                                                   isolate_pos=True):
-    gram = LCFRS(start=start)
+    gram = LCFRS(start=START)
     root = tree.root[0]
     if tree.is_leaf(root):
-        lhs = LCFRS_lhs(start)
+        lhs = LCFRS_lhs(START)
         label = term_labeling.token_label(tree.node_token(root))
         lhs.add_arg([label])
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_term(DCP_index(0, edge_label=tree.node_token(root).edge()), [])])
         gram.add_rule(lhs, [], dcp=[dcp_rule])
     else:
         first = direct_extract_lcfrs_prebinarized_recur(tree, root, gram, term_labeling, nont_labeling, isolate_pos)
-        lhs = LCFRS_lhs(start)
+        lhs = LCFRS_lhs(START)
         lhs.add_arg([LCFRS_var(0, 0)])
         dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
         gram.add_rule(lhs, [first], dcp=[dcp_rule])
     return gram
 
 
-def direct_extract_lcfrs_prebinarized_recur(tree, idx, gram, term_labeling, nont_labeling, isolate_pos):
+def direct_extract_lcfrs_prebinarized_recur(tree,
+                                            idx,
+                                            gram,
+                                            term_labeling,
+                                            nont_labeling,
+                                            isolate_pos):
     fringe = tree.fringe(idx)
     spans = join_spans(fringe)
     nont_fanout = len(spans)
@@ -412,7 +428,7 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
     :rtype: LCFRS
     Get LCFRS for tree.
     """
-    gram = LCFRS(start=start)
+    gram = LCFRS(start=START)
     first = None
     if len(tree.id_yield()) == 1 and isolate_pos:
         idx = tree.id_yield()[0]
@@ -451,7 +467,7 @@ def fringe_extract_lcfrs(tree, fringes, naming='strict', term_labeling=PosTermin
 
     if first is None:
         (first, _, _, _) = fringe_extract_lcfrs_recur(tree, fringes, gram, naming, term_labeling, isolate_pos, feature_logging)
-    lhs = LCFRS_lhs(start)
+    lhs = LCFRS_lhs(START)
     lhs.add_arg([LCFRS_var(0, 0)])
     dcp_rule = DCP_rule(DCP_var(-1, 0), [DCP_var(0, 0)])
     gram.add_rule(lhs, [first], dcp=[dcp_rule])
