@@ -68,9 +68,9 @@ TODO: complete the description according to wiki at
 
 1. Obtain python dependencies from pip by running
 
-        pip3 setup -r [--user]
+        pip3 setup -r requirements.txt [--user]
 
-2. Install this patched version of `disco-dop` from branch [chart-exposure](https://github.com/kilian-gebhardt/disco-dop/tree/chart-exposure`).
+2. Install this patched version of `disco-dop` from branch [chart-exposure](https://github.com/kilian-gebhardt/disco-dop/tree/chart-exposure).
 
 3. Compile Cython modules by running
 
