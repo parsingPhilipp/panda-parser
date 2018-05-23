@@ -53,28 +53,16 @@ Some of these concepts/algorithms have been described in the following articles:
 - general hybrid grammars, induction of LCFRS/sDCP hybrid grammars from discontinuous constituent trees and
     non-projective dependency trees [[Gebhardt/Nederhof/Vogler 2017]](https://doi.org/10.1162/COLI_a_00291)
 - generic split/merge training, in partiuclar for LCFRS and LCFRS/sDCP hybrid grammars 
-    [[Gebhardt (unpublished)]](no_yet)
+    [[Gebhardt (2018)]](no_yet)
     
-Due to the purpose of the software (research), it is unstable and 
-was tested on just 1-3 machines. Interfaces are likely to change. Maintenance 
+Due to the nature of the software development process (research), we consider it unstable and ran it on just 1-3 machines. Interfaces are likely to change. Maintenance 
 is limited to Kilian's professional involvement in academic research.
 
 ------------------------------------------------------------------------
 
 ## Installation/ Preparation:
 
-TODO: complete the description according to wiki at
-<https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars/wikis/install-prerequesites>
-
-1. Obtain python dependencies from pip by running
-
-        pip3 setup -r requirements.txt [--user]
-
-2. Install the patched version of `disco-dop` from branch [chart-exposure-merge](https://github.com/kilian-gebhardt/disco-dop/tree/chart-exposure-merge).
-
-3. Compile Cython modules by running
-
-        python3 setup.py build_ext --inplace
+See [INSTALL.md](INSTALL.md).
 
 ------------------------------------------------------------------------
 
@@ -84,13 +72,13 @@ Resources / Corpora
 For many scripts it is assumed that various corpora are available in the res directory. You
 may want to download or symlink them there:
 
-`res/dependency_conll` -\> various corpora of CONLL-X shared task
+`res/dependency_conll` -\> various corpora of [CONLL-X shared task](https://catalog.ldc.upenn.edu/LDC2015T11)
 
-`res/tiger/tiger_release_aug07.corrected.16012013.xml` -\> the tiger
-corpus
+`res/tiger/tiger_release_aug07.corrected.16012013.xml` -\> the [tiger
+corpus](http://www.ims.uni-stuttgart.de/forschung/ressourcen/korpora/tiger.html)
 
 `res/negra-corpus/downloadv2/negra-corpus.{cfg,export}` -\> the
-negra-corpus
+[negra corpus](http://www.coli.uni-saarland.de/projects/sfb378/negra-corpus/negra-corpus.html)
 
 `res/wsj_dependency/{02-22,23,24}.conll` -\> various section of PTB/WSJ
 in conll format
