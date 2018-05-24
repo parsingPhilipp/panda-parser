@@ -147,7 +147,7 @@ if __name__ == '__main__':
             'build_ext': CustomBuildExtCommand,
         },
         name='hyberparse',
-        version='0.3.0a',
+        version='0.3.0a0',
         description='Implementation of LCFRS/sDCP hybrid grammars',
         long_description=long_description,
         url='https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars',

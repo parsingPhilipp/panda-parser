@@ -322,6 +322,7 @@ cdef class PySplitMergeTrainerBuilder:
         trainer.emTrainer = (deref(self.splitMergeTrainerBuilder)).getEmTrainer()
         return trainer
 
+
 cdef class PyLatentAnnotation:
     cdef set_latent_annotation(self, shared_ptr[LatentAnnotation] la):
         self.latentAnnotation = la

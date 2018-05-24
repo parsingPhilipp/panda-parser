@@ -986,7 +986,11 @@ def main(directory=None):
     experiment.organizer.merge_type = "PERCENT"
     experiment.organizer.threads = 8
 
-    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, test_pred=PREDICTED_POS, test_second_half=TEST_SECOND_HALF)
+    train, dev, test, test_input = setup_corpus_resources(SPLIT,
+                                                          DEV_MODE,
+                                                          QUICK,
+                                                          test_pred=PREDICTED_POS,
+                                                          test_second_half=TEST_SECOND_HALF)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
@@ -1009,7 +1013,6 @@ def main(directory=None):
     if experiment.terminal_labeling is None:
         experiment.set_terminal_labeling(terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                            threshold=backoff_threshold))
-
 
     if MULTI_OBJECTIVES:
         experiment.parsing_mode = "discodop-multi-method"
