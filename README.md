@@ -99,6 +99,19 @@ directory)
 
 ------------------------------------------------------------------------
 
+
+## Documentation for the experiments in [[Gebhardt 2018]](to_appear)
+
+1. Prepare the data.
+2. To run an end-to-end experiment with split/merge refinement for LCFRS/sDCP hybrid grammars, call
+```
+    PYTHONPATH=. python3 experiment/hg_constituent_experiment.py
+```
+with appropriate parameters (see `--help`). E.g., an experiment that takes about 10 minutes on 
+a desktop is:
+```
+    PYTHONPATH=. python3 experiment/hg_constituent_experiment.py HN08 -sm-cycles 2 -parsing-limit -quick
+``` 
 ## Documentation for the experiments in [[Gebhardt/Nederhof/Vogler 2017]](https://doi.org/10.1162/COLI_a_00291)
 
 Actually an older version of this software was used to run the experiments in

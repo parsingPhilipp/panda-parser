@@ -14,7 +14,10 @@ import tempfile
 import itertools
 from hybridtree.general_hybrid_tree import HybridTree
 from parser.discodop_parser.parser import DiscodopKbestParser
-from parser.gf_parser.gf_interface import GFParser_k_best
+try:
+    from parser.gf_parser.gf_interface import GFParser_k_best
+except ImportError:
+    print("The Grammatical Framework is not installed properly – the GFParser is unavailable.")
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from parser.trace_manager.sm_trainer import build_PyLatentAnnotation
@@ -56,13 +59,13 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
         # all files are from SPMRL shared task
 
         corpus_type = corpus_type_test = "TIGERXML"
-        train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
+        train_path = 'res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train/train.German.gold.xml'
         train_start = 1
         train_filter = None
         train_limit = 40474
         train_exclude = validation_exclude = test_exclude = test_input_exclude = [7561, 17632, 46234, 50224]
 
-        validation_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+        validation_path = 'res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
         validation_start = 40475
         validation_size = validation_start + 4999
         validation_filter = None
@@ -71,16 +74,16 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
             test_start = test_input_start = validation_start
             test_limit = test_input_limit = validation_size
             test_path = test_input_path \
-                = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
+                = 'res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/dev/dev.German.gold.xml'
         else:
             test_start = test_input_start = 45475
             test_limit = test_input_limit = test_start + 4999
             test_path = test_input_path \
-                = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
+                = 'res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/test/test.German.gold.xml'
         test_filter = test_input_filter = None
 
         if quick:
-            train_path = '../res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
+            train_path = 'res/SPMRL_SHARED_2014_NO_ARABIC/GERMAN_SPMRL/gold/xml/train5k/train5k.German.gold.xml'
             train_limit = train_start + 2000
             validation_size = validation_start + 200
             test_limit = test_input_limit = test_start + 200
@@ -90,7 +93,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
         # where we commented out `rm -r tiger21 tiger22 marmot_tags` in generate_tiger_data.sh
 
         corpus_type = corpus_type_test = "EXPORT"
-        base_path = "../res/TIGER/tiger21"
+        base_path = "res/TIGER/tiger21"
         train_start = 1
         train_limit = 50474
 
@@ -149,7 +152,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
                 if test_second_half:
                     test_input_start = 2524
                 # predicted by MATE trained on tigerHN08 train
-                test_input_path = '../res/TIGER/tigerHN08-dev.train.pred_tags.raw'
+                test_input_path = 'res/TIGER/tigerHN08-dev.train.pred_tags.raw'
                 test_input_filter = None
             else:
                 test_input_path = validation_path
@@ -167,8 +170,8 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
         # based on Kilian Evang's dptb.tar.bz2
 
         corpus_type = corpus_type_test = "EXPORT"
-        corpus_path_original = "../res/WSJ/ptb-discontinuous/dptb7.export"
-        corpus_path_km2003 = "../res/WSJ/ptb-discontinuous/dptb7-km2003wsj.export"
+        corpus_path_original = "res/WSJ/ptb-discontinuous/dptb7.export"
+        corpus_path_km2003 = "res/WSJ/ptb-discontinuous/dptb7-km2003wsj.export"
 
         # obtain the km2003 version from by running
         # discodop treetransforms --transforms=km2003wsj corpus_path_original corpus_path_km2003
@@ -240,34 +243,13 @@ def terminal_labeling(corpus, threshold=DEFAULT_RARE_WORD_THRESHOLD):
     return FrequencyBiasedTerminalLabeling(FINE_TERMINAL_LABELING, FALLBACK_TERMINAL_LABELING, corpus, threshold)
 
 
-# SPLIT = "SPMRL"
-SPLIT = "HN08"
-# SPLIT = "WSJ"
-# SPLIT = "WSJ-km2003"
-
-DEV_MODE = True
-QUICK = False
-
-MULTI_OBJECTIVES = True
-BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
-MAX_RULE_PRODUCT_ONLY = False
-LENGTH_40 = True
-TEST_SECOND_HALF = True
-PREDICTED_POS = False
-
-FANOUT = 2
-RECURSIVE_PARTITIONING \
-    = the_recursive_partitioning_factory().get_partitioning('fanout-' + str(FANOUT) + '-left-to-right')[0]
+MULTI_OBJECTIVES = "multi-objectives"
+MULTI_OBJECTIVES_INDEPENDENT = "multi-objectives-independent"
+BASE_GRAMMAR = "base-grammar" # use base grammar for parsing (no annotations LA)
+MAX_RULE_PRODUCT_ONLY = "max-rule-product-only"
+TEST_SECOND_HALF = False
 
 MAX_SENTENCE_LENGTH = 5000
-EM_EPOCHS = 20
-EM_EPOCHS_SM = 20
-SEED = 0
-MERGE_PERCENTAGE = 50.0
-SM_CYCLES = 4
-THREADS = 1  # 0
-K_BEST = 500
-
 NEGRA = "NEGRA"
 
 
@@ -391,7 +373,7 @@ class ConstituentExperiment(ScoringExperiment):
         self.terminal_labeling = None
         self.eval_postprocess_options = None
 
-        self.discodop_scorer = DiscoDopScorer()
+        self.discodop_scorer = DiscoDopScorer('util/proper.prm')
         self.max_score = 100.0
 
         self.backoff = False
@@ -560,7 +542,7 @@ class ConstituentExperiment(ScoringExperiment):
         sys_secs = [self.normalize_corpus(sec.path, disco_options=self.eval_postprocess_options)
                     for sec in result_resource.secondaries]
 
-        prm = "../util/proper.prm"
+        prm = "util/proper.prm"
 
         def run_eval(sys_path, mode):
             print(mode)
@@ -963,46 +945,77 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 
 
 @plac.annotations(
-    directory=('directory in which experiment is run', 'option', None, str)
+    split=('the corpus/split to run the experiment on', 'positional', None, str, ["SPMRL", "HN08", "WSJ", "WSJ-km2003"]),
+    test_mode=('evaluate on test set instead of dev. set', 'flag'),
+    quick=('run a small experiment (for testing/debugging)', 'flag'),
+    recursive_partitioning=('recursive partitioning strategy', 'option', None, str),
+    nonterminal_naming_scheme=('scheme for naming nonterminals', 'option', None, str, ['strict', 'child', 'strict-markov-v-1-h-1']),
+    seed=('set random seed for tie-breaking after splitting', 'option', None, int),
+    em_epochs=('epochs of EM before split/merge training', 'option', None, int),
+    em_epochs_sm=('epochs of EM during split/merge training', 'option', None, int),
+    sm_cycles=('number of split/merge cycles', 'option', None, int),
+    merge_percentage=('percentage of splits that is merged', 'option', None, float),
+    predicted_pos=('use predicted POS-tags for evaluation', 'flag'),
+    parsing_mode=('parsing mode for evaluation', 'option', None, str,
+                  [MULTI_OBJECTIVES, BASE_GRAMMAR, MAX_RULE_PRODUCT_ONLY, MULTI_OBJECTIVES_INDEPENDENT]),
+    parsing_limit=('only evaluate on sentences of length up to 40', 'flag'),
+    k_best=('k in k-best reranking parsing mode', 'option', None, int),
+    directory=('directory in which experiment is run (default: mktemp)', 'option', None, str),
     )
-def main(directory=None):
+def main(split,
+         test_mode=False,
+         quick=False,
+         recursive_partitioning="fanout-2-left-to-right",
+         nonterminal_naming_scheme="child",
+         seed=0,
+         em_epochs=20,
+         em_epochs_sm=20,
+         sm_cycles=4,
+         merge_percentage=50.0,
+         predicted_pos=False,
+         parsing_mode=MULTI_OBJECTIVES,
+         parsing_limit=False,
+         k_best=500,
+         directory=None
+         ):
     induction_settings = InductionSettings()
-    induction_settings.recursive_partitioning = RECURSIVE_PARTITIONING
+    induction_settings.recursive_partitioning \
+        = the_recursive_partitioning_factory().get_partitioning(recursive_partitioning)[0]
     induction_settings.normalize = True
     induction_settings.disconnect_punctuation = False
-    induction_settings.naming_scheme = 'strict-markov-v-1-h-1'
+    induction_settings.naming_scheme = nonterminal_naming_scheme
     induction_settings.isolate_pos = True
 
     experiment = ConstituentSMExperiment(induction_settings, directory=directory)
-    experiment.organizer.seed = SEED
-    experiment.organizer.em_epochs = EM_EPOCHS
-    experiment.organizer.em_epochs_sm = EM_EPOCHS_SM
+    experiment.organizer.seed = seed
+    experiment.organizer.em_epochs = em_epochs
+    experiment.organizer.em_epochs_sm = em_epochs_sm
     experiment.organizer.validator_type = "SIMPLE"
-    experiment.organizer.max_sm_cycles = SM_CYCLES
+    experiment.organizer.max_sm_cycles = sm_cycles
 
     experiment.organizer.disable_split_merge = False
     experiment.organizer.disable_em = False
-    experiment.organizer.merge_percentage = MERGE_PERCENTAGE
+    experiment.organizer.merge_percentage = merge_percentage
     experiment.organizer.merge_type = "PERCENT"
     experiment.organizer.threads = 8
 
-    train, dev, test, test_input = setup_corpus_resources(SPLIT,
-                                                          DEV_MODE,
-                                                          QUICK,
-                                                          test_pred=PREDICTED_POS,
+    train, dev, test, test_input = setup_corpus_resources(split,
+                                                          not test_mode,
+                                                          quick,
+                                                          test_pred=predicted_pos,
                                                           test_second_half=TEST_SECOND_HALF)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
     experiment.resources[TESTING_INPUT] = test_input
 
-    if "km2003" in SPLIT:
+    if "km2003" in split:
         experiment.eval_postprocess_options = ("--reversetransforms=km2003wsj",)
 
-    if LENGTH_40:
+    if parsing_limit:
         experiment.max_sentence_length_for_parsing = 40
 
-    experiment.k_best = K_BEST
+    experiment.k_best = k_best
     experiment.backoff = True
 
     backoff_threshold = 4
@@ -1014,14 +1027,14 @@ def main(directory=None):
         experiment.set_terminal_labeling(terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
                                                            threshold=backoff_threshold))
 
-    if MULTI_OBJECTIVES:
+    if parsing_mode == MULTI_OBJECTIVES:
         experiment.parsing_mode = "discodop-multi-method"
         experiment.resources[RESULT] = ScorerAndWriter(experiment,
                                                        directory=experiment.directory,
                                                        logger=experiment.logger,
                                                        secondary_scores=3)
         experiment.run_experiment()
-    elif BASE_GRAMMAR:
+    elif parsing_mode == BASE_GRAMMAR:
         experiment.k_best = 1
         experiment.organizer.project_weights_before_parsing = False
         experiment.parsing_mode = "k-best-rerank-disco-dop"
@@ -1029,13 +1042,13 @@ def main(directory=None):
                                                        directory=experiment.directory,
                                                        logger=experiment.logger)
         experiment.run_experiment()
-    elif MAX_RULE_PRODUCT_ONLY:
+    elif parsing_mode == MAX_RULE_PRODUCT_ONLY:
         experiment.resources[RESULT] = ScorerAndWriter(experiment,
                                                        directory=experiment.directory,
                                                        logger=experiment.logger)
         experiment.parsing_mode = "max-rule-prod-disco-dop"
         experiment.run_experiment()
-    else:
+    elif parsing_mode == MULTI_OBJECTIVES_INDEPENDENT:
         experiment.parsing_mode = "latent-viterbi-disco-dop"
         experiment.run_experiment()
 
@@ -1056,6 +1069,8 @@ def main(directory=None):
                                                        logger=experiment.logger)
         experiment.parsing_mode = "max-rule-prod-disco-dop"
         experiment.run_experiment()
+    else:
+        raise ValueError("Invalid parsing mod: ", parsing_mode)
 
 
 if __name__ == '__main__':

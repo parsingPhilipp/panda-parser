@@ -6,7 +6,10 @@ from experiment.base_experiment import Experiment
 from experiment.resources import TRAINING, VALIDATION, TESTING, TESTING_INPUT, RESULT
 from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 from parser.discodop_parser.parser import DiscodopKbestParser
-from parser.gf_parser.gf_interface import GFParser_k_best
+try:
+    from parser.gf_parser.gf_interface import GFParser_k_best
+except ImportError:
+    print("The Grammatical Framework is not installed properly – the GFParser is unavailable.")
 from parser.lcfrs_la import build_sm_grammar
 from parser.supervised_trainer.trainer import PyDerivationManager
 from parser.trace_manager.score_validator import PyCandidateScoreValidator
