@@ -84,9 +84,9 @@ corpus](http://www.ims.uni-stuttgart.de/forschung/ressourcen/korpora/tiger.html)
 in conll format
 
 `res/negra-dep/negra-lower-punct-{train,test}.conll` -\> a conversion of negra
-in conll format as described in [[Maier/Kallmeyer 2010]](http://www.wolfgang-maier.net/pub/tagplus10.pdf) 
+in conll format as described in [[Maier/Kallmeyer 2010]](http://www.wolfgang-maier.net/pub/tagplus10.pdf). The conviersion requires [rparse](https://github.com/wmaier/rparse) and is automated in the script [util/prepare_negra_dep.py](util/prepare_negra_dep.py).
 
-TODO: complete the list
+
 
 ------------------------------------------------------------------------
 
