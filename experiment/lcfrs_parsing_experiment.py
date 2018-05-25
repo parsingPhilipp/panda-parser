@@ -2,7 +2,10 @@ from __future__ import print_function
 import tempfile
 import subprocess
 from parser.discodop_parser.parser import DiscodopKbestParser
-from parser.gf_parser.gf_interface import GFParser_k_best
+try:
+    from parser.gf_parser.gf_interface import GFParser_k_best
+except ImportError:
+    print("The Grammatical Framework is not installed properly – the GFParser is unavailable.")
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 import plac
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, \
@@ -11,22 +14,9 @@ from grammar.induction.terminal_labeling import PosTerminals, FrequencyBiasedTer
     FormTerminals, CompositionalTerminalLabeling
 from experiment.resources import TRAINING, VALIDATION, TESTING, TESTING_INPUT, RESULT, CorpusFile
 from experiment.split_merge_experiment import SplitMergeExperiment
-from experiment.hg_constituent_experiment import ConstituentExperiment, ScoringExperiment, ScorerAndWriter, setup_corpus_resources
+from experiment.hg_constituent_experiment import ConstituentExperiment, ScoringExperiment, ScorerAndWriter, \
+    setup_corpus_resources, MULTI_OBJECTIVES, MULTI_OBJECTIVES_INDEPENDENT, BASE_GRAMMAR, MAX_RULE_PRODUCT_ONLY
 
-# select one of the splits from {"SPMRL", "HN08", "WSJ", "WSJ-km2003"}
-# SPLIT = "SPMRL"
-SPLIT = "HN08"
-# SPLIT = "WSJ"
-# SPLIT = "WSJ-km2003"
-
-DEV_MODE = True  # enable to parse the DEV set instead of the TEST set
-QUICK = False  # enable for quick testing during debugging (small train/dev/test sets)
-
-MULTI_OBJECTIVES = True  # runs evaluations with multiple parsing objectives but reuses the charts
-PREDICTED_POS = False  # run parsing on predicted POS tags.
-BASE_GRAMMAR = False  # use base grammar for parsing (no annotations LA)
-MAX_RULE_PRODUCT_ONLY = False
-LENGTH_40 = True # parse only sentences up to length 40
 TEST_SECOND_HALF = False  # parse second half of test set
 
 # FINE_TERMINAL_LABELING = FeatureTerminals(token_to_features, feature_filter=my_feature_filter)
@@ -51,12 +41,11 @@ class InductionSettings:
         self.isolate_pos = True
         self.hmarkov = 0
         self.use_discodop_binarization = False
-        self.discodop_binarization_params = ["--headrules=../util/negra.headrules",
+        self.discodop_binarization_params = ["--headrules=util/negra.headrules",
                                              "--binarize",
                                              "-h 1",
-                                             "-v 1"  #,
-                                             # '--labelfun=\"lambda n: n.label.split(\'^\')[0]\"'
-                                            ]
+                                             "-v 1"
+                                             ]
 
     def __str__(self):
         __str = "Induction Settings {\n"
@@ -240,32 +229,68 @@ class LCFRSExperiment(ConstituentExperiment, SplitMergeExperiment):
 
 
 @plac.annotations(
-    directory=('directory in which experiment is run', 'option', None, str)
+    split=('the corpus/split to run the experiment on', 'positional', None, str, ["SPMRL", "HN08", "WSJ", "WSJ-km2003"]),
+    test_mode=('evaluate on test set instead of dev. set', 'flag'),
+    unk_threshold=('threshold for unking rare words', 'option', None, int),
+    h_markov=('horizontal Markovization', 'option', None, int),
+    v_markov=('vertical Markovization', 'option', None, int),
+    quick=('run a small experiment (for testing/debugging)', 'flag'),
+    seed=('set random seed for tie-breaking after splitting', 'option', None, int),
+    threads=('set number of threads during expectation step (requires compilation with OpenMP flag set)', 'option', None, int),
+    em_epochs=('epochs of EM before split/merge training', 'option', None, int),
+    em_epochs_sm=('epochs of EM during split/merge training', 'option', None, int),
+    sm_cycles=('number of split/merge cycles', 'option', None, int),
+    merge_percentage=('percentage of splits that is merged', 'option', None, float),
+    predicted_pos=('use predicted POS-tags for evaluation', 'flag'),
+    parsing_mode=('parsing mode for evaluation', 'option', None, str,
+                  [MULTI_OBJECTIVES, BASE_GRAMMAR, MAX_RULE_PRODUCT_ONLY, MULTI_OBJECTIVES_INDEPENDENT]),
+    parsing_limit=('only evaluate on sentences of length up to 40', 'flag'),
+    k_best=('k in k-best reranking parsing mode', 'option', None, int),
+    directory=('directory in which experiment is run (default: mktemp)', 'option', None, str),
     )
-def main(directory=None):
+def main(split,
+         test_mode=False,
+         quick=False,
+         unk_threshold=4,
+         h_markov=1,
+         v_markov=1,
+         seed=0,
+         threads=8,
+         em_epochs=20,
+         em_epochs_sm=20,
+         sm_cycles=5,
+         merge_percentage=50.0,
+         predicted_pos=False,
+         parsing_mode=MULTI_OBJECTIVES,
+         parsing_limit=False,
+         k_best=500,
+         directory=None
+         ):
     induction_settings = InductionSettings()
-    induction_settings.hmarkov = 1
     induction_settings.disconnect_punctuation = False
     induction_settings.normalize = True
     induction_settings.use_discodop_binarization = True
+    binarization_settings = ["--headrules=" + ("util/negra.headrules" if split in ["SPMRL", "HN08"]
+                                               else "util/ptb.headrules"),
+                             "--binarize",
+                             "-h " + str(h_markov),
+                             "-v " + str(v_markov)]
+    induction_settings.discodop_binarization_params = binarization_settings
 
     filters = []
     # filters += [check_single_child_label, lambda x: check_single_child_label(x, label="SB")]
     experiment = LCFRSExperiment(induction_settings, directory=directory, filters=filters)
 
-    train, dev, test, test_input = setup_corpus_resources(SPLIT, DEV_MODE, QUICK, PREDICTED_POS, TEST_SECOND_HALF)
+    train, dev, test, test_input = setup_corpus_resources(split, not test_mode, quick, predicted_pos, TEST_SECOND_HALF)
     experiment.resources[TRAINING] = train
     experiment.resources[VALIDATION] = dev
     experiment.resources[TESTING] = test
     experiment.resources[TESTING_INPUT] = test_input
 
-    if "km2003" in SPLIT:
+    if "km2003" in split:
         experiment.eval_postprocess_options = ("--reversetransforms=km2003wsj",)
-        backoff_threshold = 4
-    else:
-        backoff_threshold = 4
 
-    if LENGTH_40:
+    if parsing_limit:
         experiment.max_sentence_length_for_parsing = 40
 
     experiment.backoff = True
@@ -273,10 +298,14 @@ def main(directory=None):
     experiment.organizer.project_weights_before_parsing = True
     experiment.organizer.disable_em = False
     experiment.organizer.disable_split_merge = False
-    experiment.organizer.max_sm_cycles = 5
-    experiment.organizer.threads = 8
+    experiment.organizer.seed = seed
+    experiment.organizer.em_epochs = em_epochs
+    experiment.organizer.merge_percentage = merge_percentage
+    experiment.organizer.em_epochs_sm = em_epochs_sm
+    experiment.organizer.max_sm_cycles = sm_cycles
+    experiment.organizer.threads = threads
     experiment.oracle_parsing = False
-    experiment.k_best = 500
+    experiment.k_best = k_best
     experiment.disco_dop_params["pruning_k"] = 50000
     experiment.read_stage_file()
 
@@ -284,15 +313,15 @@ def main(directory=None):
     if experiment.terminal_labeling is None:
         # StanfordUNKing(experiment.read_corpus(experiment.resources[TRAINING]))
         experiment.set_terminal_labeling(terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
-                                                           threshold=backoff_threshold))
-    if MULTI_OBJECTIVES:
+                                                           threshold=unk_threshold))
+    if parsing_mode == MULTI_OBJECTIVES:
         experiment.parsing_mode = "discodop-multi-method"
         experiment.resources[RESULT] = ScorerAndWriter(experiment,
                                                        directory=experiment.directory,
                                                        logger=experiment.logger,
                                                        secondary_scores=3)
         experiment.run_experiment()
-    elif BASE_GRAMMAR:
+    elif parsing_mode == BASE_GRAMMAR:
         experiment.k_best = 1
         experiment.organizer.project_weights_before_parsing = False
         experiment.parsing_mode = "k-best-rerank-disco-dop"
@@ -301,13 +330,13 @@ def main(directory=None):
                                                        logger=experiment.logger,
                                                        secondary_scores=0)
         experiment.run_experiment()
-    elif MAX_RULE_PRODUCT_ONLY:
+    elif parsing_mode == MAX_RULE_PRODUCT_ONLY:
         experiment.resources[RESULT] = ScorerAndWriter(experiment,
                                                        directory=experiment.directory,
                                                        logger=experiment.logger)
         experiment.parsing_mode = "max-rule-prod-disco-dop"
         experiment.run_experiment()
-    else:
+    elif parsing_mode == MULTI_OBJECTIVES_INDEPENDENT:
         experiment.parsing_mode = "latent-viterbi-disco-dop"
         experiment.run_experiment()
 
@@ -328,6 +357,8 @@ def main(directory=None):
                                                        logger=experiment.logger)
         experiment.parsing_mode = "max-rule-prod-disco-dop"
         experiment.run_experiment()
+    else:
+        raise ValueError("Invalid parsing mod: ", parsing_mode)
 
 
 if __name__ == '__main__':

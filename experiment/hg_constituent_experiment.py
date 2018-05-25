@@ -131,7 +131,7 @@ def setup_corpus_resources(split, dev_mode=True, quick=False, test_pred=False, t
                 if test_second_half:
                     test_input_start = 2524 - 1
                 # predicted by MATE trained on tigerHN08 train + dev
-                test_input_path = '../res/TIGER/tigerHN08-test.train+dev.pred_tags.raw'
+                test_input_path = 'res/TIGER/tigerHN08-test.train+dev.pred_tags.raw'
                 test_input_filter = None
             else:
                 test_input_path = test_path
@@ -948,9 +948,11 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
     split=('the corpus/split to run the experiment on', 'positional', None, str, ["SPMRL", "HN08", "WSJ", "WSJ-km2003"]),
     test_mode=('evaluate on test set instead of dev. set', 'flag'),
     quick=('run a small experiment (for testing/debugging)', 'flag'),
+    unk_threshold=('threshold for unking rare words', 'option', None, int),
     recursive_partitioning=('recursive partitioning strategy', 'option', None, str),
     nonterminal_naming_scheme=('scheme for naming nonterminals', 'option', None, str, ['strict', 'child', 'strict-markov-v-1-h-1']),
     seed=('set random seed for tie-breaking after splitting', 'option', None, int),
+    threads=('set number of threads during expectation step (requires compilation with OpenMP flag set)', 'option', None, int),
     em_epochs=('epochs of EM before split/merge training', 'option', None, int),
     em_epochs_sm=('epochs of EM during split/merge training', 'option', None, int),
     sm_cycles=('number of split/merge cycles', 'option', None, int),
@@ -965,9 +967,11 @@ class ConstituentSMExperiment(ConstituentExperiment, SplitMergeExperiment):
 def main(split,
          test_mode=False,
          quick=False,
+         unk_threshold=4,
          recursive_partitioning="fanout-2-left-to-right",
          nonterminal_naming_scheme="child",
          seed=0,
+         threads=8,
          em_epochs=20,
          em_epochs_sm=20,
          sm_cycles=4,
@@ -997,7 +1001,7 @@ def main(split,
     experiment.organizer.disable_em = False
     experiment.organizer.merge_percentage = merge_percentage
     experiment.organizer.merge_type = "PERCENT"
-    experiment.organizer.threads = 8
+    experiment.organizer.threads = threads
 
     train, dev, test, test_input = setup_corpus_resources(split,
                                                           not test_mode,
@@ -1018,14 +1022,13 @@ def main(split,
     experiment.k_best = k_best
     experiment.backoff = True
 
-    backoff_threshold = 4
     experiment.disco_dop_params["pruning_k"] = 50000
     experiment.read_stage_file()
 
     # only effective if no terminal labeling was read from stage file
     if experiment.terminal_labeling is None:
         experiment.set_terminal_labeling(terminal_labeling(experiment.read_corpus(experiment.resources[TRAINING]),
-                                                           threshold=backoff_threshold))
+                                                           threshold=unk_threshold))
 
     if parsing_mode == MULTI_OBJECTIVES:
         experiment.parsing_mode = "discodop-multi-method"

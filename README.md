@@ -55,7 +55,7 @@ Some of these concepts/algorithms have been described in the following articles:
 - generic split/merge training, in partiuclar for LCFRS and LCFRS/sDCP hybrid grammars 
     [[Gebhardt (2018)]](no_yet)
     
-Due to the nature of the software development process (research), we consider it unstable and ran it on just 1-3 machines. Interfaces are likely to change. Maintenance 
+Due to the nature of the software development process (research), it was run on just 1-3 machines and should be consider unstable. Interfaces are likely to be changed as needed for future extensions. Maintenance 
 is limited to Kilian's professional involvement in academic research.
 
 ------------------------------------------------------------------------
@@ -69,23 +69,41 @@ See [INSTALL.md](INSTALL.md).
 Resources / Corpora
 -------------------
 
-For many scripts it is assumed that various corpora are available in the res directory. You
-may want to download or symlink them there:
+For many scripts it is assumed that certain corpora are available below the res directory. You
+may want to download or symlink them there.
 
-`res/dependency_conll` -\> various corpora of [CONLL-X shared task](https://catalog.ldc.upenn.edu/LDC2015T11)
+- `res/dependency_conll` -\> various corpora of [CONLL-X shared task](https://catalog.ldc.upenn.edu/LDC2015T11)
 
-`res/tiger/tiger_release_aug07.corrected.16012013.xml` -\> the [tiger
+- `res/tiger/tiger_release_aug07.corrected.16012013.xml` -\> the [TiGer
 corpus](http://www.ims.uni-stuttgart.de/forschung/ressourcen/korpora/tiger.html)
 
-`res/negra-corpus/downloadv2/negra-corpus.{cfg,export}` -\> the
-[negra corpus](http://www.coli.uni-saarland.de/projects/sfb378/negra-corpus/negra-corpus.html)
+- `res/negra-corpus/downloadv2/negra-corpus.{cfg,export}` -\> the
+[Negra corpus](http://www.coli.uni-saarland.de/projects/sfb378/negra-corpus/negra-corpus.html)
 
-`res/wsj_dependency/{02-22,23,24}.conll` -\> various section of PTB/WSJ
-in conll format
+- `res/negra-dep/negra-lower-punct-{train,test}.conll` -\> a conversion of Negra
+in CONLL dependency format as described in [[Maier/Kallmeyer 2010]](http://www.wolfgang-maier.net/pub/tagplus10.pdf). The conversion requires [rparse](https://github.com/wmaier/rparse) and is automated in the script [util/prepare_negra_dep.py](util/prepare_negra_dep.py).
 
-`res/negra-dep/negra-lower-punct-{train,test}.conll` -\> a conversion of negra
-in conll format as described in [[Maier/Kallmeyer 2010]](http://www.wolfgang-maier.net/pub/tagplus10.pdf). The conviersion requires [rparse](https://github.com/wmaier/rparse) and is automated in the script [util/prepare_negra_dep.py](util/prepare_negra_dep.py).
+- `res/WSJ/ptb-discontinuous/dptb7[-km2003wsj].export` -\> discontinuous version of PTB/WSJ (contact [Kilian Evang](https://evang.ai/)). The file `dptb7-km2003wsj.export` is obtained by running `discodop treetransforms --transforms=km2003wsj dptb7.export dptb-km2003wsj.export`.
 
+- `res/wsj_dependency/{02-22,23,24}.conll` -\> various sections of PTB/WSJ converted to CONLL dependency format
+
+- `res/SPMRL_SHARED_2014_NO_ARABIC` -\> corpora from the [SPMRL 2014 shared task](http://www.spmrl.org/spmrl2014-sharedtask.html)
+
+- `res/TIGER/tiger21` -\> Hall & Nivre 2008 (HN08) split of TiGer. Obtain TiGer version 2.1. Then run:
+    ```
+    mkdir tiger21
+    unzip tigercorpus2.1.zip -d tiger21
+    
+    python3 tigersplit.py
+    
+    for corpus in  tigerdev tigertest tigertraindev tigertraintest
+    do
+        treetools transform tiger21/${corpus}.export tiger21/${corpus}_root_attach.export --trans root_attach
+    done
+    ``` 
+    This is an excerpt of [Maximin Coavoux's script](https://github.com/mcoavoux/mtg/blob/master/mind_the_gap_v1.0/data/generate_tiger_data.sh), uses his [tigersplit.py](https://github.com/mcoavoux/mtg/blob/master/mind_the_gap_v1.0/data/tigersplit.py).
+
+- `res/TIGER/tigerHN08-dev.train.pred_tags.raw` and `tigerHN08-test.train+dev.pred_tags.raw`. Predicted POS-tags for TiGer HN08 split. These files are obtained by training mate-tools and using it to predict POS tags. Further details can be found in [util/prepare_pred_tags.sh](util/prepare_pred_tags.sh). 
 
 
 ------------------------------------------------------------------------
@@ -102,16 +120,25 @@ directory)
 
 ## Documentation for the experiments in [[Gebhardt 2018]](to_appear)
 
-1. Prepare the data.
+1. Obtain the data and locate it under `res/` as described above for SPMRL_SHARED_2014_NO_ARABIC, the TiGer HN08 split, and  predicted POS tags for TiGer HN08 split.
+ 
 2. To run an end-to-end experiment with split/merge refinement for LCFRS/sDCP hybrid grammars, call
-```
-    PYTHONPATH=. python3 experiment/hg_constituent_experiment.py
-```
-with appropriate parameters (see `--help`). E.g., an experiment that takes about 10 minutes on 
-a desktop is:
-```
-    PYTHONPATH=. python3 experiment/hg_constituent_experiment.py HN08 -sm-cycles 2 -parsing-limit -quick
-``` 
+
+    `PYTHONPATH=. python3 experiment/hg_constituent_experiment.py`
+
+    with appropriate parameters (see `--help`). E.g., for a small experiment that takes about 10 minutes on a typical desktop machine:
+
+    `PYTHONPATH=. python3 experiment/hg_constituent_experiment.py HN08 -sm-cycles 2 -parsing-limit -quick`
+3. To run an end-to-end experiment with split/merge refinement for LCFRS, call:
+
+    `PYTHONPATH=. python3 experiment/lcfrs_parsing_experiment.py`
+    
+    with appropriate parameters (see `--help`). E.g., for a small experiment that takes about 10 minutes on a typical desktop machine:
+    
+    `PYTHONPATH=. python3 experiment/lcfrs_parsing_experiment.py HN08 -quick -sm-cycles 2 -merge-percentage 70.0 -parsing-limit`
+    
+Beware: Due to the comparably large initial grammar sizes, the memory consumption in the 5th split/merge cycle can exceed 32GB, in particular if multi-threading is enabled. The same holds for parsing the TiGer test sets with unrestricted sentence length (peak consumption about ~40GB). Parsing sentences up to length 40 should be feasible with 8GB RAM.
+
 ## Documentation for the experiments in [[Gebhardt/Nederhof/Vogler 2017]](https://doi.org/10.1162/COLI_a_00291)
 
 Actually an older version of this software was used to run the experiments in
@@ -221,7 +248,7 @@ Run: `PYTHONPATH=. python3 experiment/cl_constituent_experiments.py`
 
 
 ## Acknowledgements 
-This project is an extension work by Mark-Jan Nederhof available [here](http://mjn.host.cs.st-andrews.ac.uk/code/coling2014.zip).
+This project is an extension of work by Mark-Jan Nederhof available [here](http://mjn.host.cs.st-andrews.ac.uk/code/coling2014.zip).
 
 For parsing and preprocessing this project depends on the following libraries/packages: 
 - [Grammatical Framework](https://www.grammaticalframework.org/)
@@ -231,6 +258,6 @@ For parsing and preprocessing this project depends on the following libraries/pa
 
 The C++ Part of the project (S/M training) uses the [Boost](https://www.boost.org) and [Eigen](http://eigen.tuxfamily.org) libraries.
 
-Evaluation scripts and parameter files are provided unter `./util`:
-- `eval.pl` from the CoNLL-X shared task
-- `proper.prm` taken from [disco-dop](https://github.com/andreasvc/disco-dop/) 
+Evaluation and utility scripts as well as parameter files are provided unter `./util`:
+- `eval.pl`, `blanks2tab.py`, `conlltab2dot.py`, `tabs2blanks.py`, and `validateFormat.py` from the CoNLL-X shared task
+- `proper.prm`, `negra.headrules`, and `ptb.headrules` taken from [disco-dop](https://github.com/andreasvc/disco-dop/) 

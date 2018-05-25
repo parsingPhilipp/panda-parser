@@ -265,8 +265,8 @@ class Experiment(object):
         print("Oracle parsing: ", self.oracle_parsing, file=file)
 
     def update_stage(self, new_stage):
-        if new_stage > self.stage:
-            self.stage_dict["stage"] = new_stage
+        if tuple(new_stage) > tuple(self.stage):
+            self.stage_dict["stage"] = tuple(new_stage)
 
 
 class ScoringExperiment(Experiment):

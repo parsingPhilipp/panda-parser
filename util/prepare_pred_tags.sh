@@ -1,9 +1,5 @@
 #! /bin/bash
 
-# cat /tmp/tigerHN08-test.raw | java -jar ~/uni/implementation/corenlp/stanford-corenlp-full-2018-02-27/stanford-corenlp-3.9.1.jar -annotators tokenize,ssplit -outputFormat conll 2>/dev/null > /tmp/tigerHN08-test.raw.conll
-# cat -s /tmp/tigerHN08-test.raw.conll | awk -v OFS='\t' '{print $1,$2};' | less > /tmp/tigerHN08-test.raw.conll2
-
-
 discodop treetransforms ../res/TIGER/tiger21/tigertest_root_attach.export /tmp/tigerHN08-test_root_moved.export --punct=move
 
 treetools transform /tmp/tigerHN08-test_root_moved.export /tmp/tigerHN08-test.raw --dest-format terminals --dest-opts terminals
