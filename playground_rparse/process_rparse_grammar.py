@@ -84,10 +84,10 @@ def parse_with_pgf(grammar, forms, poss, bin):
 
     try:
         i = lcfrs.parse(sentence, n=1)
+        p, e = next(i)
     except (StopIteration, pgf.ParseError):
         return None
 
-    p, e = i.next()
 
     # print_ast(gr, e, 0)
     s = lcfrs.graphvizParseTree(e)
