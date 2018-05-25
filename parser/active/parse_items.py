@@ -154,3 +154,6 @@ class PassiveItem:
     def copy(self):
         item = PassiveItem(self._rule, self._variables)
         return item
+
+
+__all__ = ["PassiveItem", "Range", "extend", "length"]

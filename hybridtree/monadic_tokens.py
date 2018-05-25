@@ -4,7 +4,7 @@ __author__ = 'kilian'
 from abc import ABCMeta, abstractmethod
 
 
-class MonadicToken:
+class MonadicToken(object):
     __metaclass__ = ABCMeta
 
     @abstractmethod
@@ -23,6 +23,10 @@ class MonadicToken:
         """
         :rtype: str
         """
+        pass
+
+    @abstractmethod
+    def type(self):
         pass
 
 
@@ -57,7 +61,7 @@ class CoNLLToken(MonadicToken):
     def deprel(self):
         return self.__deprel
 
-    def set_deprel(self, deprel):
+    def set_edge_label(self, deprel):
         self.__deprel = deprel
 
     def __str__(self):
@@ -77,10 +81,14 @@ class CoNLLToken(MonadicToken):
     def __hash__(self):
         return hash((self.__form, self.__cpos, self.__pos, self.__feats, self.__lemma, self.__deprel))
 
+    def type(self):
+        return "CONLL-X"
+
 
 class ConstituencyToken(MonadicToken):
     def __init__(self):
         super(ConstituencyToken, self).__init__()
+        self._edge = None
 
     @abstractmethod
     def rank(self):
@@ -90,15 +98,27 @@ class ConstituencyToken(MonadicToken):
     def __str__(self):
         pass
 
+    def edge(self):
+        return self._edge
+
+    def set_edge_label(self, edge):
+        self._edge = edge
+
 
 class ConstituentTerminal(ConstituencyToken):
-    def __init__(self, form, pos):
+    def __init__(self, form, pos, edge='--', morph=None, lemma='--'):
         super(ConstituentTerminal, self).__init__()
+        self._edge = edge
         self.__form = form
         self.__pos = pos
+        self._morph = [] if morph is None else morph
+        self.__lemma = lemma
 
     def rank(self):
         return 0
+
+    def lemma(self):
+        return self.__lemma
 
     def form(self):
         return self.__form
@@ -106,17 +126,30 @@ class ConstituentTerminal(ConstituencyToken):
     def pos(self):
         return self.__pos
 
+    def morph_feats(self):
+        return self._morph
+
     def __str__(self):
-        return self.form() + ' : ' + self.pos()
+        return self.form() + "[" + self.__lemma + "]" + ' : ' + self.pos() + '\t' + str(self.edge())\
+                   + '\t' + str(self._morph)
+        # try:
+        #     return self.form().encode("utf_8") + "[" + self.__lemma + "]"+ ' : ' + self.pos() + '\t' + str(self.edge())\
+        #            + '\t' + str(self._morph)
+        # except UnicodeDecodeError:
+        #     return ' : ' + self.pos() + '\t' + str(self.edge()) + '\t' + str(self._morph)
 
     def __hash__(self):
         return hash((self.__form, self.__pos))
 
+    def type(self):
+        return "CONSTITUENT-TERMINAL"
+
 
 class ConstituentCategory(ConstituencyToken):
-    def __init__(self, category):
+    def __init__(self, category, edge='--'):
         super(ConstituentCategory, self).__init__()
         self.__category = category
+        self._edge = edge
 
     def rank(self):
         return 1
@@ -125,10 +158,16 @@ class ConstituentCategory(ConstituencyToken):
         return self.__category
 
     def __str__(self):
-        return self.category()
+        return str(self.category()) + '\t' + self.edge()
 
     def __hash__(self):
-        return hash(self.__category)
+        return hash((self.__category, self._edge))
+
+    def type(self):
+        return "CONSTITUENT-CATEGORY"
+
+    def set_category(self, category):
+        self.__category = category
 
 
 def construct_conll_token(form, pos, _=True):
@@ -138,5 +177,11 @@ def construct_conll_token(form, pos, _=True):
 def construct_constituent_token(form, pos, terminal):
     if terminal:
         return ConstituentTerminal(form, pos)
-    else:
+    elif isinstance(form, str):
         return ConstituentCategory(form)
+    else:
+        return ConstituentCategory(form.get_string(), edge=form.edge_label())
+
+
+__all__ = ["ConstituencyToken", "ConstituentTerminal", "ConstituentCategory", "CoNLLToken", "construct_conll_token",
+           "construct_constituent_token"]

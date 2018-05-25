@@ -16,3 +16,8 @@ IF ENCODE_TERMINALS:
     ctypedef size_t TERMINAL
 ELSE:
     ctypedef string TERMINAL
+
+cdef extern from "util.h":
+    cdef void output_helper(string)
+
+cpdef void output_helper_utf8(str s)

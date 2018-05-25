@@ -1,6 +1,17 @@
 import re
 import sys
-import string
+try:
+    import string
+    no_translation = string.maketrans("", "")
+
+    def is_punctuation(form):
+        # this is string.punctuation with $, % removed (which are PMOD, NMOD, COORD, NMOD with dependents in WSJ)
+        return not str(form).translate(no_translation, '!"&()*+#,/-:.?;<=>@[\\]^_{|}~')
+        # we allow the dollar sign $ and the quotation marks `` and ''
+except AttributeError:
+    def is_punctuation(form):
+        return not str(form).translate(str.maketrans("", "", '!"&()*+#,/-:.?;<=>@[\\]^_{|}~'))
+
 
 def match_line(line):
     match = re.search(r'^([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)\s+([^\s]+)'
@@ -10,26 +21,23 @@ def match_line(line):
 
 def left_branch(x):
     return x - 1
+
+
 def right_branch(x):
     return x + 1
+
+
 def all_root(x):
     return 0
-
-no_translation = string.maketrans("", "")
-
-def is_punctuation(form):
-    # this is string.punctuation with $, % removed (which are PMOD, NMOD, COORD, NMOD with dependents in WSJ)
-    return not str(form).translate(no_translation, '!"&()*+#,/-:.?;<=>@[\\]^_{|}~')
-    # we allow the dollar sign $ and the quotation marks `` and ''
 
 
 def conll_to_rparse_input(input, output):
     with open(input) as input_file, open(output, 'w') as output_file:
         while True:
             try:
-                line = input_file.next()
+                line = next(input_file)
                 while line.startswith('#'):
-                    line = input_file.next()
+                    line = next(input_file)
             except StopIteration:
                 break
 
@@ -41,7 +49,7 @@ def conll_to_rparse_input(input, output):
             elif re.search(r'^[^\s]*$', line):
                 output_file.write('\n')
             else:
-                print line
+                print(line)
                 raise Exception("unexpected input")
 
 
@@ -49,9 +57,9 @@ def filter_conll_by_length(input, output, length, ignore_punctation):
     with open(input) as input_file, open(output, 'w') as output_file:
         while True:
             try:
-                line = input_file.next()
+                line = next(input_file)
                 while line.startswith('#g'):
-                    line = input_file.next()
+                    line = next(input_file)
             except StopIteration:
                 break
             tmp = []
@@ -64,9 +72,9 @@ def filter_conll_by_length(input, output, length, ignore_punctation):
                 tmp.append(line)
 
                 try:
-                    line = input_file.next()
+                    line = next(input_file)
                     while line.startswith('#g'):
-                        line = input_file.next()
+                        line = next(input_file)
                 except StopIteration:
                     line = ''
                 match = match_line(line)
@@ -76,7 +84,7 @@ def filter_conll_by_length(input, output, length, ignore_punctation):
                 output_file.write(''.join(tmp))
 
 
-def fallback_fill_conll_results(path, gold_path, extended_path, limit=sys.maxint):
+def fallback_fill_conll_results(path, gold_path, extended_path, limit=sys.maxsize):
     """
     :param path: path to corpus
     :type: str
@@ -137,7 +145,6 @@ def fallback_fill_conll_results(path, gold_path, extended_path, limit=sys.maxint
                         s += pos + delimiter
                         s += feats + delimiter
 
-
                         s += parent + delimiter
                         s += "ROOT" + delimiter
                         s += parent + delimiter
@@ -145,8 +152,8 @@ def fallback_fill_conll_results(path, gold_path, extended_path, limit=sys.maxint
                         output_file.write(s)
                     continue
                 else:
-                    print line
-                    print gold_line
+                    print(line)
+                    print(gold_line)
                     raise Exception("Unexpected input in CoNLL corpus file.")
 
             match = re.search(r'^[^\s]*$', line)
@@ -207,7 +214,6 @@ def fallback_fill_conll_results(path, gold_path, extended_path, limit=sys.maxint
                     s += pos + delimiter
                     s += feats + delimiter
 
-
                     s += str(the_parent) + delimiter
                     s += the_deprel + delimiter
                     s += str(the_parent) + delimiter
@@ -221,11 +227,11 @@ def fallback_fill_conll_results(path, gold_path, extended_path, limit=sys.maxint
                 except StopIteration:
                     line = ''
             else:
-                print "test", line
-                print "gold", gold_line
+                print("test", line)
+                print("gold", gold_line)
                 raise Exception()
 
-    print "Parse failures: ", parse_failures
+    print("Parse failures: ", parse_failures)
 
 
 if __name__ == '__main__':

@@ -3,13 +3,18 @@ from __future__ import print_function
 from sys import stderr
 
 from corpora.conll_parse import parse_conll_corpus
-from dependency.induction import induce_grammar, the_terminal_labeling_factory, cfg
+from dependency.induction import induce_grammar
+from grammar.induction.recursive_partitioning import cfg
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from hybridtree.monadic_tokens import construct_constituent_token
-from parser.derivation_interface import derivation_to_hybrid_tree
+from grammar.lcfrs_derivation import derivation_to_hybrid_tree
 from parser.gf_parser.gf_interface import GFParser_k_best, GFParser
 from parser.supervised_trainer.trainer import PyDerivationManager
-from parser.trace_manager.sm_trainer import PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
+from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
+from parser.trace_manager.sm_trainer import PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial
+from parser.lcfrs_la import build_sm_grammar
+
 
 limit_train = 20
 limit_test = 10
@@ -18,12 +23,11 @@ test = train
 max_cycles = 2
 parsing = True
 
+
 def obtain_derivations(grammar, term_labelling):
     # build parser
     tree_yield = term_labelling.prepare_parser_input
     parser = GFParser_k_best(grammar, k=50)
-
-    #
 
     # parse sentences
     trees = parse_conll_corpus(test, False, limit_test)
@@ -42,7 +46,6 @@ def obtain_derivations(grammar, term_labelling):
             yield der[1]
 
 
-
 def main():
     # induce grammar from a corpus
     trees = parse_conll_corpus(train, False, limit_train)
@@ -57,8 +60,8 @@ def main():
 
     # create derivation manager and add derivations
     manager = PyDerivationManager(grammar)
-    manager.convert_hypergraphs(derivations)
-    manager.serialize("/tmp/derivations.txt")
+    manager.convert_derivations_to_hypergraphs(derivations)
+    manager.serialize(b"/tmp/derivations.txt")
 
     # build and configure split/merge trainer and supplementary objects
 
@@ -67,7 +70,6 @@ def main():
         rule = grammar.rule_index(i)
         nonts = [manager.get_nonterminal_map().object_index(rule.lhs().nont())] + [manager.get_nonterminal_map().object_index(nont) for nont in rule.rhs()]
         rule_to_nonterminals.append(nonts)
-
 
     grammarInfo = PyGrammarInfo(grammar, manager.get_nonterminal_map())
     storageManager = PyStorageManager()
@@ -82,10 +84,11 @@ def main():
     for i in range(max_cycles + 1):
         latentAnnotation.append(splitMergeTrainer.split_merge_cycle(latentAnnotation[-1]))
         # pickle.dump(map(lambda la: la.serialize(), latentAnnotation), open(sm_info_path, 'wb'))
-        smGrammar = latentAnnotation[i].build_sm_grammar( grammar
-                                                         , grammarInfo
-                                                         , rule_pruning=0.0001
-                                                         , rule_smoothing=0.01)
+        smGrammar = build_sm_grammar(latentAnnotation[i]
+                                     , grammar
+                                     , grammarInfo
+                                     , rule_pruning=0.0001
+                                     , rule_smoothing=0.01)
         print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
 
         if parsing:
@@ -103,7 +106,6 @@ def main():
                             , construct_constituent_token
                             )
                          )
-
 
 
 if __name__ == '__main__':

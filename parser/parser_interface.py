@@ -1,13 +1,15 @@
+from __future__ import print_function
+
 __author__ = 'kilian'
 
 from abc import ABCMeta, abstractmethod
-from grammar.lcfrs import *
-from sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
-from hybridtree.monadic_tokens import MonadicToken
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, DCP_evaluator
+from collections import defaultdict
 
 
 class AbstractParser:
     __metaclass__ = ABCMeta
+    secondaries = None
 
     @abstractmethod
     def __init__(self, grammar, input=None, save_preprocessing=None, load_preprocessing=None):
@@ -48,7 +50,7 @@ class AbstractParser:
         """
         pass
 
-    def dcp_hybrid_tree_best_derivation(self, tree, tokens, ignore_punctuation, construct_token):
+    def dcp_hybrid_tree_best_derivation(self, tree, tokens, ignore_punctuation, construct_token, punctuation_positions=None):
         """
         :param tree:
         :type tree: GeneralHybridTree
@@ -60,7 +62,7 @@ class AbstractParser:
         """
         dcp_evaluation = self.dcp_best_derivation()
         if dcp_evaluation:
-            return dcp_to_hybridtree(tree, dcp_evaluation, tokens, ignore_punctuation, construct_token)
+            return dcp_to_hybridtree(tree, dcp_evaluation, tokens, ignore_punctuation, construct_token, punct_positions=punctuation_positions)
         else:
             return None
 
@@ -70,9 +72,9 @@ class AbstractParser:
         if der is not None:
             # todo: comment out the next integrity check
             if not der.check_integrity_recursive(der.root_id(), der.getRule(der.root_id()).lhs().nont()):
-                print der
+                print(der)
                 raise Exception()
-            return The_DCP_evaluator(der).getEvaluation()
+            return DCP_evaluator(der).getEvaluation()
         else:
             return []
 
@@ -80,6 +82,7 @@ class AbstractParser:
     def preprocess_grammar(grammar):
         """
         :type grammar: LCFRS
+        :param term_labelling: the terminal labelling
         """
         pass
 
@@ -95,12 +98,26 @@ class AbstractParser:
     def clear(self):
         pass
 
+    def k_best_derivation_trees(self):
+        pass
+
+    def best_trees(self, derivation_to_tree):
+        weights = defaultdict(lambda: 0.0)
+        witnesses = defaultdict(list)
+        for i, (weight, der) in enumerate(self.k_best_derivation_trees()):
+            tree = derivation_to_tree(der)
+            weights[tree] += weight
+            witnesses[tree] += [i+1]
+        the_derivations = [(tree, weights[tree]) for tree in weights]
+        the_derivations.sort(key=lambda x: x[1], reverse=True)
+        return [(tree, weight, witnesses[tree]) for tree, weight in the_derivations]
+
 
 def best_hybrid_tree_for_best_derivation():
     pass
 
 
-def hybird_tree_from_sdcp_evaluation_for_best_derivation(self):
+def hybrid_tree_from_sdcp_evaluation_for_best_derivation(self):
     # TODO
     pass
 

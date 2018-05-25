@@ -1,17 +1,22 @@
 # Parsing of string with LCFRS/DCP hybrid grammar.
-
+from __future__ import print_function
 import math
 import sys
+import re
 
 from grammar.lcfrs import *
 
-from derivation import Derivation
+from parser.naive.derivation import Derivation
 from grammar.dcp import *
 from parser.parser_interface import AbstractParser
+from collections import namedtuple, defaultdict
 
 RULE = 0
 PAIR = 1
 KEY = 2
+
+if sys.version_info[0] == 3:
+    unicode = str
 
 # ###########################################################
 # Parsing auxiliaries.
@@ -596,9 +601,9 @@ class LCFRS_parser(AbstractParser):
             for trace in traces:
                 if w == self.__find_best_from(trace):
                     return self.__best_derivation_tree_rec(trace, tree, id, w, spans)
-            print 'looking for', w, 'found:'
+            print('looking for', w, 'found:')
             for trace in traces:
-                print self.__find_best_from(trace)
+                print(self.__find_best_from(trace))
             raise Exception('backtrace failed')
         elif isinstance(elem, tuple) and elem[0] == PAIR:
             # active item (elem[0]) was combined with passive item (elem[0])
@@ -669,3 +674,6 @@ def new_extract_spans(key):
     for low, high in list(key[1][1]):
         spans.append(Span(low, high))
     return spans
+
+
+__all__ = ["LCFRS_parser", "LHS_instance", "Span"]

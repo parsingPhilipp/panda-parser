@@ -6,10 +6,12 @@ from cython.operator cimport dereference as deref
 import time
 from parser.trace_manager.trace_manager cimport PyTraceManager, build_trace_manager_ptr, TraceManagerPtr
 
+
 cdef extern from "LCFR/manager_util.h":
     cdef void add_trace_to_manager[Nonterminal, Terminal, TraceID](
             LCFRS_Parser[Nonterminal, Terminal] parser
             , TraceManagerPtr[Nonterminal, TraceID] traceManager)
+
 
 cdef class PyLCFRSTraceManager(PyTraceManager):
     cdef PyLCFRSParser parser
@@ -34,10 +36,10 @@ cdef class PyLCFRSTraceManager(PyTraceManager):
 
         self.nonterminal_map = nonterminal_map
 
-    cpdef void compute_reducts(self, corpus):
+    cpdef void compute_reducts(self, corpus, terminal_labelling):
         start_time = time.time()
         for i, tree in enumerate(corpus):
-            word = [token.pos() for token in tree.token_yield()] # todo: make this generic
+            word = [terminal_labelling.token_label(token) for token in tree.token_yield()]
             self.parser.do_parse(word)
             self.parser.prune_trace()
             add_trace_to_manager[NONTERMINAL, TERMINAL, size_t](deref(self.parser.parser)
@@ -51,11 +53,12 @@ cdef class PyLCFRSTraceManager(PyTraceManager):
     cpdef Enumerator get_nonterminal_map(self):
         return self.nonterminal_map
 
-def compute_LCFRS_reducts(grammar, corpus, nonterminal_map=Enumerator()):
+
+def compute_LCFRS_reducts(grammar, corpus, terminal_labelling, nonterminal_map=Enumerator()):
     #output_helper("creating trace")
     print("creating trace")
     trace = PyLCFRSTraceManager(grammar, nonterminal_map)
     # output_helper("computing reducts")
     print("computing reducts")
-    trace.compute_reducts(corpus)
+    trace.compute_reducts(corpus, terminal_labelling)
     return trace

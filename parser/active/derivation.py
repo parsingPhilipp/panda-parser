@@ -1,7 +1,8 @@
 __author__ = 'kilian'
 
-from parser.derivation_interface import AbstractDerivation
-from parse_items import *
+from grammar.lcfrs import LCFRS_var
+from grammar.lcfrs_derivation import LCFRSDerivation
+from parser.active.parse_items import PassiveItem, Range
 import collections
 
 
@@ -23,7 +24,7 @@ class DerivationItem(PassiveItem):
         return item
 
 
-class Derivation(AbstractDerivation):
+class Derivation(LCFRSDerivation):
     def weight(self):
         if self.__weight is None:
             self.__weight = 0
@@ -118,3 +119,6 @@ class Derivation(AbstractDerivation):
         for child in self.child_ids(id):
             s += self.der_to_str_rec(child, indent + 1)
         return s
+
+
+__all__ = ["Derivation", "DerivationItem"]

@@ -8,13 +8,15 @@ import time
 
 import dependency.induction as d_i
 import dependency.labeling as d_l
+import grammar.induction.recursive_partitioning
+import grammar.induction.terminal_labeling
 from corpora.conll_parse import parse_conll_corpus, tree_to_conll_str
 from hybridtree.dependency_tree import disconnect_punctuation
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import construct_conll_token
 from parser.LCFRS.LCFRS_trace_manager import compute_LCFRS_reducts, PyLCFRSTraceManager
-from parser.parser_factory import GFParser, GFParser_k_best, CFGParser
-from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, The_DCP_evaluator
+from parser.parser_factory import GFParser, GFParser_k_best, CFGParser, LeftBranchingFSTParser, RightBranchingFSTParser
+from parser.sDCPevaluation.evaluator import dcp_to_hybridtree, DCP_evaluator
 from parser.trace_manager.sm_trainer import PyEMTrainer, PyGrammarInfo, PyStorageManager, PySplitMergeTrainerBuilder, build_PyLatentAnnotation_initial, build_PyLatentAnnotation
 from parser.sDCP_parser.sdcp_trace_manager import compute_reducts, PySDCPTraceManager
 from playground_rparse.process_rparse_grammar import fall_back_left_branching
@@ -34,15 +36,16 @@ def sm_path(cycles):
     return dir + 'sm_' + str(cycles) + '_grammar.pkl'
 
 
-term_labelling = d_i.the_terminal_labeling_factory().get_strategy('pos')
-recursive_partitioning = d_i.the_recursive_partitioning_factory().getPartitioning('fanout-1')
+term_labelling = grammar.induction.terminal_labeling.the_terminal_labeling_factory().get_strategy('pos')
+recursive_partitioning = grammar.induction.recursive_partitioning.the_recursive_partitioning_factory().get_partitioning('fanout-1')
 primary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'pos+deprel')
 secondary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('strict', 'deprel')
 ternary_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('child', 'deprel')
 child_top_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('childtop', 'deprel')
 empty_labelling = d_l.the_labeling_factory().create_simple_labeling_strategy('empty', 'pos');
 #parser_type = parser.parser_factory.CFGParser
-parser_type = GFParser
+parser_type = CFGParser
+# parser_type = GFParser
 # parser_type = GFParser_k_best
 tree_yield = term_labelling.prepare_parser_input
 
@@ -78,18 +81,21 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preproce
 
             cleaned_tokens = copy.deepcopy(tree.full_token_yield())
             for token in cleaned_tokens:
-                token.set_deprel('_')
+                token.set_edge_label('_')
 
             h_tree = HybridTree(tree.sent_label())
 
             if parser_type == GFParser_k_best and parser.recognized():
-                der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), The_DCP_evaluator(der).getEvaluation(),
-                                                        copy.deepcopy(tree.full_token_yield()), False,
-                                                        construct_conll_token)
+                der_to_tree = lambda der: dcp_to_hybridtree(HybridTree(), DCP_evaluator(der).getEvaluation(),
+                                                            copy.deepcopy(tree.full_token_yield()), False,
+                                                            construct_conll_token)
                 h_tree = parser.best_trees(der_to_tree)[0][0]
-            elif parser_type == CFGParser or parser_type == GFParser:
+            elif parser_type == CFGParser \
+                     or parser_type == GFParser \
+                     or parser_type == LeftBranchingFSTParser \
+                     or parser_type == RightBranchingFSTParser:
                 h_tree = parser.dcp_hybrid_tree_best_derivation(h_tree, cleaned_tokens, ignore_punctuation,
-                                                              construct_conll_token)
+                                                                construct_conll_token)
             else:
                 h_tree = None
 
@@ -116,17 +122,19 @@ def do_parsing(grammar_prim, limit, ignore_punctuation, recompile=True, preproce
         ["perl", "../util/eval.pl", "-g", test, "-s", result, "-q", "-p"])
     p.communicate()
 
+
 def length_limit(trees, max_length=50):
     for tree in trees:
         if len(tree.full_token_yield()) <= max_length:
             yield tree
 
-def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=0):
+
+def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recompileGrammar=True, retrain=True, parsing=True, seed=1337):
     max_length = 20
     trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
 
     if recompileGrammar or not os.path.isfile(baseline_path):
-        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, child_top_labelling, term_labelling.token_label, recursive_partitioning, start)
+        (n_trees, baseline_grammar) = d_i.induce_grammar(trees, empty_labelling, term_labelling.token_label, recursive_partitioning, start)
         pickle.dump(baseline_grammar, open(baseline_path, 'wb'))
     else:
         baseline_grammar = pickle.load(open(baseline_path))
@@ -140,18 +148,18 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
     em_trained = pickle.load(open(baseline_path))
     if recompileGrammar or not os.path.isfile(reduct_path):
         trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
-        trace = compute_reducts(em_trained, trees)
+        trace = compute_reducts(em_trained, trees, term_labelling)
         trace.serialize(reduct_path)
     else:
         print("loading trace")
-        trace = PySDCPTraceManager(em_trained)
+        trace = PySDCPTraceManager(em_trained, term_labelling)
         trace.load_traces_from_file(reduct_path)
 
     discr = False
     if discr:
         if recompileGrammar or not os.path.isfile(reduct_path_discr):
             trees = length_limit(parse_conll_corpus(train, False, limit), max_length)
-            trace_discr = compute_LCFRS_reducts(em_trained, trees, trace.get_nonterminal_map())
+            trace_discr = compute_LCFRS_reducts(em_trained, trees, term_labelling, nonterminal_map=trace.get_nonterminal_map())
             trace_discr.serialize(reduct_path_discr)
         else:
             print("loading trace discriminative")
@@ -183,7 +191,7 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
         builder.set_discriminative_expector(trace_discr, maxScale=10, threads=1)
     else:
         builder.set_simple_expector(threads=1)
-    splitMergeTrainer = builder.set_percent_merger(95.0).build()
+    splitMergeTrainer = builder.set_percent_merger(65.0).build()
 
 
     if (not recompileGrammar) and (not retrain) and os.path.isfile(sm_info_path):
@@ -213,10 +221,11 @@ def main(limit=300, ignore_punctuation=False, baseline_path=baseline_path, recom
             smGrammar = latentAnnotation[i].build_sm_grammar(baseline_grammar
                                                              , grammarInfo
                                                              , rule_pruning=0.0001
-                                                             , rule_smoothing=0.01)
+                                                             , rule_smoothing=0.1)
             print("Cycle: ", i, "Rules: ", len(smGrammar.rules()))
             if parsing:
                 do_parsing(smGrammar, test_limit, ignore_punctuation, recompileGrammar or retrain, [dir, "sm_cycles" + str(i) + "_gf_grammar"])
+
 
 if __name__ == '__main__':
     main()

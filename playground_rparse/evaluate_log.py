@@ -14,6 +14,7 @@ def average_fanout(path):
         fanout_total = sum(map(lambda x: int(x) * count[x], count.keys()))
         return nonterminals, fanout_total, fanout_total * 1.0 / nonterminals
 
+
 def process_log(path, the_name):
     assert os.path.isfile(path)
     vMarkov = None
@@ -83,7 +84,7 @@ def process_log(path, the_name):
                 else:
                     hMarkov_ = hMarkov
                 _, _, avg_fanout = average_fanout('.' + the_name + '_v' + vMarkov_ + '_h' + hMarkov_ + '/bingrammargfconcrete.gf')
-                print '\t&\t'.join([the_name, '$' + vMarkov + '$', '$' + hMarkov + '$', nonterminals, rules, fanout, percentify(avg_fanout, 2)]),
+                print('\t&\t'.join([the_name, '$' + vMarkov + '$', '$' + hMarkov + '$', nonterminals, rules, fanout, percentify(avg_fanout, 2)]), end=' ')
                 continue
 
             match = re.search(r'^Parse time (\d+\.\d+)\s*$', line)
@@ -128,9 +129,9 @@ def process_log(path, the_name):
             if match:
                 if punctuation:
                     lac_p = percentify(match.group(1), precision)
-                    print '\t&\t',
-                    print '\t&\t'.join([parse_failures, uas_p, las_p, lac_p, uas, las, lac, parse_time]),
-                    print "\\\\"
+                    print('\t&\t', end=' ')
+                    print('\t&\t'.join([parse_failures, uas_p, las_p, lac_p, uas, las, lac, parse_time]), end=' ')
+                    print("\\\\")
                 else:
                     lac = percentify(match.group(1), precision)
                 continue
@@ -147,7 +148,7 @@ def percentify(value, precicion):
 if __name__ == '__main__':
     path = '/home/kilian/uni/hybrid-grammars-python/playground_rparse/negra_experiments.log'
     process_log(path, 'negra')
-    print
-    print
+    print()
+    print()
     path = '/home/kilian/uni/hybrid-grammars-python/playground_rparse/tiger_experiments.log'
     process_log(path, 'tiger')

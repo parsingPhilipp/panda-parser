@@ -1,11 +1,12 @@
-from pynini import *
+from __future__ import print_function, division
 from grammar.lcfrs import LCFRS
+from pynini import Fst, SymbolTable, Arc, acceptor, shortestpath, shortestdistance, compose
 from grammar.linearization import Enumerator
 from math import log, e
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs_derivation import LCFRSDerivation
 from parser.parser_interface import AbstractParser
-from collections import defaultdict
 import sys
+from parser.fst.lazy_composition import DelayedFstComposer
 
 FINAL = 'THE-FINAL-STATE'
 INITIAL = 'THE-INITIAL-STATE'
@@ -170,21 +171,32 @@ def retrieve_rules(linear_fst):
     for s in range(linear_fst.num_states()):
         for arc in linear_fst.arcs(s):
             lab = terminals.find(arc.olabel)
-            if isinstance(lab, str):
-                linear_rules += [int(rule_string) for rule_string in lab.split("-")]
+            if isinstance(lab, bytes):
+                linear_rules += [int(rule_string) for rule_string in lab.split(b"-")]
             else:
                 linear_rules += [lab]
     return linear_rules
 
 
-def local_rule_stats(fst, stats, lim=sys.maxint):
+def retrieve_rules_(ids, terminals):
+    linear_rules = []
+    for i in ids:
+        lab = terminals.find(i)
+        if isinstance(lab, bytes):
+            linear_rules += [int(rule_string) for rule_string in lab.split(b"-")]
+        else:
+            linear_rules += [lab]
+    return linear_rules
+
+
+def local_rule_stats(fst, stats, lim=sys.maxsize):
     i = 0
     for path in fst.paths(output_token_type="symbol"):
         if i >= lim:
             return stats
-        for lab in path[1].split(' '):
-            if isinstance(lab, str):
-                for rule in lab.split('-'):
+        for lab in path[1].split(b' '):
+            if isinstance(lab, bytes):
+                for rule in lab.split(b'-'):
                     stats[int(rule)] += 1
             else:
                 stats[int(lab)] += 1
@@ -196,16 +208,16 @@ def local_rule_stats(fst, stats, lim=sys.maxint):
 def paths(fst):
     for path in fst.paths(output_token_type="symbol"):
         path_ = []
-        for lab in path[1].split(' '):
-            if isinstance(lab, str):
-                for rule in lab.split('-'):
+        for lab in path[1].split(b' '):
+            if isinstance(lab, bytes):
+                for rule in lab.split(b'-'):
                     path_.append(int(rule))
             else:
                 path_.append(int(lab))
         yield path_
 
 
-class PolishDerivation(AbstractDerivation):
+class PolishDerivation(LCFRSDerivation):
     def child_ids(self, id):
         if id % 2 == 1 or id == self._len - 1:
             return []
@@ -214,9 +226,9 @@ class PolishDerivation(AbstractDerivation):
 
     def getRule(self, id):
         if id >= self._len:
-            print
-            print id
-            print self._len
+            print()
+            print(id)
+            print(self._len)
         return self._rule_list[id]
 
     def __str__(self):
@@ -239,7 +251,7 @@ class PolishDerivation(AbstractDerivation):
 
     def terminal_positions(self, id):
         if id % 2 == 1 or id == self._len - 1:
-            return [id / 2 + 1]
+            return [id // 2 + 1]
         else:
             return []
 
@@ -252,7 +264,7 @@ class PolishDerivation(AbstractDerivation):
         self._ids = range(self._len)
 
 
-class ReversePolishDerivation(AbstractDerivation):
+class ReversePolishDerivation(LCFRSDerivation):
     def child_ids(self, id):
         if id % 2 == 1 or id == 0:
             return []
@@ -261,9 +273,9 @@ class ReversePolishDerivation(AbstractDerivation):
 
     def getRule(self, id):
         if id >= self._len:
-            print
-            print id
-            print self._len
+            print()
+            print(id)
+            print(self._len)
         return self._rule_list[id]
 
     def __str__(self):
@@ -286,7 +298,7 @@ class ReversePolishDerivation(AbstractDerivation):
 
     def terminal_positions(self, id):
         if id % 2 == 1 or id == 0:
-            return [(id + 3) / 2]
+            return [(id + 3) // 2]
         else:
             return []
 
@@ -299,6 +311,56 @@ class ReversePolishDerivation(AbstractDerivation):
         self._ids = range(self._len)
 
 
+class RightBranchingFSTParserLazy(AbstractParser):
+    def recognized(self):
+        if self._polish_rules:
+            return True
+        else:
+            return False
+
+    def best_derivation_tree(self):
+        if self._polish_rules:
+            polish_rules = map(self._rules.index_object, self._polish_rules)
+            # remove dummy chain rule in case of dependency structures
+            if len(polish_rules) % 2 == 0:
+                polish_rules = polish_rules[1::]
+            der = PolishDerivation(polish_rules)
+            return der
+        else:
+            return None
+
+    def __init__(self, grammar, input=None):
+        self.input = input
+        self._best_ = None
+        self._polish_rules = None
+        if input is not None:
+            self.fst, self._rules = grammar.tmp_fst
+            self.__composer = DelayedFstComposer(self.fst)
+            self.parse()
+        else:
+            self.fst, self._rules = compile_wfst_from_right_branching_grammar(grammar)
+            self.__composer = DelayedFstComposer(self.fst)
+
+    def parse(self):
+        # call lazy composer
+        self._best_ = self.__composer.compose_(self.input)
+        self._polish_rules = retrieve_rules_(self._best_, terminals=self.fst.output_symbols())
+
+    def clear(self):
+        self.input = None
+        self._best_ = None
+        self._polish_rules = None
+
+    def best(self):
+        # return pow(e, -float(shortestdistance(self._best)[-1]))
+        pass
+
+    def all_derivation_trees(self):
+        pass
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        grammar.tmp_fst = compile_wfst_from_right_branching_grammar(grammar)
 
 class RightBranchingFSTParser(AbstractParser):
     def recognized(self):
@@ -320,24 +382,25 @@ class RightBranchingFSTParser(AbstractParser):
 
     def __init__(self, grammar, input=None):
         self.input = input
+        self._best = None
+        self._polish_rules = None
         if input is not None:
-            fst, self._rules = grammar.tmp_fst
+            self.fst, self._rules = grammar.tmp_fst
             self.parse()
         else:
-            fst, self._rules = compile_wfst_from_right_branching_grammar(grammar)
+            self.fst, self._rules = compile_wfst_from_right_branching_grammar(grammar)
 
     def parse(self):
         fsa = fsa_from_list_of_symbols(self.input, self.fst.mutable_input_symbols())
-
         intersection = fsa * self.fst
-
         self._best = shortestpath(intersection)
+
         self._best.topsort()
         self._polish_rules = retrieve_rules(self._best)
 
     def clear(self):
-        self._best = None
         self.input = None
+        self._best = None
         self._polish_rules = None
 
     def best(self):
@@ -351,7 +414,7 @@ class RightBranchingFSTParser(AbstractParser):
         grammar.tmp_fst = compile_wfst_from_right_branching_grammar(grammar)
 
 
-class LeftBranchingFSTParser(AbstractParser):
+class LeftBranchingFSTParserLazy(AbstractParser):
     def recognized(self):
         if self._reverse_polish_rules:
             return True
@@ -359,12 +422,9 @@ class LeftBranchingFSTParser(AbstractParser):
             return False
 
     def best_derivation_tree(self):
-        # polish_rules = retrieve_rules(self._best)
         polish_rules = self._reverse_polish_rules
         if polish_rules:
             polish_rules = map(self._rules.index_object, polish_rules)
-            # for rule in polish_rules:
-            #    print rule
             # remove dummy chain rule in case of dependency structures
             if len(polish_rules) % 2 == 0:
                 polish_rules = polish_rules[0:-1]
@@ -373,8 +433,67 @@ class LeftBranchingFSTParser(AbstractParser):
         else:
             return None
 
-    def __init__(self, grammar, input=None):
+    def __init__(self, grammar, input=None, load_preprocess=None, save_preprocess=None):
         self.input = input
+        self._best_ = None
+        self._reverse_polish_rules = None
+        if input is not None:
+            self.fst, self._rules = grammar.tmp_fst
+            self.__composer = DelayedFstComposer(self.fst)
+            self.parse()
+        else:
+            self.fst, self._rules = compile_wfst_from_left_branching_grammar(grammar)
+            self.__composer = DelayedFstComposer(self.fst)
+
+    def set_input(self, input):
+        self.input = input
+
+    def parse(self):
+        # delayed composition
+        self._best_ = self.__composer.compose_(self.input)
+
+        self._reverse_polish_rules = retrieve_rules_(self._best_, self.fst.output_symbols())
+
+    def best(self):
+        # return pow(e, -float(shortestdistance(self._best)[-1]))
+        pass
+
+    def clear(self):
+        self.input = None
+        self._best_ = None
+        self._reverse_polish_rules = None
+
+    def all_derivation_trees(self):
+        pass
+
+    @staticmethod
+    def preprocess_grammar(grammar):
+        grammar.tmp_fst = compile_wfst_from_left_branching_grammar(grammar)
+
+
+class LeftBranchingFSTParser(AbstractParser):
+    def recognized(self):
+        if self._reverse_polish_rules:
+            return True
+        else:
+            return False
+
+    def best_derivation_tree(self):
+        polish_rules = self._reverse_polish_rules
+        if polish_rules:
+            polish_rules = list(map(self._rules.index_object, polish_rules))
+            # remove dummy chain rule in case of dependency structures
+            if len(polish_rules) % 2 == 0:
+                polish_rules = polish_rules[0:-1]
+            der = ReversePolishDerivation(polish_rules)
+            return der
+        else:
+            return None
+
+    def __init__(self, grammar, input=None, load_preprocess=None, save_preprocess=None):
+        self.input = input
+        self._best = None
+        self._reverse_polish_rules = None
         if input is not None:
             self.fst, self._rules = grammar.tmp_fst
             self.parse()
@@ -386,11 +505,11 @@ class LeftBranchingFSTParser(AbstractParser):
 
     def parse(self):
         fsa = fsa_from_list_of_symbols(self.input, self.fst.mutable_input_symbols())
-
         intersection = compose(fsa, self.fst)
-
         self._best = shortestpath(intersection)
+
         self._best.topsort()
+
         self._reverse_polish_rules = retrieve_rules(self._best)
 
     def best(self):
@@ -407,3 +526,9 @@ class LeftBranchingFSTParser(AbstractParser):
     @staticmethod
     def preprocess_grammar(grammar):
         grammar.tmp_fst = compile_wfst_from_left_branching_grammar(grammar)
+
+
+__all__ = ["LeftBranchingFSTParser",
+           "RightBranchingFSTParser",
+           "LeftBranchingFSTParserLazy",
+           "RightBranchingFSTParserLazy"]

@@ -1,6 +1,8 @@
+from __future__ import print_function
 from grammar.lcfrs import *
 from grammar.linearization import Enumerator
 from subprocess import call
+from math import isnan
 import os
 
 LANGUAGE = "LCFRS"
@@ -27,13 +29,16 @@ def export(grammar, prefix, name, override=False):
     # do not overwrite existing grammar files
     if not override:
         i = 1
-        while os.path.isfile(prefix + name_ + SUFFIX):
+        while os.path.isfile(os.path.join(prefix, name_ + SUFFIX)):
             i += 1
             name_ = name + '_' + str(i)
         name = name_
 
-    with open(prefix + name + SUFFIX, 'w') as abstract, open(prefix + name + LANGUAGE + SUFFIX, 'w') as concrete, open(
-                            prefix + name + PROBS_SUFFIX, 'w') as probs:
+    nan_probs = 0
+
+    with open(os.path.join(prefix, name + SUFFIX), 'w') as abstract \
+            , open(os.path.join(prefix, name + LANGUAGE + SUFFIX), 'w') as concrete \
+            , open(os.path.join(prefix, name + PROBS_SUFFIX), 'w') as probs:
 
         def print_nont(nont):
             return "Nont" + str(nonterminals.object_index(nont))
@@ -61,6 +66,8 @@ def export(grammar, prefix, name, override=False):
 
         # iterate over rules
         for rule in grammar.rules():
+            if rule.weight() == 0.0:
+                continue
             id = rule.get_idx() # rules.object_index(rule)
 
             def transform_def(lhs, i):
@@ -71,7 +78,7 @@ def export(grammar, prefix, name, override=False):
                         else:
                             return 'rhs' + str(x.mem)
                     else:
-                        return '"' + x + '"'
+                        return '"' + x.replace('"', r'\"') + '"'
 
                 return ' ++ '.join(
                     [to_string(x) for x in lhs.arg(i)]
@@ -109,11 +116,18 @@ def export(grammar, prefix, name, override=False):
                 concrete.write(transform_def(rule.lhs(), 0) + " ; \n")
 
             # define probability
-            probs.write("Func" + str(id) + " " + str(rule.weight()) + "\n")
+            if not isnan(rule.weight()):
+                probs.write("Func" + str(id) + " " + str(rule.weight()) + "\n")
+            else:
+                nan_probs += 1
+                probs.write("Func" + str(id) + " 0.0" + "\n")
 
         abstract.write("\n  flags startcat = " + print_nont(grammar.start()) + ";\n")
         abstract.write("\n}\n")
         concrete.write("\n}\n")
+
+        if nan_probs > 0:
+            print(nan_probs, "occurrences of rule weight NaN replaced by 0.0 during gf export")
 
     return name # rules, name
 
@@ -124,6 +138,9 @@ def compile_gf_grammar(prefix, name):
     #TODO 3) adding "shell=True" and joining the arguments to one string solved some
     #TODO "IOError: [Errno 2] No such file or directory" on an arch linux machine
     #TODO I (@kilian) have no idea why
-    return call(' '.join(["gf", "-make", "-D", prefix, "--probs=" + prefix + name + PROBS_SUFFIX
+    return call(' '.join(["gf", "-make", "-D", prefix, "--probs=" + os.path.join(prefix, name + PROBS_SUFFIX)
                 , "+RTS", "-K100M", "-RTS" # compilation of large grammars requires larger run-time stack
-                , prefix + name + LANGUAGE + SUFFIX]), shell=True)
+                , os.path.join(prefix, name + LANGUAGE + SUFFIX)]), shell=True)
+
+
+__all__ = ["compile_gf_grammar", "export", "LANGUAGE", "COMPILED_SUFFIX"]

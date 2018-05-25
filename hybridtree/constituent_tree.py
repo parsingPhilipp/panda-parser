@@ -1,8 +1,8 @@
 __author__ = 'kilian'
 
-from general_hybrid_tree import HybridTree
-from monadic_tokens import ConstituentTerminal, ConstituentCategory
-from decomposition import join_spans
+from hybridtree.general_hybrid_tree import HybridTree
+from hybridtree.monadic_tokens import ConstituentTerminal, ConstituentCategory
+from grammar.induction.decomposition import join_spans
 
 
 class ConstituentTree(HybridTree):
@@ -18,8 +18,8 @@ class ConstituentTree(HybridTree):
     # id: string
     # pos: string (part of speech)
     # word: string
-    def add_leaf(self, id, pos, word):
-        token = ConstituentTerminal(word, pos)
+    def add_leaf(self, id, pos, word, edge='--', morph=None, lemma='--'):
+        token = ConstituentTerminal(word, pos, edge, morph, lemma)
         self.add_node(id, token, True, True)
 
     # Add punctuation: has no parent
@@ -110,6 +110,22 @@ class ConstituentTree(HybridTree):
             # TODO: this if-clause allows to handle trees, that have nodes with empty fringe
             if len(span) >= 3:
                 spans += [span]
-        return sorted(spans, \
-                      cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
-                                           [y[1]] + [-y[2]] + y[3:] + [y[0]]))
+        return sorted(spans,
+                      # cmp=lambda x, y: cmp([x[1]] + [-x[2]] + x[3:] + [x[0]], \
+                      #                      [y[1]] + [-y[2]] + y[3:] + [y[0]])
+                      key=lambda x: [tuple(x[1:]), x[0]])
+
+    def strip_vroot(self):
+        if (len(self.root) == 1) and self.node_token(self.root[0]).type() == "CONSTITUENT-CATEGORY" and self.node_token(self.root[0]).category() == "VROOT":
+            old_root = self.root[0]
+            new_roots = self.children(old_root)
+            self._id_to_child_ids[self.virtual_root] = new_roots
+            for new_root in new_roots:
+                self._parent[new_root] = self.virtual_root
+            self._id_to_token.pop(old_root, None)
+        else:
+            # print self
+            pass
+
+
+__all__ = ["ConstituentTree"]

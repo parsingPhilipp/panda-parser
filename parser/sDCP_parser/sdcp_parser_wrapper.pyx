@@ -1,9 +1,9 @@
 import grammar.lcfrs as gl
+import grammar.lcfrs_derivation
 from grammar.lcfrs import LCFRS
 import grammar.dcp as gd
 import hybridtree.general_hybrid_tree as gh
 import parser.parser_interface as pi
-import parser.derivation_interface as di
 from collections import defaultdict
 
 # this needs to be consistent
@@ -12,39 +12,41 @@ DEF ENCODE_NONTERMINALS = True
 DEF ENCODE_TERMINALS = True
 # ctypedef unsigned_int TERMINAL
 
-cdef extern from "util.h":
-    cdef void output_helper(string)
 
-cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, terminal_encoding=str) except * :
-    # output_helper("convert hybrid tree: " + str(p_tree))
+cdef HybridTree[TERMINAL, int]* convert_hybrid_tree(p_tree, term_labelling, terminal_encoding=str) except * :
+    # output_helper_utf8("convert hybrid tree: " + str(p_tree))
     cdef HybridTree[TERMINAL, int]* c_tree = new HybridTree[TERMINAL, int]()
     assert isinstance(p_tree, gh.HybridTree)
     cdef vector[int] linearization = [-1] * len(p_tree.id_yield())
     c_tree[0].set_entry(0)
-    # output_helper(str(p_tree.root))
-    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization, terminal_encoding)
+    # output_helper_utf8(str(p_tree.root))
+    (last, _) = insert_nodes_recursive(p_tree, c_tree, p_tree.root, 0, False, 0, 0, linearization, term_labelling, terminal_encoding)
     c_tree[0].set_exit(last)
-    # output_helper(str(linearization))
+    # output_helper_utf8(str(linearization))
     c_tree[0].set_linearization(linearization)
     return c_tree
 
 
-cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization, terminal_encoding) except *:
-    # output_helper(str(p_ids))
+cdef pair[int,int] insert_nodes_recursive(p_tree, HybridTree[TERMINAL, int]* c_tree, p_ids, int pred_id, attach_parent, int parent_id, int max_id, vector[int] & linearization, term_labelling, terminal_encoding) except *:
+    # output_helper_utf8(str(p_ids))
     if p_ids == []:
         return pred_id, max_id
     p_id = p_ids[0]
     cdef c_id = max_id + 1
     max_id += 1
-    c_tree[0].add_node(pred_id, terminal_encoding(str(p_tree.node_token(p_id).pos()) + " : " + str(p_tree.node_token(p_id).deprel())), terminal_encoding(str(p_tree.node_token(p_id).pos())), c_id)
+
     if p_tree.in_ordering(p_id):
+        c_tree[0].add_node(pred_id, terminal_encoding(term_labelling.token_tree_label(p_tree.node_token(p_id))), terminal_encoding(term_labelling.token_label(p_tree.node_token(p_id))), c_id)
         linearization[p_tree.node_index(p_id)] = c_id
+    else:
+        c_tree[0].add_node(pred_id, terminal_encoding(term_labelling.token_tree_label(p_tree.node_token(p_id))), c_id)
+
     if attach_parent:
         c_tree[0].add_child(parent_id, c_id)
     if p_tree.children(p_id):
         c_tree[0].add_child(c_id, c_id + 1)
-        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization, terminal_encoding)
-    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization, terminal_encoding)
+        (_, max_id) = insert_nodes_recursive(p_tree, c_tree, p_tree.children(p_id), c_id + 1, True, c_id, c_id + 1, linearization, term_labelling, terminal_encoding)
+    return insert_nodes_recursive(p_tree, c_tree, p_ids[1:], c_id, attach_parent, parent_id, max_id, linearization, term_labelling, terminal_encoding)
 
 
 cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=False) except *:
@@ -90,11 +92,10 @@ cdef SDCP[NONTERMINAL, TERMINAL] grammar_to_SDCP(grammar, nonterminal_encoder, t
                     if isinstance(obj, gl.LCFRS_var):
                         c_rule[0].add_var_to_word_function(obj.mem + 1, obj.arg + 1)
                     else:
-                        c_rule[0].add_terminal_to_word_function(terminal_encoder(str(obj)))
-
+                        c_rule[0].add_terminal_to_word_function(terminal_encoder(obj))
 
         if not sdcp.add_rule(c_rule[0]):
-            output_helper(str(rule))
+            output_helper_utf8(str(rule))
             raise Exception("rule does not satisfy parser restrictions")
         del c_rule
 
@@ -110,10 +111,11 @@ def print_grammar(grammar):
     nonterminal_encoder = lambda s: nonterminal_map.object_index(s) if ENCODE_NONTERMINALS else str
     terminal_encoder = lambda s: terminal_map.object_index(s) if ENCODE_TERMINALS else str
 
-    cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder)
+    cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=True)
     sdcp.output()
 
-def print_grammar_and_parse_tree(grammar, tree):
+
+def print_grammar_and_parse_tree(grammar, tree, term_labelling):
     # cdef Enumerator rule_map = Enumerator()
     cdef Enumerator nonterminal_map = Enumerator()
     cdef Enumerator terminal_map = Enumerator()
@@ -123,7 +125,7 @@ def print_grammar_and_parse_tree(grammar, tree):
     cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder)
     sdcp.output()
 
-    cdef HybridTree[TERMINAL,int]* c_tree = convert_hybrid_tree(tree, str)
+    cdef HybridTree[TERMINAL,int]* c_tree = convert_hybrid_tree(tree, term_labelling, str)
     c_tree[0].output()
 
     cdef SDCPParser[NONTERMINAL,TERMINAL,int] parser
@@ -140,8 +142,10 @@ cdef class PySTermBuilder:
     cdef STermBuilder[NONTERMINAL, TERMINAL] builder
     cdef STermBuilder[NONTERMINAL, TERMINAL] get_builder(self):
         return self.builder
-    def add_terminal(self, TERMINAL term, int position):
+    def add_linked_terminal(self, TERMINAL term, int position):
         self.builder.add_terminal(term, position)
+    def add_terminal(self, TERMINAL term):
+        self.builder.add_terminal(term)
     def add_var(self, int mem, int arg):
         self.builder.add_var(mem, arg)
     def add_children(self):
@@ -154,32 +158,41 @@ cdef class PySTermBuilder:
         self.builder.add_to_rule(rule)
 
 
-class STermConverter(gd.DCP_evaluator):
-    def evaluateIndex(self, index, id):
+class STermConverter(gd.DCP_visitor):
+    def visit_index(self, index, id):
         # print index
         cdef int i = index.index()
         rule = self.rule
         assert isinstance(rule, gl.LCFRS_rule)
         cdef int j = 0
-        pos = None
+        terminal = None
         for arg in rule.lhs().args():
             for obj in arg:
                 if isinstance(obj, gl.LCFRS_var):
                     continue
-                if isinstance(obj, str):
+                if isinstance(obj, (str, unicode)):
                     if i == j:
-                        pos = obj
+                        terminal = obj
                         break
                     j += 1
-            if pos:
+            if terminal:
                break
-        self.builder.add_terminal(self.terminal_encoder(str(pos) + " : " + str(index.dep_label())), i)
 
-    def evaluateString(self, s, id):
+        # Dependency tree or constituent tree with labeled edges
+        if index.edge_label() is not None:
+            self.builder.add_linked_terminal(self.terminal_encoder(terminal + " : " + index.edge_label()), i)
+        # Constituent tree without labeled edges
+        else:
+            self.builder.add_linked_terminal(self.terminal_encoder(terminal), i)
+
+    def visit_string(self, s, id):
         # print s
-        self.builder.add_terminal(self.terminal_encoder(s))
+        if s.edge_label() is not None:
+            self.builder.add_terminal(self.terminal_encoder(s.get_string() + " : " + str(s.edge_label())))
+        else:
+            self.builder.add_terminal(self.terminal_encoder(s.get_string()))
 
-    def evaluateVariable(self, var, id):
+    def visit_variable(self, var, id):
         # print var
         cdef int offset = 0
         if var.mem() >= 0:
@@ -188,8 +201,8 @@ class STermConverter(gd.DCP_evaluator):
                     offset += 1
         self.builder.add_var(var.mem() + 1, var.arg() + 1 - offset)
 
-    def evaluateTerm(self, term, id):
-        term.head().evaluateMe(self)
+    def visit_term(self, term, id):
+        term.head().visitMe(self)
         if term.arg():
             self.builder.add_children()
             self.evaluateSequence(term.arg())
@@ -197,7 +210,7 @@ class STermConverter(gd.DCP_evaluator):
 
     def evaluateSequence(self, sequence):
         for element in sequence:
-            element.evaluateMe(self)
+            element.visitMe(self)
 
     def __init__(self, py_builder, terminal_encoder):
         self.builder = py_builder
@@ -209,7 +222,7 @@ class STermConverter(gd.DCP_evaluator):
     def get_evaluation(self):
         return self.builder.get_sTerm()
 
-    def  get_pybuilder(self):
+    def get_pybuilder(self):
         return self.builder
 
     def clear(self):
@@ -256,9 +269,10 @@ cdef class PySDCPParser(object):
     # cdef Enumerator rule_map, terminal_map, nonterminal_map
     # cdef bint debug
 
-    def __init__(self, grammar, lcfrs_parsing=False, debug=False):
+    def __init__(self, grammar, term_labelling, lcfrs_parsing=False, debug=False):
         self.debug = debug
         self.parser = new SDCPParser[NONTERMINAL,TERMINAL,int](lcfrs_parsing, debug, True, True)
+        self.term_labelling = term_labelling
         # self.__grammar = grammar
 
     cdef void set_sdcp(self, SDCP[NONTERMINAL,TERMINAL] sdcp):
@@ -274,14 +288,15 @@ cdef class PySDCPParser(object):
     cpdef void do_parse(self):
         self.parser[0].do_parse()
         if self.debug:
-            output_helper("parsing completed\n")
+            output_helper_utf8("parsing completed\n")
 
-        self.parser[0].reachability_simplification()
+        if self.recognized():
+            self.parser[0].reachability_simplification()
 
         if self.debug:
-            output_helper("reachability simplification completed\n")
+            output_helper_utf8("reachability simplification completed\n")
             self.parser[0].print_trace()
-            output_helper("trace printed\n")
+            output_helper_utf8("trace printed\n")
 
     cpdef bint recognized(self):
         return self.parser.recognized()
@@ -289,9 +304,9 @@ cdef class PySDCPParser(object):
     def set_input(self, tree):
         cdef HybridTree[TERMINAL,int]* c_tree
         if ENCODE_TERMINALS:
-            c_tree = convert_hybrid_tree(tree, lambda s: self.terminal_map.object_index(s))
+            c_tree = convert_hybrid_tree(tree, self.term_labelling, lambda s: self.terminal_map.object_index(s))
         else:
-            c_tree = convert_hybrid_tree(tree)
+            c_tree = convert_hybrid_tree(tree, self.term_labelling)
         self.parser[0].set_input(c_tree[0])
         self.parser[0].set_goal()
         if self.debug:
@@ -322,8 +337,8 @@ cdef class PySDCPParser(object):
     def derivations_rec(self, list items, positions, derivation):
         assert isinstance(derivation, SDCPDerivation)
 
-        # output_helper("items = [" + ', '.join(map(str, items)) +  ']' + '\n')
-        # output_helper("positions = " + str(positions) + "\n")
+        # output_helper_utf8("items = [" + ', '.join(map(str, items)) +  ']' + '\n')
+        # output_helper_utf8("positions = " + str(positions) + "\n")
 
         if len(items) == 0:
             yield derivation
@@ -331,7 +346,7 @@ cdef class PySDCPParser(object):
 
         position = positions[0]
         for rule_id, children in self.query_trace(items[0]):
-            # output_helper("children = [" + ', '.join(map(str, children)) +  ']' + '\n')
+            # output_helper_utf8("children = [" + ', '.join(map(str, children)) +  ']' + '\n')
             extended_derivation, child_positions = derivation.extend_by(position, rule_id, len(children))
             for vertical_extension in self.derivations_rec(children, child_positions, extended_derivation):
                 for horizontal_extension in self.derivations_rec(items[1:], positions[1:], vertical_extension):
@@ -343,11 +358,36 @@ cdef class PySDCPParser(object):
     cpdef void print_trace(self):
         self.parser.print_trace()
 
+
+    def count_derivations(self):
+        if not self.recognized():
+            return 0
+
+        initial = PyParseItem()
+        initial.set_item(self.parser[0].goal[0])
+        (result, _) = self.parses_per_pitem(initial, {})
+        return result
+
+
+    def parses_per_pitem(self, pItemNo, resultMap):
+        if pItemNo in resultMap:
+            return resultMap[pItemNo], resultMap
+        result = 0
+        for incomingEdge in self.query_trace(pItemNo):
+            noPerTrace = 1
+            for pItem in incomingEdge[1]:
+                (count, resultMap) = self.parses_per_pitem(pItem, resultMap)
+                noPerTrace *= count
+            result += noPerTrace
+        resultMap[pItemNo] = result
+        return result, resultMap
+
+
     def __del__(self):
         del self.parser
 
 
-class SDCPDerivation(di.AbstractDerivation):
+class SDCPDerivation(grammar.lcfrs_derivation.LCFRSDerivation):
     def __init__(self, max_idx, grammar, idx_to_rule=defaultdict(lambda: None), children=defaultdict(lambda: []), parent=defaultdict(lambda: None)):
         self.max_idx = max_idx
         self.idx_to_rule = idx_to_rule.copy()
@@ -392,7 +432,7 @@ class SDCPDerivation(di.AbstractDerivation):
 
 
 class PysDCPParser(pi.AbstractParser):
-    def __init__(self, grammar, input=None):
+    def __init__(self, grammar, input=None, debug=False, terminal_labelling=None):
         self.grammar = grammar
         self.input = input
         if input is not None:
@@ -400,7 +440,7 @@ class PysDCPParser(pi.AbstractParser):
             self.clear()
             self.parse()
         else:
-            self.parser = self.__preprocess(grammar)
+            self.parser = self.__preprocess(grammar, terminal_labelling, debug=debug)
 
     def parse(self):
         self.parser.set_input(self.input)
@@ -427,8 +467,15 @@ class PysDCPParser(pi.AbstractParser):
         else:
             return []
 
+    def count_derivation_trees(self):
+        if self.recognized():
+            return self.parser.count_derivations()
+        else:
+            return 0
+
+
     @staticmethod
-    def __preprocess(grammar):
+    def __preprocess(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
@@ -439,7 +486,7 @@ class PysDCPParser(pi.AbstractParser):
 
         cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar,  nonterminal_encoder, terminal_encoder)
 
-        parser = PySDCPParser(grammar)
+        parser = PySDCPParser(grammar, term_labelling, debug=debug)
         parser.set_sdcp(sdcp)
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
@@ -448,16 +495,26 @@ class PysDCPParser(pi.AbstractParser):
 
 
     @staticmethod
-    def preprocess_grammar(grammar):
+    def preprocess_grammar(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
-        grammar.sdcp_parser = PysDCPParser.__preprocess(grammar)
+        grammar.sdcp_parser = PysDCPParser.__preprocess(grammar, term_labelling, debug)
 
 
 class LCFRS_sDCP_Parser(PysDCPParser):
+    def __init__(self, grammar, input=None, debug=False, terminal_labelling=None):
+        self.grammar = grammar
+        self.input = input
+        if input is not None:
+            self.parser = grammar.sdcp_parser
+            self.clear()
+            self.parse()
+        else:
+            self.parser = LCFRS_sDCP_Parser.__preprocess(grammar, terminal_labelling, debug=debug)
+
     @staticmethod
-    def __preprocess(grammar):
+    def __preprocess(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
@@ -468,7 +525,13 @@ class LCFRS_sDCP_Parser(PysDCPParser):
 
         cdef SDCP[NONTERMINAL, TERMINAL] sdcp = grammar_to_SDCP(grammar, nonterminal_encoder, terminal_encoder, lcfrs_conversion=True)
 
-        parser = PySDCPParser(grammar, lcfrs_parsing=True, debug=False)
+        if debug:
+            for enum in [terminal_map, nonterminal_map]:
+                for idx in range(enum.first_index, enum.counter):
+                    output_helper_utf8(str(idx) + " : " + str(enum.index_object(idx)))
+            sdcp.output()
+
+        parser = PySDCPParser(grammar, term_labelling, lcfrs_parsing=True, debug=debug)
         parser.set_sdcp(sdcp)
         # parser.set_rule_map(rule_map)
         parser.set_terminal_map(terminal_map)
@@ -476,8 +539,11 @@ class LCFRS_sDCP_Parser(PysDCPParser):
         return parser
 
     @staticmethod
-    def preprocess_grammar(grammar):
+    def preprocess_grammar(grammar, term_labelling, debug=False):
         """
         :type grammar: LCFRS
         """
-        grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar)
+        grammar.sdcp_parser = LCFRS_sDCP_Parser.__preprocess(grammar, term_labelling, debug)
+
+
+__all__ = ["PysDCPParser", "LCFRS_sDCP_Parser", "print_grammar"]

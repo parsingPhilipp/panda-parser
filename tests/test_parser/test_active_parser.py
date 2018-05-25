@@ -1,16 +1,20 @@
+from __future__ import print_function, division
+
 __author__ = 'kilian'
 
 import unittest
 
-from dependency.induction import induce_grammar, direct_extraction, the_terminal_labeling_factory
+from dependency.induction import induce_grammar
+from grammar.induction.recursive_partitioning import direct_extraction
+from grammar.induction.terminal_labeling import the_terminal_labeling_factory
 from dependency.labeling import the_labeling_factory
 from grammar.lcfrs import *
 from hybridtree.general_hybrid_tree import HybridTree
 from hybridtree.monadic_tokens import *
 from parser.active.derivation import Derivation
 from parser.active.parsing import *
-from parser.derivation_interface import derivation_to_hybrid_tree
-from parser.sDCPevaluation.evaluator import The_DCP_evaluator, dcp_to_hybridtree
+from grammar.lcfrs_derivation import derivation_to_hybrid_tree
+from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybridtree
 from tests.test_induction import hybrid_tree_1, hybrid_tree_2
 
 
@@ -24,93 +28,93 @@ class ActiveParserTest(unittest.TestCase):
     def test_a4(self):
         word = ['a'] * 4
         parser = Parser(self.grammar_ab_copy, word)
-        print "Parse", word
+        print("Parse", word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
 
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             derivation = print_derivation_tree(passive_item)
-            print derivation
+            print(derivation)
             poss = ['P' + str(i) for i in range(1, len(word) + 1)]
             tree = derivation_to_hybrid_tree(derivation, poss, word, construct_constituent_token)
-            print tree
+            print(tree)
             counter += 1
         self.assertEqual(counter, 2)
-        print
+        print()
 
     def test_aabaab(self):
         word = ['a', 'a', 'b'] * 2
         parser = Parser(self.grammar_ab_copy, word)
-        print "Parse", word
+        print("Parse", word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
         self.assertEqual(counter, 2)
-        print
+        print()
 
     def test_abba(self):
         word = ['a', 'b', 'b', 'a']
         parser = Parser(self.grammar_ab_copy, word)
-        print "Parse", word
+        print("Parse", word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
 
         self.assertEqual(counter, 0)
-        print
+        print()
 
     def test_a4_2(self):
         word = ['a'] * 4
         parser = Parser(self.grammar_ab_copy_2, word)
-        print "Parse", word
+        print("Parse", word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
         self.assertEqual(counter, 2)
-        print
+        print()
 
     def test_aabaab_2(self):
         word = ['a', 'a', 'b'] * 2
         parser = Parser(self.grammar_ab_copy_2, word)
-        print "Parse", word
+        print("Parse", word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
         self.assertEqual(counter, 2)
-        print
+        print()
 
     def test_baabbaab_2(self):
         word = ['b', 'a', 'a', 'b'] * 2
         parser = Parser(self.grammar_ab_copy_2, word)
-        print "Parse", word
+        print("Parse", word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
         self.assertEqual(counter, 2)
-        print
+        print()
 
     def test_abba_2(self):
         word = ['a', 'b', 'b', 'a']
         parser = Parser(self.grammar_ab_copy_2, word)
-        print "Parse", word
+        print("Parse", word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
         self.assertEqual(counter, 0)
-        print
+        print()
 
     def test_remaining_terminal_function(self):
         x1 = LCFRS_var(0, 0)
@@ -125,33 +129,33 @@ class ActiveParserTest(unittest.TestCase):
         m = 6
         n = 3
         word = (['a'] * m + ['b'] * n + ['c'] * m + ['d'] * n)
-        print "Parse", word
+        print("Parse", word)
         parser = Parser(kaeshammer_grammar(), word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
             derivation = print_derivation_tree(passive_item)
-            print derivation
+            print(derivation)
             hybrid_tree = derivation_to_hybrid_tree(derivation, word, word, construct_constituent_token)
             # print hybrid_tree
         self.assertEqual(counter, 1)
-        print
+        print()
 
     def test_ambncmdn_fail(self):
         m = 6
         n = 3
         word = (['a'] * m + ['b'] * n + ['c'] * (m + 1) + ['d'] * n)
-        print "Parse", word
+        print("Parse", word)
         parser = Parser(kaeshammer_grammar(), word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
         self.assertEqual(counter, 0)
-        print
+        print()
 
     def test_kallmayer_pos(self):
         for n in range(4):
@@ -172,25 +176,25 @@ class ActiveParserTest(unittest.TestCase):
         """
         :return:
         """
-        print "Parse", word
+        print("Parse", word)
         parser = Parser(kallmeyer_grammar(), word)
         counter = 0
-        print "Found items:"
+        print("Found items:")
         for passive_item in parser.successful_root_items():
-            print passive_item
+            print(passive_item)
             counter += 1
             # print_derivation_tree(passive_item)
-        print
+        print()
         return counter
 
     def test_dcp_evaluation_with_induced_dependency_grammar(self):
         tree = hybrid_tree_1()
 
-        print tree
+        print(tree)
 
         tree2 = hybrid_tree_2()
 
-        print tree2
+        print(tree2)
         # print tree.recursive_partitioning()
 
         labeling = the_labeling_factory().create_simple_labeling_strategy('child', 'pos')
@@ -202,7 +206,7 @@ class ActiveParserTest(unittest.TestCase):
         self.assertEqual(grammar.well_formed(), None)
         self.assertEqual(grammar.ordered()[0], True)
         # print max([grammar.fanout(nont) for nont in grammar.nonts()])
-        print grammar
+        print(grammar)
 
         parser = Parser(grammar, 'NP N V V'.split(' '))
 
@@ -211,13 +215,13 @@ class ActiveParserTest(unittest.TestCase):
         for item in parser.successful_root_items():
             der = Derivation()
             derivation_tree(der, item, None)
-            print der
+            print(der)
 
             hybrid_tree = derivation_to_hybrid_tree(der, 'NP N V V'.split(' '), 'Piet Marie helpen lezen'.split(' '),
                                                     construct_constituent_token)
-            print hybrid_tree
+            print(hybrid_tree)
 
-            dcp = The_DCP_evaluator(der).getEvaluation()
+            dcp = DCP_evaluator(der).getEvaluation()
             h_tree_2 = HybridTree()
             token_sequence = [construct_conll_token(form, lemma) for form, lemma in
                               zip('Piet Marie helpen lezen'.split(' '), 'NP N V V'.split(' '))]
@@ -229,8 +233,8 @@ class ActiveParserTest(unittest.TestCase):
 
     def test_ambiguous_copy_grammar(self):
         grammar = ambiguous_copy_grammar()
-        self.assertEqual(grammar.well_formed(), None)
-        self.assertEqual(grammar.ordered()[0], True)
+        self.assertEqual(None, grammar.well_formed())
+        self.assertTrue(grammar.ordered()[0])
 
         word = ['a'] * 16
         parser = Parser(grammar, word)
@@ -253,8 +257,8 @@ class ActiveParserTest(unittest.TestCase):
             # tree = derivation_to_hybrid_tree(derivation, poss, word)
             # print tree
             counter += 1
-        self.assertEqual(counter, number_of_ambiguous_trees(len(word) / 2))
-        print counter
+        self.assertEqual(counter, number_of_ambiguous_trees(len(word) // 2))
+        print(counter)
 
 
 def number_of_ambiguous_trees(n):

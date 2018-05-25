@@ -1,11 +1,14 @@
+from __future__ import print_function
+
 __author__ = 'kilian'
 
 from grammar.lcfrs import *
 from collections import deque
 from parser.parser_interface import AbstractParser
-from derivation import Derivation, DerivationItem
-from parse_items import *
+from parser.active.derivation import Derivation, DerivationItem
+from parser.active.parse_items import PassiveItem, terminal_type, Range, extend, length, join
 import itertools
+from collections import defaultdict
 
 
 class ActiveItem(PassiveItem):
@@ -250,13 +253,13 @@ class Parser(AbstractParser):
             if item not in self.__passive_items[key]:
                 self.__passive_items[key] += [item]
                 if self.__debug:
-                    print " recorded   ", item
+                    print(" recorded   ", item)
             elif self.__debug:
-                print " skipped    ", item
+                print(" skipped    ", item)
         else:
             self.__passive_items[key] = [item]
             if self.__debug:
-                print " recorded   ", item
+                print(" recorded   ", item)
 
     def record_active_item(self, item):
         """
@@ -273,22 +276,22 @@ class Parser(AbstractParser):
         if isinstance(item, CombineItem):
             if key in self.__combine_items:
                 if self.__debug:
-                    print " skipped    ", item
+                    print(" skipped    ", item)
             else:
                 self.__combine_items.add(key)
                 self.__combine_agenda.append(item)
                 if self.__debug:
-                    print " recorded   ", item
+                    print(" recorded   ", item)
         else:
             assert isinstance(item, ScanItem)
             if key in self.__scan_items:
                 if self.__debug:
-                    print " skipped    ", item
+                    print(" skipped    ", item)
             else:
                 self.__scan_items.add(key)
                 self.__scan_agenda.append(item)
                 if self.__debug:
-                    print " recorded   ", item
+                    print(" recorded   ", item)
 
     def query_passive_items(self, nont, range_constraints):
         """
@@ -311,7 +314,7 @@ class Parser(AbstractParser):
                     self.__process_counter += 1
                     if self.__process_counter % 100 == 0:
                         pass
-                    print "process  {:>3d}".format(self.__process_counter), item
+                    print("process  {:>3d}".format(self.__process_counter), item)
 
                 item.process(self)
             if self.__combine_agenda:
@@ -320,7 +323,7 @@ class Parser(AbstractParser):
                     self.__process_counter += 1
                     if self.__process_counter == 15:
                         pass
-                    print "process  {:>3d}".format(self.__process_counter), item
+                    print("process  {:>3d}".format(self.__process_counter), item)
                 item.process(self)
 
     def query_passive_items_strict(self, nont, complete, ranges):
@@ -332,7 +335,7 @@ class Parser(AbstractParser):
         :param ranges: list[Range]
         :return:
         """
-        range_constraints = map(lambda x: x.left, ranges)
+        range_constraints = list(map(lambda x: x.left, ranges))
         result = []
         for passive_item in self.query_passive_items(nont, range_constraints):
             assert isinstance(passive_item, PassiveItem)
@@ -554,3 +557,6 @@ def do_all_terminals_occur_in_input(rule, start_component, input, input_index, e
             if input_index > len(input):
                 return False
     return True
+
+
+__all__ = ["Parser", "number_of_consumed_terminals", "derivation_tree"]

@@ -41,7 +41,7 @@ class GeneralHybridTreeTestCase(unittest.TestCase):
 
     def test_node_ids(self):
         self.tree.reorder()
-        self.assertItemsEqual(self.tree.nodes(), ['v', 'v1', 'v2', 'v21', 'v3'])
+        self.assertListEqual(sorted(self.tree.nodes()), sorted(['v', 'v1', 'v2', 'v21', 'v3']))
 
     def test_complete(self):
         self.tree.reorder()

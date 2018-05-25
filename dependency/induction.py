@@ -1,19 +1,18 @@
 __author__ = 'kilian'
 
 import re
-from abc import ABCMeta, abstractmethod
+from random import seed
 
-from decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
-    right_branching_partitioning
-from grammar.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
+from grammar.induction.decomposition import join_spans, fanout_limited_partitioning, left_branching_partitioning, \
+    right_branching_partitioning, fanout_limited_partitioning_left_to_right, fanout_limited_partitioning_argmax, fanout_limited_partitioning_random_choice, fanout_limited_partitioning_no_new_nont
 
 from dependency.labeling import AbstractLabeling
 from grammar.dcp import DCP_rule, DCP_term, DCP_var, DCP_index
-from hybridtree.general_hybrid_tree import HybridTree
-from hybridtree.monadic_tokens import CoNLLToken
+from grammar.lcfrs import LCFRS, LCFRS_lhs, LCFRS_var
+from dependency.top_bottom_max import top_max, bottom_max
 
 
-# ##################   Top level methods for grammar induction.   ###################
+###################   Top level methods for grammar induction.   ###################
 
 
 def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning, start_nont='START'):
@@ -34,7 +33,11 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
     for tree in trees:
         n_trees += 1
         for rec_par in recursive_partitioning:
-            rec_par_int = rec_par(tree)
+            match = re.search(r'no_new_nont', rec_par.__name__)
+            if match:
+                rec_par_int = rec_par(tree, grammar.nonts(), nont_labelling)
+            else:
+                rec_par_int = rec_par(tree)
 
             rec_par_nodes = tree.node_id_rec_par(rec_par_int)
 
@@ -50,87 +53,6 @@ def induce_grammar(trees, nont_labelling, term_labelling, recursive_partitioning
 
     grammar.make_proper()
     return n_trees, grammar
-
-
-class TerminalLabeling:
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def token_label(self, token):
-        """
-        :type token: CoNLLToken
-        """
-        pass
-
-    def prepare_parser_input(self, tokens):
-        return map(self.token_label, tokens)
-
-
-class FormTerminals(TerminalLabeling):
-    def token_label(self, token):
-        return token.form()
-
-    def __str__(self):
-        return 'form'
-
-
-class CPosTerminals(TerminalLabeling):
-    def token_label(self, token):
-        return token.cpos()
-
-    def __str__(self):
-        return 'cpos'
-
-
-class PosTerminals(TerminalLabeling):
-    def token_label(self, token):
-        return token.pos()
-
-    def __str__(self):
-        return 'pos'
-
-
-class CPOS_KON_APPR(TerminalLabeling):
-    def token_label(self, token):
-        cpos = token.pos()
-        if cpos in ['KON', 'APPR']:
-            return cpos + token.form().lower()
-        else:
-            return cpos
-
-    def __str__(self):
-        return 'cpos-KON-APPR'
-
-
-class TerminalLabelingFactory:
-    def __init__(self):
-        self.__strategies = {}
-
-    def register_strategy(self, name, strategy):
-        """
-        :type name: str
-        :type strategy: TerminalLabeling
-        """
-        self.__strategies[name] = strategy
-
-    def get_strategy(self, name):
-        """
-        :type name: str
-        :rtype: TerminalLabeling
-        """
-        return self.__strategies[name]
-
-
-def the_terminal_labeling_factory():
-    """
-    :rtype : TerminalLabelingFactory
-    """
-    factory = TerminalLabelingFactory()
-    factory.register_strategy('form', FormTerminals())
-    factory.register_strategy('pos', PosTerminals())
-    factory.register_strategy('cpos', CPosTerminals())
-    factory.register_strategy('cpos-KON-APPR', CPOS_KON_APPR())
-    return factory
 
 
 # Recursive partitioning strategies
@@ -151,26 +73,59 @@ def cfg(tree):
 
 
 fanout_k = lambda tree, k: fanout_limited_partitioning(tree.recursive_partitioning(), k)
+fanout_k_left_to_right = lambda tree, k: fanout_limited_partitioning_left_to_right(tree.recursive_partitioning(), k)
+fanout_k_argmax = lambda tree, k: fanout_limited_partitioning_argmax(tree.recursive_partitioning(), k)
+fanout_k_random = lambda tree, k: fanout_limited_partitioning_random_choice(tree.recursive_partitioning(), k)
+fanout_k_no_new_nont = lambda tree, nonts, nont_labelling, fallback, k: fanout_limited_partitioning_no_new_nont(tree.recursive_partitioning(), k, tree, nonts, nont_labelling, fallback)
 
 
 class RecursivePartitioningFactory:
     def __init__(self):
         self.__partitionings = {}
 
-    def registerPartitioning(self, name, partitioning):
+    def register_partitioning(self, name, partitioning):
         self.__partitionings[name] = partitioning
 
-    def getPartitioning(self, name):
+    def get_partitioning(self, name):
         partitioning_names = name.split(',')
         partitionings = []
         for name in partitioning_names:
-            match = re.search(r'fanout-(\d+)', name)
+            match = re.search(r'fanout-(\d+)([-\w]*)', name)
             if match:
                 k = int(match.group(1))
-                rec_par = lambda tree: fanout_k(tree, k)
-                rec_par.__name__ = 'fanout_' + str(k)
-                partitionings.append(rec_par)
-
+                trans = match.group(2)
+                if trans == '': #right-to-left bfs
+                    rec_par = lambda tree: fanout_k(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k)
+                    partitionings.append(rec_par)
+                if trans == '-left-to-right':
+                    rec_par = lambda tree: fanout_k_left_to_right(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_left_to_right'
+                    partitionings.append(rec_par)
+                if trans == '-argmax':
+                    rec_par = lambda tree: fanout_k_argmax(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_argmax'
+                    partitionings.append(rec_par)
+                # set seed, if random strategy is chosen
+                rand_match = re.search(r'-random-(\d*)', trans)
+                if rand_match:
+                    s = int(rand_match.group(1))
+                    seed(s)
+                    rec_par = lambda tree: fanout_k_random(tree, k)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_random'
+                    partitionings.append(rec_par)
+                # set fallback strategy if no position corresponds to an existing nonterminal
+                no_new_nont_match = re.search(r'-no-new-nont([-\w]*)', trans)
+                if no_new_nont_match:
+                    fallback = no_new_nont_match.group(1)
+                    rand_match = re.search(r'-random-(\d*)', fallback)
+                    if rand_match:
+                        s = int(rand_match.group(1))
+                        seed(s)
+                        fallback = '-random'
+                    rec_par = lambda tree, nonts, nont_labelling: fanout_k_no_new_nont(tree, nonts, nont_labelling, k, fallback)
+                    rec_par.__name__ = 'fanout_' + str(k) + '_no_new_nont'
+                    partitionings.append(rec_par)
             else:
                 rec_par = self.__partitionings[name]
                 if rec_par:
@@ -182,18 +137,17 @@ class RecursivePartitioningFactory:
         else:
             return None
 
+
 def the_recursive_partitioning_factory():
     factory = RecursivePartitioningFactory()
-    factory.registerPartitioning('left-branching', left_branching)
-    factory.registerPartitioning('right-branching', right_branching)
-    factory.registerPartitioning('direct-extraction', direct_extraction)
-    factory.registerPartitioning('cfg', cfg)
+    factory.register_partitioning('left-branching', left_branching)
+    factory.register_partitioning('right-branching', right_branching)
+    factory.register_partitioning('direct-extraction', direct_extraction)
+    factory.register_partitioning('cfg', cfg)
     return factory
 
 
 ###################################### Recursive Rule extraction method ###################################
-
-
 def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labelling):
     """
     Extract LCFRS/DCP-hybrid-rules from some hybrid tree, according to some recursive partitioning
@@ -217,6 +171,7 @@ def add_rules_to_grammar_rec(tree, rec_par, grammar, nont_labelling, term_labell
         b_max = bottom_max(tree, node_ids)
 
         dependency_label = tree.node_token(node_ids[0]).deprel()
+
         dcp = [create_leaf_DCP_rule(b_max, dependency_label)]
         lhs = create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_labelling)
 
@@ -327,7 +282,7 @@ def create_lcfrs_lhs(tree, node_ids, t_max, b_max, children, nont_labelling):
     positions = map(tree.node_index, node_ids)
     spans = join_spans(positions)
 
-    children_spans = map(join_spans, [map(tree.node_index, ids) for (ids, _) in children])
+    children_spans = list(map(join_spans, [map(tree.node_index, ids) for (ids, _) in children]))
 
     lhs = LCFRS_lhs(nont_labelling.label_nonterminal(tree, node_ids, t_max, b_max, len(spans)))
     for (low, high) in spans:
@@ -404,83 +359,4 @@ def create_leaf_lcfrs_lhs(tree, node_ids, t_max, b_max, nont_labelling, term_lab
     return lhs
 
 
-######################   Auxiliary: top_max and bottom_max    #################################################
-
-
-def top_max(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the top
-    and group maximal subsets of neighbouring nodes together.
-    :rtype: [[str]]
-    :param tree: HybridTree
-    :param id_set: list of string
-    :return: list of list of string
-    """
-    return maximize(tree, top(tree, id_set))
-
-
-def bottom_max(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the bottom.
-    and group maximal subsets of neighbouring nodes together.
-    :rtype: [[str]]
-    :param tree: HybridTree
-    :param id_set: list of string
-    :return: list of list of string
-    """
-    return maximize(tree, bottom(tree, id_set))
-
-
-def top(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the top.
-    :rtype: [[str]]
-    :param tree: HybridTree
-    :param id_set: list of string  (node ids)
-    :return: list of string  (node ids)
-    """
-    top_nodes = [id for id in id_set if tree.parent(id) not in id_set]
-    return top_nodes
-
-
-def bottom(tree, id_set):
-    """
-    Compute list of node ids that delimit id_set from the bottom.
-    :rtype: [[str]]
-    :param tree: list of node ids that delimit id_set from the bottom.
-    :param id_set: list of string  (node ids)
-    :return: list of string  (node ids)
-    """
-    bottom_nodes = [id for id in tree.id_yield()
-                    if tree.parent(id) in id_set and id not in id_set]
-    return bottom_nodes
-
-
-def maximize(tree, id_set):
-    """
-    Group maximal subsets of neighbouring nodes together.
-    :param tree: HybridTree
-    :param id_set: list of string
-    :return: list of list of string
-    """
-    nodes = id_set[:]
-    max_list = []
-    while len(nodes) > 0:
-        id = nodes[0]
-
-        # Assume that the following two lists contain tree nodes, that are
-        # siblings, ordered from left to right.
-        all_siblings = tree.siblings(id)
-        present_siblings = [id for id in all_siblings if id in nodes]
-
-        nodes = [id for id in nodes if id not in present_siblings]
-
-        while len(present_siblings) > 0:
-            i = all_siblings.index(present_siblings[0])
-            j = 1
-            while j < len(present_siblings) and all_siblings[i + j] == present_siblings[j]:
-                j += 1
-            max_list += [present_siblings[:j]]
-            present_siblings = present_siblings[j:]
-
-    return max_list
+__all__ = ["induce_grammar", "the_recursive_partitioning_factory"]

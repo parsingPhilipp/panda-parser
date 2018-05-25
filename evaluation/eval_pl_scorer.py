@@ -4,12 +4,9 @@ import os
 
 from evaluation import experiment_database
 import corpora.conll_parse
-import dependency_experiments_db
-from hybridtree.general_hybrid_tree import HybridTree
+from experiment import cl_dependency_experiments
 
-# use the subprocess32 module (python3 backport) instead of subprocess
-# import subprocess
-import subprocess32 as subprocess
+import subprocess
 import re
 
 hypothesis_prefix = '.tmp/sys-output'
@@ -35,7 +32,7 @@ def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = "
     else:
         gold_file_path = hypothesis_test_path(gold_prefix, corpus, experiment, filter_descr)
 
-    trees = dependency_experiments_db.parse_conll_corpus(corpus, False)
+    trees = cl_dependency_experiments.parse_conll_corpus(corpus, False)
 
     # Remove file if exists
     try:
@@ -80,7 +77,7 @@ def eval_pl_scores(connection, corpus, experiment, filter=None, filter_descr = "
     p = subprocess.Popen(['perl', eval_pl] + eval_pl_call_strings, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
 
-    lines = out.split('\n')
+    lines = str(out, encoding='utf-8').split('\n')
     # print lines
     uas = 0.0
     las = 0.0
@@ -125,6 +122,7 @@ def CoNLL_string_for_tree(connection, tree_id_in_db, experiment):
 
     return corpora.conll_parse.tree_to_conll_str(hypothesis_tree)
 
+
 # Sample evaluation
 if __name__ == '__main__':
     conll_test = '../dependency_conll/german/tiger/test/german_tiger_test.conll'
@@ -137,6 +135,6 @@ if __name__ == '__main__':
     common = experiment_database.common_recognised_sentences(connection, [experiment])
     las, uas, la = eval_pl_scores(connection, corpus, experiment, common)
     experiment_database.finalize_database(connection)
-    print "Labeled attachment score {:.2f}".format(las)
-    print "Unlabeled attachment score {:.2f}".format(uas)
-    print "Label accuracy {:.2f}".format(la)
+    print("Labeled attachment score {:.2f}".format(las))
+    print("Unlabeled attachment score {:.2f}".format(uas))
+    print("Label accuracy {:.2f}".format(la))

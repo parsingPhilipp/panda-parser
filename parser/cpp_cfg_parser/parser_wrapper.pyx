@@ -1,10 +1,12 @@
-from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs
-# form util.enumerator cimport Enumerator
-from parser.derivation_interface import AbstractDerivation
+from grammar.lcfrs import LCFRS, LCFRS_rule, LCFRS_lhs, LCFRS_var
+from util.enumerator cimport Enumerator
+from grammar.lcfrs_derivation import LCFRSDerivation
 from parser.parser_interface import AbstractParser
 cimport cython
 from libc.stdlib cimport malloc, free
 from math import log
+
+ctypedef unsigned int unsigned_int
 
 cdef extern from "cfg.h":
     ctypedef unsigned Terminal
@@ -36,52 +38,20 @@ cdef extern from "parser.h" namespace "cyk":
         int rule_idx() const;
 
 
-cdef class Enumerator:
-    cdef unsigned counter
-    cdef dict obj_to_ind
-    cdef dict ind_to_obj
-
-    def __init__(self, first_index=1):
-        self.counter = first_index
-        self.obj_to_ind = {}
-        self.ind_to_obj = {}
-
-    def index_object(self, i):
-        """
-        :type i: int
-        :return:
-        """
-        return self.ind_to_obj[i]
-
-    def object_index(self, obj):
-        i = self.obj_to_ind.get(obj, None)
-        if i:
-            return i
-        else:
-            self.obj_to_ind[obj] = self.counter
-            self.ind_to_obj[self.counter] = obj
-            self.counter += 1
-            return self.counter - 1
-
 cdef class PyCFG:
     cdef CFG cfg
     cdef Enumerator nonterminal_map, terminal_map, rule_map
 
-#    def __init__(self):
-#        self.nonterminal_map = Enumerator()
-#        self.terminal_map = Enumerator()
-#        self.rule_map = Enumerator()
-
-
     cdef void set_cfg(self, CFG cfg):
         self.cfg = cfg
 
-    def set_enumerators(self, nonterminal_map, terminal_map, rule_map):
+    cpdef void set_enumerators(self, Enumerator nonterminal_map, Enumerator terminal_map, Enumerator rule_map):
         self.nonterminal_map = nonterminal_map
         self.terminal_map = terminal_map
         self.rule_map = rule_map
 
-cdef PyCFG grammar_to_cfg(grammar, terminal_map, nonterminal_map, rule_map):
+
+cdef PyCFG grammar_to_cfg(grammar, Enumerator terminal_map, Enumerator nonterminal_map, Enumerator rule_map):
     """
     :param grammar:
     :type grammar: LCFRS
@@ -95,9 +65,11 @@ cdef PyCFG grammar_to_cfg(grammar, terminal_map, nonterminal_map, rule_map):
 
     cdef CFG cfg = CFG()
 
-
     for rule in grammar.rules():
-        # print rule
+        if len(rule.lhs().args()) > 1:
+            raise Exception("Only CFGs in Chomsky normal form are supported, "
+                            + "but grammar contained rule with higher fanout: "
+                            + str(rule))
 
         nont_index = nonterminal_map.object_index(str(rule.lhs().nont()))
         rule_idx = rule_map.object_index(rule)
@@ -107,33 +79,40 @@ cdef PyCFG grammar_to_cfg(grammar, terminal_map, nonterminal_map, rule_map):
             rule_weight = log(rule.weight())
 
         # lexical rules
-        if rule.rank() == 0:
+        if rule.rank() == 0 and len(rule.lhs().arg(0)) == 1 and isinstance(rule.lhs().arg(0)[0], str):
             terminal = rule.lhs().arg(0)[0]
             term_idx = terminal_map.object_index(terminal)
             # print "Rule::LexRule(", nont_index, ", ", rule_idx, ", ", rule_weight, ", ", term_idx, ")"
             cfg.add_lex_rule(nont_index, rule_idx, rule_weight, term_idx)
 
         # chain rules
-        elif rule.rank() == 1:
+        elif rule.rank() == 1 and len(rule.lhs().arg(0)) == 1 and rule.lhs().arg(0)[0] == LCFRS_var(0, 0):
             rhs_index = nonterminal_map.object_index(str(rule.rhs_nont(0)))
             # print "Rule::ChainRule(", nont_index, ", ", rule_idx, ", ", rule_weight, ", ", rhs_index, ")"
             cfg.add_chain_rule(nont_index, rule_idx, rule_weight, rhs_index)
 
         # binary rules
-        elif rule.rank() == 2:
+        elif rule.rank() == 2 \
+                and len(rule.lhs().arg(0)) == 2 \
+                and rule.lhs().arg(0)[0] == LCFRS_var(0, 0)\
+                and rule.lhs().arg(0)[1] == LCFRS_var(1, 0):
             rhs_index1 = nonterminal_map.object_index(str(rule.rhs_nont(0)))
             rhs_index2 = nonterminal_map.object_index(str(rule.rhs_nont(1)))
             # print "Rule::BinaryRule(", nont_index, ", ", rule_idx, ", ", rule_weight, ", ", rhs_index1, ", ", rhs_index2, ")"
             cfg.add_binary_rule(nont_index, rule_idx, rule_weight, rhs_index1, rhs_index2)
 
+        else:
+            raise Exception("Only CFGs in Chomsky normal form are supported, but grammar contained rule " + str(rule))
+
     start = nonterminal_map.object_index(str(grammar.start()))
-    print grammar.start(), start
+    print(grammar.start(), start)
     cfg.set_initial(start)
 
     py_cfg = PyCFG()
     py_cfg.set_cfg(cfg)
     py_cfg.set_enumerators(nonterminal_map, terminal_map, rule_map)
     return py_cfg
+
 
 cdef class PyCFGParser:
     cdef CYKParser cpp_parser
@@ -144,12 +123,11 @@ cdef class PyCFGParser:
         self.cpp_parser = CYKParser(py_cfg.cfg)
 
     def parse_sentence(self, sentence):
-        # todo: cython.sizeof(unsigned) does not compile?!
-        my_ints = <unsigned *>malloc(len(sentence)*cython.sizeof(int))
+        my_ints = <unsigned *>malloc(len(sentence)*cython.sizeof(unsigned_int))
         if my_ints is NULL:
             raise MemoryError()
 
-        for i in xrange(len(sentence)):
+        for i in range(len(sentence)):
 
             my_ints[i] = self.py_cfg.terminal_map.object_index(sentence[i])
 
@@ -175,7 +153,7 @@ class CFGParser(AbstractParser):
     def all_derivation_trees(self):
         pass
 
-    def __init__(self, grammar, input=None):
+    def __init__(self, grammar, input=None, save_preprocess=None, load_preprocess=None):
         self.input = input
         self.goal = None
         if input is not None:
@@ -207,9 +185,7 @@ class CFGParser(AbstractParser):
 
     @staticmethod
     def __preprocess(grammar):
-        # todo: why do we need 1 for terminal and nonterminal map ?!
-        # todo: otherwise incomplete
-        terminal_map, nonterminal_map, rule_map = Enumerator(1), Enumerator(1), Enumerator(0)
+        terminal_map, nonterminal_map, rule_map = Enumerator(0), Enumerator(0), Enumerator(0)
         pycfg = grammar_to_cfg(grammar, terminal_map, nonterminal_map, rule_map)
         return PyCFGParser(pycfg)
 
@@ -219,32 +195,15 @@ class CFGParser(AbstractParser):
 
 
 cdef class PyCYKItem:
-    cdef list children
-    cdef unsigned rule_idx
-    cdef unsigned left, right
+    cdef public list children
+    cdef public unsigned rule_idx
+    cdef public unsigned left, right
 
     def __init__(self, left, right, rule_idx):
         self.rule_idx = rule_idx
         self.left = left
         self.right = right
         self.children = []
-
-    @property
-    def children(self):
-        return self.children
-
-    @property
-    def rule_idx(self):
-        return self.rule_idx
-
-    @property
-    def left(self):
-        return self.left
-
-    @property
-    def right(self):
-        return self.right
-
 
 
 cdef PyCYKItem convert_items(CYKItem root):
@@ -257,7 +216,7 @@ cdef PyCYKItem convert_items(CYKItem root):
     return root_
 
 
-class CFGDerivation(AbstractDerivation):
+class CFGDerivation(LCFRSDerivation):
     def __init__(self, root_item, rule_map):
         """
         :param root_item:
@@ -312,3 +271,6 @@ class CFGDerivation(AbstractDerivation):
         for child in self.child_ids(item):
             s += self.der_to_str_rec(child, indentation + 1)
         return s
+
+
+__all__ = ["CFGParser"]

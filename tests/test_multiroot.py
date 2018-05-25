@@ -1,3 +1,4 @@
+from __future__ import print_function
 __author__ = 'kilian'
 
 import unittest
@@ -9,17 +10,17 @@ class MultiRootedHybridTreeTest(unittest.TestCase):
     def test_recursive_partitioning(self):
         tree = multi_const_tree()
 
-        print tree
+        print(tree)
         tree.reorder()
-        print tree
+        print(tree)
 
         self.assertEqual(tree.recursive_partitioning(), ({0, 1, 2, 3},
                                                          [({0, 2}, [({0}, []), ({2}, [])]),
                                                           ({1, 3}, [({1}, []), ({3}, [])])]))
 
         tree2 = multi_dep_tree()
-        print tree2
-        print tree2.recursive_partitioning()
+        print(tree2)
+        print(tree2.recursive_partitioning())
         self.assertEqual(tree2.recursive_partitioning(), ({0, 1, 2, 3, 4},
                                                           [({0, 2}, [({0}, []), ({2}, [])]), (
                                                               {1, 3, 4},
