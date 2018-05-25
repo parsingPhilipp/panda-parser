@@ -55,7 +55,7 @@ Some of these concepts/algorithms have been described in the following articles:
 - generic split/merge training, in partiuclar for LCFRS and LCFRS/sDCP hybrid grammars 
     [[Gebhardt (2018)]](no_yet)
     
-Due to the nature of the software development process (research), it was run on just 1-3 machines and should be consider unstable. Interfaces are likely to be changed as needed for future extensions. Maintenance 
+Due to the nature of the software development process (research), it was run on just 1-3 machines and should be considered unstable. Interfaces are likely to be changed as needed for future extensions. Maintenance 
 is limited to Kilian's professional involvement in academic research.
 
 ------------------------------------------------------------------------
@@ -223,12 +223,22 @@ reflect sentences up to this length.
 
 #### Dependency parsing, cascade experiment
 
-In order to run the cascade experiment in [[Nederhof/Gebhardt/Vogler 2017, Table 3, p. 509]](),
+In order to run the cascade experiment in [[Nederhof/Gebhardt/Vogler 2017, Table 3, p. 509]](https://doi.org/10.1162/COLI_a_00291),
 run the following:
  
     PYTHONPATH=. python3 experiment/cl_dependency_cascade.py
    
 No separate evaluation is required.
+
+#### Control experiments with rparse
+Clone and compile [rparse with patched GF-export](https://github.com/kilian-gebhardt/rparse) and copy `rparse.jar` to `./util/rparser.jar`. Then run
+
+    PYTHONPATH=. python3 playground_rparse/process_rparse_grammar.py
+    
+with appropriate parameters, e.g., for v = 1 and h = 3 run:
+
+    PYTHONPATH=. python3 playground_rparse/process_rparse_grammar.py res/negra-dep/negra-lower-punct-train.conll res/negra-dep/negra-lower-punct-test.conll /tmp/negra-v1-h3 -vMarkov 1 -hMarkov 3
+        
 
 ------------------------------------------------------------------------
 

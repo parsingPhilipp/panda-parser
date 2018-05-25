@@ -18,9 +18,8 @@ def new_lex_files(abstract_path, output_abstract, output_concrete, bin):
         abstract_new.write('abstract ' + bin + 'grammargflexabstract = {\n\n')
         concrete_new.write('concrete ' + bin + 'grammargflexconcrete of ' + bin + 'grammargflexabstract = {\n\n')
         while True:
-            try:
-                line = next(abstract)
-            except StopIteration:
+            line = abstract.readline()
+            if not line:
                 break
             match = re.search(r'^cat\s([^\s]+)1\s;$', line)
             if match:
@@ -189,11 +188,10 @@ def parse(gf, input, output, verbose=False, bin=''):
         forms = []
         poss = []
         while True:
-            try:
-                line = input_file.next()
-                while line.startswith('#'):
-                    line = input_file.next()
-            except StopIteration:
+            line = input_file.readline()
+            while line.startswith('#'):
+                line = input_file.readline()
+            if not line:
                 break
 
             match = match_line(line)
@@ -226,7 +224,7 @@ def parse(gf, input, output, verbose=False, bin=''):
     return parse_failures, parse_time
 
 
-RPARSE_PATH = "../util/rparse.jar"
+RPARSE_PATH = "util/rparse.jar"
 
 
 @plac.annotations(
@@ -285,29 +283,12 @@ def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forc
 
     #
     print("eval.pl", "no punctuation")
-    p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", grammarName + "/parse-results.conll", "-q"])
+    p = subprocess.Popen(["perl", "util/eval.pl", "-g", test, "-s", grammarName + "/parse-results.conll", "-q"])
     p.communicate()
     print("eval.pl", "punctation")
-    p = subprocess.Popen(["perl", "../util/eval.pl", "-g", test, "-s", grammarName + "/parse-results.conll", "-q", "-p"])
+    p = subprocess.Popen(["perl", "util/eval.pl", "-g", test, "-s", grammarName + "/parse-results.conll", "-q", "-p"])
     p.communicate()
 
 
 if __name__ == '__main__':
     plac.call(main)
-    if False:
-        lexpath = "/home/kilian/uni/implementation/rparse/bin_grammar_small.gf/bingrammargflex"
-        # abstract = "abstract.gf.old"
-        # concrete = "concrete.gf.old"
-        # suffix = ".new"
-        # lexabstract = lexpath + abstract
-
-        # if False:
-            # new_lex_files(lexabstract, lexpath + concrete, suffix)
-
-        gr = pgf.readPGF("/home/kilian/uni/implementation/rparse/bin_grammar_small.gf/bingrammargfabstract.pgf")
-
-        # lcfrs = gr.languages['bingrammargfconcrete']
-
-        print(parse_with_pgf(gr, [], "ADJD ADV _COMMA_ KOUS ADV PIS PROAV VVINF VMFIN _PUNCT_".split(' '), 'bin'))
-
-        parse(gr, "/home/kilian/uni/implementation/rparse/negra-lower-punct-test.conll", "/tmp/parse-results.conll")
