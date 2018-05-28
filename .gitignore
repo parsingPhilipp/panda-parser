@@ -12,4 +12,6 @@ playground_rparse/.negra*
 playground_rparse/.tiger*
 
 build/*
+!build/sterm-parser
+!build/schick-parser
 res/*

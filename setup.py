@@ -13,12 +13,10 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'README.md')) as f:
     long_description = f.read()
 
-sterm_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git"
 dep_name = "sterm-parser"
 cython_dependency_src_path = path.join(here, "build", dep_name)
-the_branch = 'origin/MT_Genetic'
-the_commit = '880997313de7deaed12a2cacdf69c7158e6b789d'
 sterm_include = [cython_dependency_src_path]
+
 # change if eigen is installed in the user-local directory
 # $COMPUTE_ROOT/usr/include/eigen3,
 compute_root = ""
@@ -27,45 +25,18 @@ add_include = [compute_root + "/usr/local/include"]
 
 # Schick Parser (mainly implemented by Timo Schick according to construction
 # by Drewes, Gebhardt, & Vogler 2016)
-schick_parser_repo = "git@gitlab.tcs.inf.tu-dresden.de:hybrid-grammars/hypergraphreduct.git"
 schick_dep_name = "schick-parser"
-schick_commit = '1b00f6e1916ecb64b8f31d6fc90cb6e7b69060e2'
 schick_dependency_src_path = path.join(here, "build", schick_dep_name)
 schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 
 
 class CustomBuildExtCommand(build_ext):
-    """Customized setuptools install command - checks out repo with c++ parsing and training backend."""
+    """Customized setuptools install command, builds Timo Schick's parser."""
     def run(self):
-        self.checkout_sterm_parser()
         self.build_schick_parser()
         build_ext.run(self)
 
-    def checkout_sterm_parser(self):
-        print("Checking out commit " + the_commit + " of " + dep_name + ".")
-        if not path.isdir(cython_dependency_src_path):
-            repo = Repo.clone_from(sterm_parser_repo, cython_dependency_src_path)
-        else:
-            repo = Repo(cython_dependency_src_path)
-
-        repo.remote('origin').fetch()
-        # goal_branch = repo.commit(the_commit)
-        repo.git.checkout(the_commit)
-        # repo.head.reference = goal_branch
-        # assert repo.head.is_detached
-        # reset the index and working tree to match the pointed-to commit
-        # repo.head.reset(index=True, working_tree=True)
-
     def build_schick_parser(self):
-        print("Checking out commit " + schick_commit + " of " + schick_dep_name + ".")
-        if not path.isdir(schick_dependency_src_path):
-            repo = Repo.clone_from(schick_parser_repo, schick_dependency_src_path)
-        else:
-            repo = Repo(schick_dependency_src_path)
-
-        repo.remote('origin').fetch()
-        repo.git.checkout(schick_commit)
-
         print("Building " + schick_dep_name + " using Maven.")
 
         p = subprocess.Popen(['mvn clean package'], shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, cwd=schick_dependency_src_path)

@@ -1,0 +1,6 @@
+[submodule "build/sterm-parser"]
+	path = build/sterm-parser
+	url = git@gitlab.tcs.inf.tu-dresden.de:kilian/sterm-parser.git
+[submodule "build/schick-parser"]
+	path = build/schick-parser
+	url = git@gitlab.tcs.inf.tu-dresden.de:hybrid-grammars/hypergraphreduct.git
