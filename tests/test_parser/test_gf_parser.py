@@ -18,6 +18,10 @@ from math import exp
 import copy
 from dependency.minimum_risk import compute_minimum_risk_tree
 from dependency.oracle import compute_oracle_tree
+from util.enumerator import Enumerator
+from parser.trace_manager.sm_trainer_util import PyGrammarInfo, PyStorageManager
+from parser.trace_manager.sm_trainer import build_PyLatentAnnotation_initial
+from parser.coarse_to_fine_parser.coarse_to_fine import Coarse_to_fine_parser
 
 
 class GrammaticalFrameworkTest(unittest.TestCase):
@@ -303,6 +307,27 @@ class GrammaticalFrameworkTest(unittest.TestCase):
                     print("gold tree", file=stderr)
                     print(tree, file=stderr)
                     print(tree_to_conll_str(tree), file=stderr)
+
+    def test_projection_based_parser_k_best_hack(self):
+        grammar = self.build_grammar()
+        inp = ["a"] * 3
+        nontMap = Enumerator()
+        gi = PyGrammarInfo(grammar, nontMap)
+        sm = PyStorageManager()
+        la = build_PyLatentAnnotation_initial(grammar, gi, sm)
+
+        parser = Coarse_to_fine_parser(grammar, la, gi, nontMap, base_parser_type=GFParser_k_best)
+        parser.set_input(inp)
+        parser.parse()
+        self.assertTrue(parser.recognized())
+        der = parser.max_rule_product_derivation()
+        print(der)
+
+        der = parser.best_derivation_tree()
+        print(der)
+
+        for node in der.ids():
+            print(der.getRule(node), der.spanned_ranges(node))
 
 
 if __name__ == '__main__':
