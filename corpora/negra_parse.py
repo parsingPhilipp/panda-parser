@@ -189,7 +189,7 @@ def topological_order(dag):
                 order.append(node)
                 changed = True
     assert len(added) == len(dag.nodes())
-    print("Order", order)
+    # print("Order", order)
     return order
 
 
@@ -289,7 +289,7 @@ def hybridtree_to_sentence_name(tree, idNum):
     return lines
 
 
-def serialize_hybridtrees_to_negra(trees, counter, length):
+def serialize_hybridtrees_to_negra(trees, counter, length, use_sentence_names=False):
     """
     converts a sequence of parse tree to the negra export format
     :param trees: list of parse trees
@@ -308,9 +308,13 @@ def serialize_hybridtrees_to_negra(trees, counter, length):
             else:
                 for root in tree.root:
                     generate_ids_for_inner_nodes(tree, root, idNum)
-            sentence_names.append(u'#BOS ' + str(counter) + u'\n')
+            if use_sentence_names:
+                s_name = str(tree.sent_label())
+            else:
+                s_name = str(counter)
+            sentence_names.append(u'#BOS ' + s_name + u'\n')
             sentence_names.extend(hybridtree_to_sentence_name(tree, idNum))
-            sentence_names.append(u'#EOS ' + str(counter) + u'\n')
+            sentence_names.append(u'#EOS ' + s_name + u'\n')
             counter += 1
 
     return sentence_names

@@ -1,19 +1,38 @@
 import unittest
 import corpora.negra_parse as np
+import corpora.tiger_parse as tp
 from hybridtree.general_hybrid_tree import HybridDag
 from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.dag_induction import direct_extract_lcfrs_from_prebinarized_corpus, top, bottom
 from parser.naive.parsing import LCFRS_parser
 from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybriddag
+import tempfile
 import copy
+import subprocess
 
 
 class MyTestCase(unittest.TestCase):
     def test_negra_to_dag_parsing(self):
         pass
         names = list(map(str, [26954]))
-        primary_file = "res/tiger/tiger_s26954.export"
-        binarized_file = "res/tiger/tiger_s26954_bin.export"
+
+        fd_, primary_file = tempfile.mkstemp(suffix='.export')
+        with open(primary_file, mode='w') as pf:
+
+            for s in ["s26954"]: # "s22084"]:
+                dsg = tp.sentence_names_to_deep_syntax_graphs([s], "res/tiger/tiger_%s.xml" % s, hold=False,
+                                                              ignore_puntcuation=False)[0]
+                lines = ["#BOS " + s[1:] + "\n"]
+                lines += np.serialize_acyclic_dogs_to_negra(dsg)
+                lines.append("#EOS " + s[1:] +  "\n")
+                print(''.join(lines), file=pf)
+
+        _, binarized_file = tempfile.mkstemp(suffix='.export')
+        subprocess.call(["discodop", "treetransforms", "--binarize", "-v", "1", "-h", "1", primary_file, binarized_file])
+
+        print(primary_file)
+        print(binarized_file)
+
         corpus = np.sentence_names_to_hybridtrees(names, primary_file, secedge=True)
         corpus2 = np.sentence_names_to_hybridtrees(names, binarized_file, secedge=True)
         dag = corpus[0]
@@ -73,7 +92,7 @@ class MyTestCase(unittest.TestCase):
 
             print(node, label, dag_eval.children(node), dag_eval.sec_children(node), dag_eval.sec_parents(node))
 
-        lines = np.serialize_hybridtrees_to_negra([dag_eval], 1, 500)
+        lines = np.serialize_hybridtrees_to_negra([dag_eval], 1, 500, use_sentence_names=True)
         for line in lines:
             print(line, end='')
 
