@@ -19,12 +19,11 @@ class MyTestCase(unittest.TestCase):
         fd_, primary_file = tempfile.mkstemp(suffix='.export')
         with open(primary_file, mode='w') as pf:
 
-            for s in ["s26954"]: # "s22084"]:
-                dsg = tp.sentence_names_to_deep_syntax_graphs([s], "res/tiger/tiger_%s.xml" % s, hold=False,
+            for s in names:
+                dsg = tp.sentence_names_to_deep_syntax_graphs([s], "res/tiger/tiger_s%s.xml" % s, hold=False,
                                                               ignore_puntcuation=False)[0]
-                lines = ["#BOS " + s[1:] + "\n"]
-                lines += np.serialize_acyclic_dogs_to_negra(dsg)
-                lines.append("#EOS " + s[1:] +  "\n")
+                dsg.set_label(dsg.label[1:])
+                lines = np.serialize_hybrid_dag_to_negra([dsg], 0, 500, use_sentence_names=True)
                 print(''.join(lines), file=pf)
 
         _, binarized_file = tempfile.mkstemp(suffix='.export')
