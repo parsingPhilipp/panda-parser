@@ -421,11 +421,11 @@ def serialize_acyclic_dogs_to_negra(dsg, sec_edge_to_terminal=False):
     return lines
 
 
-def serialize_hybrid_dag_to_negra(dsgs, counter, length):
+def serialize_hybrid_dag_to_negra(dsgs, counter, length, use_sentence_names=False):
     """
     converts a sequence of parse tree to the export format
-    :param trees: list of parse trees
-    :type: list of ConstituentTrees
+    :param dsgs: list of parse trees
+    :type dsgs: list[DeepSyntaxGraph]
     :return: list of export format lines
     :rtype: list of str
     """
@@ -433,9 +433,13 @@ def serialize_hybrid_dag_to_negra(dsgs, counter, length):
 
     for dsg in dsgs:
         if len(dsg.sentence) <= length:
-            sentence_names.append(u'#BOS ' + str(counter) + u'\n')
+            if use_sentence_names:
+                name = str(dsg.label)
+            else:
+                name = str(counter)
+            sentence_names.append(u'#BOS ' + name + u'\n')
             sentence_names.extend(serialize_acyclic_dogs_to_negra(dsg))
-            sentence_names.append(u'#EOS ' + str(counter) + u'\n')
+            sentence_names.append(u'#EOS ' + name + u'\n')
             counter += 1
 
     return sentence_names
