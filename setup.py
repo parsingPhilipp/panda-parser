@@ -122,11 +122,11 @@ if __name__ == '__main__':
         cmdclass={
             'build_ext': CustomBuildExtCommand,
         },
-        name='hyberparse',
+        name='panda-parser',
         version='0.3.0a0',
         description='Implementation of LCFRS/sDCP hybrid grammars',
         long_description=long_description,
-        url='https://gitlab.tcs.inf.tu-dresden.de/hybrid-grammars/lcfrs-sdcp-hybrid-grammars',
+        url='https://github.com/kilian-gebhardt/panda-parser'
         author='Kilian Gebhardt',
         author_email='kilian.gebhardt@tu-dresden.de',
 
