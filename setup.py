@@ -33,8 +33,13 @@ schick_executable = 'HypergraphReduct-1.0-SNAPSHOT.jar'
 class CustomBuildExtCommand(build_ext):
     """Customized setuptools install command, builds Timo Schick's parser."""
     def run(self):
-        self.build_schick_parser()
+        # self.build_schick_parser()
+        self.download_schick_parser()
         build_ext.run(self)
+
+    def download_schick_parser(self):
+        x = subprocess.call(["wget", "https://wwwtcs.inf.tu-dresden.de/~kilian/HypergraphReduct-1.0-SNAPSHOT.jar", "-P", "util"])
+        assert x == 0
 
     def build_schick_parser(self):
         print("Building " + schick_dep_name + " using Maven.")
