@@ -838,6 +838,9 @@ class DeepSyntaxGraph:
     def label(self):
         return self.__label
 
+    def set_label(self, label):
+        self.__label = label
+
     @property
     def dog(self):
         return self.__dog
