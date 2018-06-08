@@ -28,8 +28,8 @@ class DiscodopDerivation(LCFRSDerivation):
         self.node_counter = 0
         self.rules = {}
         self.children = {}
-        self.__init__rec(nltk_tree[0], grammar)
         self.parent = {}
+        self.__init__rec(nltk_tree[0], grammar)
         self.spans = None
 
     def __init__rec(self, nltk_tree, grammar):
@@ -42,8 +42,13 @@ class DiscodopDerivation(LCFRSDerivation):
         self.node_counter += 1
         self.rules[node] = grammar.rule_index(rule_idx)
         self.children[node] = []
+
         for c in nltk_tree:
-            self.children[node] += self.__init__rec(c[0], grammar)
+            cids = self.__init__rec(c[0], grammar)
+            if cids:
+                self.children[node] += cids
+                self.parent[cids[0]] = node
+
         return [node]
 
     def root_id(self):
