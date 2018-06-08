@@ -1,4 +1,4 @@
-Readme to Version 2018-05-02
+panda-parser
 ============================
 
 This program is free software: you can redistribute it and/or modify it
@@ -12,16 +12,16 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
 Public License for more details.
 
 You should have received a copy of the GNU General Public License along
-with this program. If not, see \<<http://www.gnu.org/licenses/>\>.
+with this program. If not, see [http://www.gnu.org/licenses/](http://www.gnu.org/licenses/).
 
 ### List of contributors
 
 -   Kilian Gebhardt
--   Mark-Jan Nederhof
 -   Markus Teichmann
 -   Johann Seltmann
 -   Sebastian Mielke
 -   Kevin Mitlöhner
+-   Mark-Jan Nederhof (this is an extension of his [software](http://mjn.host.cs.st-andrews.ac.uk/code/coling2014.zip))
 
 
 ------------------------------------------------------------------------
@@ -42,7 +42,7 @@ Currently implemented grammar types:
 Functionality:
   - grammar induction from a corpus
   - parsing of sentences to trees / graphs
-  - computation of reduct (intersection of a sentence/tree pair with a grammar)
+  - computation of reducts (intersection of a sentence/tree pair with a grammar)
   - expectation maximization (EM) training
   - automatic grammar refinement by the split/merge algorithm
 
@@ -53,7 +53,7 @@ Some of these concepts/algorithms have been described in the following articles:
 - general hybrid grammars, induction of LCFRS/sDCP hybrid grammars from discontinuous constituent trees and
     non-projective dependency trees [[Gebhardt/Nederhof/Vogler 2017]](https://doi.org/10.1162/COLI_a_00291)
 - generic split/merge training, in partiuclar for LCFRS and LCFRS/sDCP hybrid grammars 
-    [[Gebhardt (2018)]](no_yet)
+    [[Gebhardt 2018 (preprint)]](https://wwwtcs.inf.tu-dresden.de/~kilian/coling2018preprint.pdf)
     
 Due to the nature of the software development process (research), it was run on just 1-3 machines and should be considered unstable. Interfaces are likely to be changed as needed for future extensions. Maintenance 
 is limited to Kilian's professional involvement in academic research.
@@ -101,9 +101,9 @@ in CONLL dependency format as described in [[Maier/Kallmeyer 2010]](http://www.w
         treetools transform tiger21/${corpus}.export tiger21/${corpus}_root_attach.export --trans root_attach
     done
     ``` 
-    This is an excerpt of [Maximin Coavoux's script](https://github.com/mcoavoux/mtg/blob/master/mind_the_gap_v1.0/data/generate_tiger_data.sh), uses his [tigersplit.py](https://github.com/mcoavoux/mtg/blob/master/mind_the_gap_v1.0/data/tigersplit.py).
+    This is an excerpt of [Maximin Coavoux's script](https://github.com/mcoavoux/mtg/blob/master/mind_the_gap_v1.0/data/generate_tiger_data.sh) and uses his [tigersplit.py](https://github.com/mcoavoux/mtg/blob/master/mind_the_gap_v1.0/data/tigersplit.py).
 
-- `res/TIGER/tigerHN08-dev.train.pred_tags.raw` and `tigerHN08-test.train+dev.pred_tags.raw`. Predicted POS-tags for TiGer HN08 split. These files are obtained by training mate-tools and using it to predict POS tags. Further details can be found in [util/prepare_pred_tags.sh](util/prepare_pred_tags.sh). 
+- `res/TIGER/tigerHN08-dev.train.pred_tags.raw` and `tigerHN08-test.train+dev.pred_tags.raw`. Predicted POS-tags for TiGer HN08 split. These files are obtained by training mate-tools and using it to predict POS tags. Further details can be found in [util/prepare_pred_tags.sh](util/prepare_pred_tags.sh) (not fully automated yet). 
 
 
 ------------------------------------------------------------------------
@@ -118,7 +118,7 @@ directory)
 ------------------------------------------------------------------------
 
 
-## Documentation for the experiments in [[Gebhardt 2018]](to_appear)
+## Documentation for the experiments in [[Gebhardt 2018 (preprint)]](https://wwwtcs.inf.tu-dresden.de/~kilian/coling2018preprint.pdf)
 
 1. Obtain the data and locate it under `res/` as described above for SPMRL_SHARED_2014_NO_ARABIC, the TiGer HN08 split, and  predicted POS tags for TiGer HN08 split.
  
@@ -145,7 +145,7 @@ Actually an older version of this software was used to run the experiments in
 this paper. Still, experiments can be reproduced as follows: 
 
 - install the optional dependencies `grammatical framework` and `pynini`. 
-  NB: It is possible to run the experiments without these requirements, however, there may be large differences in run times. The most probable parse might be ambiguous, i.e., 
+  NB: It is possible to run the experiments without these requirements, however, there may be large differences in run times and memory footprint which make full corpus evaluations infeasible. Also, the most probable parse might be ambiguous, i.e., 
       other parser implementations may select different parses.
 - run the experiments as described below 
 
@@ -235,7 +235,7 @@ Clone and compile [rparse with patched GF-export](https://github.com/kilian-gebh
 
     PYTHONPATH=. python3 playground_rparse/process_rparse_grammar.py
     
-with appropriate parameters, e.g., for v = 1 and h = 3 run:
+with appropriate parameters, e.g., for Markovization v = 1 and h = 3 run:
 
     PYTHONPATH=. python3 playground_rparse/process_rparse_grammar.py res/negra-dep/negra-lower-punct-train.conll res/negra-dep/negra-lower-punct-test.conll /tmp/negra-v1-h3 -vMarkov 1 -hMarkov 3
         
@@ -266,7 +266,9 @@ For parsing and preprocessing this project depends on the following libraries/pa
 - [disco-dop](https://github.com/andreasvc/disco-dop/) by Andreas van Cranenburgh
 - [treetools](https://github.com/wmaier/treetools) by Wolfgang Maier
 
-The C++ Part of the project (S/M training) uses the [Boost](https://www.boost.org) and [Eigen](http://eigen.tuxfamily.org) libraries.
+The [C++ backend](https://github.com/kilian-gebhardt/panda-parser-backend) of the project (S/M training) uses the [Boost](https://www.boost.org) and [Eigen](http://eigen.tuxfamily.org) libraries.
+
+A highly experimental part of the software employs an implementation of a graph parser (based on the algorithm by [[Drewes/Gebhardt/Vogler 2016]](https://www.aclweb.org/anthology/W16-2407)). Currently we provide only a [Java Binary](https://wwwtcs.inf.tu-dresden.de/~kilian/HypergraphReduct-1.0-SNAPSHOT.jar) of this software that was mainly developed by [Timo Schick](https://github.com/timoschick).
 
 Evaluation and utility scripts as well as parameter files are provided unter `./util`:
 - `eval.pl`, `blanks2tab.py`, `conlltab2dot.py`, `tabs2blanks.py`, and `validateFormat.py` from the CoNLL-X shared task
