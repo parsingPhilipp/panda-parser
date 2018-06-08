@@ -35,7 +35,7 @@ Install the patched version of `disco-dop` from branch [chart-exposure-merge](ht
 ------------------------------------------------------------------------
 
 ## Compile cython files
-This requires Eigen to be installed (see below):
+This requires Eigen to be installed (see above):
 
 1. `cd` project dir
 2. modify `setup.py`, if eigen is installed in non-standard location. This can be done by setting the `compute_root` variable.
