@@ -5,10 +5,13 @@ from hybridtree.general_hybrid_tree import HybridDag
 from hybridtree.monadic_tokens import construct_constituent_token
 from constituent.dag_induction import direct_extract_lcfrs_from_prebinarized_corpus, top, bottom
 from parser.naive.parsing import LCFRS_parser
+from parser.discodop_parser.parser import DiscodopKbestParser
 from parser.sDCPevaluation.evaluator import DCP_evaluator, dcp_to_hybriddag
 import tempfile
 import copy
 import subprocess
+import os
+from grammar.lcfrs import LCFRS
 
 
 class MyTestCase(unittest.TestCase):
@@ -100,6 +103,62 @@ class MyTestCase(unittest.TestCase):
         with open(primary_file) as pcf:
             for line in pcf:
                 print(line, end='')
+
+    def test_negra_dag_small_grammar(self):
+        DAG_CORPUS = 'res/tiger/tiger_full_with_sec_edges.export'
+        DAG_CORPUS_BIN = 'res/tiger/tiger_full_with_sec_edges_bin_h1_v1.export'
+        names = list([str(i) for i in range(1, 101)])
+        if not os.path.exists(DAG_CORPUS):
+            print('run the following command to create an export corpus with dags:')
+            print('\tPYTHONPATH=. util/tiger_dags_to_negra.py ' +
+                  'res/tiger/tiger_release_aug07.corrected.16012013.xml '
+                   + DAG_CORPUS + ' 1 50474')
+        self.assertTrue(os.path.exists(DAG_CORPUS))
+
+        if not os.path.exists(DAG_CORPUS_BIN):
+            print('run the following command to binarize the export corpus with dags:')
+            print("discodop treetransforms --binarize -v 1 -h 1 " + DAG_CORPUS + " " + DAG_CORPUS_BIN)
+            # _, DAG_CORPUS_BIN = tempfile.mkstemp(prefix='corpus_bin_', suffix='.export')
+            # subprocess.call(["discodop", "treetransforms", "--binarize", "-v", "1", "-h", "1", DAG_CORPUS, DAG_CORPUS_BIN])
+        self.assertTrue(os.path.exists(DAG_CORPUS_BIN))
+        corpus = np.sentence_names_to_hybridtrees(names, DAG_CORPUS, secedge=True)
+        corpus_bin = np.sentence_names_to_hybridtrees(names, DAG_CORPUS_BIN, secedge=True)
+
+        grammar = LCFRS(start="START")
+
+        for hybrid_dag, hybrid_dag_bin in zip(corpus, corpus_bin):
+            self.assertEqual(len(hybrid_dag.token_yield()), len(hybrid_dag_bin.token_yield()))
+
+            dag_grammar = direct_extract_lcfrs_from_prebinarized_corpus(hybrid_dag_bin)
+            grammar.add_gram(dag_grammar)
+
+        grammar.make_proper()
+        print("Extracted LCFRS/DCP-hybrid grammar with %i nonterminals and %i rules"
+              % (len(grammar.nonts()), len(grammar.rules())))
+
+        parser = DiscodopKbestParser(grammar, k=1)
+
+        _, RESULT_FILE = tempfile.mkstemp(prefix='parser_results_', suffix='.export')
+
+        with open(RESULT_FILE, 'w') as results:
+            for hybrid_dag in corpus:
+
+                poss = list(map(lambda x: x.pos(), hybrid_dag.token_yield()))
+                parser.set_input(poss)
+                parser.parse()
+                self.assertTrue(parser.recognized())
+                der = parser.best_derivation_tree()
+
+                dcp_term = DCP_evaluator(der).getEvaluation()
+                dag_eval = HybridDag(hybrid_dag.sent_label())
+                dcp_to_hybriddag(dag_eval, dcp_term, copy.deepcopy(hybrid_dag.token_yield()), False,
+                                 construct_token=construct_constituent_token)
+                lines = np.serialize_hybridtrees_to_negra([dag_eval], 1, 500, use_sentence_names=True)
+                for line in lines:
+                    print(line, end='', file=results)
+                parser.clear()
+
+        print("Wrote results to %s" % RESULT_FILE)
 
 
 if __name__ == '__main__':
