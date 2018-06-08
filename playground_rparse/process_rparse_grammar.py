@@ -88,7 +88,6 @@ def parse_with_pgf(grammar, forms, poss, bin):
     except (StopIteration, pgf.ParseError):
         return None
 
-
     # print_ast(gr, e, 0)
     s = lcfrs.graphvizParseTree(e)
     assert isinstance(s, str)
@@ -148,7 +147,7 @@ def parse_with_pgf(grammar, forms, poss, bin):
                 break
             else:
                 current = tree.parent(current)
-        dep_tree.add_node(i + 1, dep_token, order=True)
+        dep_tree.add_node(i+1, dep_token, order=True)
 
     # print head_table
 
@@ -235,7 +234,7 @@ RPARSE_PATH = "util/rparse.jar"
     , plain=('plain induction', 'flag')
     , v=('verbose', 'flag')
 )
-def main(train, test, grammarName, binarization="km", vMarkov=2, hMarkov=1, forceRecompile=False, optional_args="", v=False, plain=False):
+def main(train, test, grammarName, binarization="km", vMarkov=1, hMarkov=3, forceRecompile=False, optional_args="", v=False, plain=False):
     if plain: 
         rparse_params = ["-dep", "-doTrain", "-trainFormat", "conll", "-train", train, "-trainSave", grammarName] + optional_args.split(' ')
         grammar_prefix = '/grammargf'
