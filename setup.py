@@ -126,7 +126,7 @@ if __name__ == '__main__':
         version='0.3.0a0',
         description='Implementation of LCFRS/sDCP hybrid grammars',
         long_description=long_description,
-        url='https://github.com/kilian-gebhardt/panda-parser'
+        url='https://github.com/kilian-gebhardt/panda-parser',
         author='Kilian Gebhardt',
         author_email='kilian.gebhardt@tu-dresden.de',
 
