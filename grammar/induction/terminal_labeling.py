@@ -319,6 +319,89 @@ class FormPosTerminalsUnkMorph(TerminalLabeling):
                         form += '#' + feat[0] + ':' + feat[1]
         return form + '-:-' + pos
 
+class UNK4(TerminalLabeling):
+    def __init__(self, trees, threshold, UNK="UNKOWN"):
+        self.__trees = trees
+        self.__terminal_counts = defaultdict(lambda: 0)
+        self.__UNK = UNK
+        self.__threshold = threshold
+        for tree in trees:
+            for token in tree.token_yield():
+                #self.__terminal_counts[(token.form().lower(), token.pos())] += 1
+                self.__terminal_counts[token.form()] +=1
+
+    def __str__(self):
+        return "unknownword4-" + str(self.__threshold)
+
+    def token_label(self, token, _loc=None):
+        form = token.form().lower()
+        #pos = token.pos()
+        if self.__terminal_counts.get(form) is not None:
+            if self.__terminal_counts.get(form) >= self.__threshold:
+                return form #+ "-" + pos
+        word = token.form()
+        sig = self.__UNK
+        has_lower = False
+        has_letter = False
+        has_digit = False
+        if word[0].isupper():  #check capitalization
+            all_caps = True
+            for letter in word:
+                if letter.islower():
+                    all_caps = False
+                    break;
+            if all_caps:
+                sig += "-AC"
+            elif _loc == 0:
+                sig += "-SC" # loc?
+            else:
+                sig += "-C"
+        for letter in word:
+            if letter.isdigit():
+                has_digit = True
+                break
+        for letter in word:
+            if letter.islower():
+                has_lower = True
+                break
+            elif letter.isupper():
+                has_letter = True
+        if has_digit:
+            sig += "-n"
+        else:
+            sig += "-N"
+        if has_lower:
+            sig += "-L"
+        elif has_letter:
+            sig += "-U"
+        else:
+            sig += "-S"
+        if "-" in word:
+            sig += "-H"
+        if "." in word:
+            sig += "-P"
+        if "," in word:
+            sig += "-C"
+        if len(word) > 3:
+            if word[-1].islower() or word[-1].isupper():
+                sig += "-%s" % word[-2:].lower()
+        return sig
+
+    def serialize(self):
+        return {
+            'type': self.__class__.__name__,
+            'unknown_threshold': self.__threshold,
+            'unknown_base_label': self.__UNK,
+            'corpus': self.__trees
+        }
+
+    @staticmethod
+    def deserialize(json_object):
+        assert json_object['type'] == 'UNK4'
+        return UNK4(trees=json_object['corpus'],
+                    threshold=json_object['unknown_threshold'],
+                    UNK=json_object['unknown_base_label'])
+
 
 class StanfordUNKing(TerminalLabeling):
     def __init__(self, trees=None, unknown_threshold=4, openclass_threshold=150, data=None):

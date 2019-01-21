@@ -34,7 +34,7 @@ class CustomBuildExtCommand(build_ext):
     """Customized setuptools install command, builds Timo Schick's parser."""
     def run(self):
         # self.build_schick_parser()
-        self.download_schick_parser()
+        # self.download_schick_parser()
         build_ext.run(self)
 
     def download_schick_parser(self):
@@ -67,9 +67,10 @@ linker_args = ["-rdynamic"]
 
 ext_modules = [
     Extension("grammar.induction.decomposition", ["grammar/induction/decomposition.pyx"], language='c++'),
-    Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++',
-              extra_compile_args=['-std=c++14', '-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl'],
-              include_dirs=add_include),
+    #Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++',
+    #          extra_compile_args=['-std=c++14', '-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl'],
+    #          include_dirs=add_include),
+
     Extension("util.enumerator", sources=["util/enumerator.pyx"], language='c++'),
     Extension("grammar.lcfrs",  ["grammar/lcfrs.pyx"]),
     Extension("parser.cpp_cfg_parser.parser_wrapper",

@@ -75,7 +75,7 @@ class SDPTest(unittest.TestCase):
         training_corpus = parse_file(train_dev_corpus_path, last_id=training_last, max_n=train_limit)
 
         dev_start = 22000001
-        dev_limit = 10000
+        dev_limit = 100
         dev_corpus = parse_file(train_dev_corpus_path, start_id=dev_start, max_n=dev_limit)
 
         cyclic = 0
@@ -147,7 +147,7 @@ class SDPTest(unittest.TestCase):
 
     def test_dog_generation(self):
         for rec_part_strat in self.rec_part_strategies:
-            for i in range(5000):
+            for i in range(50):
                 dsg = generate_sdg(randint(2, 12), maximum_inputs=3)
                 if rec_part_strat == extract_recursive_partitioning and dsg.dog.cyclic():
                     continue

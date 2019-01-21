@@ -11,7 +11,7 @@ import plac
 from constituent.induction import direct_extract_lcfrs, BasicNonterminalLabeling, \
     direct_extract_lcfrs_from_prebinarized_corpus
 from grammar.induction.terminal_labeling import PosTerminals, FrequencyBiasedTerminalLabeling, \
-    FormTerminals, CompositionalTerminalLabeling
+    FormTerminals, CompositionalTerminalLabeling, UNK4
 from experiment.resources import TRAINING, VALIDATION, TESTING, TESTING_INPUT, RESULT, CorpusFile
 from experiment.split_merge_experiment import SplitMergeExperiment
 from experiment.hg_constituent_experiment import ConstituentExperiment, ScoringExperiment, ScorerAndWriter, \
@@ -27,8 +27,8 @@ DEFAULT_RARE_WORD_THRESHOLD = 10
 
 
 def terminal_labeling(corpus, threshold=DEFAULT_RARE_WORD_THRESHOLD):
-    return FrequencyBiasedTerminalLabeling(FINE_TERMINAL_LABELING, FALLBACK_TERMINAL_LABELING, corpus, threshold)
-
+ #   return FrequencyBiasedTerminalLabeling(FINE_TERMINAL_LABELING, FALLBACK_TERMINAL_LABELING, corpus, threshold)
+    return UNK4(corpus, threshold)
 
 class InductionSettings:
     def __init__(self):
