@@ -319,26 +319,92 @@ class FormPosTerminalsUnkMorph(TerminalLabeling):
                         form += '#' + feat[0] + ':' + feat[1]
         return form + '-:-' + pos
 
-class UNK4(TerminalLabeling):
-    def __init__(self, trees, threshold, UNK="UNKOWN"):
+
+class Suffix(TerminalLabeling):
+    def __init__(self, threshold, trees=None, counts=None, UNK="UNKNOWN", suffix_length=2):
         self.__trees = trees
         self.__terminal_counts = defaultdict(lambda: 0)
         self.__UNK = UNK
         self.__threshold = threshold
-        for tree in trees:
-            for token in tree.token_yield():
-                #self.__terminal_counts[(token.form().lower(), token.pos())] += 1
-                self.__terminal_counts[token.form()] +=1
+        self.__suffix_len = suffix_length
+        if trees is not None:
+            for tree in trees:
+                for token in tree.token_yield():
+                    self.__terminal_counts[token.form().lower() + "-" + token.pos()] += 1
+        else:
+            self.__terminal_counts = counts
+
+
+    def __str__(self):
+        return "suffix-" + str(self.__threshold)
+
+    def token_label(self, token, _loc=None):
+        form = token.form().lower()
+        pos = token.pos()
+        pre_label = form +"-"+ pos
+        if self.__terminal_counts.get(pre_label) is not None:
+            if self.__terminal_counts.get(pre_label) >= self.__threshold:
+                return pre_label
+        if pos in ['CARD', 'FM', 'XY']:
+            return pos
+        else:
+            return form[-self.__suffix_len:].lower()
+
+
+    def serialize(self):
+        return {
+            'type': self.__class__.__name__,
+            'unknown_threshold': self.__threshold,
+            'unknown_base_label': self.__UNK,
+            'terminal_counts': self.__terminal_counts,
+            'suffix_len': self.__suffix_len
+        }
+
+    @staticmethod
+    def deserialize(json_object):
+        assert json_object['type'] == 'Suffix'
+        return Suffix(counts=json_object['terminal_counts'],
+                      threshold=json_object['unknown_threshold'],
+                      UNK=json_object['unknown_base_label'],
+                      suffix_length=json_object['suffix_len'])
+
+
+
+
+class UNK4(TerminalLabeling):
+    def __init__(self, threshold, trees=None, UNK="UNKNOWN", use_pos=False, terminal_counts=None):
+        self.__trees = trees
+        self.__terminal_counts = defaultdict(lambda: 0)
+        self.__UNK = UNK
+        self.__threshold = threshold
+        self.__use_pos = use_pos
+        if trees is not None:
+            if self.__use_pos:
+                for tree in trees:
+                    for token in tree.token_yield():
+                        self.__terminal_counts[(token.form().lower()+"-"+token.pos())] += 1
+            else:
+                for tree in trees:
+                    for token in tree.token_yield():
+                        self.__terminal_counts[token.form().lower()] +=1
+        else:
+            self.__terminal_counts = terminal_counts
 
     def __str__(self):
         return "unknownword4-" + str(self.__threshold)
 
     def token_label(self, token, _loc=None):
         form = token.form().lower()
-        #pos = token.pos()
-        if self.__terminal_counts.get(form) is not None:
-            if self.__terminal_counts.get(form) >= self.__threshold:
-                return form #+ "-" + pos
+        pos = token.pos()
+        if self.__use_pos:
+            if self.__terminal_counts.get(form +"-"+ pos) is not None:
+                if self.__terminal_counts.get(form +"-"+pos) >= self.__threshold:
+                    return form + "-" + pos
+        else:
+            if self.__terminal_counts.get(form) is not None:
+                if self.__terminal_counts.get(form) >= self.__threshold:
+                    return form
+
         word = token.form()
         sig = self.__UNK
         has_lower = False
@@ -392,15 +458,18 @@ class UNK4(TerminalLabeling):
             'type': self.__class__.__name__,
             'unknown_threshold': self.__threshold,
             'unknown_base_label': self.__UNK,
-            'corpus': self.__trees
+            'terminal_counts': self.__terminal_counts,
+            'use_pos': self.__use_pos
         }
 
     @staticmethod
     def deserialize(json_object):
         assert json_object['type'] == 'UNK4'
-        return UNK4(trees=json_object['corpus'],
+        return UNK4(terminal_counts=json_object['terminal_counts'],
                     threshold=json_object['unknown_threshold'],
-                    UNK=json_object['unknown_base_label'])
+                    UNK=json_object['unknown_base_label'],
+                    use_pos=json_object['use_pos'])
+
 
 
 class StanfordUNKing(TerminalLabeling):

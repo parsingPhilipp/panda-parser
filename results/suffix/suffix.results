@@ -1,0 +1,599 @@
+Initialize Scoring experiment
+Inititialize Experiment
+Initialize Split Merge Experiment
+reading from 'res/TIGER/tiger21/tigertraindev_root_attach.export' in format 'export' and encoding 'utf-8'
+writing to '/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp9juoahyl.export' in format 'export' and encoding 'utf-8'
+applying ['root_attach']
+res/TIGER/tiger21/tigertraindev_root_attach.export --> /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp9juoahyl.export
+40300
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp9juoahyl.export: transformed 40379 trees
+Experiment infos for LCFRSExperiment
+Experiment base directory /home/mango/Dokumente/Parsing/panda-parser/results/suffix/
+Purge rule freq: None
+Max score 100.0
+Score score
+Resources {
+        RESULT : {path : /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpq7w7497d, length limit : None, start : None, end : None, limit : None, exclude : []}
+        TRAIN : {path : res/TIGER/tiger21/tigertraindev_root_attach.export, length limit : None, start : 1, end : 6250, limit : None, exclude : [7561, 17632, 46234, 50224]}
+        VALIDATION : {path : res/TIGER/tiger21/tigerdev_root_attach.export, length limit : None, start : 1, end : 2000, limit : None, exclude : [7561, 17632, 46234, 50224]}
+        TEST : {path : res/TIGER/tiger21/tigerdev_root_attach.export, length limit : None, start : 1, end : 2000, limit : None, exclude : [7561, 17632, 46234, 50224]}
+        TEST_INPUT : {path : res/TIGER/tigerHN08-dev.train.pred_tags.raw, length limit : None, start : 0, end : 201, limit : None, exclude : [7561, 17632, 46234, 50224]}
+}
+Parsing Timeout:  None
+Oracle parsing:  False
+Induction Settings {
+        normalize: True
+        disconnect_punctuation: False
+        terminal_labeling: suffix-4
+        nont_labeling: <constituent.induction.BasicNonterminalLabeling object at 0x7fa043db2ba8>
+        binarize: True
+        isolate_pos: True
+        hmarkov: 0
+        use_discodop_binarization: True
+        discodop_binarization_params: ['--headrules=util/negra.headrules', '--binarize', '-h 1', '-v 1']
+}
+k-best 500
+Serialization type NEGRA
+Output counter False start 0
+VROOT stripping False
+Max score 100.0
+Backoff False
+Backoff-factor 10.0
+Split/Merge Settings {
+        disable_em: False
+        disable_split_merge: False
+        training_reducts: None
+        em_epochs: 20
+        em_epochs_sm: 20
+        max_sm_cycles: 5
+        min_epochs: 6
+        min_epochs_smoothing: 3
+        ignore_failures_smoothing: False
+        threads: 8
+        seed: 0
+        validationDropIterations: 6
+        smoothing_factor: 0.01
+        smoothing_factor_unary: 0.1
+        split_randomization: 1.0
+        validator_type: SIMPLE
+        validator: None
+        refresh_score_validator: False
+        project_weights_before_parsing: True
+        validation_reducts: None
+        merge_percentage: 50.0
+        merge_type: PERCENT
+        merge_threshold: -0.2
+        merge_interpolation_factor: 0.9
+        splitMergeTrainer: None
+        emTrainer: None
+        latent_annotations: {}
+        merge_sources: {}
+        last_sm_cycle: None
+}
+
+Split/Merge Parsing mode:  max-rule-prod-disco-dop
+k-best 500
+heuristics -1.0
+disco-dop engine settings {'beam_beta': 0.0, 'beam_delta': 50, 'pruning_k': 50000, 'cfg_ctf': True}
+reading from 'res/TIGER/tiger21/tigertraindev_root_attach.export' in format 'export' and encoding 'utf-8'
+writing to '/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp_or0i51j.export' in format 'export' and encoding 'utf-8'
+applying ['root_attach']
+res/TIGER/tiger21/tigertraindev_root_attach.export --> /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp_or0i51j.export
+40300
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp_or0i51j.export: transformed 40379 trees
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpgile4tly.export: transformed 40379 trees
+[1.0] START(<0,0>) -> VROOT/1           <0>=<0,0>
+[1.0] VROOT/1(<0,0> <1,0>) -> S/1 $(/1          <0>=VROOT:{--}(<0,0> <1,0>)
+[1.0] S/1(<0,0> <1,0>) -> NN/1 S|<VVFIN>/1              <0>=S:{--}(<0,0> <1,0>)
+[1.0] NN/1(fs) ->               <0>=[0:{SB}]()
+[1.0] S|<VVFIN>/1(<0,0> <1,0>) -> S|<PP>/1 PTKVZ/1              <0>=<0,0> <1,0>
+[1.0] S|<PP>/1(<0,0> <1,0>) -> S|<NP>/1 PP/1            <0>=<0,0> <1,0>
+[1.0] S|<NP>/1(<0,0> <1,0>) -> VVFIN/1 NP/1             <0>=<0,0> <1,0>
+[1.0] VVFIN/1(en) ->            <0>=[0:{HD}]()
+[1.0] NP/1(<0,0> <1,0>) -> ART/1 NN/1           <0>=NP:{OA}(<0,0> <1,0>)
+[1.0] ART/1(den-ART) ->                 <0>=[0:{NK}]()
+[1.0] NN/1(är) ->               <0>=[0:{NK}]()
+[1.0] PP/1(<0,0> <1,0>) -> APPR/1 NN/1          <0>=PP:{MO}(<0,0> <1,0>)
+[1.0] APPR/1(als-APPR) ->               <0>=[0:{AC}]()
+[1.0] NN/1(en) ->               <0>=[0:{NK}]()
+[1.0] PTKVZ/1(ab-PTKVZ) ->              <0>=[0:{SVP}]()
+[1.0] $(/1(/-$() ->             <0>=[0:{--}]()
+
+creating trace
+initializing PyTraceManager
+computing reducts
+100 0.7399041652679443
+200 1.6238682270050049
+300 2.6423845291137695
+400 3.468585968017578
+500 4.28342604637146
+600 4.902003049850464
+700 5.881881237030029
+800 6.8898210525512695
+900 7.62236762046814
+1000 8.274636507034302
+1100 8.95292329788208
+1200 9.683617115020752
+1300 10.475491285324097
+1400 11.152282238006592
+1500 11.902998924255371
+1600 12.707397222518921
+1700 13.867700099945068
+1800 14.570417404174805
+1900 15.182145118713379
+2000 15.838811874389648
+2100 16.43214774131775
+2200 16.96304965019226
+2300 17.87651014328003
+2400 18.758230924606323
+2500 19.47501277923584
+2600 20.208766222000122
+2700 21.003077507019043
+2800 21.633955478668213
+2900 22.298776149749756
+3000 22.856518983840942
+3100 23.491009950637817
+3200 24.189921379089355
+3300 24.82301163673401
+3400 25.556586503982544
+3500 26.257375478744507
+3600 26.730828523635864
+3700 27.27281665802002
+3800 28.055495500564575
+3900 28.655315160751343
+4000 29.106411457061768
+4100 29.691598415374756
+4200 30.34764552116394
+4300 30.95455813407898
+4400 31.923617124557495
+4500 32.97184419631958
+4600 33.79096174240112
+4700 34.765936851501465
+4800 35.538405418395996
+4900 36.46927046775818
+5000 37.14420127868652
+Computed reducts for 5000 out of 5000
+computed trace
+Serialized TRAIN reducts to /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpgel88pdf.TRAIN.reduct
+Epoch 0/20: training root counts 5000 corpus likelihood -626073 root weights: 1
+Epoch 1/20: training root counts 5000 corpus likelihood -562149 root weights: 1
+Epoch 2/20: training root counts 5000 corpus likelihood -560715 root weights: 1
+Epoch 3/20: training root counts 5000 corpus likelihood -560142 root weights: 1
+Epoch 4/20: training root counts 5000 corpus likelihood -559793 root weights: 1
+Epoch 5/20: training root counts 5000 corpus likelihood -559522 root weights: 1
+Epoch 6/20: training root counts 5000 corpus likelihood -559323 root weights: 1
+Epoch 7/20: training root counts 5000 corpus likelihood -559206 root weights: 1
+Epoch 8/20: training root counts 5000 corpus likelihood -559147 root weights: 1
+Epoch 9/20: training root counts 5000 corpus likelihood -559117 root weights: 1
+Epoch 10/20: training root counts 5000 corpus likelihood -559099 root weights: 1
+Epoch 11/20: training root counts 5000 corpus likelihood -559088 root weights: 1
+Epoch 12/20: training root counts 5000 corpus likelihood -559080 root weights: 1
+Epoch 13/20: training root counts 5000 corpus likelihood -559074 root weights: 1
+Epoch 14/20: training root counts 5000 corpus likelihood -559069 root weights: 1
+Epoch 15/20: training root counts 5000 corpus likelihood -559065 root weights: 1
+Epoch 16/20: training root counts 5000 corpus likelihood -559062 root weights: 1
+Epoch 17/20: training root counts 5000 corpus likelihood -559059 root weights: 1
+Epoch 18/20: training root counts 5000 corpus likelihood -559056 root weights: 1
+Epoch 19/20: training root counts 5000 corpus likelihood -559053 root weights: 1
+reading from 'res/TIGER/tiger21/tigerdev_root_attach.export' in format 'export' and encoding 'utf-8'
+writing to '/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpadifqjj5.export' in format 'export' and encoding 'utf-8'
+applying ['root_attach']
+res/TIGER/tiger21/tigerdev_root_attach.export --> /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpadifqjj5.export
+5000
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpadifqjj5.export: transformed 5048 trees
+creating trace
+initializing PyTraceManager
+computing reducts
+100 0.7226767539978027
+200 1.4672417640686035
+Computed reducts for 114 out of 200
+computed trace
+Serialized VALIDATION reducts to /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpwr98srx1.VALIDATION.reduct
+Epoch 0/20:  validation corpus likelihood -11377.8 validation failures 1 training root counts 5000 training corpus likelihood -559185 root weights: 0.50032
+0.49968
+Epoch 1/20:  validation corpus likelihood -11377.8 validation failures 1 training root counts 5000 training corpus likelihood -559049 root weights: 0.50032
+0.49968
+Epoch 2/20:  validation corpus likelihood -11378.3 validation failures 1 training root counts 5000 training corpus likelihood -559046 root weights: 0.50032
+0.49968
+Epoch 3/20:  validation corpus likelihood -11378.8 validation failures 1 training root counts 5000 training corpus likelihood -559043 root weights: 0.50032
+0.49968
+Epoch 4/20:  validation corpus likelihood -11379.2 validation failures 1 training root counts 5000 training corpus likelihood -559035 root weights: 0.50032
+0.49968
+Epoch 5/20:  validation corpus likelihood -11379.5 validation failures 1 training root counts 5000 training corpus likelihood -559012 root weights: 0.50032
+0.49968
+Epoch 6/20:  validation corpus likelihood -11379.2 validation failures 1 training root counts 5000 training corpus likelihood -558935 root weights: 0.50032
+0.49968
+Epoch 7/20:  validation corpus likelihood -11376.4 validation failures 1 training root counts 5000 training corpus likelihood -558666 root weights: 0.50032
+0.49968
+Epoch 8/20:  validation corpus likelihood -11365.4 validation failures 1 training root counts 5000 training corpus likelihood -557817 root weights: 0.50032
+0.49968
+Epoch 9/20:  validation corpus likelihood -11333.8 validation failures 1 training root counts 5000 training corpus likelihood -555633 root weights: 0.50032
+0.49968
+Epoch 10/20:  validation corpus likelihood -11265.3 validation failures 1 training root counts 5000 training corpus likelihood -551330 root weights: 0.50032
+0.49968
+Epoch 11/20:  validation corpus likelihood -11150.8 validation failures 1 training root counts 5000 training corpus likelihood -544616 root weights: 0.50032
+0.49968
+Epoch 12/20:  validation corpus likelihood -11002.2 validation failures 1 training root counts 5000 training corpus likelihood -536119 root weights: 0.50032
+0.49968
+Epoch 13/20:  validation corpus likelihood -10851.6 validation failures 1 training root counts 5000 training corpus likelihood -527308 root weights: 0.50032
+0.49968
+Epoch 14/20:  validation corpus likelihood -10740.9 validation failures 1 training root counts 5000 training corpus likelihood -520067 root weights: 0.50032
+0.49968
+Epoch 15/20:  validation corpus likelihood -10685.9 validation failures 1 training root counts 5000 training corpus likelihood -515077 root weights: 0.50032
+0.49968
+Epoch 16/20:  validation corpus likelihood -10672.5 validation failures 1 training root counts 5000 training corpus likelihood -511750 root weights: 0.50032
+0.49968
+Epoch 17/20:  validation corpus likelihood -10685.8 validation failures 1 training root counts 5000 training corpus likelihood -509526 root weights: 0.50032
+0.49968
+Epoch 18/20:  validation corpus likelihood -10714.4 validation failures 1 training root counts 5000 training corpus likelihood -507888 root weights: 0.50032
+0.49968
+Epoch 19/20:  validation corpus likelihood -10752.3 validation failures 1 training root counts 5000 training corpus likelihood -506622 root weights: 0.50032
+0.49968
+ validation corpus likelihood -10799.1 validation failures 1
+ resetting to annotation from epoch 16 with validation score -10672.5
+Computing merge factors.
+Selecting merges best 50 % 
+ordered merge Δs: 3872.18 2969.99 2744.11 1961.32 1223.41 1177.08 739.507 707.548 499.016 495.184 445.624 354.143 288.591 184.427 181.781 117.336 115.315 102.955 87.3733 87.0302 62.7448 57.7497 53.1625 48.0674 46.1596 44.5492 32.1777 26.5366 18.4296 17.1931 15.2013 14.7607 9.9806 7.00882 6.61052 5.90739 4.38275 4.07634 0.185491 0.0220261 0.0063158 0.00238571 5.03935e-05 2.2711e-05 3.78456e-06 1.92969e-06 1.59863e-06 1.27589e-06 1.13315e-06 6.81919e-07 6.37461e-07 5.90154e-07 5.03769e-07 4.89803e-07 4.10487e-07 4.06922e-07 3.26996e-07 3.00853e-07 2.79718e-07 2.52039e-07 1.54328e-07 1.05463e-07 9.68556e-08 9.06097e-08 8.64337e-08 5.84902e-08 4.84439e-08 4.56422e-08 4.27847e-08 3.636e-08 3.51734e-08 2.9401e-08 2.80951e-08 2.54626e-08 1.96025e-08 1.69997e-08 1.56865e-08 1.1649e-08 7.38973e-09 6.56606e-09 5.87769e-09 4.50058e-09 3.62065e-09 2.50033e-09 2.18359e-09 1.83908e-09 1.64635e-09 1.29504e-09 1.19192e-09 1.07504e-09 1.03667e-09 9.82131e-10 7.82844e-10 4.2621e-10 3.69655e-10 3.55318e-10 2.84406e-10 2.38938e-10 1.90403e-10 1.6036e-10 1.44176e-10 7.99769e-11 1.49252e-11 1.19826e-11 5.50737e-12 1.34137e-12 1.9873e-13 9.50351e-14 6.4615e-14 6.26166e-14 1.55431e-15 1.33227e-15 6.66134e-16 6.66134e-16 4.44089e-16 4.44089e-16 3.33067e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -7.39557e-32 -1.11022e-16 -1.11022e-16 -1.11022e-16 -1.11022e-16 -1.11022e-16 -2.22045e-16 -2.22045e-16 -2.22045e-16 -3.33067e-16 -2.44582e-13 -4.9416e-13 -4.00502e-12 -4.73501e-09 -1.51863e-08 -8.14256e-08 -8.84806e-08 -1.15465e-07 -1.25352e-07 -3.84392e-07 -1.93374e-06 -2.0544e-06 -7.84626e-06 -1.34274e-05 -7.04622e-05 -7.68029e-05 -9.62297e-05 -0.000113495 -0.000462022 -0.000529578 -0.00978731 -0.0152873 -0.01593 -0.0273948 -0.0750821 -0.10941 -0.220636 -0.233143 -0.252349 -0.290488 -0.48007 -0.646531 -0.675533 -0.699336 -0.73465 -0.771448 -0.774979 -0.83952 -0.884709 -0.889256 -0.892252 -0.961352 -1.12334 -1.16136 -1.18868 -1.35358 -1.37567 -1.38628 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.38629 -1.40074 -1.48899 -1.51331 -1.60355 -1.65124 -1.84366 -1.86175 -1.90127 -1.9095 -1.90954 -1.90954 -1.90954 -1.90954 -1.90954 -1.90954 -1.90954 -1.90954 -1.90954 -1.90954 -1.90954 -1.95415 -1.98214 -2.22295 -2.24933 -2.24934 -2.24934 -2.24934 -2.24934 -2.24934 -2.31346 -2.49283 -2.49927 -2.50201 -2.53734 -2.63393 -2.63782 -2.65982 -2.68988 -2.70337 -2.77259 -2.77259 -2.77259 -2.77259 -2.79212 -2.83051 -2.84437 -2.87081 -2.93855 -3.00466 -3.19835 -3.224 -3.24308 -3.29123 -3.36506 -3.36506 -3.36506 -3.36506 -3.36506 -3.38564 -3.55314 -3.62241 -3.67384 -3.67954 -3.68481 -3.69925 -3.80869 -3.81907 -3.81909 -3.81909 -3.86896 -3.8738 -3.9774 -4.00202 -4.10141 -4.12903 -4.18604 -4.40389 -4.46484 -4.46662 -4.50785 -4.55726 -4.6058 -4.74365 -4.78036 -4.84908 -5.01714 -5.25009 -5.35784 -5.39779 -5.40673 -5.42258 -5.62287 -5.65455 -5.7284 -5.76542 -5.77569 -5.8786 -5.9348 -5.94038 -6.02748 -6.18264 -6.32104 -6.44548 -6.4832 -6.83436 -6.98094 -7.2103 -7.47639 -7.50603 -7.57909 -7.63817 -7.63817 -7.77174 -8.01904 -8.15032 -8.21203 -8.27228 -8.31777 -8.36125 -9.20684 -9.39363 -9.56071 -9.6738 -9.94561 -10.0627 -10.362 -10.4623 -10.8443 -11.0894 -11.5174 -11.9378 -12.1762 -12.253 -12.8376 -12.8632 -13.0628 -14.3286 -14.5059 -14.5715 -15.2492 -15.4521 -15.6928 -15.7267 -16.5441 -16.5521 -16.8278 -18.2354 -18.548 -18.9793 -19.2475 -19.3182 -19.5081 -19.6831 -19.9106 -20.425 -20.9203 -22.2213 -22.9943 -23.1296 -23.8916 -23.9285 -24.1383 -25.0403 -25.5139 -25.7165 -25.9216 -27.2328 -28.9821 -29.4981 -29.6277 -30.6262 -31.6578 -31.7245 -32.6506 -33.9488 -34.94 -36.4761 -36.8667 -38.3078 -38.602 -38.9872 -39.9708 -40.1605 -41.3551 -43.8179 -44.2732 -44.922 -45.403 -49.4522 -50.5639 -51.3692 -52.1942 -53.0484 -56.3999 -61.0883 -63.977 -65.3787 -65.4556 -66.6904 -67.1957 -68.6556 -69.6889 -70.1314 -75.8018 -78.7617 -79.4355 -81.0248 -85.6797 -85.7247 -88.5926 -95.1702 -98.1654 -101.981 -110.63 -116.322 -116.667 -119.292 -121.71 -126.94 -138.047 -149.567 -154.863 -156.939 -160.263 -168.103 -174.921 -188.931 -199.783 -205.546 -212.194 -215.151 -259.827 -292.975 -299.189 -308.267 -352.344 -362.554 -368.215 -400.472 -564.873 -582.2 -621.874 -696.353 -743.962 -778.353 -804.695 -809.618 -970.333 -1325.87 -2351.95 -2626.82 -4787.14 -5028.08 -6772.42 
+index for ordered merges 244 / 489
+Merging 255 of 489 splits. Merge threshold is -1.90954
+Epoch 0/20:  validation corpus likelihood -10785.1 validation failures 1 training root counts 5000 training corpus likelihood -520028 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10788.8 validation failures 1 training root counts 5000 training corpus likelihood -517742 root weights: 1
+Epoch 2/20:  validation corpus likelihood -10809.6 validation failures 1 training root counts 5000 training corpus likelihood -516272 root weights: 1
+Epoch 3/20:  validation corpus likelihood -10839 validation failures 1 training root counts 5000 training corpus likelihood -515142 root weights: 1
+Epoch 4/20:  validation corpus likelihood -10875.6 validation failures 1 training root counts 5000 training corpus likelihood -514249 root weights: 1
+Epoch 5/20:  validation corpus likelihood -10918.6 validation failures 1 training root counts 5000 training corpus likelihood -513524 root weights: 1
+Epoch 6/20:  validation corpus likelihood -10967.7 validation failures 1
+ resetting to annotation from epoch 5 with validation score -10918.6
+Smoothing rules with factors 0.01 and 0.1.
+Epoch 0/20:  validation corpus likelihood -10897.9 validation failures 1 training root counts 5000 training corpus likelihood -518918 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10862.1 validation failures 1 training root counts 5000 training corpus likelihood -513715 root weights: 1
+Epoch 2/20:  validation corpus likelihood -10908.2 validation failures 1 training root counts 5000 training corpus likelihood -512801 root weights: 1
+Epoch 3/20:  validation corpus likelihood -10964.7 validation failures 1 training root counts 5000 training corpus likelihood -512286 root weights: 1
+Epoch 4/20:  validation corpus likelihood -11028.8 validation failures 1 training root counts 5000 training corpus likelihood -511914 root weights: 1
+Epoch 5/20:  validation corpus likelihood -11100.1 validation failures 1 training root counts 5000 training corpus likelihood -511610 root weights: 1
+Epoch 6/20:  validation corpus likelihood -11176.1 validation failures 1 training root counts 5000 training corpus likelihood -511343 root weights: 1
+Epoch 7/20:  validation corpus likelihood -11255.4 validation failures 1
+ resetting to annotation from epoch 2 with validation score -10908.2
+Completed split/merge cycles in 23.226861000061035 seconds
+Epoch 0/20:  validation corpus likelihood -10908.9 validation failures 1 training root counts 5000 training corpus likelihood -512927 root weights: 0.497241
+0.502759
+Epoch 1/20:  validation corpus likelihood -10964.6 validation failures 1 training root counts 5000 training corpus likelihood -512285 root weights: 0.497241
+0.502759
+Epoch 2/20:  validation corpus likelihood -11028.7 validation failures 1 training root counts 5000 training corpus likelihood -511912 root weights: 0.497241
+0.502759
+Epoch 3/20:  validation corpus likelihood -11099.9 validation failures 1 training root counts 5000 training corpus likelihood -511607 root weights: 0.497241
+0.502759
+Epoch 4/20:  validation corpus likelihood -11176 validation failures 1 training root counts 5000 training corpus likelihood -511332 root weights: 0.497242
+0.502758
+Epoch 5/20:  validation corpus likelihood -11254.9 validation failures 1 training root counts 5000 training corpus likelihood -511058 root weights: 0.497242
+0.502758
+Epoch 6/20:  validation corpus likelihood -11337 validation failures 1
+ resetting to annotation from epoch 5 with validation score -11254.9
+Computing merge factors.
+Selecting merges best 50 % 
+ordered merge Δs: 0.462566 0.355471 0.304326 0.0858139 0.0370398 0.0176579 0.0151108 0.00948736 0.00705048 0.00697095 0.00404793 0.00276996 0.00218018 0.00200671 0.000807123 0.000678986 0.000664128 0.000432015 0.000276881 0.000270314 0.000239494 0.000225658 3.55786e-05 3.09574e-05 2.34198e-05 1.65746e-05 6.20551e-06 4.52478e-06 3.16308e-06 9.6334e-07 3.87324e-07 3.71803e-07 3.63427e-07 3.23191e-07 3.10903e-07 3.01118e-07 2.65748e-07 2.48045e-07 1.86153e-07 1.84988e-07 1.57986e-07 1.53625e-07 1.16509e-07 9.20229e-08 8.69585e-08 8.54822e-08 6.92997e-08 5.76106e-08 5.62919e-08 4.74826e-08 3.98736e-08 3.78614e-08 3.69411e-08 3.63775e-08 3.47287e-08 3.44488e-08 3.40609e-08 3.35172e-08 2.65162e-08 2.43446e-08 2.17077e-08 2.11943e-08 2.0911e-08 2.03886e-08 1.94747e-08 1.79234e-08 1.7492e-08 1.68593e-08 1.51516e-08 1.50242e-08 1.48256e-08 1.39605e-08 1.38586e-08 1.36612e-08 1.35096e-08 1.33194e-08 1.20741e-08 1.20336e-08 1.15368e-08 1.03198e-08 1.00374e-08 9.84363e-09 9.70579e-09 9.60717e-09 9.11874e-09 9.10483e-09 8.6614e-09 8.33539e-09 7.85458e-09 7.84227e-09 7.6156e-09 7.50563e-09 7.18771e-09 6.99028e-09 6.89711e-09 6.72401e-09 6.27723e-09 6.16412e-09 5.83215e-09 5.58511e-09 5.49374e-09 5.08119e-09 4.79499e-09 4.04877e-09 3.88673e-09 3.77326e-09 3.72352e-09 3.67223e-09 3.33611e-09 2.9691e-09 2.92936e-09 2.85442e-09 2.71649e-09 2.68069e-09 2.53167e-09 2.41394e-09 2.39953e-09 2.35083e-09 1.98035e-09 1.56781e-09 1.49214e-09 1.48449e-09 1.42385e-09 1.40892e-09 1.18927e-09 1.11158e-09 1.09716e-09 9.6771e-10 8.97792e-10 8.84334e-10 8.0308e-10 7.50385e-10 7.48264e-10 7.15228e-10 6.96809e-10 6.27327e-10 6.185e-10 5.77566e-10 5.67799e-10 5.28229e-10 4.82554e-10 4.53622e-10 4.06067e-10 3.3471e-10 3.26571e-10 2.56085e-10 2.30851e-10 2.13699e-10 2.00939e-10 1.87302e-10 1.56917e-10 1.29388e-10 1.08922e-10 1.04157e-10 9.40887e-11 7.39961e-11 4.65954e-11 4.60736e-11 4.33904e-11 1.87081e-11 1.62257e-11 1.50946e-11 5.9972e-12 5.74474e-12 5.38836e-12 4.83769e-12 2.87348e-12 2.44516e-12 1.90092e-12 9.87654e-13 9.06386e-13 1.01252e-13 0 0 0 0 -6.73905e-14 -1.40037e-11 -1.92991e-11 -2.1149e-09 -2.23314e-09 -2.67145e-09 -3.87319e-09 -4.48527e-09 -5.95342e-09 -6.23775e-09 -6.74707e-09 -7.12983e-09 -1.23853e-08 -1.79404e-08 -2.80767e-08 -3.75892e-08 -5.27112e-08 -5.29951e-08 -5.73475e-08 -6.37227e-08 -1.08131e-07 -1.22781e-07 -1.3883e-07 -1.4984e-07 -1.65812e-07 -1.6923e-07 -2.49236e-07 -2.59633e-07 -4.44185e-07 -4.72676e-07 -5.68753e-07 -9.01978e-07 -1.06249e-06 -1.14021e-06 -1.14937e-06 -1.32262e-06 -1.5613e-06 -2.07193e-06 -2.73627e-06 -3.24038e-06 -3.54388e-06 -4.40293e-06 -6.17534e-06 -7.22743e-06 -7.23072e-06 -7.81173e-06 -7.93469e-06 -7.94891e-06 -7.98562e-06 -8.91701e-06 -9.0951e-06 -9.29917e-06 -1.01045e-05 -1.1134e-05 -1.25293e-05 -1.37271e-05 -1.40705e-05 -1.45619e-05 -1.48617e-05 -1.67519e-05 -1.6941e-05 -1.91913e-05 -2.46587e-05 -2.55984e-05 -2.61642e-05 -2.95324e-05 -3.07005e-05 -3.24123e-05 -3.41403e-05 -3.46163e-05 -3.57907e-05 -3.67997e-05 -4.20124e-05 -4.88725e-05 -5.14021e-05 -5.18319e-05 -6.03616e-05 -6.25652e-05 -6.34296e-05 -6.70642e-05 -6.73621e-05 -6.89493e-05 -8.0415e-05 -8.77109e-05 -9.69347e-05 -9.94506e-05 -0.000102344 -0.000104199 -0.000105617 -0.000119156 -0.000123331 -0.00012936 -0.000135073 -0.000144443 -0.000144516 -0.000145187 -0.00016916 -0.000170158 -0.000173148 -0.000173799 -0.000174483 -0.000176495 -0.000186055 -0.000188712 -0.000189158 -0.000191775 -0.000191983 -0.000201152 -0.000207566 -0.000212622 -0.000216385 -0.000218043 -0.000223141 -0.000223953 -0.00022719 -0.000228382 -0.000230456 -0.000232613 -0.000234181 -0.000234763 -0.000253808 -0.000260808 -0.000264255 -0.000273628 -0.000289802 -0.000299958 -0.000306869 -0.000319368 -0.000328773 -0.000332331 -0.000339848 -0.000371846 -0.000373845 -0.000383113 -0.000401147 -0.000401527 -0.000405094 -0.000407334 -0.000414867 -0.000418748 -0.000440929 -0.000441681 -0.000466746 -0.000470594 -0.000498819 -0.000510436 -0.000548216 -0.000552464 -0.000560235 -0.000581326 -0.000585201 -0.000585707 -0.000595178 -0.000613568 -0.000640423 -0.000644533 -0.000668679 -0.000673691 -0.000680841 -0.000688712 -0.00069691 -0.000712426 -0.000727474 -0.000730098 -0.000738226 -0.000738861 -0.000776321 -0.000795425 -0.000795504 -0.000921006 -0.000923944 -0.00092492 -0.00101927 -0.00103439 -0.00104472 -0.00106291 -0.00111811 -0.00112037 -0.00112567 -0.00115972 -0.00117143 -0.00117344 -0.00117942 -0.00118796 -0.00120327 -0.00120351 -0.00120566 -0.0012069 -0.00121873 -0.00130011 -0.0013621 -0.00137996 -0.00138512 -0.00140846 -0.00140981 -0.00142334 -0.00143897 -0.00145641 -0.00147392 -0.00148429 -0.00154626 -0.00164497 -0.0016752 -0.00169861 -0.0017055 -0.00171897 -0.001744 -0.00176664 -0.0017753 -0.00177663 -0.00178896 -0.00180723 -0.00180906 -0.0019017 -0.00195152 -0.00195937 -0.00196006 -0.00196443 -0.00197079 -0.00197164 -0.00199128 -0.00200596 -0.00200631 -0.00202759 -0.00204463 -0.00209502 -0.00214359 -0.00214396 -0.00214766 -0.00219048 -0.00221873 -0.00223206 -0.00223774 -0.0022507 -0.00229276 -0.00230019 -0.00239529 -0.0024273 -0.00243419 -0.00243804 -0.00244727 -0.00250201 -0.00258592 -0.00262109 -0.00265589 -0.00269098 -0.00274088 -0.00284537 -0.00285938 -0.00291901 -0.00294217 -0.00303901 -0.00305996 -0.00316948 -0.00323686 -0.00328792 -0.00328825 -0.00331112 -0.00338258 -0.00349712 -0.00354002 -0.00358725 -0.00360873 -0.00365044 -0.0037497 -0.00389064 -0.00393484 -0.00402874 -0.00403792 -0.00404587 -0.00409206 -0.00409473 -0.00419188 -0.00421594 -0.00429354 -0.00440098 -0.00442074 -0.00443004 -0.00443893 -0.00445745 -0.00455291 -0.00456259 -0.00463435 -0.00466433 -0.00466748 -0.00467499 -0.00474816 -0.00478829 -0.00481341 -0.00485709 -0.0049156 -0.00493453 -0.0050448 -0.00505845 -0.00523509 -0.00524669 -0.00526947 -0.00527493 -0.00532889 -0.00543929 -0.00549358 -0.00554691 -0.00557591 -0.00557696 -0.00577755 -0.00588586 -0.00590762 -0.00594876 -0.00596601 -0.00598112 -0.00610152 -0.00623021 -0.00630387 -0.00633069 -0.0063385 -0.00639542 -0.00671678 -0.00680077 -0.00684411 -0.00689976 -0.00695892 -0.00703089 -0.00710941 -0.0072264 -0.00726269 -0.00728413 -0.0072923 -0.00732109 -0.00735516 -0.00737311 -0.00741021 -0.00744501 -0.00759279 -0.00760863 -0.00761656 -0.00762923 -0.00799558 -0.00815887 -0.0081655 -0.00820546 -0.00827257 -0.00829082 -0.00836532 -0.00841466 -0.00842297 -0.00845761 -0.00853416 -0.00863755 -0.00867781 -0.00875491 -0.00877711 -0.00880037 -0.00884229 -0.00887054 -0.00889847 -0.00892547 -0.0094312 -0.00953156 -0.00966571 -0.00967903 -0.00969675 -0.00991013 -0.0099998 -0.0100994 -0.0101415 -0.0101952 -0.0104818 -0.0105782 -0.0107204 -0.0107511 -0.0107911 -0.0108791 -0.0109786 -0.0112682 -0.0113827 -0.0114297 -0.0118423 -0.0119234 -0.011956 -0.0119588 -0.0123299 -0.0123714 -0.0125888 -0.0128539 -0.0132759 -0.0134468 -0.0136449 -0.013661 -0.0137138 -0.0139023 -0.0140143 -0.0140995 -0.0141439 -0.0143323 -0.0145403 -0.0146259 -0.0146267 -0.0149002 -0.0150454 -0.0153219 -0.0154099 -0.015935 -0.0160964 -0.0161102 -0.0162229 -0.0162384 -0.0163284 -0.0166139 -0.0168353 -0.0169171 -0.0177022 -0.0177175 -0.0177796 -0.0179263 -0.0180572 -0.0183427 -0.0186489 -0.0187073 -0.0189533 -0.0196911 -0.0200307 -0.0203338 -0.0205933 -0.0208215 -0.0208288 -0.0214183 -0.0214537 -0.0216691 -0.0217196 -0.0219939 -0.0228203 -0.0233276 -0.0238167 -0.0238614 -0.0241559 -0.024312 -0.0250796 -0.0258395 -0.0261961 -0.0262122 -0.0268171 -0.0275767 -0.0277054 -0.0287973 -0.0292426 -0.0293229 -0.0303414 -0.0303427 -0.0306454 -0.0310319 -0.0322833 -0.0326086 -0.033226 -0.0333601 -0.0341636 -0.0343108 -0.0348075 -0.0361264 -0.0363001 -0.0370392 -0.0371064 -0.0372809 -0.0373353 -0.0382604 -0.0382959 -0.0400879 -0.0401914 -0.0404682 -0.0404818 -0.040652 -0.0406955 -0.0411716 -0.0432757 -0.0438352 -0.0459928 -0.0475078 -0.0478447 -0.0485879 -0.0502219 -0.0504383 -0.0506103 -0.0519839 -0.05277 -0.0540375 -0.063192 -0.0633842 -0.0647992 -0.0664018 -0.0681996 -0.0740497 -0.0742049 -0.0752874 -0.0799539 -0.0849005 -0.0862576 -0.0917153 -0.0970073 -0.10231 -0.102567 -0.103641 -0.105371 -0.108251 -0.109314 -0.11476 -0.118313 -0.118383 -0.123968 -0.127918 -0.131775 -0.132459 -0.138746 -0.142037 -0.146146 -0.152991 -0.161407 -0.16184 -0.1624 -0.163608 -0.172876 -0.190494 -0.1934 -0.203072 -0.221673 -0.222028 -0.251458 -0.268595 -0.281615 -0.332681 -0.35343 -0.367653 -0.41077 -0.441513 -0.476064 -0.480078 -0.506047 -0.537214 -0.832057 -1.37058 -1.44224 -1.4817 -1.59338 -2.30886 -2.34936 -2.64034 -2.84429 -3.34292 -6.10434 
+index for ordered merges 361 / 723
+Merging 406 of 723 splits. Merge threshold is -0.00120351
+Epoch 0/20:  validation corpus likelihood -11254.9 validation failures 1 training root counts 5000 training corpus likelihood -511058 root weights: 1
+Epoch 1/20:  validation corpus likelihood -11337 validation failures 1 training root counts 5000 training corpus likelihood -510734 root weights: 1
+Epoch 2/20:  validation corpus likelihood -10723.8 validation failures 2 training root counts 5000 training corpus likelihood -510196 root weights: 1
+Epoch 3/20:  validation corpus likelihood -10743.4 validation failures 2 training root counts 5000 training corpus likelihood -509019 root weights: 1
+Epoch 4/20:  validation corpus likelihood -10745.8 validation failures 2 training root counts 5000 training corpus likelihood -506549 root weights: 1
+Epoch 5/20:  validation corpus likelihood -10726.4 validation failures 2 training root counts 5000 training corpus likelihood -502449 root weights: 1
+Epoch 6/20:  validation corpus likelihood -10690.6 validation failures 2 training root counts 5000 training corpus likelihood -497084 root weights: 1
+Epoch 7/20:  validation corpus likelihood -10656.3 validation failures 2 training root counts 5000 training corpus likelihood -491550 root weights: 1
+Epoch 8/20:  validation corpus likelihood -10641.7 validation failures 2 training root counts 5000 training corpus likelihood -486895 root weights: 1
+Epoch 9/20:  validation corpus likelihood -10655.1 validation failures 2 training root counts 5000 training corpus likelihood -483347 root weights: 1
+Epoch 10/20:  validation corpus likelihood -10694 validation failures 2 training root counts 5000 training corpus likelihood -480569 root weights: 1
+Epoch 11/20:  validation corpus likelihood -10748.3 validation failures 2 training root counts 5000 training corpus likelihood -478132 root weights: 1
+Epoch 12/20:  validation corpus likelihood -10814.4 validation failures 2 training root counts 5000 training corpus likelihood -475822 root weights: 1
+Epoch 13/20:  validation corpus likelihood -10896.8 validation failures 2 training root counts 5000 training corpus likelihood -473787 root weights: 1
+Epoch 14/20:  validation corpus likelihood -10994.8 validation failures 2
+ resetting to annotation from epoch 8 with validation score -10641.7
+Smoothing rules with factors 0.01 and 0.1.
+Epoch 0/20:  validation corpus likelihood -10579.1 validation failures 2 training root counts 5000 training corpus likelihood -513443 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10152.1 validation failures 2 training root counts 5000 training corpus likelihood -487557 root weights: 1
+Epoch 2/20:  validation corpus likelihood -10115.7 validation failures 2 training root counts 5000 training corpus likelihood -482086 root weights: 1
+Epoch 3/20:  validation corpus likelihood -10131.7 validation failures 2 training root counts 5000 training corpus likelihood -479096 root weights: 1
+Epoch 4/20:  validation corpus likelihood -10167.5 validation failures 2 training root counts 5000 training corpus likelihood -476590 root weights: 1
+Epoch 5/20:  validation corpus likelihood -10217.6 validation failures 2 training root counts 5000 training corpus likelihood -474399 root weights: 1
+Epoch 6/20:  validation corpus likelihood -10281.3 validation failures 2 training root counts 5000 training corpus likelihood -472631 root weights: 1
+Epoch 7/20:  validation corpus likelihood -10358.3 validation failures 2 training root counts 5000 training corpus likelihood -471224 root weights: 1
+Epoch 8/20:  validation corpus likelihood -10444.9 validation failures 2
+ resetting to annotation from epoch 2 with validation score -10115.7
+Completed split/merge cycles in 44.325942516326904 seconds
+Epoch 0/20:  validation corpus likelihood -10116.8 validation failures 2 training root counts 5000 training corpus likelihood -482209 root weights: 0.499218
+0.500782
+Epoch 1/20:  validation corpus likelihood -10131.6 validation failures 2 training root counts 5000 training corpus likelihood -479091 root weights: 0.499218
+0.500782
+Epoch 2/20:  validation corpus likelihood -10167.4 validation failures 2 training root counts 5000 training corpus likelihood -476585 root weights: 0.499218
+0.500782
+Epoch 3/20:  validation corpus likelihood -10217.5 validation failures 2 training root counts 5000 training corpus likelihood -474391 root weights: 0.499218
+0.500782
+Epoch 4/20:  validation corpus likelihood -10281.2 validation failures 2 training root counts 5000 training corpus likelihood -472619 root weights: 0.499218
+0.500782
+Epoch 5/20:  validation corpus likelihood -10358.1 validation failures 2 training root counts 5000 training corpus likelihood -471195 root weights: 0.499218
+0.500782
+Epoch 6/20:  validation corpus likelihood -10444.1 validation failures 2
+ resetting to annotation from epoch 5 with validation score -10358.1
+Computing merge factors.
+Selecting merges best 50 % 
+ordered merge Δs: 0.122145 0.0809539 0.0760146 0.0633909 0.0562889 0.0523215 0.0155574 0.0142117 0.00957797 0.00940469 0.00887921 0.00461401 0.00382399 0.00281031 0.00219431 0.00217411 0.00213241 0.00176171 0.000975417 0.000852141 0.000635819 0.000598911 0.000432559 0.000319901 0.000175911 0.000104821 6.61488e-05 5.13238e-05 4.61442e-05 4.44761e-05 2.11912e-05 1.08494e-05 9.86488e-06 6.93e-06 5.70396e-06 3.65474e-06 3.14788e-06 2.84824e-06 2.4796e-06 2.32493e-06 1.76323e-06 9.20687e-07 7.50805e-07 3.73963e-07 3.42998e-07 2.78141e-07 2.46128e-07 2.25406e-07 2.11186e-07 1.89714e-07 1.64882e-07 1.6089e-07 1.59287e-07 1.49112e-07 1.4616e-07 1.42578e-07 1.19661e-07 1.12784e-07 1.02884e-07 9.78027e-08 7.94103e-08 7.19877e-08 6.9905e-08 6.97159e-08 6.6937e-08 5.83886e-08 5.66319e-08 4.86898e-08 4.74482e-08 4.68415e-08 3.87402e-08 3.85847e-08 3.80095e-08 3.27606e-08 3.21184e-08 3.17212e-08 3.12456e-08 2.89711e-08 2.83834e-08 2.75048e-08 2.53015e-08 2.44547e-08 2.40236e-08 2.30208e-08 2.2918e-08 2.28287e-08 1.92821e-08 1.86706e-08 1.85138e-08 1.79743e-08 1.7927e-08 1.78345e-08 1.69364e-08 1.64977e-08 1.52967e-08 1.41821e-08 1.40461e-08 1.38322e-08 1.37007e-08 1.26578e-08 1.18366e-08 1.17535e-08 1.15807e-08 1.12765e-08 1.02878e-08 1.01687e-08 1.00758e-08 9.8658e-09 9.82347e-09 9.54964e-09 8.93921e-09 8.19457e-09 7.83801e-09 7.28106e-09 6.72955e-09 6.48221e-09 6.28369e-09 6.17854e-09 6.06755e-09 5.88823e-09 5.67808e-09 5.67634e-09 5.53663e-09 5.4148e-09 4.11779e-09 4.09151e-09 4.00886e-09 3.55243e-09 3.43739e-09 3.40126e-09 3.22371e-09 3.11467e-09 2.90981e-09 2.87886e-09 2.76996e-09 2.75466e-09 2.52607e-09 2.51612e-09 2.29654e-09 2.24828e-09 2.19444e-09 2.1158e-09 1.97714e-09 1.82343e-09 1.79706e-09 1.76141e-09 1.45734e-09 1.40521e-09 1.39862e-09 1.23414e-09 1.1585e-09 1.00931e-09 9.85368e-10 9.57077e-10 9.4816e-10 9.15914e-10 8.76002e-10 8.24941e-10 7.76801e-10 7.64958e-10 7.51992e-10 6.71056e-10 6.59968e-10 6.43942e-10 6.42899e-10 5.32335e-10 5.14842e-10 5.14302e-10 5.09172e-10 4.99695e-10 4.7217e-10 4.48653e-10 3.74637e-10 3.60583e-10 3.35442e-10 3.17192e-10 2.87401e-10 2.68282e-10 2.48048e-10 2.44835e-10 2.4373e-10 2.32022e-10 1.99779e-10 1.90279e-10 1.85146e-10 1.72468e-10 1.68828e-10 1.64206e-10 1.60622e-10 1.57628e-10 1.46472e-10 1.33702e-10 1.01456e-10 9.63774e-11 9.18174e-11 9.08251e-11 8.95735e-11 8.43832e-11 7.11688e-11 6.77978e-11 6.75862e-11 6.25102e-11 5.62974e-11 5.27669e-11 5.09561e-11 4.88765e-11 4.85654e-11 4.74791e-11 4.44007e-11 4.42921e-11 4.14833e-11 4.05098e-11 3.76372e-11 3.40632e-11 3.37772e-11 3.16857e-11 3.16849e-11 2.1612e-11 1.91549e-11 1.83217e-11 1.25837e-11 1.23483e-11 1.16573e-11 1.10445e-11 7.44405e-12 6.13709e-12 6.03317e-12 5.76772e-12 4.7502e-12 3.59024e-12 3.2998e-12 2.62457e-12 2.48646e-12 2.17781e-12 1.15763e-12 8.8396e-13 8.71525e-13 6.1906e-13 2.72227e-13 1.86295e-13 1.65423e-13 1.63203e-13 1.26121e-13 2.33147e-14 1.9984e-15 4.44089e-16 2.22045e-16 1.11022e-16 0 0 0 0 0 0 -2.22045e-16 -6.86251e-11 -4.95131e-10 -5.1346e-10 -1.5265e-09 -3.76682e-09 -4.1955e-09 -4.7583e-09 -5.20727e-09 -5.52968e-09 -5.7115e-09 -6.93393e-09 -9.95135e-09 -1.49561e-08 -1.74616e-08 -1.74666e-08 -2.53116e-08 -2.62126e-08 -2.83648e-08 -2.93128e-08 -3.65157e-08 -4.27903e-08 -4.49617e-08 -6.04186e-08 -7.79829e-08 -8.55398e-08 -1.06884e-07 -1.26877e-07 -1.65191e-07 -1.68094e-07 -2.0097e-07 -2.01103e-07 -2.01652e-07 -2.20753e-07 -2.40748e-07 -2.99644e-07 -3.31863e-07 -3.62815e-07 -3.85076e-07 -5.52012e-07 -5.61603e-07 -7.34981e-07 -7.61078e-07 -7.62072e-07 -8.29004e-07 -8.55785e-07 -1.05817e-06 -1.22351e-06 -1.22649e-06 -1.23081e-06 -1.2933e-06 -1.53962e-06 -1.90625e-06 -1.96048e-06 -2.01137e-06 -2.20517e-06 -2.43451e-06 -2.59671e-06 -2.62638e-06 -3.28767e-06 -3.46021e-06 -3.62061e-06 -4.02131e-06 -4.77722e-06 -4.8651e-06 -5.20331e-06 -6.05195e-06 -6.31428e-06 -6.83458e-06 -7.06202e-06 -8.23542e-06 -9.33726e-06 -9.67499e-06 -1.11141e-05 -1.20211e-05 -1.28529e-05 -1.32665e-05 -1.34322e-05 -1.36962e-05 -1.49537e-05 -1.61781e-05 -1.63412e-05 -1.63539e-05 -1.7641e-05 -1.81389e-05 -2.01291e-05 -2.02375e-05 -2.05315e-05 -2.22092e-05 -2.23023e-05 -2.2367e-05 -2.28501e-05 -2.30729e-05 -2.40156e-05 -2.42566e-05 -2.50817e-05 -2.60909e-05 -2.64141e-05 -3.04483e-05 -3.11913e-05 -3.48842e-05 -3.6803e-05 -3.76089e-05 -3.8347e-05 -3.8697e-05 -4.00518e-05 -4.11629e-05 -4.55598e-05 -4.72862e-05 -4.83325e-05 -5.00904e-05 -5.31841e-05 -5.55448e-05 -5.58552e-05 -5.6258e-05 -5.64978e-05 -5.92911e-05 -5.95572e-05 -5.99823e-05 -6.6298e-05 -6.98841e-05 -7.05328e-05 -7.13029e-05 -7.21154e-05 -7.32835e-05 -7.41055e-05 -7.45051e-05 -7.69805e-05 -7.98002e-05 -8.31162e-05 -8.88183e-05 -9.04227e-05 -9.18342e-05 -9.2368e-05 -9.26107e-05 -9.66089e-05 -9.79837e-05 -0.000104172 -0.000104515 -0.000106779 -0.000107008 -0.000108626 -0.00011207 -0.000116213 -0.000118831 -0.000120075 -0.000128272 -0.000129675 -0.000130147 -0.000131818 -0.000132393 -0.000132969 -0.000142067 -0.000148351 -0.000151465 -0.000159255 -0.000160207 -0.000161073 -0.000161244 -0.000163433 -0.000163434 -0.000168019 -0.0001693 -0.000169786 -0.000172196 -0.000176858 -0.000176912 -0.000177528 -0.000178231 -0.000181872 -0.000183491 -0.000183829 -0.000183943 -0.000184321 -0.000185285 -0.000194113 -0.000197684 -0.000199042 -0.000201061 -0.000205448 -0.00020767 -0.000215372 -0.00021688 -0.000220375 -0.000221598 -0.00022191 -0.000231519 -0.000241375 -0.000243429 -0.000244795 -0.000258247 -0.000263595 -0.000266289 -0.000266801 -0.000269432 -0.000271906 -0.000271929 -0.00028488 -0.000290765 -0.00029325 -0.000297011 -0.000307394 -0.000326647 -0.000336697 -0.000344449 -0.000345706 -0.000347134 -0.000354334 -0.000355495 -0.000365247 -0.000369652 -0.000372082 -0.000379902 -0.000386046 -0.000387142 -0.000388871 -0.000394437 -0.000403893 -0.000427852 -0.000431998 -0.000452369 -0.000460205 -0.00046318 -0.000464486 -0.000468988 -0.000471383 -0.000489284 -0.000490865 -0.000497277 -0.000502028 -0.00050343 -0.000506233 -0.000511048 -0.00051134 -0.000518557 -0.000526557 -0.00053238 -0.000533722 -0.000605317 -0.000631155 -0.000631458 -0.000633805 -0.000646829 -0.000648662 -0.000659024 -0.000661221 -0.000662174 -0.000663769 -0.000666097 -0.000669577 -0.000672415 -0.000673642 -0.00068579 -0.0007002 -0.000705543 -0.000729092 -0.000733424 -0.000740213 -0.000746906 -0.000751876 -0.000761003 -0.00077069 -0.00077584 -0.000779087 -0.000788285 -0.000788739 -0.000792894 -0.000795626 -0.000795997 -0.000817986 -0.000819553 -0.000827228 -0.000843714 -0.000848715 -0.000850104 -0.000850129 -0.000868245 -0.000876939 -0.000878432 -0.000885263 -0.000895617 -0.00090356 -0.000904088 -0.00091355 -0.00091657 -0.000918976 -0.000935237 -0.000957038 -0.000959019 -0.000968983 -0.000979351 -0.0010054 -0.00101066 -0.00101829 -0.00101978 -0.00102725 -0.0010288 -0.00103215 -0.00103888 -0.00104672 -0.0010481 -0.0010582 -0.00105911 -0.00106614 -0.00106978 -0.00108552 -0.00109703 -0.00110459 -0.00112125 -0.00112366 -0.00114922 -0.0011526 -0.00116626 -0.00116793 -0.00119377 -0.00119855 -0.00120517 -0.00121646 -0.00123336 -0.00128876 -0.00133735 -0.00135115 -0.00135318 -0.00135552 -0.00136846 -0.00138617 -0.0013914 -0.00139341 -0.00140295 -0.00141411 -0.00141416 -0.00141956 -0.00142339 -0.00145871 -0.00146291 -0.00148555 -0.00152378 -0.00152397 -0.00152628 -0.00152826 -0.00153336 -0.00154075 -0.00154122 -0.00161806 -0.00162025 -0.00163785 -0.00165994 -0.00170633 -0.00170926 -0.00171224 -0.00175389 -0.00177134 -0.0017766 -0.00183244 -0.00184518 -0.00185199 -0.0018649 -0.00186711 -0.00189866 -0.00194652 -0.00199685 -0.0020011 -0.00201459 -0.00203234 -0.00203847 -0.00206008 -0.00206368 -0.00207716 -0.00208004 -0.00212807 -0.00213275 -0.00219106 -0.0022219 -0.00222499 -0.00222822 -0.00222869 -0.00222992 -0.00225663 -0.00226043 -0.00227594 -0.00230967 -0.00231037 -0.00232807 -0.00238777 -0.00238921 -0.00245586 -0.00247382 -0.00250332 -0.00250976 -0.00252736 -0.00255105 -0.00261156 -0.00262506 -0.00262848 -0.00263262 -0.00265488 -0.00271271 -0.00272759 -0.00273357 -0.00277045 -0.0027726 -0.0028029 -0.00280893 -0.00283245 -0.00285063 -0.00285758 -0.00289242 -0.00291137 -0.00299614 -0.0030045 -0.00301183 -0.00301408 -0.00303052 -0.00303223 -0.00306523 -0.00306546 -0.00308 -0.00310317 -0.00311944 -0.00314517 -0.00315342 -0.003262 -0.00328055 -0.00328118 -0.0033091 -0.00331277 -0.00335824 -0.00339283 -0.00339287 -0.00340568 -0.00343147 -0.00350507 -0.00351937 -0.00354812 -0.00356996 -0.0036159 -0.00367033 -0.0036808 -0.00370565 -0.00377974 -0.00378 -0.00379225 -0.00383569 -0.00387029 -0.00388966 -0.00393286 -0.00394534 -0.00400638 -0.00401047 -0.0040136 -0.00401386 -0.00403123 -0.00407045 -0.00409362 -0.00410158 -0.00412892 -0.00417999 -0.00418864 -0.00419126 -0.00419831 -0.00424973 -0.00426675 -0.0043294 -0.00432995 -0.00444518 -0.0044515 -0.00446272 -0.00449874 -0.00452147 -0.00455957 -0.00461996 -0.00462983 -0.00464325 -0.00464472 -0.0046518 -0.00466603 -0.0046884 -0.00471823 -0.00477454 -0.0048005 -0.00487585 -0.00489152 -0.00490403 -0.00499926 -0.00504916 -0.00508864 -0.00511981 -0.00514427 -0.00519236 -0.00521765 -0.00527219 -0.00528958 -0.0053902 -0.00544719 -0.00547937 -0.00550882 -0.00552943 -0.00558542 -0.00560257 -0.00561488 -0.00568434 -0.00573894 -0.00584801 -0.00585101 -0.00587067 -0.00589131 -0.00590131 -0.00599071 -0.00606182 -0.00620989 -0.0062168 -0.00626006 -0.00633779 -0.00644536 -0.00645716 -0.00649349 -0.00651928 -0.00656125 -0.00667999 -0.0066857 -0.00672527 -0.00673204 -0.0067601 -0.00683009 -0.00691975 -0.00693421 -0.00693652 -0.00696068 -0.00697674 -0.00698383 -0.00702238 -0.00714139 -0.00719363 -0.00721181 -0.00721559 -0.00725027 -0.00729723 -0.0073753 -0.00740327 -0.00741032 -0.00742748 -0.00747929 -0.00750772 -0.0076309 -0.00767645 -0.00769873 -0.00769916 -0.00783497 -0.00784473 -0.00784801 -0.00793256 -0.00799091 -0.00802455 -0.00804377 -0.00818159 -0.00819127 -0.00821032 -0.00823275 -0.00829565 -0.00832586 -0.00836177 -0.00839439 -0.00869227 -0.00872388 -0.0087576 -0.00876981 -0.00881151 -0.00882486 -0.00888113 -0.0089211 -0.00895492 -0.0093471 -0.00942788 -0.00948618 -0.00950822 -0.00951279 -0.0095235 -0.00958654 -0.00975985 -0.00991187 -0.0100711 -0.0100931 -0.0101438 -0.0101881 -0.010222 -0.0104077 -0.0104652 -0.0104679 -0.0107762 -0.0108991 -0.010971 -0.0110524 -0.0111339 -0.0112404 -0.0112943 -0.0113013 -0.0113527 -0.0115095 -0.0115191 -0.0115506 -0.0117315 -0.011792 -0.0117942 -0.0121716 -0.0122298 -0.0123124 -0.0125231 -0.0130264 -0.0130572 -0.0130918 -0.0131249 -0.0131992 -0.0132076 -0.0137336 -0.0139142 -0.0139758 -0.0140069 -0.0141234 -0.0142101 -0.0143246 -0.0144476 -0.0144607 -0.0145832 -0.0146408 -0.0146851 -0.0147647 -0.0148004 -0.0150141 -0.0150231 -0.0150524 -0.015091 -0.0153383 -0.0153528 -0.0153693 -0.0156273 -0.0157558 -0.015763 -0.0160903 -0.0161177 -0.0162267 -0.0162313 -0.0165042 -0.0165185 -0.01652 -0.0165228 -0.0167388 -0.0168458 -0.0168558 -0.0169129 -0.0174987 -0.0176005 -0.0177704 -0.0178555 -0.0179682 -0.018543 -0.0191213 -0.0192495 -0.0193471 -0.019841 -0.0201757 -0.0204722 -0.0206091 -0.0208964 -0.021765 -0.022174 -0.0223364 -0.0224039 -0.0224514 -0.0229142 -0.0232685 -0.023777 -0.0259862 -0.026235 -0.0265609 -0.0277462 -0.0279621 -0.0285048 -0.0288771 -0.0296778 -0.0297849 -0.0298121 -0.0305502 -0.0311316 -0.0322105 -0.032335 -0.0325036 -0.0327917 -0.0329755 -0.0331108 -0.0333781 -0.0337867 -0.0347634 -0.0356768 -0.0365062 -0.0375973 -0.0376644 -0.0377915 -0.0378035 -0.0385569 -0.0393542 -0.0397137 -0.0400715 -0.0411581 -0.0425257 -0.0427948 -0.0429073 -0.0441998 -0.0448041 -0.0452928 -0.0453387 -0.0458565 -0.0460633 -0.046283 -0.0477991 -0.0512081 -0.0513811 -0.0516143 -0.0523628 -0.0529907 -0.0540522 -0.0543346 -0.0544611 -0.0592564 -0.0616496 -0.062191 -0.0631221 -0.0631489 -0.069038 -0.0703644 -0.0754924 -0.0822285 -0.0835043 -0.0847071 -0.086547 -0.0875073 -0.0889506 -0.0903139 -0.0979608 -0.0979781 -0.0997857 -0.100269 -0.108339 -0.113416 -0.115585 -0.118552 -0.122225 -0.122567 -0.124586 -0.126235 -0.126316 -0.128819 -0.130381 -0.133737 -0.140949 -0.143569 -0.14532 -0.147662 -0.152094 -0.15262 -0.155365 -0.156204 -0.172878 -0.183497 -0.192671 -0.203536 -0.215504 -0.231243 -0.242353 -0.254432 -0.263568 -0.270477 -0.270879 -0.29266 -0.337483 -0.34093 -0.396407 -0.406807 -0.425138 -0.446695 -0.737314 -0.780747 -1.04299 -1.07091 -1.19913 -1.29385 -1.74534 
+index for ordered merges 520 / 1040
+Merging 607 of 1040 splits. Merge threshold is -0.000792894
+Epoch 0/20:  validation corpus likelihood -10358.1 validation failures 2 training root counts 5000 training corpus likelihood -471196 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10444.1 validation failures 2 training root counts 5000 training corpus likelihood -469986 root weights: 1
+Epoch 2/20:  validation corpus likelihood -10536.1 validation failures 2 training root counts 5000 training corpus likelihood -468850 root weights: 1
+Epoch 3/20:  validation corpus likelihood -10633.4 validation failures 2 training root counts 5000 training corpus likelihood -467516 root weights: 1
+Epoch 4/20:  validation corpus likelihood -10731.8 validation failures 2 training root counts 5000 training corpus likelihood -465566 root weights: 1
+Epoch 5/20:  validation corpus likelihood -10826.2 validation failures 2 training root counts 5000 training corpus likelihood -462736 root weights: 1
+Epoch 6/20:  validation corpus likelihood -10916.6 validation failures 2
+ resetting to annotation from epoch 5 with validation score -10826.2
+Smoothing rules with factors 0.01 and 0.1.
+Epoch 0/20:  validation corpus likelihood -11133.9 validation failures 2 training root counts 5000 training corpus likelihood -542809 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10115 validation failures 2 training root counts 5000 training corpus likelihood -482609 root weights: 1
+Epoch 2/20:  validation corpus likelihood -9857.5 validation failures 2 training root counts 5000 training corpus likelihood -462946 root weights: 1
+Epoch 3/20:  validation corpus likelihood -9849.09 validation failures 2 training root counts 5000 training corpus likelihood -455258 root weights: 1
+Epoch 4/20:  validation corpus likelihood -9919.1 validation failures 2 training root counts 5000 training corpus likelihood -450606 root weights: 1
+Epoch 5/20:  validation corpus likelihood -10035.4 validation failures 2 training root counts 5000 training corpus likelihood -447122 root weights: 1
+Epoch 6/20:  validation corpus likelihood -10180.4 validation failures 2 training root counts 5000 training corpus likelihood -444215 root weights: 1
+Epoch 7/20:  validation corpus likelihood -10357.3 validation failures 2 training root counts 5000 training corpus likelihood -441635 root weights: 1
+Epoch 8/20:  validation corpus likelihood -10579.8 validation failures 2 training root counts 5000 training corpus likelihood -439345 root weights: 1
+Epoch 9/20:  validation corpus likelihood -10827.2 validation failures 2
+ resetting to annotation from epoch 3 with validation score -9849.09
+Completed split/merge cycles in 154.2051727771759 seconds
+Epoch 0/20:  validation corpus likelihood -9850.23 validation failures 2 training root counts 5000 training corpus likelihood -455375 root weights: 0.502536
+0.497464
+Epoch 1/20:  validation corpus likelihood -9919.1 validation failures 2 training root counts 5000 training corpus likelihood -450607 root weights: 0.502536
+0.497464
+Epoch 2/20:  validation corpus likelihood -10035.3 validation failures 2 training root counts 5000 training corpus likelihood -447122 root weights: 0.502536
+0.497464
+Epoch 3/20:  validation corpus likelihood -10180.4 validation failures 2 training root counts 5000 training corpus likelihood -444214 root weights: 0.502536
+0.497464
+Epoch 4/20:  validation corpus likelihood -10357.2 validation failures 2 training root counts 5000 training corpus likelihood -441629 root weights: 0.502537
+0.497463
+Epoch 5/20:  validation corpus likelihood -10579.7 validation failures 2 training root counts 5000 training corpus likelihood -439325 root weights: 0.502537
+0.497463
+Epoch 6/20:  validation corpus likelihood -10826.6 validation failures 2
+ resetting to annotation from epoch 5 with validation score -10579.7
+Computing merge factors.
+Selecting merges best 50 % 
+ordered merge Δs: 0.250872 0.117396 0.0304538 0.030118 0.0271661 0.0250676 0.0222832 0.0208172 0.0195382 0.0156754 0.01442 0.0123979 0.0110231 0.0106544 0.0101474 0.00660257 0.00594348 0.00470371 0.00462149 0.00431721 0.00429667 0.00382486 0.00358403 0.0032134 0.00231886 0.00220419 0.00213878 0.0021133 0.00173554 0.00133886 0.00121363 0.000733332 0.000269784 0.000182432 0.000172515 0.000141624 9.75636e-05 8.55851e-05 8.26773e-05 5.22171e-05 4.27386e-05 3.34153e-05 2.24889e-05 1.94552e-05 1.61372e-05 1.40704e-05 1.39519e-05 1.01218e-05 7.56898e-06 4.54927e-06 4.51305e-06 4.26173e-06 4.02896e-06 2.66443e-06 2.60155e-06 1.97815e-06 1.35286e-06 1.09603e-06 1.05343e-06 9.51859e-07 8.70361e-07 7.94616e-07 7.29981e-07 5.36756e-07 4.84904e-07 4.41634e-07 4.35772e-07 3.69511e-07 2.75088e-07 2.63682e-07 2.35288e-07 2.29524e-07 1.90133e-07 1.85856e-07 1.79652e-07 1.74665e-07 1.53651e-07 1.39563e-07 1.38069e-07 1.35139e-07 1.32024e-07 1.20974e-07 1.06659e-07 1.02862e-07 8.95499e-08 8.73058e-08 8.28363e-08 8.08122e-08 7.61215e-08 7.0731e-08 6.95368e-08 6.87238e-08 6.84205e-08 5.58048e-08 5.0917e-08 5.04462e-08 4.31127e-08 4.28315e-08 4.26382e-08 4.23515e-08 4.17807e-08 4.14114e-08 4.04777e-08 3.42726e-08 3.3556e-08 3.23401e-08 3.16771e-08 3.10612e-08 3.0968e-08 2.78118e-08 2.72301e-08 2.59071e-08 2.50801e-08 2.48283e-08 2.47141e-08 2.42078e-08 2.39389e-08 2.37875e-08 2.34227e-08 2.33534e-08 2.32835e-08 2.31533e-08 2.30019e-08 2.28622e-08 2.23587e-08 2.21087e-08 2.20336e-08 2.1137e-08 2.04594e-08 1.98824e-08 1.86906e-08 1.85624e-08 1.75249e-08 1.73039e-08 1.71279e-08 1.70236e-08 1.66544e-08 1.61078e-08 1.55557e-08 1.55476e-08 1.38813e-08 1.38461e-08 1.37766e-08 1.37733e-08 1.36126e-08 1.31369e-08 1.31168e-08 1.30193e-08 1.26376e-08 1.25563e-08 1.24729e-08 1.23102e-08 1.19642e-08 1.13624e-08 1.12637e-08 1.09773e-08 1.07113e-08 1.05969e-08 1.04648e-08 1.00782e-08 9.88759e-09 9.79183e-09 9.09667e-09 9.0664e-09 8.95443e-09 8.32761e-09 7.80712e-09 7.77573e-09 7.65053e-09 7.32278e-09 6.68783e-09 6.5399e-09 6.37871e-09 6.37654e-09 6.21573e-09 6.18078e-09 5.99001e-09 5.88901e-09 5.7541e-09 5.65622e-09 5.58817e-09 5.55244e-09 5.41473e-09 5.31664e-09 5.27762e-09 5.20491e-09 5.15238e-09 5.10566e-09 4.67507e-09 4.59345e-09 4.493e-09 4.47609e-09 4.42591e-09 4.39789e-09 4.3912e-09 4.00761e-09 3.99722e-09 3.79677e-09 3.7056e-09 3.46348e-09 3.38755e-09 3.36558e-09 3.30662e-09 3.23407e-09 3.02968e-09 3.01054e-09 3.00719e-09 2.80301e-09 2.77351e-09 2.54967e-09 2.5012e-09 2.44664e-09 2.25442e-09 2.24896e-09 2.23662e-09 2.20238e-09 2.16868e-09 2.10653e-09 2.10078e-09 1.97319e-09 1.97048e-09 1.94024e-09 1.84702e-09 1.74925e-09 1.73219e-09 1.72764e-09 1.71119e-09 1.66839e-09 1.63942e-09 1.61799e-09 1.60128e-09 1.51827e-09 1.51007e-09 1.49033e-09 1.43179e-09 1.42362e-09 1.36907e-09 1.34084e-09 1.32155e-09 1.25591e-09 1.24533e-09 1.21387e-09 1.1932e-09 1.16474e-09 1.13302e-09 1.10107e-09 1.0937e-09 1.0876e-09 1.00109e-09 9.92211e-10 9.376e-10 8.99282e-10 7.29942e-10 6.63818e-10 6.40513e-10 6.16362e-10 5.95288e-10 5.87163e-10 5.61508e-10 5.45479e-10 5.37718e-10 5.20434e-10 4.25736e-10 4.24599e-10 4.23976e-10 4.20236e-10 3.96188e-10 3.88703e-10 3.70845e-10 3.59539e-10 3.57174e-10 3.56555e-10 3.47028e-10 3.33541e-10 3.23711e-10 3.11591e-10 2.93434e-10 2.62175e-10 2.54897e-10 2.46082e-10 2.45855e-10 2.39287e-10 2.36743e-10 2.36474e-10 2.34228e-10 2.07675e-10 1.90104e-10 1.8937e-10 1.74847e-10 1.51966e-10 1.48204e-10 1.45058e-10 1.44686e-10 1.3743e-10 1.36817e-10 1.32455e-10 1.01594e-10 9.98512e-11 8.76865e-11 7.86555e-11 7.81784e-11 7.67699e-11 6.62435e-11 6.11307e-11 5.96685e-11 4.69167e-11 4.13101e-11 3.56539e-11 3.15297e-11 2.86444e-11 2.18754e-11 2.08906e-11 2.02791e-11 2.00302e-11 1.82376e-11 1.7305e-11 1.63063e-11 1.61122e-11 1.32776e-11 1.07947e-11 1.00027e-11 9.86544e-12 5.07683e-12 4.89364e-12 4.35207e-12 3.87801e-12 3.81983e-12 3.31069e-12 2.28872e-12 1.85119e-12 1.76881e-12 1.66422e-12 1.6307e-12 1.46128e-12 1.03606e-12 5.87974e-13 4.91829e-13 4.61964e-13 3.93241e-13 1.60094e-13 1.4766e-13 1.41887e-13 3.53051e-14 1.15463e-14 7.99361e-15 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.11022e-16 -1.11022e-16 -2.22045e-16 -2.22045e-16 -3.33067e-16 -6.66134e-16 -6.66134e-16 -4.21885e-15 -2.95541e-13 -3.14748e-13 -6.88449e-13 -9.54348e-13 -7.91511e-12 -4.76459e-11 -5.82654e-11 -1.12452e-10 -1.71965e-10 -2.11514e-10 -2.18042e-10 -2.31257e-10 -3.24966e-10 -4.65185e-10 -6.19298e-10 -1.14069e-09 -1.55911e-09 -3.22353e-09 -3.42094e-09 -3.90994e-09 -3.94694e-09 -4.28836e-09 -7.56073e-09 -1.07499e-08 -1.32308e-08 -1.32932e-08 -1.55494e-08 -1.83193e-08 -2.04025e-08 -2.54765e-08 -2.60274e-08 -2.92553e-08 -3.87477e-08 -4.90445e-08 -5.18172e-08 -6.23822e-08 -6.96945e-08 -7.00286e-08 -7.32969e-08 -8.69669e-08 -1.00926e-07 -1.01823e-07 -1.03045e-07 -1.0743e-07 -1.17909e-07 -1.18519e-07 -1.60437e-07 -1.71906e-07 -1.8648e-07 -1.90291e-07 -1.99345e-07 -2.31642e-07 -2.34528e-07 -2.6464e-07 -2.80679e-07 -2.97431e-07 -3.39193e-07 -3.43008e-07 -3.72041e-07 -3.91032e-07 -4.87057e-07 -4.96766e-07 -4.97739e-07 -7.0686e-07 -8.01491e-07 -8.02441e-07 -8.47659e-07 -8.65617e-07 -8.76094e-07 -9.32259e-07 -9.89669e-07 -1.07855e-06 -1.35346e-06 -1.42502e-06 -1.46433e-06 -1.49957e-06 -1.60271e-06 -1.62605e-06 -1.63418e-06 -1.69851e-06 -1.7281e-06 -1.81865e-06 -1.87709e-06 -2.2182e-06 -2.4344e-06 -2.51567e-06 -2.58188e-06 -2.64319e-06 -2.68324e-06 -2.76387e-06 -2.80703e-06 -2.98308e-06 -3.00201e-06 -3.03135e-06 -3.40539e-06 -4.15979e-06 -4.17525e-06 -4.21425e-06 -4.23214e-06 -4.41184e-06 -5.58593e-06 -5.65058e-06 -5.71766e-06 -5.92841e-06 -5.94371e-06 -5.98589e-06 -6.00874e-06 -6.08947e-06 -6.19334e-06 -6.65486e-06 -6.94989e-06 -7.07812e-06 -7.31576e-06 -7.6628e-06 -7.79429e-06 -8.04415e-06 -8.61693e-06 -8.76271e-06 -8.98671e-06 -9.21787e-06 -9.3709e-06 -9.43252e-06 -9.47725e-06 -9.7828e-06 -9.99743e-06 -1.00552e-05 -1.06649e-05 -1.12654e-05 -1.13082e-05 -1.17894e-05 -1.22118e-05 -1.26891e-05 -1.30977e-05 -1.34666e-05 -1.43494e-05 -1.45654e-05 -1.45771e-05 -1.50408e-05 -1.53647e-05 -1.54893e-05 -1.56471e-05 -1.58415e-05 -1.66924e-05 -1.67759e-05 -1.72253e-05 -1.78652e-05 -1.80719e-05 -1.82942e-05 -1.85512e-05 -1.90627e-05 -2.1343e-05 -2.14165e-05 -2.16399e-05 -2.22399e-05 -2.25925e-05 -2.26563e-05 -2.35381e-05 -2.37805e-05 -2.40052e-05 -2.534e-05 -2.60482e-05 -2.87148e-05 -2.90262e-05 -2.93572e-05 -2.96788e-05 -3.12322e-05 -3.15957e-05 -3.19395e-05 -3.23158e-05 -3.26621e-05 -3.43281e-05 -3.49156e-05 -3.59886e-05 -3.62584e-05 -3.69178e-05 -3.92296e-05 -3.93983e-05 -4.07075e-05 -4.18667e-05 -4.29365e-05 -4.29936e-05 -4.34167e-05 -4.40967e-05 -4.42344e-05 -4.51954e-05 -4.59184e-05 -4.61099e-05 -4.71462e-05 -4.94093e-05 -5.08431e-05 -5.18945e-05 -5.26177e-05 -5.30092e-05 -5.32256e-05 -5.54864e-05 -5.57217e-05 -5.73568e-05 -5.77891e-05 -6.07385e-05 -6.07392e-05 -6.12846e-05 -6.21981e-05 -6.37246e-05 -6.4652e-05 -6.47034e-05 -6.4789e-05 -6.48251e-05 -6.62723e-05 -6.66382e-05 -7.09588e-05 -7.12565e-05 -7.14208e-05 -7.44359e-05 -7.46718e-05 -7.7256e-05 -7.77606e-05 -7.82926e-05 -7.90527e-05 -8.01032e-05 -8.24426e-05 -8.71123e-05 -8.78875e-05 -9.06419e-05 -9.34465e-05 -9.55141e-05 -0.000100431 -0.000101287 -0.000101406 -0.000101818 -0.000105209 -0.000107749 -0.000108322 -0.000109462 -0.00011021 -0.000112786 -0.000113623 -0.000114376 -0.000114708 -0.000115308 -0.000117042 -0.000126779 -0.000127172 -0.000127606 -0.000128814 -0.000131013 -0.00013151 -0.00013304 -0.000134233 -0.000136146 -0.000138177 -0.000138762 -0.000140159 -0.000146427 -0.00014683 -0.000149584 -0.000151154 -0.000151772 -0.000152492 -0.000154242 -0.000154492 -0.00015557 -0.000156256 -0.000158578 -0.00015904 -0.000160554 -0.000166705 -0.000168751 -0.000171055 -0.000171927 -0.000174548 -0.000176017 -0.000179776 -0.000180765 -0.000182113 -0.00018268 -0.000183305 -0.000185717 -0.000187372 -0.00019315 -0.000195454 -0.000197941 -0.00020727 -0.000209381 -0.000211846 -0.000213123 -0.000217494 -0.000219736 -0.000223095 -0.000224537 -0.000225188 -0.000230837 -0.00023157 -0.000233603 -0.000233671 -0.000236041 -0.000236499 -0.000242206 -0.000243959 -0.000246655 -0.000249342 -0.000249809 -0.000253146 -0.000257041 -0.000270998 -0.000273556 -0.000275923 -0.000277217 -0.000279815 -0.000283049 -0.000286722 -0.000290008 -0.000297162 -0.000301036 -0.00030258 -0.000304673 -0.000306036 -0.000308642 -0.00031023 -0.000312272 -0.000315916 -0.000322342 -0.000327919 -0.0003286 -0.000330361 -0.000346336 -0.000349389 -0.000352721 -0.00035321 -0.000354701 -0.000359807 -0.000362206 -0.000366773 -0.000367836 -0.000374038 -0.000376773 -0.000380486 -0.000381959 -0.000396028 -0.000397216 -0.000398461 -0.000399347 -0.000402651 -0.000402749 -0.000402985 -0.000405261 -0.000416287 -0.000422383 -0.000427574 -0.000436282 -0.000437713 -0.000443528 -0.00044403 -0.000450309 -0.000450384 -0.000450494 -0.000451903 -0.000454252 -0.00045871 -0.000459231 -0.000465204 -0.000467067 -0.000469522 -0.000469571 -0.00047037 -0.000476427 -0.000478846 -0.000481678 -0.000485003 -0.000486884 -0.000488703 -0.000489344 -0.0004906 -0.000495433 -0.000499214 -0.000500679 -0.000500711 -0.00050229 -0.00050413 -0.000514848 -0.000518857 -0.00052755 -0.000543149 -0.000547934 -0.000548511 -0.000550325 -0.0005539 -0.000560156 -0.000561168 -0.000566687 -0.000600431 -0.000601657 -0.000611056 -0.000618894 -0.000628499 -0.000633315 -0.000639233 -0.00064295 -0.00065233 -0.000655221 -0.000660728 -0.000662349 -0.000664593 -0.000664933 -0.000677888 -0.000677974 -0.000693346 -0.000694992 -0.00069884 -0.000714623 -0.000715476 -0.000718401 -0.000723396 -0.000733207 -0.000734199 -0.000734504 -0.000748358 -0.000749301 -0.000759644 -0.000759781 -0.000782121 -0.000787149 -0.000792888 -0.000797095 -0.000798291 -0.000805463 -0.000808336 -0.000811061 -0.000811716 -0.000822622 -0.000823659 -0.000826638 -0.000827851 -0.000843291 -0.000847755 -0.000852522 -0.000861329 -0.000861583 -0.000872504 -0.000873362 -0.000881146 -0.000891457 -0.000892125 -0.000892351 -0.000893594 -0.000898265 -0.000899485 -0.00090795 -0.000928424 -0.000929272 -0.000930276 -0.000932295 -0.000940463 -0.000954758 -0.000960874 -0.000972632 -0.0009779 -0.000983075 -0.000983602 -0.000997876 -0.00100907 -0.00101033 -0.00101291 -0.00101702 -0.00101893 -0.00102288 -0.00102808 -0.00103606 -0.00103624 -0.00103674 -0.00104264 -0.00104452 -0.00104605 -0.00105322 -0.00105496 -0.00105591 -0.00106002 -0.00107333 -0.0010938 -0.00109889 -0.00110528 -0.00110734 -0.00112364 -0.00114345 -0.00115531 -0.00116089 -0.00116133 -0.00117334 -0.00117678 -0.00118926 -0.00119841 -0.00120486 -0.00122221 -0.00122423 -0.00123708 -0.00124246 -0.00124774 -0.0012503 -0.00126399 -0.00126665 -0.00126797 -0.00127012 -0.0012712 -0.00127613 -0.00127792 -0.00127891 -0.00130042 -0.00132607 -0.00132638 -0.0013294 -0.00133863 -0.00134239 -0.00134487 -0.00134657 -0.00135177 -0.00135795 -0.00136047 -0.00136492 -0.00136541 -0.00136588 -0.00137785 -0.00138941 -0.00139838 -0.00139959 -0.00140521 -0.00141425 -0.00142068 -0.00143094 -0.00143155 -0.00143234 -0.00143618 -0.00144035 -0.00144605 -0.0014583 -0.00146887 -0.0014697 -0.00147108 -0.00147709 -0.00149764 -0.0015063 -0.00150768 -0.00151311 -0.00151531 -0.00153088 -0.00153517 -0.00158601 -0.00159919 -0.0015994 -0.00160141 -0.00160237 -0.00160602 -0.00162215 -0.00162297 -0.00162317 -0.00163236 -0.00164368 -0.00164887 -0.00164913 -0.00165024 -0.00165398 -0.00166049 -0.00167116 -0.00167769 -0.00168637 -0.0016905 -0.00169387 -0.00171104 -0.00171298 -0.00172325 -0.00173106 -0.00174461 -0.00177974 -0.00178061 -0.00178548 -0.00179401 -0.00182073 -0.00182648 -0.0018807 -0.00191069 -0.00192265 -0.00195211 -0.00196147 -0.00196664 -0.00198787 -0.00200583 -0.00202358 -0.00202685 -0.00205229 -0.00205343 -0.00206503 -0.00206775 -0.00207763 -0.0020885 -0.00209502 -0.002097 -0.00211031 -0.00211637 -0.00212624 -0.00213341 -0.00213964 -0.0021648 -0.00217365 -0.00226579 -0.00228301 -0.00229362 -0.00231914 -0.0023308 -0.00234145 -0.00236164 -0.00238113 -0.00239227 -0.00239966 -0.00240993 -0.00241008 -0.00241129 -0.00243216 -0.00243956 -0.00244129 -0.00244647 -0.00246409 -0.00246858 -0.00248222 -0.00248651 -0.00249713 -0.00251933 -0.00253351 -0.00253663 -0.00254996 -0.00255716 -0.00256308 -0.00257784 -0.00257814 -0.00259661 -0.002597 -0.0026019 -0.00261679 -0.00262065 -0.00262413 -0.0026368 -0.00263895 -0.00266166 -0.00266776 -0.00267381 -0.00267624 -0.00267745 -0.00270105 -0.00272011 -0.00273026 -0.00274823 -0.00276243 -0.00277204 -0.00278515 -0.002795 -0.00286662 -0.00287004 -0.00287582 -0.00288326 -0.00290779 -0.00297149 -0.00301359 -0.0030419 -0.00304378 -0.00305455 -0.00307997 -0.00310201 -0.00311577 -0.00316744 -0.00317624 -0.00318522 -0.00318629 -0.00320732 -0.00322341 -0.00323326 -0.003253 -0.00332572 -0.0033499 -0.00335345 -0.00335427 -0.00337573 -0.00338702 -0.00339563 -0.00341468 -0.00343456 -0.00343518 -0.00344745 -0.00345581 -0.00348211 -0.00350302 -0.00351282 -0.00352759 -0.00358089 -0.00358523 -0.0035864 -0.00359803 -0.00361718 -0.00361762 -0.00362295 -0.00362839 -0.00364133 -0.00366065 -0.00372338 -0.00372578 -0.00372707 -0.00376997 -0.00379675 -0.00382807 -0.00384685 -0.00386458 -0.00387266 -0.00389218 -0.00389377 -0.00392004 -0.00397026 -0.00397398 -0.00397925 -0.00399346 -0.00400139 -0.00400855 -0.00401622 -0.00414847 -0.00415293 -0.00417291 -0.00417766 -0.00421471 -0.00424876 -0.00425932 -0.00436915 -0.00441828 -0.00443203 -0.00444207 -0.0044456 -0.00445795 -0.00448316 -0.00450017 -0.00453681 -0.00456321 -0.00463038 -0.00464242 -0.00468087 -0.0046847 -0.00471373 -0.0047214 -0.00474325 -0.00476934 -0.00478501 -0.00482566 -0.00487574 -0.00492976 -0.00494671 -0.00499766 -0.00501555 -0.0050679 -0.00510111 -0.00514502 -0.00517526 -0.00518409 -0.00519094 -0.00520701 -0.0052221 -0.00522672 -0.00525587 -0.00529281 -0.00529356 -0.00529392 -0.00529396 -0.00531694 -0.00533263 -0.00539241 -0.005414 -0.00543579 -0.00547355 -0.0054831 -0.00549754 -0.00556202 -0.00557465 -0.00561104 -0.00573509 -0.00574013 -0.00576461 -0.00576538 -0.00580133 -0.00595395 -0.00596928 -0.00603042 -0.00604873 -0.00607549 -0.00608619 -0.00611662 -0.00616461 -0.00617045 -0.00626179 -0.00631426 -0.00635549 -0.00637369 -0.00638235 -0.00656912 -0.00666103 -0.00669455 -0.00670833 -0.00674111 -0.00676763 -0.00677662 -0.00678674 -0.00680221 -0.00680692 -0.00686119 -0.00689054 -0.00693941 -0.00698661 -0.00704429 -0.00704943 -0.00713176 -0.00714263 -0.00728136 -0.0072938 -0.00734257 -0.00738569 -0.00741215 -0.00741347 -0.00743106 -0.00745045 -0.00748317 -0.00749603 -0.00752219 -0.00767648 -0.00769442 -0.00776161 -0.00777484 -0.00779682 -0.0078046 -0.00785167 -0.00785255 -0.00788318 -0.0078849 -0.00800671 -0.00803155 -0.00809101 -0.00816254 -0.00820871 -0.00822278 -0.00830469 -0.00831281 -0.00834021 -0.00835178 -0.00846806 -0.00846873 -0.00857191 -0.00864155 -0.00871337 -0.00872687 -0.00874755 -0.00883155 -0.00894954 -0.00900145 -0.0091442 -0.00919991 -0.00927264 -0.00936322 -0.00943504 -0.00949214 -0.00951409 -0.00957419 -0.00957614 -0.00962384 -0.00969194 -0.00994979 -0.00997196 -0.00998724 -0.0101189 -0.0101331 -0.0102972 -0.0103439 -0.0104022 -0.0104809 -0.0106086 -0.010668 -0.0106991 -0.0107894 -0.0108146 -0.0108687 -0.0108937 -0.010976 -0.0109853 -0.0111895 -0.0111897 -0.0112411 -0.0112766 -0.0113064 -0.0113118 -0.0114515 -0.0114608 -0.0118306 -0.0118892 -0.0119489 -0.011987 -0.0120247 -0.0120711 -0.0124145 -0.0124892 -0.0125125 -0.0125515 -0.0126423 -0.0126459 -0.0127251 -0.0127358 -0.0127936 -0.0129759 -0.0131206 -0.0132026 -0.0132995 -0.0134924 -0.0136513 -0.013731 -0.0137875 -0.0138887 -0.0138971 -0.0139404 -0.0143686 -0.0146393 -0.0146605 -0.0149066 -0.014995 -0.0150427 -0.0152285 -0.0152475 -0.0154418 -0.0155364 -0.0155541 -0.0155776 -0.0156816 -0.0157347 -0.0157445 -0.0157698 -0.0158885 -0.0159982 -0.0160166 -0.016059 -0.01616 -0.0162507 -0.0165763 -0.0166394 -0.01668 -0.0170401 -0.0171918 -0.0172436 -0.0173639 -0.0176315 -0.0177002 -0.0178417 -0.0179614 -0.0181743 -0.0183496 -0.0185888 -0.0189068 -0.0189235 -0.0190863 -0.0192951 -0.0193323 -0.0194098 -0.0194178 -0.0194381 -0.0196094 -0.019693 -0.0197472 -0.0202247 -0.0204252 -0.0205239 -0.0210188 -0.021127 -0.0211737 -0.0212099 -0.0213047 -0.0217568 -0.0219449 -0.0219772 -0.0221157 -0.0221842 -0.0222014 -0.0223534 -0.0223753 -0.0231374 -0.0232671 -0.0237326 -0.0238608 -0.0245984 -0.0248467 -0.0251846 -0.0253393 -0.0254178 -0.0254471 -0.0262253 -0.0264832 -0.0268302 -0.0272259 -0.0273961 -0.028215 -0.0282607 -0.029333 -0.0300452 -0.0303972 -0.0307687 -0.0307705 -0.0309752 -0.0310071 -0.0332135 -0.0332193 -0.0337112 -0.0337532 -0.0339499 -0.0348513 -0.0352717 -0.0354673 -0.0364693 -0.037151 -0.0371513 -0.0384565 -0.0390388 -0.0395087 -0.03988 -0.0405948 -0.0409164 -0.0414376 -0.0419877 -0.042562 -0.0427357 -0.0428535 -0.0435297 -0.0438676 -0.0450284 -0.0463423 -0.0465746 -0.0471138 -0.047615 -0.0479238 -0.0483927 -0.0491392 -0.0491643 -0.0496906 -0.0497508 -0.0516122 -0.0522575 -0.0523328 -0.0529499 -0.0547698 -0.0549827 -0.055386 -0.0560312 -0.0563687 -0.0564196 -0.0577394 -0.0577593 -0.0582437 -0.0588718 -0.068136 -0.0712329 -0.0718476 -0.0749374 -0.0763563 -0.077588 -0.0817774 -0.0837152 -0.086221 -0.0885311 -0.0925085 -0.0954663 -0.0977718 -0.0989018 -0.103548 -0.109007 -0.109872 -0.112939 -0.119447 -0.126054 -0.127113 -0.132671 -0.133344 -0.151182 -0.167718 -0.181043 -0.189205 -0.191319 -0.19833 -0.202765 -0.205376 -0.208664 -0.230719 -0.248052 -0.286896 -0.3263 -0.3376 -0.341266 -0.348006 -0.353257 -0.365171 -0.369025 -0.388262 -0.390263 -0.409525 -0.41712 -0.457469 -0.563153 -0.74186 -0.838537 -1.05245 -1.80577 
+index for ordered merges 736 / 1473
+Merging 906 of 1473 splits. Merge threshold is -0.000485003
+Epoch 0/20:  validation corpus likelihood -10579.7 validation failures 2 training root counts 5000 training corpus likelihood -439326 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10826.6 validation failures 2 training root counts 5000 training corpus likelihood -437307 root weights: 1
+Epoch 2/20:  validation corpus likelihood -11121.3 validation failures 2 training root counts 5000 training corpus likelihood -435498 root weights: 1
+Epoch 3/20:  validation corpus likelihood -11463.9 validation failures 2 training root counts 5000 training corpus likelihood -433620 root weights: 1
+Epoch 4/20:  validation corpus likelihood -11860.8 validation failures 2 training root counts 5000 training corpus likelihood -431266 root weights: 1
+Epoch 5/20:  validation corpus likelihood -12326.9 validation failures 2 training root counts 5000 training corpus likelihood -428291 root weights: 1
+Epoch 6/20:  validation corpus likelihood -11928.4 validation failures 3 training root counts 5000 training corpus likelihood -424959 root weights: 1
+Epoch 7/20:  validation corpus likelihood -12278.2 validation failures 3 training root counts 5000 training corpus likelihood -421547 root weights: 1
+Epoch 8/20:  validation corpus likelihood -11906.3 validation failures 4 training root counts 5000 training corpus likelihood -418301 root weights: 1
+Epoch 9/20:  validation corpus likelihood -12226.8 validation failures 4 training root counts 5000 training corpus likelihood -415392 root weights: 1
+Epoch 10/20:  validation corpus likelihood -12602.1 validation failures 4 training root counts 5000 training corpus likelihood -412737 root weights: 1
+Epoch 11/20:  validation corpus likelihood -13037.5 validation failures 4 training root counts 5000 training corpus likelihood -410221 root weights: 1
+Epoch 12/20:  validation corpus likelihood -13506.5 validation failures 4 training root counts 5000 training corpus likelihood -407825 root weights: 1
+Epoch 13/20:  validation corpus likelihood -13286.4 validation failures 5 training root counts 5000 training corpus likelihood -405601 root weights: 1
+Epoch 14/20:  validation corpus likelihood -13807.7 validation failures 5 training root counts 5000 training corpus likelihood -403604 root weights: 1
+Epoch 15/20:  validation corpus likelihood -13572 validation failures 6 training root counts 5000 training corpus likelihood -401850 root weights: 1
+Epoch 16/20:  validation corpus likelihood -14138.9 validation failures 6 training root counts 5000 training corpus likelihood -400322 root weights: 1
+Epoch 17/20:  validation corpus likelihood -14010.8 validation failures 7 training root counts 5000 training corpus likelihood -398987 root weights: 1
+Epoch 18/20:  validation corpus likelihood -12952.8 validation failures 9 training root counts 5000 training corpus likelihood -397821 root weights: 1
+Epoch 19/20:  validation corpus likelihood -13380.7 validation failures 9 training root counts 5000 training corpus likelihood -396813 root weights: 1
+ validation corpus likelihood -13032.9 validation failures 10
+ resetting to annotation from epoch 8 with validation score -11906.3
+Smoothing rules with factors 0.01 and 0.1.
+Epoch 0/20:  validation corpus likelihood -11707.7 validation failures 2 training root counts 5000 training corpus likelihood -571387 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10392.8 validation failures 2 training root counts 5000 training corpus likelihood -487682 root weights: 1
+Epoch 2/20:  validation corpus likelihood -9845.62 validation failures 2 training root counts 5000 training corpus likelihood -445443 root weights: 1
+Epoch 3/20:  validation corpus likelihood -9730.63 validation failures 2 training root counts 5000 training corpus likelihood -425206 root weights: 1
+Epoch 4/20:  validation corpus likelihood -9912.01 validation failures 2 training root counts 5000 training corpus likelihood -416387 root weights: 1
+Epoch 5/20:  validation corpus likelihood -10249.4 validation failures 2 training root counts 5000 training corpus likelihood -411521 root weights: 1
+Epoch 6/20:  validation corpus likelihood -10685.4 validation failures 2 training root counts 5000 training corpus likelihood -407995 root weights: 1
+Epoch 7/20:  validation corpus likelihood -11194.4 validation failures 2 training root counts 5000 training corpus likelihood -405116 root weights: 1
+Epoch 8/20:  validation corpus likelihood -11818.4 validation failures 2 training root counts 5000 training corpus likelihood -402685 root weights: 1
+Epoch 9/20:  validation corpus likelihood -12603.6 validation failures 2
+ resetting to annotation from epoch 3 with validation score -9730.63
+Completed split/merge cycles in 1359.2064776420593 seconds
+Epoch 0/20:  validation corpus likelihood -9731.77 validation failures 2 training root counts 5000 training corpus likelihood -425318 root weights: 0.502113
+0.497887
+Epoch 1/20:  validation corpus likelihood -9912.15 validation failures 2 training root counts 5000 training corpus likelihood -416389 root weights: 0.502113
+0.497887
+Epoch 2/20:  validation corpus likelihood -10249.4 validation failures 2 training root counts 5000 training corpus likelihood -411522 root weights: 0.502113
+0.497887
+Epoch 3/20:  validation corpus likelihood -10685.4 validation failures 2 training root counts 5000 training corpus likelihood -407995 root weights: 0.502113
+0.497887
+Epoch 4/20:  validation corpus likelihood -11194.4 validation failures 2 training root counts 5000 training corpus likelihood -405111 root weights: 0.502113
+0.497887
+Epoch 5/20:  validation corpus likelihood -11818.5 validation failures 2 training root counts 5000 training corpus likelihood -402666 root weights: 0.502113
+0.497887
+Epoch 6/20:  validation corpus likelihood -12603.7 validation failures 2
+ resetting to annotation from epoch 5 with validation score -11818.5
+Computing merge factors.
+Selecting merges best 50 % 
+ordered merge Δs: 1.03406 0.467593 0.233576 0.160737 0.159654 0.0923055 0.0838006 0.0638349 0.0576444 0.056831 0.0507186 0.0377542 0.0366387 0.0298429 0.0251732 0.0231984 0.0201181 0.0171999 0.0142747 0.0105763 0.00661753 0.00623296 0.00584132 0.00525106 0.00510653 0.0047023 0.00419237 0.00393538 0.00376129 0.00315888 0.00235648 0.00232662 0.00186628 0.00168481 0.00165553 0.00141176 0.00125588 0.000951579 0.000806895 0.000720016 0.000630379 0.000573287 0.000521355 0.000474756 0.000446796 0.000305599 0.00026111 0.00023972 0.000238284 0.000220768 0.000197918 0.000194641 0.000177302 0.000155283 0.000143979 0.000135386 0.000124164 0.000117979 0.000117617 0.000107628 0.000104274 9.71424e-05 8.59199e-05 8.04206e-05 7.1733e-05 4.80021e-05 4.53936e-05 4.36758e-05 2.95915e-05 2.66918e-05 2.4728e-05 2.14223e-05 2.07722e-05 1.9002e-05 1.85151e-05 1.83666e-05 1.76805e-05 1.57869e-05 1.36748e-05 1.09401e-05 1.03225e-05 9.17446e-06 8.56184e-06 6.51157e-06 6.38484e-06 5.64888e-06 4.47676e-06 4.28305e-06 4.08728e-06 2.82703e-06 2.81864e-06 2.36187e-06 2.00088e-06 1.45022e-06 1.03754e-06 1.0093e-06 8.95938e-07 6.04924e-07 5.8471e-07 4.81107e-07 4.45163e-07 4.39103e-07 2.86336e-07 2.35201e-07 2.23837e-07 2.14577e-07 2.09356e-07 2.09202e-07 1.9861e-07 1.74059e-07 1.71995e-07 1.47464e-07 1.31544e-07 1.22226e-07 1.15774e-07 1.11947e-07 1.10108e-07 1.02327e-07 9.75277e-08 9.51625e-08 9.31032e-08 8.69621e-08 8.25192e-08 7.46092e-08 7.00755e-08 6.55972e-08 5.89862e-08 5.33587e-08 5.30618e-08 5.27153e-08 5.04543e-08 5.01197e-08 4.9659e-08 4.82549e-08 4.6138e-08 4.54915e-08 4.41155e-08 4.34673e-08 4.334e-08 4.16481e-08 4.14747e-08 4.07368e-08 3.99329e-08 3.79306e-08 3.5585e-08 3.34317e-08 3.20651e-08 3.0981e-08 2.98449e-08 2.78727e-08 2.67805e-08 2.66773e-08 2.65307e-08 2.6275e-08 2.61659e-08 2.57491e-08 2.56831e-08 2.5539e-08 2.5417e-08 2.50789e-08 2.49189e-08 2.47902e-08 2.46591e-08 2.38286e-08 2.35668e-08 2.33591e-08 2.24806e-08 2.21081e-08 2.14853e-08 1.96256e-08 1.94341e-08 1.94311e-08 1.84131e-08 1.76477e-08 1.73879e-08 1.69516e-08 1.6321e-08 1.61231e-08 1.57135e-08 1.5684e-08 1.54571e-08 1.54171e-08 1.45239e-08 1.39183e-08 1.38835e-08 1.3304e-08 1.31655e-08 1.30623e-08 1.28062e-08 1.22569e-08 1.22488e-08 1.20512e-08 1.19052e-08 1.18028e-08 1.13095e-08 1.12931e-08 1.11492e-08 1.08913e-08 1.0711e-08 1.01481e-08 1.0135e-08 9.31131e-09 8.92901e-09 8.82738e-09 8.30915e-09 7.95018e-09 7.9419e-09 7.87381e-09 7.6524e-09 7.62225e-09 7.60283e-09 7.48872e-09 7.21163e-09 7.00186e-09 6.97627e-09 6.82503e-09 6.74554e-09 6.42724e-09 6.22733e-09 5.90648e-09 5.67094e-09 5.65069e-09 5.58208e-09 5.55097e-09 5.42123e-09 5.34665e-09 5.3257e-09 5.31991e-09 5.25826e-09 5.25037e-09 4.97858e-09 4.8263e-09 4.80392e-09 4.56454e-09 4.55852e-09 4.50519e-09 4.47847e-09 4.43097e-09 4.41138e-09 4.19001e-09 4.10121e-09 3.97766e-09 3.97617e-09 3.64416e-09 3.51748e-09 3.43865e-09 3.42407e-09 3.34226e-09 3.31218e-09 3.30167e-09 3.22775e-09 3.13295e-09 3.0129e-09 2.99076e-09 2.8403e-09 2.8253e-09 2.7716e-09 2.73408e-09 2.6548e-09 2.64895e-09 2.63795e-09 2.45726e-09 2.40803e-09 2.33506e-09 2.25411e-09 2.19028e-09 2.07252e-09 1.94406e-09 1.91209e-09 1.8022e-09 1.75379e-09 1.68187e-09 1.67481e-09 1.57703e-09 1.54102e-09 1.53934e-09 1.53083e-09 1.509e-09 1.49643e-09 1.48004e-09 1.45358e-09 1.44313e-09 1.42077e-09 1.41909e-09 1.39366e-09 1.34867e-09 1.32563e-09 1.32056e-09 1.28851e-09 1.26472e-09 1.17998e-09 1.14112e-09 1.0732e-09 1.0285e-09 1.02098e-09 1.01419e-09 9.81672e-10 9.6409e-10 9.16168e-10 9.10267e-10 8.86342e-10 8.56706e-10 8.32783e-10 8.1675e-10 8.11041e-10 8.01172e-10 7.5522e-10 7.30833e-10 6.74704e-10 6.74596e-10 6.12531e-10 6.12522e-10 6.09196e-10 5.70246e-10 5.68357e-10 5.67919e-10 5.58697e-10 5.55827e-10 5.32358e-10 5.13396e-10 5.00997e-10 4.98411e-10 4.51275e-10 4.33127e-10 4.01842e-10 3.34908e-10 3.27263e-10 3.0678e-10 2.97279e-10 2.96656e-10 2.88062e-10 2.79502e-10 2.70122e-10 2.63815e-10 2.57867e-10 2.54359e-10 2.5015e-10 2.44121e-10 2.35338e-10 2.31422e-10 2.31295e-10 2.20575e-10 2.18004e-10 2.16881e-10 2.13278e-10 2.0805e-10 1.96796e-10 1.96622e-10 1.93776e-10 1.83855e-10 1.8335e-10 1.80015e-10 1.69359e-10 1.67544e-10 1.57751e-10 1.56319e-10 1.51131e-10 1.48409e-10 1.46577e-10 1.45053e-10 1.3578e-10 1.33824e-10 1.26888e-10 1.19531e-10 1.14661e-10 1.13907e-10 1.1298e-10 1.0241e-10 1.0214e-10 9.96774e-11 9.58533e-11 9.00577e-11 8.19267e-11 8.15727e-11 7.50565e-11 7.23619e-11 7.19469e-11 6.74576e-11 6.72137e-11 6.57356e-11 6.18876e-11 5.98452e-11 5.74421e-11 5.70763e-11 5.68874e-11 5.38201e-11 5.10643e-11 4.87339e-11 4.75993e-11 3.95327e-11 3.86948e-11 3.217e-11 2.85778e-11 2.75675e-11 2.64609e-11 2.5481e-11 2.53135e-11 2.46907e-11 2.43356e-11 2.42786e-11 2.39886e-11 1.98459e-11 1.5673e-11 1.37859e-11 1.37748e-11 1.23281e-11 1.18647e-11 1.10048e-11 1.08749e-11 1.03709e-11 9.9929e-12 9.69247e-12 9.13825e-12 8.57647e-12 8.38196e-12 7.58571e-12 7.19913e-12 7.09766e-12 6.56453e-12 6.32161e-12 6.29319e-12 6.06426e-12 5.76295e-12 5.5671e-12 5.03175e-12 4.91207e-12 3.62621e-12 3.51386e-12 3.36842e-12 2.95164e-12 2.93665e-12 2.79132e-12 2.75402e-12 1.79834e-12 1.52922e-12 1.4535e-12 7.9603e-13 7.8626e-13 6.16063e-13 4.82947e-13 4.80727e-13 3.83138e-13 7.83817e-14 5.86198e-14 4.75175e-14 4.72955e-14 4.64073e-14 3.84137e-14 3.28626e-14 2.73115e-14 2.57572e-14 2.10942e-14 1.77636e-14 1.19904e-14 1.14353e-14 1.11022e-14 4.44089e-15 3.9968e-15 3.33067e-15 1.9984e-15 1.33227e-15 3.33067e-16 3.33067e-16 3.33067e-16 2.22045e-16 2.22045e-16 2.22045e-16 2.22045e-16 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -1.11022e-16 -1.11022e-16 -2.22045e-16 -2.22045e-16 -2.22045e-16 -5.55112e-16 -5.55112e-16 -5.10703e-15 -5.88418e-15 -9.05942e-14 -2.35256e-13 -1.02995e-12 -1.13076e-12 -2.06568e-12 -2.57983e-12 -4.68803e-12 -1.2547e-11 -2.33483e-11 -9.84444e-11 -1.71084e-10 -2.21027e-10 -2.5253e-10 -3.58222e-10 -3.59468e-10 -4.12192e-10 -5.8793e-10 -6.68412e-10 -7.58137e-10 -1.09094e-09 -1.1029e-09 -1.12023e-09 -1.18967e-09 -1.2295e-09 -1.43805e-09 -2.10892e-09 -2.33528e-09 -3.04745e-09 -3.61811e-09 -5.31245e-09 -6.0463e-09 -7.11163e-09 -8.38658e-09 -8.66712e-09 -9.44907e-09 -9.64208e-09 -1.25322e-08 -1.35979e-08 -1.38102e-08 -1.49154e-08 -1.61612e-08 -1.80064e-08 -1.97242e-08 -2.17664e-08 -2.21003e-08 -2.26686e-08 -2.5062e-08 -2.63789e-08 -2.64905e-08 -2.67855e-08 -4.48847e-08 -4.57553e-08 -5.52092e-08 -5.72709e-08 -5.76947e-08 -7.89869e-08 -8.17405e-08 -8.54474e-08 -1.14746e-07 -1.18617e-07 -1.26929e-07 -1.27768e-07 -1.28626e-07 -1.35663e-07 -1.41012e-07 -2.0373e-07 -2.08404e-07 -2.19112e-07 -2.22818e-07 -2.39687e-07 -3.18176e-07 -3.3254e-07 -3.61816e-07 -3.73017e-07 -4.88629e-07 -4.92581e-07 -5.10363e-07 -5.44293e-07 -5.60382e-07 -5.86066e-07 -5.94205e-07 -6.42838e-07 -6.55754e-07 -6.58593e-07 -7.07801e-07 -7.15301e-07 -7.48773e-07 -7.7231e-07 -7.89884e-07 -8.29269e-07 -9.11905e-07 -9.97244e-07 -1.08411e-06 -1.17784e-06 -1.24231e-06 -1.24258e-06 -1.24861e-06 -1.29061e-06 -1.32912e-06 -1.50182e-06 -1.53158e-06 -1.53675e-06 -1.56044e-06 -1.69808e-06 -1.71433e-06 -1.71921e-06 -1.74578e-06 -1.76547e-06 -1.79694e-06 -1.98075e-06 -2.13792e-06 -2.23813e-06 -2.25578e-06 -2.29403e-06 -2.35711e-06 -2.38494e-06 -2.88544e-06 -2.9738e-06 -3.26873e-06 -3.3843e-06 -3.47416e-06 -3.55058e-06 -4.09012e-06 -4.13952e-06 -4.26562e-06 -4.32024e-06 -4.58122e-06 -4.58739e-06 -4.76649e-06 -4.81374e-06 -5.08684e-06 -5.15375e-06 -5.20157e-06 -5.54536e-06 -6.01467e-06 -6.08728e-06 -6.4849e-06 -6.54744e-06 -6.71642e-06 -6.80812e-06 -6.84025e-06 -7.07181e-06 -7.14866e-06 -7.60823e-06 -8.65086e-06 -8.71693e-06 -8.98177e-06 -9.34324e-06 -9.5418e-06 -9.61988e-06 -9.74312e-06 -9.90512e-06 -1.00938e-05 -1.09748e-05 -1.16297e-05 -1.16882e-05 -1.18768e-05 -1.19109e-05 -1.20119e-05 -1.2115e-05 -1.21542e-05 -1.24856e-05 -1.25469e-05 -1.26754e-05 -1.29786e-05 -1.36879e-05 -1.38816e-05 -1.40491e-05 -1.45246e-05 -1.47869e-05 -1.54401e-05 -1.58725e-05 -1.59698e-05 -1.60174e-05 -1.65857e-05 -1.67865e-05 -1.68746e-05 -1.92526e-05 -1.98156e-05 -1.99479e-05 -2.03792e-05 -2.05878e-05 -2.14133e-05 -2.15638e-05 -2.19867e-05 -2.46078e-05 -2.49874e-05 -2.51958e-05 -2.55205e-05 -2.57328e-05 -2.58012e-05 -2.62751e-05 -2.68702e-05 -2.76761e-05 -2.80525e-05 -2.8981e-05 -2.92198e-05 -2.9462e-05 -2.95738e-05 -3.01882e-05 -3.01973e-05 -3.02861e-05 -3.12261e-05 -3.14234e-05 -3.16469e-05 -3.17308e-05 -3.18209e-05 -3.22095e-05 -3.24894e-05 -3.27626e-05 -3.34819e-05 -3.40539e-05 -3.42762e-05 -3.46633e-05 -3.54471e-05 -3.55614e-05 -3.61884e-05 -3.66715e-05 -3.70541e-05 -3.781e-05 -3.81181e-05 -3.86403e-05 -3.96644e-05 -4.00392e-05 -4.12834e-05 -4.23581e-05 -4.35192e-05 -4.39425e-05 -4.57697e-05 -4.60681e-05 -4.6077e-05 -4.63715e-05 -4.79453e-05 -4.85326e-05 -4.96862e-05 -5.06499e-05 -5.10352e-05 -5.15486e-05 -5.16397e-05 -5.44185e-05 -5.93073e-05 -5.95328e-05 -5.95359e-05 -5.97651e-05 -6.06644e-05 -6.08693e-05 -6.30062e-05 -6.3014e-05 -6.34514e-05 -6.41116e-05 -6.5272e-05 -6.55084e-05 -6.5635e-05 -6.62403e-05 -6.65686e-05 -6.75261e-05 -6.76682e-05 -6.81959e-05 -6.93795e-05 -6.96284e-05 -6.98947e-05 -7.12425e-05 -7.16058e-05 -7.2215e-05 -7.47061e-05 -7.4852e-05 -7.53044e-05 -7.56981e-05 -7.5992e-05 -7.61788e-05 -7.76795e-05 -7.87568e-05 -7.90239e-05 -8.00244e-05 -8.01544e-05 -8.05825e-05 -8.12944e-05 -8.162e-05 -8.20236e-05 -8.22589e-05 -8.38022e-05 -8.42288e-05 -8.56758e-05 -8.62369e-05 -8.65383e-05 -8.65599e-05 -9.07656e-05 -9.10778e-05 -9.15732e-05 -9.27367e-05 -9.42456e-05 -0.000101038 -0.000102639 -0.000103188 -0.000103385 -0.000103788 -0.000104605 -0.000104729 -0.000104975 -0.000105124 -0.000105885 -0.000107053 -0.000107571 -0.000109151 -0.00011292 -0.000113852 -0.000114602 -0.000116269 -0.000117299 -0.000118353 -0.000118735 -0.000120295 -0.000121588 -0.000122157 -0.000124951 -0.00012576 -0.000126196 -0.000126389 -0.0001268 -0.000126878 -0.000127651 -0.000129257 -0.000130469 -0.000130864 -0.000133266 -0.00013457 -0.000135117 -0.000135846 -0.000141302 -0.000141652 -0.000142167 -0.000143295 -0.000143741 -0.000144117 -0.000145343 -0.000147833 -0.000147939 -0.000148743 -0.000150494 -0.000153214 -0.000158774 -0.000159561 -0.000160503 -0.00016058 -0.000162608 -0.000162928 -0.000165273 -0.000168261 -0.000171268 -0.000173115 -0.000173786 -0.000173995 -0.00017518 -0.000177436 -0.00017826 -0.00018066 -0.00018269 -0.000184864 -0.000186308 -0.000189581 -0.000190438 -0.000190907 -0.000190959 -0.000191396 -0.000192002 -0.000197732 -0.000197921 -0.000198026 -0.000198167 -0.00019883 -0.000200095 -0.00020028 -0.000200582 -0.000202528 -0.000205918 -0.000212927 -0.000213547 -0.000215114 -0.000215719 -0.000216709 -0.000216929 -0.000219485 -0.000225904 -0.000228282 -0.000232619 -0.000235187 -0.000239596 -0.000241331 -0.000243776 -0.000245656 -0.000246884 -0.000248801 -0.000248947 -0.000250047 -0.00025306 -0.000254024 -0.000259971 -0.000260075 -0.000261165 -0.000263647 -0.000266156 -0.00026719 -0.000268792 -0.000271204 -0.00027123 -0.000272187 -0.000274843 -0.000276465 -0.000277206 -0.000278313 -0.000278404 -0.00027866 -0.000284016 -0.000285699 -0.000286933 -0.000287415 -0.000289755 -0.000290294 -0.000290943 -0.000296066 -0.000298708 -0.000298734 -0.00029957 -0.00030106 -0.000302557 -0.000308463 -0.000309447 -0.000312459 -0.00031427 -0.000319013 -0.000319561 -0.000319825 -0.000322808 -0.000323014 -0.000329621 -0.000330015 -0.000333313 -0.000334532 -0.000335664 -0.000340551 -0.000341278 -0.000349162 -0.000352861 -0.000354832 -0.00035577 -0.000359474 -0.00036318 -0.000367025 -0.000367806 -0.000368321 -0.000369428 -0.000371026 -0.000374372 -0.000375068 -0.000375714 -0.000375835 -0.000377678 -0.00037844 -0.000384525 -0.000385615 -0.000388866 -0.000390602 -0.000390659 -0.000391303 -0.000392236 -0.000392364 -0.000392865 -0.000394732 -0.000400739 -0.000402009 -0.000403943 -0.000413055 -0.000415922 -0.000417429 -0.000423881 -0.000423975 -0.000426507 -0.00042711 -0.000427287 -0.000427407 -0.000429824 -0.000432772 -0.000434977 -0.000435604 -0.000436777 -0.000441359 -0.000444029 -0.000447573 -0.000458514 -0.000461225 -0.000468028 -0.000469011 -0.000471119 -0.00047524 -0.000479468 -0.000479908 -0.00049561 -0.000503942 -0.000504231 -0.000507063 -0.000509655 -0.00051259 -0.000513047 -0.000513463 -0.00051472 -0.000516236 -0.000521817 -0.000524462 -0.000525829 -0.000526083 -0.0005299 -0.000530469 -0.000530685 -0.000531395 -0.000532407 -0.000534809 -0.000537056 -0.00053972 -0.000539724 -0.00054088 -0.000554318 -0.00055469 -0.000563436 -0.000564505 -0.000565137 -0.000569592 -0.000572287 -0.000573419 -0.000575596 -0.000580866 -0.000589927 -0.000590939 -0.000590945 -0.000594512 -0.000596382 -0.000603784 -0.000604262 -0.000609327 -0.000614171 -0.000624743 -0.000626625 -0.000626791 -0.00063058 -0.000630885 -0.000633979 -0.000640148 -0.000640927 -0.000641853 -0.000642194 -0.000645302 -0.000650147 -0.000652716 -0.00065433 -0.000655543 -0.000656035 -0.000670978 -0.000671681 -0.00067194 -0.000674861 -0.00067875 -0.000683229 -0.000684737 -0.000686802 -0.000688293 -0.000691867 -0.00069267 -0.000699483 -0.000700802 -0.000707393 -0.00070963 -0.000710919 -0.000712646 -0.00071593 -0.000716009 -0.000716399 -0.000716834 -0.000718669 -0.000719011 -0.000720082 -0.000721372 -0.000729606 -0.000730173 -0.000741 -0.000751421 -0.000752065 -0.000753255 -0.000753303 -0.000759946 -0.000772455 -0.000775215 -0.000781718 -0.000801336 -0.000805954 -0.000815392 -0.000831548 -0.000833172 -0.000833831 -0.000836604 -0.000838302 -0.00084336 -0.000843793 -0.000844107 -0.000845245 -0.000857505 -0.000863894 -0.000865022 -0.000867429 -0.000867877 -0.000875233 -0.000876554 -0.000876715 -0.000878964 -0.000883532 -0.000887496 -0.000889327 -0.000889819 -0.000891792 -0.000893138 -0.000906079 -0.00090775 -0.000908553 -0.000912153 -0.000914398 -0.000914704 -0.000919796 -0.000921214 -0.000923558 -0.000932152 -0.000941369 -0.000942203 -0.000944094 -0.000945046 -0.000950105 -0.000966156 -0.000969098 -0.000970418 -0.000988319 -0.000989487 -0.000990518 -0.000999334 -0.00101091 -0.00101389 -0.00102196 -0.0010238 -0.00102699 -0.00102702 -0.0010305 -0.00104023 -0.0010498 -0.00105804 -0.00106568 -0.00106749 -0.00107258 -0.00107765 -0.00108721 -0.00109189 -0.00111641 -0.00111663 -0.00112238 -0.00112946 -0.0011335 -0.0011408 -0.00114466 -0.00114589 -0.00114804 -0.00114867 -0.00115172 -0.00115181 -0.00117234 -0.00117421 -0.00117472 -0.00117539 -0.00117902 -0.00118557 -0.00119012 -0.00119254 -0.00120569 -0.00121106 -0.00121149 -0.00121372 -0.00121503 -0.00121507 -0.00121601 -0.00123172 -0.00124278 -0.00125023 -0.00125071 -0.00126328 -0.00126688 -0.00126747 -0.00127142 -0.00127703 -0.0012835 -0.00128693 -0.00129037 -0.00129833 -0.00130112 -0.00130543 -0.00131627 -0.00132232 -0.00132289 -0.00133513 -0.00134179 -0.0013432 -0.00134431 -0.00134975 -0.00135044 -0.00135265 -0.00135269 -0.0013545 -0.00139037 -0.00139361 -0.00139716 -0.00139979 -0.00140769 -0.00141864 -0.00142539 -0.00143692 -0.0014417 -0.00144252 -0.00144663 -0.00144925 -0.00146817 -0.00147046 -0.0014791 -0.00148286 -0.00148869 -0.00150997 -0.00151839 -0.0015191 -0.00152075 -0.0015292 -0.00153874 -0.00154484 -0.00155456 -0.00155557 -0.0015602 -0.00156508 -0.00156549 -0.00156968 -0.00158478 -0.00159068 -0.00160319 -0.00161543 -0.00161851 -0.0016277 -0.00163184 -0.00163744 -0.00164099 -0.00164115 -0.00165735 -0.00165903 -0.00166272 -0.00167657 -0.00168307 -0.00168506 -0.00168873 -0.00169493 -0.00170077 -0.00170272 -0.00170284 -0.00170565 -0.00170755 -0.00170828 -0.00170896 -0.00171781 -0.00173088 -0.00173276 -0.00174556 -0.00175572 -0.00175983 -0.0017661 -0.00177266 -0.00178609 -0.00179661 -0.00180241 -0.00182415 -0.00182931 -0.00183295 -0.00183494 -0.00183519 -0.00183957 -0.0018462 -0.00185006 -0.0018593 -0.0018605 -0.00187415 -0.00187461 -0.00187659 -0.00189255 -0.00190169 -0.00190477 -0.00190815 -0.0019107 -0.00192606 -0.0019444 -0.00195241 -0.0019535 -0.00195549 -0.00196184 -0.00197381 -0.0019842 -0.00198761 -0.00199105 -0.0019913 -0.00199148 -0.00200473 -0.00200946 -0.00201254 -0.0020135 -0.00202198 -0.00206102 -0.0020648 -0.0020665 -0.00207595 -0.00207937 -0.00208962 -0.00211415 -0.00211837 -0.00211874 -0.00212267 -0.00213173 -0.0021339 -0.00213808 -0.00216935 -0.00217813 -0.00222099 -0.002229 -0.00223376 -0.00224701 -0.00227591 -0.00230263 -0.00232341 -0.00232664 -0.00236458 -0.00236828 -0.00237273 -0.00238802 -0.00238838 -0.0023998 -0.00241134 -0.00242602 -0.00242989 -0.0024498 -0.002475 -0.00255014 -0.00255428 -0.0025894 -0.00261657 -0.00261719 -0.00262445 -0.00262475 -0.00262809 -0.00267663 -0.0026822 -0.00268578 -0.00270049 -0.00270317 -0.00270385 -0.00271122 -0.00271898 -0.00271965 -0.0027283 -0.00272936 -0.00273812 -0.00274419 -0.002771 -0.00278275 -0.0028098 -0.00281787 -0.00284934 -0.00285322 -0.00287462 -0.00288336 -0.00290466 -0.00291795 -0.00293379 -0.00295154 -0.00297154 -0.00298975 -0.00301142 -0.00301983 -0.00302589 -0.00303211 -0.00303458 -0.00304995 -0.0030508 -0.00306894 -0.00306971 -0.00308277 -0.00308504 -0.00308737 -0.00310411 -0.00310946 -0.00313554 -0.00313668 -0.00316186 -0.00316199 -0.00316749 -0.00319382 -0.00319537 -0.00322652 -0.00323583 -0.00324324 -0.00324641 -0.0032522 -0.00325604 -0.0032579 -0.00326353 -0.00327945 -0.00330041 -0.00330126 -0.00330659 -0.0033161 -0.00333137 -0.00334017 -0.00334502 -0.00337005 -0.00337966 -0.00340056 -0.00342046 -0.00342398 -0.00343493 -0.00343565 -0.00343901 -0.00345162 -0.00345182 -0.00346134 -0.00346214 -0.00348799 -0.00352142 -0.00353489 -0.00353555 -0.00353994 -0.00354289 -0.00354998 -0.00356538 -0.00356992 -0.00358116 -0.00358606 -0.00360514 -0.00366797 -0.00367993 -0.0036947 -0.00371584 -0.00371906 -0.00373163 -0.00373567 -0.00374166 -0.00374189 -0.00380855 -0.0038284 -0.003839 -0.00385877 -0.00386778 -0.00391491 -0.00391505 -0.00392925 -0.0039459 -0.00395201 -0.00395259 -0.00395963 -0.00396346 -0.00399897 -0.0040041 -0.00402261 -0.0040234 -0.00403141 -0.00404205 -0.00407135 -0.00407729 -0.00410239 -0.00413693 -0.00417365 -0.00418311 -0.00422127 -0.00427041 -0.00428996 -0.00429769 -0.00431019 -0.00431548 -0.00431552 -0.0043223 -0.00433623 -0.00434576 -0.0043646 -0.00441437 -0.00442479 -0.00444855 -0.00445628 -0.00448337 -0.00449162 -0.00452972 -0.00453056 -0.00453276 -0.00454544 -0.00454661 -0.00458675 -0.00459646 -0.00463304 -0.00464131 -0.00466321 -0.00466598 -0.00473618 -0.00474335 -0.0047453 -0.00474782 -0.00476145 -0.0047748 -0.00478084 -0.00478623 -0.00479311 -0.00479784 -0.00480927 -0.00481745 -0.00481874 -0.00482227 -0.00482607 -0.00482727 -0.00492286 -0.00492382 -0.00493051 -0.00493556 -0.00494855 -0.00498024 -0.00498186 -0.00501551 -0.0050742 -0.0050774 -0.00509811 -0.00512744 -0.00517834 -0.00517925 -0.00518196 -0.00520673 -0.00524104 -0.00527867 -0.00528632 -0.00528805 -0.00530973 -0.00534255 -0.00536456 -0.00536618 -0.00536738 -0.00536867 -0.0053924 -0.00541671 -0.00541795 -0.00542548 -0.00544826 -0.0054667 -0.0054842 -0.0055319 -0.00556974 -0.00556989 -0.00558414 -0.00559331 -0.0056007 -0.00561238 -0.00564126 -0.00564945 -0.00566903 -0.00571268 -0.00572443 -0.00574385 -0.00574645 -0.00575693 -0.00580701 -0.00582613 -0.00584062 -0.00584145 -0.00584551 -0.00587385 -0.00588498 -0.00590077 -0.00591713 -0.00592114 -0.00592992 -0.00593586 -0.00593943 -0.00594246 -0.00594843 -0.00595343 -0.00596076 -0.00597298 -0.00598077 -0.00599943 -0.00600613 -0.00604774 -0.00605786 -0.0060654 -0.00614176 -0.0062318 -0.00625792 -0.00630184 -0.00630589 -0.00631122 -0.00633785 -0.00634474 -0.00637824 -0.00642671 -0.00643219 -0.00645252 -0.00649522 -0.00649552 -0.00650598 -0.00656553 -0.00663437 -0.00664517 -0.00667576 -0.0067103 -0.00671778 -0.00673686 -0.00674754 -0.00677668 -0.00685825 -0.00687299 -0.00689441 -0.00689784 -0.00699837 -0.00700051 -0.00700981 -0.00701633 -0.00704718 -0.00707316 -0.00707598 -0.00715692 -0.00722762 -0.00726475 -0.00730353 -0.00731021 -0.00735509 -0.00749768 -0.00753794 -0.00753837 -0.00762405 -0.0076824 -0.00769316 -0.00772397 -0.00777326 -0.00779417 -0.00780314 -0.0078221 -0.00784258 -0.00790999 -0.00797413 -0.00797852 -0.0080077 -0.00804722 -0.00808625 -0.00810849 -0.00812029 -0.00812852 -0.00817581 -0.00820968 -0.00821599 -0.00821888 -0.00829057 -0.00835224 -0.00845238 -0.00849492 -0.00854387 -0.00854598 -0.00872637 -0.00881991 -0.0088921 -0.00890879 -0.00896943 -0.00905812 -0.00906118 -0.00914691 -0.00920617 -0.00921839 -0.00929262 -0.00929838 -0.00931847 -0.00932343 -0.00934012 -0.00938572 -0.00948595 -0.00948748 -0.00948761 -0.00949374 -0.00951201 -0.00956982 -0.00961788 -0.00962006 -0.00963628 -0.00968876 -0.00970383 -0.00975572 -0.00976908 -0.00985089 -0.00989675 -0.0099348 -0.00993977 -0.00997555 -0.0100621 -0.0100651 -0.0101277 -0.0101369 -0.0101718 -0.0102555 -0.0104012 -0.0104789 -0.0105509 -0.0105829 -0.0106726 -0.0106735 -0.0107809 -0.0108109 -0.0108329 -0.0108506 -0.0108957 -0.0109665 -0.0109977 -0.0110252 -0.0110263 -0.0112056 -0.0114061 -0.0114104 -0.0114311 -0.011444 -0.0114458 -0.0114817 -0.011622 -0.0116689 -0.0116929 -0.0117031 -0.0117093 -0.0117649 -0.0117686 -0.0117754 -0.011784 -0.0118157 -0.0118232 -0.0118955 -0.0118962 -0.0119172 -0.0119606 -0.0120093 -0.0121384 -0.0122564 -0.012347 -0.0123775 -0.0123965 -0.0124473 -0.0124601 -0.0124795 -0.0125109 -0.0127063 -0.0127152 -0.0127959 -0.0128778 -0.0129403 -0.0129709 -0.012998 -0.0130065 -0.0130082 -0.0130203 -0.0130456 -0.0130504 -0.0131158 -0.0131262 -0.0131574 -0.0132122 -0.0132225 -0.0132459 -0.0132547 -0.0132861 -0.0133581 -0.013404 -0.0134273 -0.0134569 -0.0135036 -0.0135392 -0.0135954 -0.0136158 -0.0136452 -0.0138839 -0.0139291 -0.0140143 -0.0141745 -0.0142096 -0.0142439 -0.0143775 -0.0145673 -0.0146338 -0.0147322 -0.0148674 -0.0149951 -0.0150212 -0.0150364 -0.015272 -0.0152803 -0.0153394 -0.0153503 -0.0154134 -0.0154143 -0.01544 -0.015499 -0.0155266 -0.0156145 -0.015655 -0.015724 -0.0157682 -0.0158128 -0.0159874 -0.0159906 -0.0161251 -0.0162678 -0.0163197 -0.0163361 -0.0168329 -0.0169677 -0.0170553 -0.0172799 -0.0172971 -0.0172997 -0.0174659 -0.0175273 -0.0177163 -0.017811 -0.0179262 -0.018107 -0.0182234 -0.0183381 -0.0184939 -0.018513 -0.0189602 -0.0190547 -0.0190652 -0.0190859 -0.0191465 -0.0192479 -0.0193092 -0.0193941 -0.019397 -0.0195792 -0.0196569 -0.0199203 -0.0200163 -0.0202432 -0.0202502 -0.0203618 -0.0203697 -0.0204793 -0.0205422 -0.0205774 -0.0206723 -0.0208409 -0.020869 -0.0209686 -0.0211403 -0.0213245 -0.0213262 -0.0214709 -0.0217996 -0.0219605 -0.021989 -0.0221373 -0.0223076 -0.0224133 -0.0224368 -0.0226814 -0.0229595 -0.0229701 -0.0232782 -0.0233491 -0.0233642 -0.0233952 -0.0234854 -0.023595 -0.0236206 -0.0238411 -0.0238577 -0.0239941 -0.0241741 -0.0241874 -0.0242354 -0.0242915 -0.0244449 -0.0244767 -0.0247037 -0.0247526 -0.0247939 -0.02545 -0.0257407 -0.0258115 -0.0260966 -0.0263894 -0.0264631 -0.0264739 -0.0265485 -0.0265793 -0.026776 -0.0270639 -0.0272343 -0.027285 -0.0275734 -0.0276631 -0.0276878 -0.0278229 -0.0280139 -0.0280483 -0.0280726 -0.0282295 -0.028286 -0.0288907 -0.029354 -0.0295875 -0.0300108 -0.030034 -0.0306615 -0.0308136 -0.0315452 -0.0316725 -0.0317948 -0.0317993 -0.0319759 -0.0321151 -0.0322247 -0.0335184 -0.0335871 -0.0337699 -0.0342299 -0.0342718 -0.0352714 -0.0356949 -0.035847 -0.03634 -0.0363543 -0.0366592 -0.0366927 -0.0368476 -0.0369354 -0.037512 -0.0377829 -0.0377847 -0.0398099 -0.0400707 -0.0401278 -0.0405175 -0.0408267 -0.0415924 -0.0425905 -0.0426369 -0.0429106 -0.0430424 -0.0430499 -0.0434575 -0.0440108 -0.0442967 -0.0446945 -0.0446957 -0.0477684 -0.04777 -0.047928 -0.0481392 -0.0482952 -0.0486525 -0.0487293 -0.0495937 -0.0517237 -0.0525006 -0.0531789 -0.0537254 -0.0543964 -0.0547931 -0.0561315 -0.0571054 -0.0597665 -0.0604191 -0.0614819 -0.0616647 -0.063176 -0.0633825 -0.0634293 -0.0651064 -0.0665049 -0.0678442 -0.0749534 -0.0755621 -0.0758794 -0.0773887 -0.0839394 -0.0864063 -0.0898847 -0.0899566 -0.0950379 -0.0954413 -0.0979433 -0.0998033 -0.102907 -0.104482 -0.10605 -0.106118 -0.106164 -0.106167 -0.107886 -0.116429 -0.121468 -0.127687 -0.1307 -0.134843 -0.135379 -0.13633 -0.139813 -0.141391 -0.14319 -0.148264 -0.159048 -0.160592 -0.162435 -0.174515 -0.174974 -0.176796 -0.179833 -0.18427 -0.18641 -0.1883 -0.189959 -0.190526 -0.191306 -0.194542 -0.211568 -0.21633 -0.219112 -0.228235 -0.270208 -0.273349 -0.285059 -0.308909 -0.316197 -0.319023 -0.362505 -0.395058 -0.458883 -0.515397 -0.624194 
+index for ordered merges 1020 / 2040
+Merging 1235 of 2040 splits. Merge threshold is -0.000554318
+Epoch 0/20:  validation corpus likelihood -11818.5 validation failures 2 training root counts 5000 training corpus likelihood -402667 root weights: 1
+Epoch 1/20:  validation corpus likelihood -12603.7 validation failures 2 training root counts 5000 training corpus likelihood -400551 root weights: 1
+Epoch 2/20:  validation corpus likelihood -12769.5 validation failures 3 training root counts 5000 training corpus likelihood -398621 root weights: 1
+Epoch 3/20:  validation corpus likelihood -13510.1 validation failures 3 training root counts 5000 training corpus likelihood -396630 root weights: 1
+Epoch 4/20:  validation corpus likelihood -14322.2 validation failures 3 training root counts 5000 training corpus likelihood -394242 root weights: 1
+Epoch 5/20:  validation corpus likelihood -15222.8 validation failures 3 training root counts 5000 training corpus likelihood -391291 root weights: 1
+Epoch 6/20:  validation corpus likelihood -14495.7 validation failures 5 training root counts 5000 training corpus likelihood -387944 root weights: 1
+Epoch 7/20:  validation corpus likelihood -12991.7 validation failures 8 training root counts 5000 training corpus likelihood -384379 root weights: 1
+Epoch 8/20:  validation corpus likelihood -13637 validation failures 8 training root counts 5000 training corpus likelihood -380731 root weights: 1
+Epoch 9/20:  validation corpus likelihood -14357.7 validation failures 8 training root counts 5000 training corpus likelihood -377147 root weights: 1
+Epoch 10/20:  validation corpus likelihood -14376.1 validation failures 9 training root counts 5000 training corpus likelihood -373738 root weights: 1
+Epoch 11/20:  validation corpus likelihood -14458.6 validation failures 10 training root counts 5000 training corpus likelihood -370589 root weights: 1
+Epoch 12/20:  validation corpus likelihood -13721.9 validation failures 12 training root counts 5000 training corpus likelihood -367759 root weights: 1
+Epoch 13/20:  validation corpus likelihood -12906.5 validation failures 14 training root counts 5000 training corpus likelihood -365293 root weights: 1
+Epoch 14/20:  validation corpus likelihood -12983.8 validation failures 15 training root counts 5000 training corpus likelihood -363177 root weights: 1
+Epoch 15/20:  validation corpus likelihood -12832.7 validation failures 16 training root counts 5000 training corpus likelihood -361363 root weights: 1
+Epoch 16/20:  validation corpus likelihood -12611.6 validation failures 17 training root counts 5000 training corpus likelihood -359817 root weights: 1
+Epoch 17/20:  validation corpus likelihood -12373.4 validation failures 18 training root counts 5000 training corpus likelihood -358519 root weights: 1
+Epoch 18/20:  validation corpus likelihood -12903.7 validation failures 18 training root counts 5000 training corpus likelihood -357433 root weights: 1
+Epoch 19/20:  validation corpus likelihood -13468.6 validation failures 18 training root counts 5000 training corpus likelihood -356520 root weights: 1
+ validation corpus likelihood -14088.4 validation failures 18
+ resetting to annotation from epoch 17 with validation score -12373.4
+Smoothing rules with factors 0.01 and 0.1.
+Epoch 0/20:  validation corpus likelihood -12202.4 validation failures 2 training root counts 5000 training corpus likelihood -597659 root weights: 1
+Epoch 1/20:  validation corpus likelihood -10703.7 validation failures 2 training root counts 5000 training corpus likelihood -504024 root weights: 1
+Epoch 2/20:  validation corpus likelihood -10113.5 validation failures 2 training root counts 5000 training corpus likelihood -445097 root weights: 1
+Epoch 3/20:  validation corpus likelihood -9864.95 validation failures 2 training root counts 5000 training corpus likelihood -402470 root weights: 1
+Epoch 4/20:  validation corpus likelihood -10086.2 validation failures 2 training root counts 5000 training corpus likelihood -377657 root weights: 1
+Epoch 5/20:  validation corpus likelihood -10714.5 validation failures 2 training root counts 5000 training corpus likelihood -365774 root weights: 1
+Epoch 6/20:  validation corpus likelihood -11667.2 validation failures 2 training root counts 5000 training corpus likelihood -359916 root weights: 1
+Epoch 7/20:  validation corpus likelihood -12895.5 validation failures 2 training root counts 5000 training corpus likelihood -356602 root weights: 1
+Epoch 8/20:  validation corpus likelihood -14421.4 validation failures 2 training root counts 5000 training corpus likelihood -354441 root weights: 1
+Epoch 9/20:  validation corpus likelihood -16281.8 validation failures 2
+ resetting to annotation from epoch 3 with validation score -9864.95
+Completed split/merge cycles in 7637.122800588608 seconds
+parsing, Opened /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpq7w7497d
+Opened /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpg1ftm5la
+.............-............-.......................-.....................................................................................................................................................
+Parsing time,  1363.9527359999993
+Wrote results to /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpq7w7497d
+Wrote reference to /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpg1ftm5la
+
+Recall:    0.5856091850401058
+Precision: 0.7181613972757549
+F-measure: 0.6396236974967131
+Parse failures: 3
+
+normalize results with treetools and discodop
+reading from '/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpg1ftm5la' in format 'export' and encoding 'utf-8'
+writing to '/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp2wghm_2c.export' in format 'export' and encoding 'utf-8'
+applying ['root_attach']
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpg1ftm5la --> /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp2wghm_2c.export
+200
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmp2wghm_2c.export: transformed 200 trees
+reading from '/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpq7w7497d' in format 'export' and encoding 'utf-8'
+writing to '/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpixmzbjrc.export' in format 'export' and encoding 'utf-8'
+applying ['root_attach']
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpq7w7497d --> /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpixmzbjrc.export
+200
+/home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpixmzbjrc.export: transformed 200 trees
+DEFAULT
+running discodop evaluation on gold: /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpx7frivkn.export  and sys: /home/mango/Dokumente/Parsing/panda-parser/results/suffix/tmpos_5kxpl.export with proper.prm
+
+ Rewrite rule mismatches (for given span)
+   count   cand / gold rules
+       6  0     ROOT S
+          01    CS S S
+       2  01    NP NE NE
+          01    PN NE NE
+       2  0     ROOT S
+          012   CS S S S
+       2  0     ROOT S
+          01    CO S NP
+       2  012   CNP ADJD KON ADJD
+          012   CAP ADJD KON ADJD
+       2  012   S PP VAFIN VP
+          01020 S VP VAFIN NP
+       2  0123  PP APPR ART NN CNP
+          01    PP APPR CNP
+       1  0123  S NP VAFIN ADV NP
+          0123  S PN VAFIN ADV NP
+       1  012   NP NE NE S
+          01    NP PN S
+       1  012345        S PRELS NE PP NE NP VVFIN
+          01234 S PRELS NE PP NP VVFIN
+
+ Rewrite rules (span not in gold trees)
+   count   rule in candidate parses
+      18  01    NP ART NN
+       9  012   NP ART NN PP
+       8  012   NP ART NN NP
+       6  0123  PP APPR ART NN NP
+       6  012   PP APPR ART NN
+       6  0123  NP ART ADJA NN PP
+       6  01    PP APPR CNP
+       6  012   CNP NP KON NP
+       5  0123  PP APPR ART NN PP
+       5  01    PP APPR NN
+
+ Rewrite rules (span missing from candidate parses)
+   count   rule in gold standard set
+      20  01    NP ART NN
+      11  012   NP ART NN NP
+      10  012   NP ART NN PP
+      10  012   CNP NP KON NP
+       7  01    PN NE NE
+       7  0123  PP APPR ART NN NP
+       6  01    NP ADJA NN
+       6  012   NP ART ADJA NN
+       6  01    VP PP VVPP
+       6  012   PP APPR ART NN
+
+ Attachment errors (correct labeled bracketing, wrong parent)
+  label     cand     gold    count
+ _________________________________
+     NP       VP        S       14
+     PP       VP       NP       10
+     PP       NP        S        8
+     NP        S       NP        7
+     PP        S       VP        7
+     PP       VP       PP        6
+     NP       NP        S        6
+     PP       NP       VP        6
+      S        S       NP        6
+     PP        S       PP        6
+
+ Category Statistics (10 most frequent categories / errors)
+  label  % gold  recall    prec.     F1           cand gold       count
+ ______________________________________        ________________________
+     NP   30.65   65.54   68.13   66.81              S CS            12
+     PP   22.23   72.59   73.24   72.91             CS S              9
+      S   20.74   79.06   81.09   80.06             VP S              3
+     VP    9.85   52.63   51.61   52.12             NP PN             2
+     AP    3.69   59.65   66.67   62.96              S NP             2
+     PN    3.24   64.00   88.89   74.42              S CO             2
+    CNP    2.66   53.66   45.83   49.44            CNP CAP            2
+     CS    2.14   48.48   61.54   54.24            CNP NP             2
+     VZ    1.36  100.00  100.00  100.00              S VP             2
+    AVP    1.23   42.11   61.54   50.00             NP CNP            2
+
+ Function Tag Statistics (10 most frequent tags / errors)
+  func.  % gold  recall    prec.     F1           cand gold       count
+ ______________________________________        ________________________
+     NK   39.16   95.02   94.00   94.51             MO OP            32
+     HD   13.04   91.95   94.67   93.29             MO MNR           29
+     MO    8.77   85.19   74.38   79.42             SB OA            24
+     AC    8.47   97.05   98.80   97.92             NK CJ            20
+     SB    5.92   82.28   74.43   78.16             OA SB            18
+     CJ    3.52   63.12   81.65   71.20             NK HD            18
+     OA    2.50   59.00   63.44   61.14             NK PNC           15
+     OC    2.45   83.67   80.39   82.00            MNR MO            13
+    PNC    2.30   76.09   93.33   83.83             MO NK            10
+     AG    2.10   86.90   92.41   89.57             SB PD             9
+
+ POS Statistics (10 most frequent tags / errors)
+    tag  % gold  recall   prec.      F1           cand gold   count
+ ______________________________________            ____________________
+     NN   23.05   99.59   99.33   99.46          VVINF VVFIN         12
+    ART   12.86   99.76   99.76   99.76          VVFIN VVINF          5
+   APPR    8.53  100.00   98.92   99.46             NE FM             3
+   ADJA    7.82   98.80   99.20   99.00           VVPP VVFIN          3
+     NE    7.07   98.68   97.39   98.03             NE NN             3
+    ADV    5.42   98.85   98.29   98.57             NN NE             3
+  VVFIN    5.05   90.74   94.84   92.74          VAINF VAFIN          2
+  VAFIN    3.33   98.13  100.00   99.06          VVFIN VVPP           2
+    KON    2.80  100.00  100.00  100.00            ADV ADJD           2
+   VVPP    2.37   97.37   94.87   96.10          PTKVZ ADJD           2
+
+_________ Summary _________ <= 40 ______ ALL
+number of sentences:          194        200
+longest sentence:              40         49
+gold brackets:               1423       1543
+cand. brackets:              1403       1481
+disc. gold brackets:           65         73
+disc. cand. brackets:          21         21
+labeled recall:             70.20      67.27
+labeled precision:          71.20      70.09
+labeled f-measure:          70.70      68.65
+exact match:                26.80      26.00
+function tags:              89.10      87.90
+pos accuracy:               98.22      98.19
+
