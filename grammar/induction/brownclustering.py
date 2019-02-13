@@ -7,10 +7,7 @@ class Cluster:
     def __init__(self, cluster_id, init_word):
         self.cluster_id = cluster_id
         self.words = list()
-        self.add_word(init_word)
-
-    def add_word(self, word):
-        self.words.append(word)
+        self.words.append(init_word)
 
     def in_cluster(self, word):
         if word in self.words:
@@ -25,7 +22,7 @@ class Cluster:
 class BrownClustering:
 
     def __init__(self, in_file, num_clusters, out_file):
-
+        self.desired_num_clusters = num_clusters
         self.corpus = [["ich", "habe", "heute", "geburtstag"], ["heute", "gab", "es", "grüne", "tomaten"], ["heute", "habe", "ich", "grüne", "tomaten", "gegessen"]]
         self.total_word_count = 0
         self.vocabulary = set()
@@ -93,11 +90,11 @@ class BrownClustering:
             for cl_b in self.clusters:
                 if cl_a.cluster_id < cl_b.cluster_id:
                     avg_info_loss = self.evaluate_merge(cl_a.cluster_id, cl_b.cluster_id)
-                    self.avg_info_loss[(cl_a.cluster_id,cl_b.cluster_id)] = avg_info_loss
+                    self.avg_info_loss[(cl_a.cluster_id, cl_b.cluster_id)] = avg_info_loss
                     if avg_info_loss < minimum_avg_info_loss:
                         minimum_avg_info_loss = avg_info_loss
                         clusters_to_merge = (cl_a.cluster_id, cl_b.cluster_id)
-        self.avg_mut_info = self.avg_mut_info - minimum_avg_info_loss
+        # self.avg_mut_info = self.avg_mut_info - minimum_avg_info_loss
         print("average mutual information loss by merging corresponding clusters: " + str(self.avg_info_loss))
         print("Best merge couple is :" + str(clusters_to_merge) +
               " avg_mutual_info loss by merge: " + str(minimum_avg_info_loss))
@@ -108,6 +105,11 @@ class BrownClustering:
             if cl.in_cluster(word):
                 return cl.cluster_id
         print("Error:Word " + word + " is in no cluster!")
+
+    def get_cluster(self, cluster_id):
+        for cl in self.clusters:
+            if cl.cluster_id == cluster_id:
+                return cl
 
     def evaluate_merge(self, cluster_id_a, cluster_id_b):
         """
@@ -194,97 +196,122 @@ class BrownClustering:
         return 0
 
     def merge_clusters(self, cluster_id_a, cluster_id_b):
-        # a,b --> a
-        # update avg_info_loss
-        # update s values
-        for cl_l in self.clusters:
-            self.s[cl_l.cluster_id] -= (self.q[(cl_l.cluster_id, cluster_id_a)]
-                                        + self.q[(cl_l.cluster_id, cluster_id_b)]
-                                        + self.q[(cluster_id_a, cl_l.cluster_id)]
-                                        + self.q[(cluster_id_b, cl_l.cluster_id)])
-            for cl_m in self.clusters:
-                if cl_l.cluster_id < cl_m.cluster_id:
-                    self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] -= \
-                        (self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_a)
-                         + self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_b)
-                         + self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id)
-                         + self.calc_q(cl_id_l=cluster_id_b, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id))
 
-        # remove q values containing b
-        for cl_id in self.non_zero_combination_prefix[cluster_id_b]:
-            del self.q[(cluster_id_b, cl_id)]
-        for cl_id in self.non_zero_combination_suffix[cluster_id_b]:
-            del self.q[(cl_id, cluster_id_b)]
-        # update p where a/b are first entry p(a,*) -> p(a,*)+ p(b,*), p(b,*)->0
-        self.non_zero_combination_prefix[cluster_id_a].update(self.non_zero_combination_prefix.pop(cluster_id_b))
-        for cl_id in self.non_zero_combination_prefix[cluster_id_a]:
-            self.bigram_count[(cluster_id_a, cl_id)] += self.bigram_count.pop((cluster_id_b, cl_id))
-        # rename clusters in non_zero_combinations
-        for non_zero_set in self.non_zero_combination_prefix.values():
-            if cluster_id_b in non_zero_set:
-                non_zero_set.remove(cluster_id_b)
-                non_zero_set.add(cluster_id_a)
-        # update p where a/b are second entry
-        self.non_zero_combination_suffix[cluster_id_a].update(self.non_zero_combination_suffix.pop(cluster_id_b))
-        for cl_id in self.non_zero_combination_suffix[cluster_id_a]:
-            self.bigram_count[(cl_id, cluster_id_a)] += self.bigram_count.pop((cl_id, cluster_id_b))
-        # rename clusters in non_zero_combinations
-        for non_zero_set in self.non_zero_combination_suffix.values():
-            if cluster_id_b in non_zero_set:
-                non_zero_set.remove(cluster_id_b)
-                non_zero_set.add(cluster_id_a)
-        # update pl/pr
-        self.as_suffix_count[cluster_id_a] += self.as_suffix_count.pop(cluster_id_b)
-        self.as_prefix_count[cluster_id_a] += self.as_prefix_count.pop(cluster_id_b)
-        # recalculate q values containing b
-        for cl_id in self.non_zero_combination_prefix[cluster_id_a]:
-            self.q[(cluster_id_a, cl_id)] = self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_id)
-        for cl_id in self.non_zero_combination_suffix[cluster_id_a]:
-            self.q[(cl_id,cluster_id_a)] = self.calc_q(cl_id_l=cl_id, cl_id_r=cluster_id_a)
-        # finalize avg_info_loss
-        # finalize s values
+        while len(self.clusters) > self.desired_num_clusters:
 
-        for cl_l in self.clusters:
-            self.s[cl_l.cluster_id] += (self.q[(cl_l.cluster_id, cluster_id_a)]
-                                        + self.q[(cluster_id_a, cl_l.cluster_id)])
-            for cl_m in self.clusters:
-                if cl_l.cluster_id < cl_m.cluster_id:
-                    self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] += \
-                        (self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_a)
-                         + self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id))
-        # calculate s(a)
-        ql = 0
-        qr = 0
-        for cl_id in self.non_zero_combination_prefix[cluster_id_a]:
-            ql += self.q[(cluster_id_a, cl_id)]
-        for cl_id in self.non_zero_combination_suffix[cluster_id_a]:
-            qr += self.q[(cl_id, cluster_id_a)]
-        qs = 0
-        if (cluster_id_a, cluster_id_a) in self.q.keys():
-            qs = self.q[(cluster_id_a, cluster_id_a)]
-        self.s[cluster_id_a] = ql + qr - qs
+            self.avg_mut_info -= self.avg_info_loss[(cluster_id_a, cluster_id_b)]
+            # a,b --> a
+            # update avg_info_loss
+            # update s values
+            for cl_l in self.clusters:
+                self.s[cl_l.cluster_id] -= (self.q[(cl_l.cluster_id, cluster_id_a)]
+                                            + self.q[(cl_l.cluster_id, cluster_id_b)]
+                                            + self.q[(cluster_id_a, cl_l.cluster_id)]
+                                            + self.q[(cluster_id_b, cl_l.cluster_id)])
+                for cl_m in self.clusters:
+                    if cl_l.cluster_id < cl_m.cluster_id:
+                        self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] -= \
+                            (self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_a)
+                             + self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_b)
+                             + self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id)
+                             + self.calc_q(cl_id_l=cluster_id_b, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id))
 
 
-        print("#######################################################")
-        print(
-            "count of bigram combinations: " + str(self.bigram_count))  # pr(x,y) = bigram_count(x,y)/total_bigram_count
-        print("count of key used as first entry of bigram: " + str(
-            self.as_prefix_count))  # pl(x)= as_prefix_count(x)/total_bigram_count
-        print("count of key used as second entry of bigram: " + str(
-            self.as_suffix_count))  # pr(x)= as_suffix_count(x)/total_bigram_count
-        print("non zero combinations with key as first bigram entry: " + str(
-            self.non_zero_combination_prefix))  # keep track of pr(x,y) couples
-        print("non zero combinations with key as second bigram entry: " + str(self.non_zero_combination_suffix))
+            # remove q values containing b
+            for cl_id in self.non_zero_combination_prefix[cluster_id_b]:
+                del self.q[(cluster_id_b, cl_id)]
+            for cl_id in self.non_zero_combination_suffix[cluster_id_b]:
+                # prevents deleting (x,x) tuples twice
+                if (cl_id,cluster_id_b) in self.q.keys():
+                    del self.q[(cl_id, cluster_id_b)]
 
 
-        # calculate avg_info_loss(a,*)
-        print(self.avg_info_loss)
-        for cl in self.clusters:
-            if cl.cluster_id != cluster_id_a:
-                if cluster_id_a < cl.cluster_id:
-                    self.avg_info_loss[(cluster_id_a, cl.cluster_id)] = self.evaluate_merge(cluster_id_a, cl.cluster_id)
-                else:
-                    self.avg_info_loss[(cl.cluster_id, cluster_id_a)] = self.evaluate_merge(cl.cluster_id, cluster_id_a)
-        print(self.avg_info_loss)
 
-bc = BrownClustering("a", 2, "b")
+            # update p where a/b are first entry p(a,*) -> p(a,*)+ p(b,*), p(b,*)->0
+            for cl_id in self.non_zero_combination_prefix[cluster_id_b]:
+                self.bigram_count[(cluster_id_a, cl_id)] += self.bigram_count.pop((cluster_id_b, cl_id))
+            self.non_zero_combination_prefix[cluster_id_a].update(self.non_zero_combination_prefix.pop(cluster_id_b))
+            # rename clusters in non_zero_combinations
+            for non_zero_set in self.non_zero_combination_prefix.values():
+                if cluster_id_b in non_zero_set:
+                    non_zero_set.remove(cluster_id_b)
+                    non_zero_set.add(cluster_id_a)
+            # update p where a/b are second entry
+            for cl_id in self.non_zero_combination_suffix[cluster_id_b]:
+                # prevents double deleting/adding of bigram[(x,x)]
+                if (cl_id,cluster_id_b) in self.bigram_count.keys():
+                    self.bigram_count[(cl_id, cluster_id_a)] += self.bigram_count.pop((cl_id, cluster_id_b))
+            self.non_zero_combination_suffix[cluster_id_a].update(self.non_zero_combination_suffix.pop(cluster_id_b))
+            # rename clusters in non_zero_combinations
+            for non_zero_set in self.non_zero_combination_suffix.values():
+                if cluster_id_b in non_zero_set:
+                    non_zero_set.remove(cluster_id_b)
+                    non_zero_set.add(cluster_id_a)
+            # update pl/pr
+            self.as_suffix_count[cluster_id_a] += self.as_suffix_count.pop(cluster_id_b)
+            self.as_prefix_count[cluster_id_a] += self.as_prefix_count.pop(cluster_id_b)
+            # recalculate q values containing b
+            for cl_id in self.non_zero_combination_prefix[cluster_id_a]:
+                self.q[(cluster_id_a, cl_id)] = self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_id)
+            for cl_id in self.non_zero_combination_suffix[cluster_id_a]:
+                self.q[(cl_id,cluster_id_a)] = self.calc_q(cl_id_l=cl_id, cl_id_r=cluster_id_a)
+            # finalize avg_info_loss
+            # finalize s values
+
+            for cl_l in self.clusters:
+                self.s[cl_l.cluster_id] += (self.q[(cl_l.cluster_id, cluster_id_a)]
+                                            + self.q[(cluster_id_a, cl_l.cluster_id)])
+                for cl_m in self.clusters:
+                    if cl_l.cluster_id < cl_m.cluster_id:
+                        self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] += \
+                            (self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_a)
+                             + self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id))
+            # calculate s(a)
+            ql = 0
+            qr = 0
+            for cl_id in self.non_zero_combination_prefix[cluster_id_a]:
+                ql += self.q[(cluster_id_a, cl_id)]
+            for cl_id in self.non_zero_combination_suffix[cluster_id_a]:
+                qr += self.q[(cl_id, cluster_id_a)]
+            qs = 0
+            if (cluster_id_a, cluster_id_a) in self.q.keys():
+                qs = self.q[(cluster_id_a, cluster_id_a)]
+            self.s[cluster_id_a] = ql + qr - qs
+
+            # calculate avg_info_loss(a,*)
+            for cl in self.clusters:
+                if cl.cluster_id != cluster_id_a:
+                    if cluster_id_a < cl.cluster_id:
+                        self.avg_info_loss[(cluster_id_a, cl.cluster_id)] = self.evaluate_merge(cluster_id_a, cl.cluster_id)
+                    else:
+                        self.avg_info_loss[(cl.cluster_id, cluster_id_a)] = self.evaluate_merge(cl.cluster_id, cluster_id_a)
+            self.s.pop(cluster_id_b)
+            for cl in self.clusters:
+                if cl.cluster_id != cluster_id_b:
+                    if cluster_id_b < cl.cluster_id:
+                        self.avg_info_loss.pop((cluster_id_b, cl.cluster_id))
+                    else:
+                        self.avg_info_loss.pop((cl.cluster_id, cluster_id_b))
+            # update clusters
+            cla = self.get_cluster(cluster_id_a)
+            clb = self.get_cluster(cluster_id_b)
+            for w in clb.words:
+                cla.words.append(w)
+            self.clusters.remove(clb)
+            print("#################################################")
+            print("count of bigram combinations: " + str(self.bigram_count))
+            print("count of key used as first entry of bigram: " + str(self.as_prefix_count))
+            print("count of key used as second entry of bigram: " + str(self.as_suffix_count))
+            print("non-zero-combinations with key as first bigram entry: " + str(self.non_zero_combination_prefix))
+            print("non-zero-combinations with key as second bigram entry: " + str(self.non_zero_combination_suffix))
+            print("q values: " + str(self.q))
+            print("s values: " + str(self.s))
+            print("avg_mutual_info_loss: " + str(self.avg_info_loss))
+            print("clusters: " + str(self.clusters))
+            if(len(self.clusters)>1):
+                best_merge_pair = min(self.avg_info_loss, key=self.avg_info_loss.get)
+                print("next merge pair: " + str(best_merge_pair))
+                cluster_id_a = best_merge_pair[0]
+                cluster_id_b = best_merge_pair[1]
+
+bc = BrownClustering("a", 1, "b")
