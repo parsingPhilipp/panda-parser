@@ -1,4 +1,4 @@
-from collections import defaultdict
+from collections import defaultdict, OrderedDict
 import math as math
 import json
 
@@ -22,15 +22,15 @@ class Cluster:
 
 class BrownClustering:
 
-    def __init__(self, in_file, num_clusters, out_file):
+    def __init__(self, corpus, num_clusters, out_file):
         self.desired_num_clusters = num_clusters
-        self.corpus = [["ich", "habe", "heute", "geburtstag"], ["heute", "gab", "es", "grüne", "tomaten"], ["heute", "habe", "ich", "grüne", "tomaten", "gegessen"]]
+        self.corpus = corpus
         self.total_word_count = 0
-        self.vocabulary = set()
+        self.vocabulary = OrderedDict()
         for sentence in self.corpus:
             self.total_word_count += len(sentence)
             for word in sentence:
-                self.vocabulary.add(word)
+                self.vocabulary[word] = None
         self.total_bigram_count = self.total_word_count - len(self.corpus)
         self.clusters = list()
         i = 0
@@ -100,8 +100,8 @@ class BrownClustering:
               " avg_mutual_info loss by merge: " + str(self.avg_info_loss[clusters_to_merge]))
 
         self.merge_clusters(clusters_to_merge[0], clusters_to_merge[1])
-
-        with open('../../clustering/'+out_file+'.clustering', 'w', encoding='UTF-8') as out:
+        #TODO fix path
+        with open('/home/mango/Dokumente/Parsing/panda-parser/clustering/'+out_file+'.clustering', 'w', encoding='UTF-8') as out:
             json.dump(self.get_serialization(), out, ensure_ascii=False)
 
     def get_serialization(self):
@@ -198,12 +198,20 @@ class BrownClustering:
                                              + self.q[(cluster_id_b, cl_l.cluster_id)]
                     for cl_m in self.clusters:
                         if cl_l.cluster_id < cl_m.cluster_id != cluster_id_a and cl_m.cluster_id != cluster_id_b:
-                            self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] -= \
+                            self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] += \
                                 self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_a)\
                                 + self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_b)\
                                 + self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id)\
-                                + self.calc_q(cl_id_l=cluster_id_b, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id)
-            '''
+                                + self.calc_q(cl_id_l=cluster_id_b, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id) \
+                                - self.q[(cl_l.cluster_id, cluster_id_a)]\
+                                - self.q[(cl_m.cluster_id, cluster_id_a)]\
+                                - self.q[(cluster_id_a, cl_l.cluster_id)]\
+                                - self.q[(cluster_id_a, cl_m.cluster_id)]\
+                                - self.q[(cl_l.cluster_id, cluster_id_b)]\
+                                - self.q[(cl_m.cluster_id, cluster_id_b)]\
+                                - self.q[(cluster_id_b, cl_l.cluster_id)]\
+                                - self.q[(cluster_id_b, cl_m.cluster_id)]
+            '''                
             # remove q values containing b
             for cl_id in self.non_zero_combination_prefix[cluster_id_b]:
                 del self.q[(cluster_id_b, cl_id)]
@@ -279,9 +287,13 @@ class BrownClustering:
                                                 + self.q[(cluster_id_a, cl_l.cluster_id)])
                     for cl_m in self.clusters:
                         if cl_l.cluster_id < cl_m.cluster_id != cluster_id_a:
-                            self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] += \
-                                (self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_a)
-                                 + self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id))
+                            self.avg_info_loss[(cl_l.cluster_id, cl_m.cluster_id)] -= \
+                                self.calc_q(cl_id_l=cl_l.cluster_id, cl_id_l2=cl_m.cluster_id, cl_id_r=cluster_id_a)\
+                                + self.calc_q(cl_id_l=cluster_id_a, cl_id_r=cl_l.cluster_id, cl_id_r2=cl_m.cluster_id)\
+                                - self.q[(cluster_id_a, cl_l.cluster_id)]\
+                                - self.q[(cluster_id_a, cl_m.cluster_id)]\
+                                - self.q[(cl_l.cluster_id, cluster_id_a)]\
+                                - self.q[(cl_m.cluster_id, cluster_id_a)]
             # calculate s(a)
             ql = 0
             qr = 0
@@ -304,21 +316,8 @@ class BrownClustering:
                         self.avg_info_loss[(cl.cluster_id, cluster_id_a)] =\
                             self.evaluate_merge(cl.cluster_id, cluster_id_a)
 
-            wrong_loss = self.avg_info_loss.copy()
-
-            ## debug
-            for cl1 in self.clusters:
-                for cl2 in self.clusters:
-                    if cl1.cluster_id < cl2.cluster_id:
-                        self.avg_info_loss[(cl1.cluster_id, cl2.cluster_id)] = self.evaluate_merge(cl1.cluster_id, cl2.cluster_id)
-
-            for cl1 in self.clusters:
-                for cl2 in self.clusters:
-                    if cl1.cluster_id < cl2.cluster_id:
-                        wrong_loss[(cl1.cluster_id, cl2.cluster_id)] -= self.avg_info_loss[(cl1.cluster_id,cl2.cluster_id)]
 
             print("#################################################")
-            print("error of optimized version: " + str(wrong_loss))
             print("count of bigram combinations: " + str(self.bigram_count))
             print("count of key used as first entry of bigram: " + str(self.as_prefix_count))
             print("count of key used as second entry of bigram: " + str(self.as_suffix_count))
@@ -336,4 +335,3 @@ class BrownClustering:
                 cluster_id_a = best_merge_pair[0]
                 cluster_id_b = best_merge_pair[1]
 
-bc = BrownClustering("a", 1, "test")
