@@ -98,6 +98,7 @@ class BrownClustering:
         # if optimization after greedy clustering is desired
         # for each word in the vocab try to find a different cluster, where avg_mut_info increases
         # if a word was moved during this process - repeat until no more words are moved
+
         print("Initial clustering completed!")
         if optimization:
             print("Starting post optimization process..")
