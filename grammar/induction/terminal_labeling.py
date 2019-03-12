@@ -2,7 +2,7 @@ from abc import ABCMeta, abstractmethod
 from collections import defaultdict
 from hybridtree.monadic_tokens import MonadicToken
 from discodop.lexicon import getunknownwordmodel, unknownword4, replaceraretestwords, YEARRE, NUMBERRE, UNK
-
+import json
 
 class TerminalLabeling:
     __metaclass__ = ABCMeta
@@ -368,6 +368,46 @@ class Suffix(TerminalLabeling):
                       UNK=json_object['unknown_base_label'],
                       suffix_length=json_object['suffix_len'])
 
+
+class BrownCluster(TerminalLabeling):
+    def __init__(self, clustering, trees, unk_strategy, cluster_occurence_threshold):
+        self.__unk_strategy = unk_strategy
+        self.__trees = trees
+        self.__cluster_occurrence_threshold = cluster_occurence_threshold
+        with open(clustering) as json_file:
+            self.__clustering = json.load(json_file)
+        for cluster in self.__clustering:
+            if not self.check_cluster_occurrence(cluster):
+                self.__clustering.remove(cluster)
+
+    def check_cluster_occurrence(self, cluster):
+        cluster_occurrence_count = 0
+        for tree in self.__trees:
+            for token in tree.token_yield():
+                if token.form().lower() in cluster:
+                    cluster_occurrence_count += 1
+                if cluster_occurrence_count >= self.__cluster_occurrence_threshold:
+                    return True
+        return False
+
+    def token_label(self, token, _loc=None):
+        for cluster in self.__clustering:
+            if token.form().lower() in cluster:
+                return 'CL_ID_' + str(self.__clustering.index(cluster))
+        return self.__unk_strategy.token_label(token)
+
+
+class UNKStrategySuffix:
+    def __init__(self, suffix_len):
+        self.__suffix_len = suffix_len
+
+    def token_label(self, token, _loc=None):
+        form = token.form().lower()
+        pos = token.pos()
+        if pos in ['CARD', 'FM', 'XY']:
+            return pos
+        else:
+            return form[-self.__suffix_len:].lower()
 
 
 

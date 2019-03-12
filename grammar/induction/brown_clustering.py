@@ -26,6 +26,7 @@ class BrownClustering:
 
     def __init__(self, corpus, num_clusters, out_file, optimization=True):
         # Setup phase
+        self.out_file = out_file
         self.desired_num_clusters = num_clusters
         self.corpus = corpus
         self.total_word_count = 0
@@ -98,18 +99,30 @@ class BrownClustering:
         # if optimization after greedy clustering is desired
         # for each word in the vocab try to find a different cluster, where avg_mut_info increases
         # if a word was moved during this process - repeat until no more words are moved
-
+        self.save_clustering(out_file=self.out_file+'_pre_optimization')
         print("Initial clustering completed!")
         if optimization:
             print("Starting post optimization process..")
             self.post_cluster_optimization()
             print("Optimization completed!")
+            self.save_clustering(out_file=self.out_file+'_final')
         # save resulting clustering to file
+
+        '''
         base_path = path.abspath(path.dirname(__file__))
         base_path = base_path[:-17]
         base_path += '/clustering/'
         print("Saving clustering in " + base_path + out_file+".clustering")
         with open(base_path + out_file+'.clustering', 'w', encoding='UTF-8') as out:
+            json.dump(self.get_serialization(), out, ensure_ascii=False)
+        '''
+
+    def save_clustering(self, out_file):
+        base_path = path.abspath(path.dirname(__file__))
+        base_path = base_path[:-17]
+        base_path += '/clustering/'
+        print("Saving clustering in " + base_path + out_file + ".clustering")
+        with open(base_path + out_file + '.clustering', 'w', encoding='UTF-8') as out:
             json.dump(self.get_serialization(), out, ensure_ascii=False)
 
     def get_serialization(self):
@@ -408,11 +421,15 @@ class BrownClustering:
                 self.word_non_zero_combination_suffix[sentence[i + 1]].add(sentence[i])
         # checks whether words were moved in the last round
         has_changed = True
+        round_counter = 0
         while has_changed:
+            round_counter +=1
             has_changed = False
             for word in self.vocabulary:
                 if self.move_to_best_cluster(word):
                     has_changed = True
+            if has_changed:
+                self.save_clustering(out_file=self.out_file + '_opt_round_' + str(round_counter))
         print(self.clusters)
 
     def move_to_best_cluster(self, word):

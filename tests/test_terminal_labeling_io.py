@@ -130,6 +130,21 @@ class TestTerminalLabelingIO(unittest.TestCase):
         self.assertEqual(label, label2)
         self.assertTrue(isinstance(instance2, labeling.__class__))
 
+    def test_brown_cluster_labeling(self):
+        clustering = "clustering/tiger_final.clustering"
+        file = "res/TIGER/tiger21/tigertraindev_root_attach.export"
+        corpus = np.sentence_names_to_hybridtrees([str(x) for x in range(50) if x % 10 > 1], file,
+                                                  disconnect_punctuation=False)
+        unk_strat = tl.UNKStrategySuffix(2)
+        labeling = tl.BrownCluster(clustering=clustering, trees=corpus, unk_strategy=unk_strat, cluster_occurence_threshold=100)
+        label = [labeling.token_label(mt.ConstituentTerminal('Auskunft', 'NN')),
+                 labeling.token_label(mt.ConstituentTerminal('1962', 'NN')),
+                 labeling.token_label(mt.ConstituentTerminal('§"$&(-.,', 'XY')),
+                 labeling.token_label(mt.ConstituentTerminal('1975', 'CARD')),
+                 labeling.token_label(mt.ConstituentTerminal('um', 'FM')),
+                 labeling.token_label(mt.ConstituentTerminal('den', 'ART'))
+                 ]
+        print(label)
 
 if __name__ == '__main__':
     unittest.main()
