@@ -70,7 +70,7 @@ ext_modules = [
     #Extension("parser.fst.lazy_composition", ["parser/fst/lazy_composition.pyx"], language='c++',
     #          extra_compile_args=['-std=c++14', '-lfst', '-ldl'], extra_link_args=['-lfst', '-ldl'],
     #          include_dirs=add_include),
-
+    Extension("grammar.induction.brown_clustering", ["grammar/induction/brown_clustering.pyx"], language='c++'),
     Extension("util.enumerator", sources=["util/enumerator.pyx"], language='c++'),
     Extension("grammar.lcfrs",  ["grammar/lcfrs.pyx"]),
     Extension("parser.cpp_cfg_parser.parser_wrapper",
