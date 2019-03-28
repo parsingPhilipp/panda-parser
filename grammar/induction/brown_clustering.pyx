@@ -43,7 +43,7 @@ def getMinIndex(lst):
 
 class BrownClustering:
 
-    def __init__(self, corpus, num_clusters, out_file, optimization=True):
+    def __init__(self, corpus, num_clusters, out_file, max_vocab_size=1000, optimization=True):
         print("init brown clustering")
         # Setup phase
 
@@ -52,31 +52,55 @@ class BrownClustering:
         self.corpus = corpus
         self.total_word_count = 0
         self.vocabulary = OrderedDict()
+        word_queue = defaultdict(lambda :0)
         for sentence in self.corpus:
             self.total_word_count += len(sentence)
             for word in sentence:
                 self.vocabulary[word] = None
+                word_queue[word] += 1
+        self.word_queue = list(word_queue.items())
+        self.word_queue.sort(key= lambda x:x[1], reverse=True)
+        #print(self.word_queue)
         self.total_bigram_count = self.total_word_count - len(self.corpus)
+        #self.total_bigram_count = 0
         # initializing Clusters
         self.clusters = list()
-        i = 0
-        for word in self.vocabulary:
-            self.clusters.append(Cluster(i, word))
-            i += 1
+        max_vocab_size = min(max_vocab_size, len(self.vocabulary))
+        for i in range(max_vocab_size):
+            self.clusters.append(Cluster(i, self.word_queue[i][0]))
         print("vocabulary size: " + str(len(self.vocabulary)))
-        # create cluster based counts
-        self.bigram_count = np.zeros([len(self.vocabulary), len(self.vocabulary)], dtype=int).tolist()
-        #self.bigram_count = defaultdict(lambda: 0)
-        #self.as_prefix_count = defaultdict(lambda: 0)
-        self.as_prefix_count = np.zeros(len(self.vocabulary), dtype=int).tolist()
-        #self.as_suffix_count = defaultdict(lambda: 0)
-        self.as_suffix_count = np.zeros(len(self.vocabulary), dtype=int).tolist()
-        self.non_zero_combination_prefix = defaultdict(lambda: set())
-        self.non_zero_combination_suffix = defaultdict(lambda: set())
-        # create word based counts needed for post optimization
+        self.max_vocab_size = max_vocab_size
         self.word_bigram_count = defaultdict(lambda: 0)
         self.word_non_zero_combination_prefix = defaultdict(lambda: set())
         self.word_non_zero_combination_suffix = defaultdict(lambda: set())
+        # create cluster based counts
+        self.bigram_count = np.zeros([max_vocab_size, max_vocab_size], dtype=int).tolist()
+        self.as_prefix_count = np.zeros(max_vocab_size, dtype=int).tolist()
+        self.as_suffix_count = np.zeros(max_vocab_size, dtype=int).tolist()
+        self.non_zero_combination_prefix = defaultdict(lambda: set())
+        self.non_zero_combination_suffix = defaultdict(lambda: set())
+        # create word based counts needed for post optimization
+
+        # setup word based counts
+        for sentence in self.corpus:
+            for i in range(len(sentence)-1):
+                self.word_bigram_count[(sentence[i],sentence[i+1])] += 1
+                self.word_non_zero_combination_prefix[sentence[i]].add(sentence[i+1])
+                self.word_non_zero_combination_suffix[sentence[i + 1]].add(sentence[i])
+                #print(sentence[i]+sentence[i+1])
+                bigram = (self.get_cluster_id(sentence[i]), self.get_cluster_id(sentence[i + 1]))
+                #print(bigram)
+                if bigram[0] != -1 and bigram[1] != -1:
+                    #self.total_bigram_count += 1
+                    self.bigram_count[bigram[0]][bigram[1]] += 1
+                    self.as_prefix_count[bigram[0]] += 1
+                    self.as_suffix_count[bigram[1]] += 1
+                    self.non_zero_combination_prefix[bigram[0]].add(bigram[1])
+                    self.non_zero_combination_suffix[bigram[1]].add(bigram[0])
+
+        self.next_word_index = max_vocab_size
+
+        '''
         # initialize cluster based counts
         for sentence in self.corpus:
             for i in range(len(sentence)-1):
@@ -86,9 +110,10 @@ class BrownClustering:
                 self.as_suffix_count[bigram[1]] += 1
                 self.non_zero_combination_prefix[bigram[0]].add(bigram[1])
                 self.non_zero_combination_suffix[bigram[1]].add(bigram[0])
+        '''
         # calculate q, s and avg_mut_information of initial clusters
         #self.q = defaultdict(lambda: 0.0)
-        self.q = np.zeros([len(self.vocabulary), len(self.vocabulary)], dtype=float).tolist()
+        self.q = np.zeros([max_vocab_size, max_vocab_size], dtype=float).tolist()
         #for tup in self.bigram_count.keys():
         for prefix_comb in self.non_zero_combination_prefix.keys():
             for suffix in self.non_zero_combination_prefix[prefix_comb]:
@@ -115,7 +140,7 @@ class BrownClustering:
             self.s[cl.cluster_id] = ql+qr-qs
         # evaluate information loss for first merge
         #self.avg_info_loss = defaultdict(lambda: 0.0)
-        inf_loss = np.ones([len(self.vocabulary), len(self.vocabulary)], dtype=float)* 1000000
+        inf_loss = np.ones([max_vocab_size, max_vocab_size], dtype=float)* 1000000
         self.avg_info_loss = inf_loss.tolist()
         for cl_a in self.clusters:
             for cl_b in self.clusters:
@@ -179,7 +204,7 @@ class BrownClustering:
         for cl in self.clusters:
             if cl.in_cluster(word):
                 return cl.cluster_id
-        print("Error:Word " + word + " is in no cluster!")
+        return -1
 
     def get_cluster(self, cluster_id):
         """
@@ -191,6 +216,63 @@ class BrownClustering:
             if cl.cluster_id == cluster_id:
                 return cl
 
+    def add_next_word(self,cluster_id):
+        '''
+        print("before merge:")
+        print("clusters: "+ str(self.clusters))
+        print("total_bigram_count " + str(self.total_bigram_count))
+        print("bigram_count: " + str(self.bigram_count))
+        print("as_prefix_count: " +str(self.as_prefix_count))
+        print("as_suffix_count: "+ str(self.as_suffix_count))
+        print("non_zero_combination_prefix: " +str(self.non_zero_combination_prefix))
+        print("non_zero_combination_suffix: " + str(self.non_zero_combination_suffix))
+        print("q_values: " +str(self.q))
+        print("s_values: " +str(self.s))
+        print("avg_info_loss: " +str(self.avg_info_loss))
+        print("initializing " + str(self.word_queue[self.next_word_index][0]) + " as cluster " + str(cluster_id))
+        '''
+        self.clusters.append(Cluster(cluster_id,self.word_queue[self.next_word_index][0]))
+        self.next_word_index += 1
+        for word_bigram in self.word_bigram_count:
+            cluster_bigram = (self.get_cluster_id(word_bigram[0]),self.get_cluster_id(word_bigram[1]))
+            if (cluster_bigram[0] != -1 and cluster_bigram[1] == cluster_id) or (cluster_bigram[0] == cluster_id and cluster_bigram[1]!=-1):
+                count = self.word_bigram_count[word_bigram]
+                self.bigram_count[cluster_bigram[0]][cluster_bigram[1]] += count
+                ##self.total_bigram_count += count
+                self.as_prefix_count[cluster_bigram[0]] += count
+                self.as_suffix_count[cluster_bigram[1]] += count
+                self.non_zero_combination_prefix[cluster_bigram[0]].add(cluster_bigram[1])
+                self.non_zero_combination_suffix[cluster_bigram[1]].add(cluster_bigram[0])
+        ql = 0
+        for suffix in self.non_zero_combination_prefix[cluster_id]:
+            q_val = self.calc_q_basic(cluster_id,suffix)
+            self.q[cluster_id][suffix] = q_val
+            ql +=  q_val
+        qr  = 0
+        for prefix in self.non_zero_combination_suffix[cluster_id]:
+            q_val = self.calc_q_basic(prefix,cluster_id)
+            self.q[prefix][cluster_id] = q_val
+            qr += q_val
+        self.s[cluster_id] = ql+qr-self.calc_q_basic(cluster_id,cluster_id)
+        for cl in self.clusters:
+            if cluster_id != cl.cluster_id:
+                if cl.cluster_id < cluster_id:
+                    self.avg_info_loss[cl.cluster_id][cluster_id] =  self.evaluate_merge(cl.cluster_id,cluster_id)
+                else:
+                    self.avg_info_loss[cluster_id][cl.cluster_id] = self.evaluate_merge(cluster_id,cl.cluster_id)
+        '''
+        print("after adding:")
+        print("clusters: "+ str(self.clusters))
+        print("total_bigram_count " + str(self.total_bigram_count))
+        print("bigram_count: " + str(self.bigram_count))
+        print("as_prefix_count: " +str(self.as_prefix_count))
+        print("as_suffix_count: "+ str(self.as_suffix_count))
+        print("non_zero_combination_prefix: " +str(self.non_zero_combination_prefix))
+        print("non_zero_combination_suffix: " + str(self.non_zero_combination_suffix))
+        print("q_values: " +str(self.q))
+        print("s_values: " +str(self.s))
+        print("avg_info_loss: " +str(self.avg_info_loss))
+        '''
     def evaluate_merge(self, cluster_id_a, cluster_id_b):
         """
         Calculates average mutual information loss suffered by merging clusters with id cluster_id_a and cluster_id_b
@@ -237,32 +319,6 @@ class BrownClustering:
                 q_merged_suffix += self.calc_q_r2(cl_id_l=cl_id, cl_id_r=cluster_id_a, cl_id_r2=cluster_id_b)
         # combine as in EQ.15
         return s_a + s_b - q_ab - q_ba - q_merged - q_merged_suffix - q_merged_prefix
-
-    '''
-    def calc_q(self, cl_id_l, cl_id_r, cl_id_l2=None, cl_id_r2=None):
-        """
-        Helper function to calculate q(a+b,c+d) where b,c are optional
-        :param cl_id_l:
-        :param cl_id_r:
-        :param cl_id_l2:
-        :param cl_id_r2:
-        :return: q(cl_id_l+cl_id_l2+cl_id_r+cl_id_r2)
-        """
-        p = self.bigram_count[(cl_id_l, cl_id_r)]
-        pl = self.as_prefix_count[cl_id_l]
-        pr = self.as_suffix_count[cl_id_r]
-        if cl_id_l2 is not None:
-            p += self.bigram_count[(cl_id_l2, cl_id_r)]
-            pl += self.as_prefix_count[cl_id_l2]
-        if cl_id_r2 is not None:
-            pr += self.as_suffix_count[cl_id_r2]
-            p += self.bigram_count[(cl_id_l, cl_id_r2)]
-        if cl_id_r2 is not None and cl_id_l2 is not None:
-            p += self.bigram_count[(cl_id_l2, cl_id_r2)]
-        if p > 0:
-            return (p/self.total_bigram_count)*math.log((p*self.total_bigram_count)/(pl*pr))
-        return 0
-    '''
 
     def calc_q_basic(self,int cl_id_l,int cl_id_r):
         cdef int p,pl,pr
@@ -469,6 +525,8 @@ class BrownClustering:
             # print("clusters: " + str(self.clusters))
             # print(sum(self.q.values()))
             # print(self.avg_mut_info)
+            if self.next_word_index < len(self.word_queue):
+                self.add_next_word(cluster_id_b)
 
             # set clusters for next merge
             if len(self.clusters) > 1:
@@ -489,9 +547,9 @@ class BrownClustering:
             mapping[cluster.cluster_id]=i
             cluster.set_cluster_id(i)
             i = i+1
-        print(mapping)
-        for i in range(len(self.vocabulary)):
-            for j in range(len(self.vocabulary)):
+        #print(mapping)
+        for i in range(self.max_vocab_size):
+            for j in range(self.max_vocab_size):
                 if self.bigram_count[i][j] != 0:
                     new_bigram_count[mapping[i]][mapping[j]] = self.bigram_count[i][j]
                 if self.q[i][j] != 0:
@@ -499,7 +557,7 @@ class BrownClustering:
 
         new_as_prefix_count = np.zeros(len(self.clusters), dtype=int).tolist()
         new_as_suffix_count = np.zeros(len(self.clusters), dtype=int).tolist()
-        for i in range(len(self.vocabulary)):
+        for i in range(self.max_vocab_size):
             if self.as_prefix_count[i] != 0:
                 new_as_prefix_count[mapping[i]] = self.as_prefix_count[i]
             if self.as_suffix_count[i] != 0:
@@ -533,12 +591,6 @@ class BrownClustering:
         :return:
         """
         self.cluster_reordering()
-        # setup word based counts
-        for sentence in self.corpus:
-            for i in range(len(sentence)-1):
-                self.word_bigram_count[(sentence[i],sentence[i+1])] += 1
-                self.word_non_zero_combination_prefix[sentence[i]].add(sentence[i+1])
-                self.word_non_zero_combination_suffix[sentence[i + 1]].add(sentence[i])
         # checks whether words were moved in the last round
         has_changed = True
         round_counter = 0

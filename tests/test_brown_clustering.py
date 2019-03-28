@@ -9,7 +9,7 @@ class BrownClusteringTest(unittest.TestCase):
 
     def test_large_corpus(self):
         corpus = [["ich", "habe", "heute", "geburtstag"], ["heute", "gab", "es", "grüne", "tomaten"], ["heute", "habe", "ich", "grüne", "tomaten", "gegessen"]]
-        bc = BrownClustering(corpus, 3, "test", optimization=True)
+        bc = BrownClustering(corpus, 3, "test",max_vocab_size=5, optimization=True)
         print(bc.avg_mut_info)
 
     def test_min_corpus(self):
@@ -21,7 +21,7 @@ class BrownClusteringTest(unittest.TestCase):
         lines = textfile.read().splitlines()
         textfile.close()
         corpus = []
-        numsentences = 50
+        numsentences = 800
         for x in range(numsentences):
             line = str.split(lines[x])
             lower_line = [x.lower() for x in line]
