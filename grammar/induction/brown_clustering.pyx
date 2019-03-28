@@ -232,7 +232,27 @@ class BrownClustering:
         print("initializing " + str(self.word_queue[self.next_word_index][0]) + " as cluster " + str(cluster_id))
         '''
         self.clusters.append(Cluster(cluster_id,self.word_queue[self.next_word_index][0]))
-        self.next_word_index += 1
+
+        for cl in self.clusters:
+            for word in cl.words:
+                cl_id  = self.get_cluster_id(word)
+                count = self.word_bigram_count[(self.word_queue[self.next_word_index][0],word)]
+                if count > 0:
+                    self.bigram_count[cluster_id][cl_id] += count
+                    self.as_prefix_count[cluster_id] += count
+                    self.as_suffix_count[cl_id] += count
+                    self.non_zero_combination_prefix[cluster_id].add(cl_id)
+                    self.non_zero_combination_suffix[cl_id].add(cluster_id)
+                # prevent double add of cluster_id,cluster_id
+                if cl_id != cluster_id:
+                    count = self.word_bigram_count[word,(self.word_queue[self.next_word_index][0])]
+                    if count > 0:
+                        self.bigram_count[cl_id][cluster_id] += count
+                        self.as_prefix_count[cl_id] += count
+                        self.as_suffix_count[cluster_id] += count
+                        self.non_zero_combination_prefix[cl_id].add(cluster_id)
+                        self.non_zero_combination_suffix[cluster_id].add(cl_id)
+        '''
         for word_bigram in self.word_bigram_count:
             cluster_bigram = (self.get_cluster_id(word_bigram[0]),self.get_cluster_id(word_bigram[1]))
             if (cluster_bigram[0] != -1 and cluster_bigram[1] == cluster_id) or (cluster_bigram[0] == cluster_id and cluster_bigram[1]!=-1):
@@ -243,6 +263,7 @@ class BrownClustering:
                 self.as_suffix_count[cluster_bigram[1]] += count
                 self.non_zero_combination_prefix[cluster_bigram[0]].add(cluster_bigram[1])
                 self.non_zero_combination_suffix[cluster_bigram[1]].add(cluster_bigram[0])
+        '''
         ql = 0
         for suffix in self.non_zero_combination_prefix[cluster_id]:
             q_val = self.calc_q_basic(cluster_id,suffix)
@@ -260,6 +281,8 @@ class BrownClustering:
                     self.avg_info_loss[cl.cluster_id][cluster_id] =  self.evaluate_merge(cl.cluster_id,cluster_id)
                 else:
                     self.avg_info_loss[cluster_id][cl.cluster_id] = self.evaluate_merge(cluster_id,cl.cluster_id)
+
+        self.next_word_index += 1
         '''
         print("after adding:")
         print("clusters: "+ str(self.clusters))
