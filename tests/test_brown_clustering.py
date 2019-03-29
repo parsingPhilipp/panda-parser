@@ -5,6 +5,8 @@ import pstats, cProfile
 import pyximport
 
 pyximport.install()
+
+
 class BrownClusteringTest(unittest.TestCase):
 
     def test_large_corpus(self):

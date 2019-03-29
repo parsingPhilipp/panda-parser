@@ -8,25 +8,43 @@ from os import path
 
 
 class Cluster:
-
+    """
+    Cluster objects containing the list of words related to this cluster.
+    Each word should only belong to one cluster/cluster_id
+    """
     def __init__(self, cluster_id, init_word):
         self.cluster_id = cluster_id
         self.words = list()
         self.words.append(init_word)
 
     def in_cluster(self, word):
+        """
+        helper functions checks whether word belongs to this cluster
+        :param: word
+        :return: True if word is in cluster
+        """
         if word in self.words:
             return True
         else:
             return False
 
     def set_cluster_id(self,new_id):
+        """
+        setter to rename the clusters id, used to reorder clusters after initial clustering
+        :param new_id: the clusters id is changed to this parameter
+        :return:
+        """
         self.cluster_id=new_id
 
     def __repr__(self):
         return "Cluster_id: " + str(self.cluster_id) + " Words: " + str(self.words)
 
-def getMinAndIndex(lst):
+def get_min_and_index(lst):
+    """
+    helper function: calculates the minimum value and its position within a list
+    :param lst: list
+    :returns: minimum value and its index
+    """
     cdef float minval
     cdef int minind
     minval,minidx = lst[0],0
@@ -35,23 +53,41 @@ def getMinAndIndex(lst):
             minval,minidx = v,i+1
     return minval,minidx
 
-def getMinIndex(lst):
-    subMins = [getMinAndIndex(sub) for sub in lst ]
-    subMin,subIdx = getMinAndIndex( [s[0] for s in subMins ] )
+def get_min_index(lst):
+    """
+    helper function: returns the index of the minimum value within a nested list
+    :param lst: nested list
+    :return: index_tuple of minimum value
+    """
+    sub_mins = [get_min_and_index(sub) for sub in lst]
+    sub_min,sub_idx = get_min_and_index([s[0] for s in sub_mins])
 
-    return((subIdx, subMins[subIdx][1]))
+    return sub_idx, sub_mins[sub_idx][1]
 
 class BrownClustering:
+    """
+    Creates a clustering using the given corpus input, following the brown cluster methodology (Brown et al. 1992)
+    Attributes:
+        :param: corpus: Input corpus: the algorithm expects a list of lists containing tokenized sentences
+        :param: num_clusters: the number of clusters the input is reduced to
+        :param: out_file: base name for the resulting json files, Files are save to the /clustering folder
+        :param: max_vocab_size: limits the number words/clusters that are considered at any given time.
+        New words are introduced, after space has been freed up by merging. WARNING: lowering the value of this
+        parameter will drastically improve clustering speed but will yield less accurate clusterings. This parameter
+        MUST be chosen larger then num_clusters
+        :param: optimization: enables clustering optimization after the initial greedy clustering, by moving single
+        words to better fitting clusters
+    """
 
     def __init__(self, corpus, num_clusters, out_file, max_vocab_size=1000, optimization=True):
         print("init brown clustering")
         # Setup phase
-
         self.out_file = out_file
         self.desired_num_clusters = num_clusters
         self.corpus = corpus
         self.total_word_count = 0
         self.vocabulary = OrderedDict()
+        # create order in which words are introduced to the clustering
         word_queue = defaultdict(lambda :0)
         for sentence in self.corpus:
             self.total_word_count += len(sentence)
@@ -60,9 +96,9 @@ class BrownClustering:
                 word_queue[word] += 1
         self.word_queue = list(word_queue.items())
         self.word_queue.sort(key= lambda x:x[1], reverse=True)
-        #print(self.word_queue)
+        # total_bigram_count is calculated in full even if not all bigrams are considered in the clustering at the
+        # beginning. The subsequent increase of this count would make all pre-calculated q values inaccurate
         self.total_bigram_count = self.total_word_count - len(self.corpus)
-        #self.total_bigram_count = 0
         # initializing Clusters
         self.clusters = list()
         max_vocab_size = min(max_vocab_size, len(self.vocabulary))
@@ -70,16 +106,17 @@ class BrownClustering:
             self.clusters.append(Cluster(i, self.word_queue[i][0]))
         print("vocabulary size: " + str(len(self.vocabulary)))
         self.max_vocab_size = max_vocab_size
+        # initialize word based counts
         self.word_bigram_count = defaultdict(lambda: 0)
         self.word_non_zero_combination_prefix = defaultdict(lambda: set())
         self.word_non_zero_combination_suffix = defaultdict(lambda: set())
-        # create cluster based counts
+        # initialize cluster based counts
         self.bigram_count = np.zeros([max_vocab_size, max_vocab_size], dtype=int).tolist()
         self.as_prefix_count = np.zeros(max_vocab_size, dtype=int).tolist()
         self.as_suffix_count = np.zeros(max_vocab_size, dtype=int).tolist()
         self.non_zero_combination_prefix = defaultdict(lambda: set())
         self.non_zero_combination_suffix = defaultdict(lambda: set())
-        # create word based counts needed for post optimization
+
 
         # setup word based counts
         for sentence in self.corpus:
@@ -87,34 +124,18 @@ class BrownClustering:
                 self.word_bigram_count[(sentence[i],sentence[i+1])] += 1
                 self.word_non_zero_combination_prefix[sentence[i]].add(sentence[i+1])
                 self.word_non_zero_combination_suffix[sentence[i + 1]].add(sentence[i])
-                #print(sentence[i]+sentence[i+1])
                 bigram = (self.get_cluster_id(sentence[i]), self.get_cluster_id(sentence[i + 1]))
-                #print(bigram)
+                # set up cluster based counts
                 if bigram[0] != -1 and bigram[1] != -1:
-                    #self.total_bigram_count += 1
                     self.bigram_count[bigram[0]][bigram[1]] += 1
                     self.as_prefix_count[bigram[0]] += 1
                     self.as_suffix_count[bigram[1]] += 1
                     self.non_zero_combination_prefix[bigram[0]].add(bigram[1])
                     self.non_zero_combination_suffix[bigram[1]].add(bigram[0])
-
+        # set index for next word added to the clustering process
         self.next_word_index = max_vocab_size
-
-        '''
-        # initialize cluster based counts
-        for sentence in self.corpus:
-            for i in range(len(sentence)-1):
-                bigram = (self.get_cluster_id(sentence[i]), self.get_cluster_id(sentence[i + 1]))
-                self.bigram_count[bigram[0]][bigram[1]] += 1
-                self.as_prefix_count[bigram[0]] += 1
-                self.as_suffix_count[bigram[1]] += 1
-                self.non_zero_combination_prefix[bigram[0]].add(bigram[1])
-                self.non_zero_combination_suffix[bigram[1]].add(bigram[0])
-        '''
         # calculate q, s and avg_mut_information of initial clusters
-        #self.q = defaultdict(lambda: 0.0)
         self.q = np.zeros([max_vocab_size, max_vocab_size], dtype=float).tolist()
-        #for tup in self.bigram_count.keys():
         for prefix_comb in self.non_zero_combination_prefix.keys():
             for suffix in self.non_zero_combination_prefix[prefix_comb]:
                 tup = (prefix_comb, suffix)
@@ -123,8 +144,8 @@ class BrownClustering:
                     (count_tuple*self.total_bigram_count) /
                     (self.as_prefix_count[tup[0]]*self.as_suffix_count[tup[1]])
                 )
+        # calculate initial mutual information
         self.avg_mut_info = sum(map(sum, self.q))
-        #self.s = defaultdict(lambda: 0.0)
         self.s = np.zeros(len(self.vocabulary), dtype=float).tolist()
         for cl in self.clusters:
             i = cl.cluster_id
@@ -134,12 +155,9 @@ class BrownClustering:
                 ql += self.q[i][ cl_id]
             for cl_id in self.non_zero_combination_suffix[i]:
                 qr += self.q[cl_id][ i]
-            #qs = 0
-            #if (i, i) in self.q.keys():
             qs = self.q[i][i]
             self.s[cl.cluster_id] = ql+qr-qs
         # evaluate information loss for first merge
-        #self.avg_info_loss = defaultdict(lambda: 0.0)
         inf_loss = np.ones([max_vocab_size, max_vocab_size], dtype=float)* 1000000
         self.avg_info_loss = inf_loss.tolist()
         for cl_a in self.clusters:
@@ -147,16 +165,14 @@ class BrownClustering:
                 if cl_a.cluster_id < cl_b.cluster_id:
                     self.avg_info_loss[cl_a.cluster_id][cl_b.cluster_id] =\
                         self.evaluate_merge(cl_a.cluster_id, cl_b.cluster_id)
-        # get best pair for initial merge
         print("Starting merging process..")
-        #clusters_to_merge = min(self.avg_info_loss, key=self.avg_info_loss.get)
-        clusters_to_merge = getMinIndex(self.avg_info_loss)
-        #clusters_to_merge = np.unravel_index(np.argmin(self.avg_info_loss, axis=None), self.avg_info_loss.shape)
+        # get best pair for initial merge
+        clusters_to_merge = get_min_index(self.avg_info_loss)
         # start merging process with best pair
         # keep splitting until corpus is reduced to desired number of clusters
         self.merge_clusters(clusters_to_merge[0], clusters_to_merge[1])
         # if optimization after greedy clustering is desired
-        # for each word in the vocab try to find a different cluster, where avg_mut_info increases
+        # for each word in the vocab try to find a different cluster, where avg_mut_info increases the most
         # if a word was moved during this process - repeat until no more words are moved
         self.save_clustering(out_file=self.out_file+'_pre_optimization')
         print("Initial clustering completed!")
@@ -165,22 +181,16 @@ class BrownClustering:
             self.post_cluster_optimization()
             print("Optimization completed!")
             self.save_clustering(out_file=self.out_file+'_final')
-        # save resulting clustering to file
-
-        '''
-        base_path = path.abspath(path.dirname(__file__))
-        base_path = base_path[:-17]
-        base_path += '/clustering/'
-        print("Saving clustering in " + base_path + out_file+".clustering")
-        with open(base_path + out_file+'.clustering', 'w', encoding='UTF-8') as out:
-            json.dump(self.get_serialization(), out, ensure_ascii=False)
-        '''
-
 
     def save_clustering(self, out_file):
+        """
+        saves clustering into json file
+        :param out_file: desired base_name
+        :return:
+        """
         base_path = path.abspath(path.dirname(__file__))
         base_path = base_path[:-17]
-        base_path += '/clustering/'
+        base_path += 'clustering/'
         print("Saving clustering in " + base_path + out_file + ".clustering")
         with open(base_path + out_file + '.clustering', 'w', encoding='UTF-8') as out:
             json.dump(self.get_serialization(), out, ensure_ascii=False)
@@ -217,26 +227,19 @@ class BrownClustering:
                 return cl
 
     def add_next_word(self,cluster_id):
-        '''
-        print("before merge:")
-        print("clusters: "+ str(self.clusters))
-        print("total_bigram_count " + str(self.total_bigram_count))
-        print("bigram_count: " + str(self.bigram_count))
-        print("as_prefix_count: " +str(self.as_prefix_count))
-        print("as_suffix_count: "+ str(self.as_suffix_count))
-        print("non_zero_combination_prefix: " +str(self.non_zero_combination_prefix))
-        print("non_zero_combination_suffix: " + str(self.non_zero_combination_suffix))
-        print("q_values: " +str(self.q))
-        print("s_values: " +str(self.s))
-        print("avg_info_loss: " +str(self.avg_info_loss))
-        print("initializing " + str(self.word_queue[self.next_word_index][0]) + " as cluster " + str(cluster_id))
-        '''
+        """
+        adds next word in the queue into the clustering process by creating a new cluster and updating all counts
+        :param cluster_id:
+        :return:
+        """
+        # init cluster
         self.clusters.append(Cluster(cluster_id,self.word_queue[self.next_word_index][0]))
-
         for cl in self.clusters:
+            #iterate through all currently possible bigram combinations using introduced word
             for word in cl.words:
                 cl_id  = self.get_cluster_id(word)
                 count = self.word_bigram_count[(self.word_queue[self.next_word_index][0],word)]
+                #if bigram exist update corresponding counts
                 if count > 0:
                     self.bigram_count[cluster_id][cl_id] += count
                     self.as_prefix_count[cluster_id] += count
@@ -252,18 +255,7 @@ class BrownClustering:
                         self.as_suffix_count[cluster_id] += count
                         self.non_zero_combination_prefix[cl_id].add(cluster_id)
                         self.non_zero_combination_suffix[cluster_id].add(cl_id)
-        '''
-        for word_bigram in self.word_bigram_count:
-            cluster_bigram = (self.get_cluster_id(word_bigram[0]),self.get_cluster_id(word_bigram[1]))
-            if (cluster_bigram[0] != -1 and cluster_bigram[1] == cluster_id) or (cluster_bigram[0] == cluster_id and cluster_bigram[1]!=-1):
-                count = self.word_bigram_count[word_bigram]
-                self.bigram_count[cluster_bigram[0]][cluster_bigram[1]] += count
-                ##self.total_bigram_count += count
-                self.as_prefix_count[cluster_bigram[0]] += count
-                self.as_suffix_count[cluster_bigram[1]] += count
-                self.non_zero_combination_prefix[cluster_bigram[0]].add(cluster_bigram[1])
-                self.non_zero_combination_suffix[cluster_bigram[1]].add(cluster_bigram[0])
-        '''
+        # calculate s and q values of new cluster
         ql = 0
         for suffix in self.non_zero_combination_prefix[cluster_id]:
             q_val = self.calc_q_basic(cluster_id,suffix)
@@ -275,27 +267,16 @@ class BrownClustering:
             self.q[prefix][cluster_id] = q_val
             qr += q_val
         self.s[cluster_id] = ql+qr-self.calc_q_basic(cluster_id,cluster_id)
+        # calculate info_loss of merges concerning new cluster
         for cl in self.clusters:
             if cluster_id != cl.cluster_id:
                 if cl.cluster_id < cluster_id:
                     self.avg_info_loss[cl.cluster_id][cluster_id] =  self.evaluate_merge(cl.cluster_id,cluster_id)
                 else:
                     self.avg_info_loss[cluster_id][cl.cluster_id] = self.evaluate_merge(cluster_id,cl.cluster_id)
-
+        # increase index for word_queue
         self.next_word_index += 1
-        '''
-        print("after adding:")
-        print("clusters: "+ str(self.clusters))
-        print("total_bigram_count " + str(self.total_bigram_count))
-        print("bigram_count: " + str(self.bigram_count))
-        print("as_prefix_count: " +str(self.as_prefix_count))
-        print("as_suffix_count: "+ str(self.as_suffix_count))
-        print("non_zero_combination_prefix: " +str(self.non_zero_combination_prefix))
-        print("non_zero_combination_suffix: " + str(self.non_zero_combination_suffix))
-        print("q_values: " +str(self.q))
-        print("s_values: " +str(self.s))
-        print("avg_info_loss: " +str(self.avg_info_loss))
-        '''
+
     def evaluate_merge(self, cluster_id_a, cluster_id_b):
         """
         Calculates average mutual information loss suffered by merging clusters with id cluster_id_a and cluster_id_b
@@ -344,6 +325,12 @@ class BrownClustering:
         return s_a + s_b - q_ab - q_ba - q_merged - q_merged_suffix - q_merged_prefix
 
     def calc_q_basic(self,int cl_id_l,int cl_id_r):
+        """
+        Calculate quality value of (cl_id_l,cl_id_r)
+        :param cl_id_l:
+        :param cl_id_r:
+        :return: q[cl_id_l][cl_id_r]
+        """
         cdef int p,pl,pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         if p > 0:
@@ -354,6 +341,13 @@ class BrownClustering:
             return 0
 
     def calc_q_l2(self, int cl_id_l, int cl_id_l2, int cl_id_r):
+        """
+        Calculate quality value of (cl_id_l+cl_id_l2,cl_id_r)
+        :param cl_id_l:
+        :param cl_id_l2:
+        :param cl_id_r:
+        :return:
+        """
         cdef int p, pl, pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         p += self.bigram_count[cl_id_l2][ cl_id_r]
@@ -366,6 +360,13 @@ class BrownClustering:
             return 0
 
     def calc_q_r2(self, int cl_id_l, int cl_id_r, int cl_id_r2):
+        """
+        Calculate quality value of (cl_id_l,cl_id_r+cl_id_r2)
+        :param cl_id_l:
+        :param cl_id_r:
+        :param cl_id_r2:
+        :return:
+        """
         cdef int p,pl,pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         p += self.bigram_count[cl_id_l][ cl_id_r2]
@@ -378,6 +379,14 @@ class BrownClustering:
             return 0
 
     def calc_q_full(self,int cl_id_l,int cl_id_l2,int cl_id_r,int cl_id_r2):
+        """
+        Calculate quality value of (cl_id_l+cl_id_l2,cl_id_r+cl_id_r2)
+        :param cl_id_l:
+        :param cl_id_l2:
+        :param cl_id_r:
+        :param cl_id_r2:
+        :return:
+        """
         cdef int p,pl,pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         p += self.bigram_count[cl_id_l][ cl_id_r2]
@@ -393,6 +402,15 @@ class BrownClustering:
             return 0
 
     def calc_q_temp(self, bigram_count, as_prefix_count, as_suffix_count, cl_id_l, cl_id_r):
+        """
+        Calculate quality value of (cl_id_l,cl_id_r) using temporary counts
+        :param bigram_count: temporary bigram_count
+        :param as_prefix_count: temporary prefix_count
+        :param as_suffix_count: temporary suffix_count
+        :param cl_id_l:
+        :param cl_id_r:
+        :return:
+        """
         cdef int p,pl,pr
         p = bigram_count[cl_id_l][ cl_id_r]
         if p > 0:
@@ -403,7 +421,7 @@ class BrownClustering:
 
     def merge_clusters(self, cluster_id_a, cluster_id_b):
         """
-        Creates initial greedy clustering, starts by merging cluster_a with cluster_b
+        Creates initial greedy clustering, starts by merging cluster_a with cluster_b to cluster_a'
         :param cluster_id_a:
         :param cluster_id_b:
         :return:
@@ -521,8 +539,6 @@ class BrownClustering:
                 ql += self.q[cluster_id_a][ cl_id]
             for cl_id in self.non_zero_combination_suffix[cluster_id_a]:
                 qr += self.q[cl_id][ cluster_id_a]
-            #qs = 0
-            #if (cluster_id_a, cluster_id_a) in self.q.keys():
             qs = self.q[cluster_id_a][ cluster_id_a]
             self.s[cluster_id_a] = ql + qr - qs
 
@@ -535,49 +551,41 @@ class BrownClustering:
                     else:
                         self.avg_info_loss[cl.cluster_id][ cluster_id_a] =\
                             self.evaluate_merge(cl.cluster_id, cluster_id_a)
-
-            # print("#################################################")
-            # print("count of bigram combinations: " + str(self.bigram_count))
-            # print("count of key used as first entry of bigram: " + str(self.as_prefix_count))
-            # print("count of key used as second entry of bigram: " + str(self.as_suffix_count))
-            # print("non-zero-combinations with key as first bigram entry: " + str(self.non_zero_combination_prefix))
-            # print("non-zero-combinations with key as second bigram entry: " + str(self.non_zero_combination_suffix))
-            # print("q values: " + str(self.q))
-            # print("s values: " + str(self.s))
-            # print("avg_mutual_info_loss: " + str(self.avg_info_loss))
-            # print("clusters: " + str(self.clusters))
-            # print(sum(self.q.values()))
-            # print(self.avg_mut_info)
+            # add next word to the clustering if there are words left in the queue
             if self.next_word_index < len(self.word_queue):
                 self.add_next_word(cluster_id_b)
 
             # set clusters for next merge
             if len(self.clusters) > 1:
-                #best_merge_pair = min(self.avg_info_loss, key=self.avg_info_loss.get)
-                best_merge_pair = getMinIndex(self.avg_info_loss)
-                #best_merge_pair = np.unravel_index(np.argmin(self.avg_info_loss, axis=None), self.avg_info_loss.shape)
+                best_merge_pair = get_min_index(self.avg_info_loss)
                 print("next merge pair: " + str(best_merge_pair))
                 cluster_id_a = best_merge_pair[0]
                 cluster_id_b = best_merge_pair[1]
 
 
     def cluster_reordering(self):
+        """
+        rearranges clusters and corresponding counts to get a dense representation after the initial clustering
+        :return:
+        """
         i = 0
+        # remapping of the clusters
         mapping = dict()
+        # create new count arrays
         new_q = np.zeros([len(self.clusters),len(self.clusters)],dtype=float).tolist()
         new_bigram_count = np.zeros([len(self.clusters),len(self.clusters)],dtype=int).tolist()
+        # create mapping and rename clusters accordingly
         for cluster in self.clusters:
             mapping[cluster.cluster_id]=i
             cluster.set_cluster_id(i)
             i = i+1
-        #print(mapping)
+        # iterate through all existing counts and move copy them to their new place in the new counts
         for i in range(self.max_vocab_size):
             for j in range(self.max_vocab_size):
                 if self.bigram_count[i][j] != 0:
                     new_bigram_count[mapping[i]][mapping[j]] = self.bigram_count[i][j]
                 if self.q[i][j] != 0:
                     new_q[mapping[i]][mapping[j]] = self.q[i][j]
-
         new_as_prefix_count = np.zeros(len(self.clusters), dtype=int).tolist()
         new_as_suffix_count = np.zeros(len(self.clusters), dtype=int).tolist()
         for i in range(self.max_vocab_size):
@@ -585,6 +593,7 @@ class BrownClustering:
                 new_as_prefix_count[mapping[i]] = self.as_prefix_count[i]
             if self.as_suffix_count[i] != 0:
                 new_as_suffix_count[mapping[i]] = self.as_suffix_count[i]
+        # rename the non_zero_combination information
         new_non_zero_combination_prefix = defaultdict(lambda: set())
         new_non_zero_combination_suffix = defaultdict(lambda: set())
         for key in self.non_zero_combination_prefix.keys():
@@ -599,6 +608,7 @@ class BrownClustering:
             for val in old_set:
                 new_set.add(mapping[val])
             new_non_zero_combination_suffix[mapping[key]] = new_set
+        # use the new created counts
         self.q = new_q
         self.bigram_count = new_bigram_count
         self.as_prefix_count = new_as_prefix_count
@@ -613,6 +623,7 @@ class BrownClustering:
         until no further improvement is found
         :return:
         """
+        # reorder clusters to dense arrangement to reduce copy overhead
         self.cluster_reordering()
         # checks whether words were moved in the last round
         has_changed = True
