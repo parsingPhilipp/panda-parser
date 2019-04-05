@@ -1,4 +1,4 @@
-# cython: profile=True
+#cython: language_level=3
 from collections import defaultdict, OrderedDict
 from copy import deepcopy
 import math as math
@@ -99,6 +99,7 @@ class BrownClustering:
         # total_bigram_count is calculated in full even if not all bigrams are considered in the clustering at the
         # beginning. The subsequent increase of this count would make all pre-calculated q values inaccurate
         self.total_bigram_count = self.total_word_count - len(self.corpus)
+        print(self.total_bigram_count)
         # initializing Clusters
         self.clusters = list()
         max_vocab_size = min(max_vocab_size, len(self.vocabulary))
@@ -331,14 +332,14 @@ class BrownClustering:
         :param cl_id_r:
         :return: q[cl_id_l][cl_id_r]
         """
-        cdef int p,pl,pr
+        cdef long p,pl,pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         if p > 0:
             pl = self.as_prefix_count[cl_id_l]
             pr = self.as_suffix_count[cl_id_r]
             return (p/self.total_bigram_count)*math.log((p*self.total_bigram_count)/(pl*pr))
         else:
-            return 0
+            return 0.0
 
     def calc_q_l2(self, int cl_id_l, int cl_id_l2, int cl_id_r):
         """
@@ -348,7 +349,7 @@ class BrownClustering:
         :param cl_id_r:
         :return:
         """
-        cdef int p, pl, pr
+        cdef long p, pl, pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         p += self.bigram_count[cl_id_l2][ cl_id_r]
         if p > 0:
@@ -357,7 +358,7 @@ class BrownClustering:
             pl += self.as_prefix_count[cl_id_l2]
             return (p/self.total_bigram_count)*math.log((p*self.total_bigram_count)/(pl*pr))
         else:
-            return 0
+            return 0.0
 
     def calc_q_r2(self, int cl_id_l, int cl_id_r, int cl_id_r2):
         """
@@ -367,7 +368,7 @@ class BrownClustering:
         :param cl_id_r2:
         :return:
         """
-        cdef int p,pl,pr
+        cdef long p,pl,pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         p += self.bigram_count[cl_id_l][ cl_id_r2]
         if p > 0:
@@ -376,7 +377,7 @@ class BrownClustering:
             pr += self.as_suffix_count[cl_id_r2]
             return (p/self.total_bigram_count)*math.log((p*self.total_bigram_count)/(pl*pr))
         else:
-            return 0
+            return 0.0
 
     def calc_q_full(self,int cl_id_l,int cl_id_l2,int cl_id_r,int cl_id_r2):
         """
@@ -387,7 +388,7 @@ class BrownClustering:
         :param cl_id_r2:
         :return:
         """
-        cdef int p,pl,pr
+        cdef long p,pl,pr
         p = self.bigram_count[cl_id_l][ cl_id_r]
         p += self.bigram_count[cl_id_l][ cl_id_r2]
         p += self.bigram_count[cl_id_l2][ cl_id_r]
@@ -399,7 +400,7 @@ class BrownClustering:
             pr += self.as_suffix_count[cl_id_r2]
             return (p/self.total_bigram_count)*math.log((p*self.total_bigram_count)/(pl*pr))
         else:
-            return 0
+            return 0.0
 
     def calc_q_temp(self, bigram_count, as_prefix_count, as_suffix_count, cl_id_l, cl_id_r):
         """
@@ -411,13 +412,13 @@ class BrownClustering:
         :param cl_id_r:
         :return:
         """
-        cdef int p,pl,pr
+        cdef long p,pl,pr
         p = bigram_count[cl_id_l][ cl_id_r]
         if p > 0:
             pl = as_prefix_count[cl_id_l]
             pr = as_suffix_count[cl_id_r]
             return (p / self.total_bigram_count) * math.log((p * self.total_bigram_count) / (pl * pr))
-        return 0
+        return 0.0
 
     def merge_clusters(self, cluster_id_a, cluster_id_b):
         """
