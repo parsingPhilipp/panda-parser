@@ -64,6 +64,20 @@ def get_min_index(lst):
 
     return sub_idx, sub_mins[sub_idx][1]
 
+def read_corpus_file(filename):
+    base_path = path.abspath(path.dirname(__file__))
+    base_path = base_path[:-17]
+    base_path += 'res/'
+    text_file = open(base_path+filename+'.raw')
+    lines = text_file.read().splitlines()
+    text_file.close()
+    corpus = []
+    for x in range(len(lines)):
+        line = str.split(lines[x])
+        lower_line = [x.lower() for x in line]
+        corpus.append(lower_line)
+    return corpus
+
 class BrownClustering:
     """
     Creates a clustering using the given corpus input, following the brown cluster methodology (Brown et al. 1992)
@@ -79,20 +93,20 @@ class BrownClustering:
         words to better fitting clusters
     """
 
-    def __init__(self, corpus, num_clusters, out_file, max_vocab_size=1000, optimization=True):
+    def __init__(self, corpus_file, num_clusters, out_file, max_vocab_size=1000, optimization=True):
         print("init brown clustering")
         # Setup phase
         self.out_file = out_file
         self.desired_num_clusters = num_clusters
-        self.corpus = corpus
+        self.corpus = read_corpus_file(corpus_file)
         self.total_word_count = 0
-        self.vocabulary = OrderedDict()
+        self.vocabulary = set()
         # create order in which words are introduced to the clustering
         word_queue = defaultdict(lambda :0)
         for sentence in self.corpus:
             self.total_word_count += len(sentence)
             for word in sentence:
-                self.vocabulary[word] = None
+                self.vocabulary.add(word)
                 word_queue[word] += 1
         self.word_queue = list(word_queue.items())
         self.word_queue.sort(key= lambda x:x[1], reverse=True)
@@ -177,6 +191,7 @@ class BrownClustering:
         # if a word was moved during this process - repeat until no more words are moved
         self.save_clustering(out_file=self.out_file+'_pre_optimization')
         print("Initial clustering completed!")
+        print(self.clusters)
         if optimization:
             print("Starting post optimization process..")
             self.post_cluster_optimization()
@@ -427,7 +442,9 @@ class BrownClustering:
         :param cluster_id_b:
         :return:
         """
-        print("first merge pair:" + str((cluster_id_a, cluster_id_b)))
+        merge_counter = 1
+        total_merges = len(self.vocabulary)-self.desired_num_clusters+1
+        print("first merge pair:" + str((cluster_id_a, cluster_id_b))+ " merge: " +str(merge_counter)+ "/" + str(total_merges))
         while len(self.clusters) > self.desired_num_clusters:
 
             self.avg_mut_info -= self.avg_info_loss[cluster_id_a][ cluster_id_b]
@@ -559,7 +576,8 @@ class BrownClustering:
             # set clusters for next merge
             if len(self.clusters) > 1:
                 best_merge_pair = get_min_index(self.avg_info_loss)
-                print("next merge pair: " + str(best_merge_pair))
+                merge_counter +=1
+                print("next merge pair: " + str(best_merge_pair)+ " merge: " +str(merge_counter)+ "/" + str(total_merges))
                 cluster_id_a = best_merge_pair[0]
                 cluster_id_b = best_merge_pair[1]
 
@@ -638,15 +656,21 @@ class BrownClustering:
             if has_changed:
                 self.save_clustering(out_file=self.out_file + '_opt_round_' + str(round_counter))
         print(self.clusters)
-
     def move_to_best_cluster(self, word):
         """
         attempts to move a word to a better cluster
         :param word:
         :return: has_moved
         """
-        # first remove the word out of its current cluster and update all counts accordingly
-        # set cluster_id that currently contains word
+        # initialize counts for a simulated cluster only containing 'word'
+        tmp_bigram_count_prefix = np.zeros(len(self.clusters), dtype=int).tolist()
+        tmp_bigram_count_suffix = np.zeros(len(self.clusters), dtype=int).tolist()
+        tmp_bigram_count_self = 0
+        tmp_as_prefix_count = 0
+        tmp_as_suffix_count = 0
+        tmp_non_zero_combination_prefix = set()
+        tmp_non_zero_combination_suffix = set()
+        # set the cluster_id of the cluster 'word' was previously contained in
         affected_cluster_id = self.get_cluster_id(word)
         post_del_info = self.avg_mut_info
         # remove q values containing the affected cluster_id
@@ -661,9 +685,20 @@ class BrownClustering:
                 self.q[cl_id][ affected_cluster_id] = 0
         # look at bigrams containing word and remove them form the bigram counts
         # update the as_prefix/as_suffix count of the affected cluster
+        # create the cluster information for the simulated cluster
         for suffix in self.word_non_zero_combination_prefix[word]:
             suffix_id = self.get_cluster_id(suffix)
             obsolete_bigram = self.word_bigram_count[(word, suffix)]
+            if suffix != word:
+                tmp_bigram_count_prefix[suffix_id] += obsolete_bigram
+                tmp_as_prefix_count += obsolete_bigram
+                tmp_non_zero_combination_prefix.add(suffix_id)
+            else:
+                tmp_bigram_count_self += obsolete_bigram
+                tmp_as_prefix_count += obsolete_bigram
+                tmp_as_suffix_count += obsolete_bigram
+                tmp_non_zero_combination_prefix.add(-1)
+                tmp_non_zero_combination_suffix.add(-1)
             self.bigram_count[affected_cluster_id][ suffix_id] -= obsolete_bigram
             self.as_prefix_count[affected_cluster_id] -= obsolete_bigram
             if self.bigram_count[affected_cluster_id][ self.get_cluster_id(suffix)] == 0:
@@ -674,6 +709,9 @@ class BrownClustering:
             prefix_id = self.get_cluster_id(prefix)
             obsolete_bigram = self.word_bigram_count[(prefix, word)]
             if prefix != word:
+                tmp_bigram_count_suffix[prefix_id] += obsolete_bigram
+                tmp_as_suffix_count += obsolete_bigram
+                tmp_non_zero_combination_suffix.add(prefix_id)
                 self.bigram_count[prefix_id][ affected_cluster_id] -= obsolete_bigram
                 if self.bigram_count[prefix_id][ affected_cluster_id] == 0:
                     self.non_zero_combination_prefix[prefix_id].remove(affected_cluster_id)
@@ -698,10 +736,11 @@ class BrownClustering:
         # evaluate possible moves
         for cl in self.clusters:
             move_improvement[cl.cluster_id] = self.evaluate_move(word=word, cluster_id=cl.cluster_id,
-                                                                 post_del_info=post_del_info) - self.avg_mut_info
+                                                                 post_del_info=post_del_info, tmp_bigram_count_prefix=tmp_bigram_count_prefix,tmp_bigram_count_suffix=tmp_bigram_count_suffix,tmp_bigram_count_self=tmp_bigram_count_self,tmp_as_prefix_count=tmp_as_prefix_count,tmp_as_suffix_count=tmp_as_suffix_count,tmp_non_zero_combination_prefix=tmp_non_zero_combination_prefix,tmp_non_zero_combination_suffix=tmp_non_zero_combination_suffix) - self.avg_mut_info
         # if there is a cluster that results in an increase of mut_info move word to this cluster
         # otherwise move it back to its original cluster
         # threshold used to negate possible improvements by floating point errors
+
         if max(move_improvement.values()) > 0.00000000001:
             self.perform_move(word=word, cluster_id=max(move_improvement, key=move_improvement.get),
                               post_del_info=post_del_info)
@@ -710,62 +749,70 @@ class BrownClustering:
             self.perform_move(word=word, cluster_id=affected_cluster_id, post_del_info=post_del_info)
             return False
 
-    def evaluate_move(self, word, cluster_id, post_del_info):
+
+    def evaluate_move(self, word, cluster_id, post_del_info, tmp_bigram_count_prefix, tmp_bigram_count_suffix, tmp_bigram_count_self, tmp_as_suffix_count, tmp_as_prefix_count, tmp_non_zero_combination_prefix, tmp_non_zero_combination_suffix):
         """
         calculates the avg_mut_info after moving word into new cluster
         :param word: word that is evaluated
-        :param cluster_id: cluster_id of cluster that is evaluated
-        :param post_del_info: avg_mut_info after removing word
-        :return: avg_mut_info
+        :param cluster_id: cluster it could be moved to
+        :param post_del_info: mutual information without this word
+        :param tmp_bigram_count_prefix: bigram information of word (word,*)
+        :param tmp_bigram_count_suffix: bigram information of word (*,word)
+        :param tmp_bigram_count_self: bigram information of (word,word)
+        :param tmp_as_suffix_count: suffix count of word
+        :param tmp_as_prefix_count: prefix count of word
+        :param tmp_non_zero_combination_prefix: bigram combinations with word as prefix
+        :param tmp_non_zero_combination_suffix: bigram combinations with word as suffix
+        :return:
         """
-        # move word into new cluster
-        self.get_cluster(self.get_cluster_id(word)).words.remove(word)
-        self.get_cluster(cluster_id).words.append(word)
-        # use copy of counts so we do not mess with out current counts
-        bigram_count = deepcopy(self.bigram_count)
-        non_zero_combination_prefix = deepcopy(self.non_zero_combination_prefix)
-        non_zero_combination_suffix = deepcopy(self.non_zero_combination_suffix)
-        as_prefix_count = deepcopy(self.as_prefix_count)
-        as_suffix_count = deepcopy(self.as_suffix_count)
+        # create copies of the non zero combinations of the considered cluster that are later merged with combinations of the moved word
+        non_zero_combination_prefix = self.non_zero_combination_prefix[cluster_id].copy()
+        non_zero_combination_suffix = self.non_zero_combination_suffix[cluster_id].copy()
+
         # remove q values using the cluster from avg_mut_info we want to move to, these will later be recalculated
-        for cl_id in non_zero_combination_prefix[cluster_id]:
+        for cl_id in non_zero_combination_prefix:
             post_del_info -= self.q[cluster_id][ cl_id]
-        for cl_id in non_zero_combination_suffix[cluster_id]:
+        for cl_id in non_zero_combination_suffix:
             if cl_id != cluster_id:
                 post_del_info -= self.q[cl_id][ cluster_id]
-        # add bigrams containing word to bigram counts corresponding to the new cluster
-        # first for bigrams were 'word' is the prefix
-        for suffix in self.word_non_zero_combination_prefix[word]:
-            suffix_id = self.get_cluster_id(suffix)
-            new_bigram = self.word_bigram_count[(word,suffix)]
-            bigram_count[cluster_id][ suffix_id] += new_bigram
-            # increase prefix count of cluster by prefix count of 'word'
-            as_prefix_count[cluster_id] += new_bigram
-            # make sure non_zero_combinations are update with new combinations
-            non_zero_combination_prefix[cluster_id].add(suffix_id)
-            non_zero_combination_suffix[suffix].add(cluster_id)
-        # now for bigrams were 'word' is the suffix
-        for prefix in self.word_non_zero_combination_suffix[word]:
-            prefix_id = self.get_cluster_id(prefix)
-            new_bigram = self.word_bigram_count[(prefix, word)]
-            # prevent double adding of 'word','word' bigrams
-            if prefix != word:
-                bigram_count[prefix_id][ cluster_id] += new_bigram
-            # increase suffix count
-            as_suffix_count[cluster_id] += new_bigram
-            # add new combinations
-            non_zero_combination_suffix[cluster_id].add(prefix_id)
-            non_zero_combination_prefix[prefix_id].add(cluster_id)
+        # update the non_zero counts -1 denotes the simulated cluster of 'word'
+        for cl_id in tmp_non_zero_combination_prefix:
+            if cl_id != -1:
+                non_zero_combination_prefix.add(cl_id)
+            else:
+                non_zero_combination_prefix.add(cluster_id)
+        for cl_id in tmp_non_zero_combination_suffix:
+            if cl_id != -1:
+                non_zero_combination_suffix.add(cl_id)
+            else:
+                non_zero_combination_suffix.add(cluster_id)
+        ###
+        # To future self or anyone maintaining this code: This is needed because after removing a word in move_to_best_cluster we don't save the information, that a cluster was involved in bigrams of form (cluster_id,removed_word). this information is partially recovered by the deleted word, when combining the non_zero_combinations
+        # however this combination will only be found in non_zero_combination_suffix(prefix if bigram was of form (removed_word,cluster_id)). As we only calculate q values of (cluster_id,cluster_id) using the prefix combos to prevent double addition we need to make sure that the info is also present in the prefix combos
+        if cluster_id in non_zero_combination_prefix:
+            non_zero_combination_suffix.add(cluster_id)
+        if cluster_id in non_zero_combination_suffix:
+            non_zero_combination_prefix.add(cluster_id)
+        ###
         # add updated q values
-        for cl_id in non_zero_combination_prefix[cluster_id]:
-            updated_q_value = self.calc_q_temp(bigram_count=bigram_count, as_prefix_count=as_prefix_count,
-                                               as_suffix_count=as_suffix_count, cl_id_l=cluster_id, cl_id_r=cl_id)
-            post_del_info += updated_q_value
-        for cl_id in non_zero_combination_suffix[cluster_id]:
+        cdef int p,pl,pr
+        for cl_id in non_zero_combination_prefix:
             if cl_id != cluster_id:
-                updated_q_value = self.calc_q_temp(bigram_count=bigram_count, as_prefix_count=as_prefix_count,
-                                                   as_suffix_count=as_suffix_count, cl_id_l=cl_id, cl_id_r=cluster_id)
-                post_del_info += updated_q_value
+                p = self.bigram_count[cluster_id][cl_id]+tmp_bigram_count_prefix[cl_id]
+                pl = self.as_prefix_count[cluster_id]+tmp_as_prefix_count
+                pr = self.as_suffix_count[cl_id]
+                post_del_info += (p / self.total_bigram_count) * math.log((p * self.total_bigram_count) / (pl * pr))
+            else:
+                p = self.bigram_count[cluster_id][cluster_id]+tmp_bigram_count_self + tmp_bigram_count_prefix[cluster_id]+tmp_bigram_count_suffix[cluster_id]
+                pl = self.as_prefix_count[cluster_id]+tmp_as_prefix_count
+                pr = self.as_suffix_count[cluster_id]+tmp_as_suffix_count
+                post_del_info += (p / self.total_bigram_count) * math.log((p * self.total_bigram_count) / (pl * pr))
+        for cl_id in non_zero_combination_suffix:
+            if cl_id != cluster_id:
+                p = self.bigram_count[cl_id][cluster_id]+tmp_bigram_count_suffix[cl_id]
+                pl = self.as_prefix_count[cl_id]
+                pr = self.as_suffix_count[cluster_id]+tmp_as_suffix_count
+                post_del_info += (p / self.total_bigram_count) * math.log((p * self.total_bigram_count) / (pl * pr))
         return post_del_info
 
     def perform_move(self, word, cluster_id, post_del_info):
@@ -776,7 +823,6 @@ class BrownClustering:
         :param post_del_info:
         :return:
         """
-        # this functions works very similar to evaluate cluster but works on the global counts
         # move word into new cluster
         self.get_cluster(self.get_cluster_id(word)).words.remove(word)
         self.get_cluster(cluster_id).words.append(word)
