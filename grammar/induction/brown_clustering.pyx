@@ -1,6 +1,5 @@
 #cython: language_level=3
-from collections import defaultdict, OrderedDict
-from copy import deepcopy
+from collections import defaultdict
 import math as math
 import json
 import numpy as np
@@ -16,6 +15,7 @@ class Cluster:
         self.cluster_id = cluster_id
         self.words = list()
         self.words.append(init_word)
+
 
     def in_cluster(self, word):
         """
@@ -39,30 +39,6 @@ class Cluster:
     def __repr__(self):
         return "Cluster_id: " + str(self.cluster_id) + " Words: " + str(self.words)
 
-def get_min_and_index(lst):
-    """
-    helper function: calculates the minimum value and its position within a list
-    :param lst: list
-    :returns: minimum value and its index
-    """
-    cdef float minval
-    cdef int minind
-    minval,minidx = lst[0],0
-    for i,v in enumerate(lst[1:]):
-        if v < minval:
-            minval,minidx = v,i+1
-    return minval,minidx
-
-def get_min_index(lst):
-    """
-    helper function: returns the index of the minimum value within a nested list
-    :param lst: nested list
-    :return: index_tuple of minimum value
-    """
-    sub_mins = [get_min_and_index(sub) for sub in lst]
-    sub_min,sub_idx = get_min_and_index([s[0] for s in sub_mins])
-
-    return sub_idx, sub_mins[sub_idx][1]
 
 def read_corpus_file(filename):
     base_path = path.abspath(path.dirname(__file__))
@@ -182,7 +158,7 @@ class BrownClustering:
                         self.evaluate_merge(cl_a.cluster_id, cl_b.cluster_id)
         print("Starting merging process..")
         # get best pair for initial merge
-        clusters_to_merge = get_min_index(self.avg_info_loss)
+        clusters_to_merge = self.get_min_avg_info_loss()
         # start merging process with best pair
         # keep splitting until corpus is reduced to desired number of clusters
         self.merge_clusters(clusters_to_merge[0], clusters_to_merge[1])
@@ -197,6 +173,18 @@ class BrownClustering:
             self.post_cluster_optimization()
             print("Optimization completed!")
             self.save_clustering(out_file=self.out_file+'_final')
+
+    def get_min_avg_info_loss(self):
+        x = 0
+        y = 0
+        min = 100000
+        for i in range(len(self.avg_info_loss)):
+            for j in range(len(self.avg_info_loss[0])):
+                if self.avg_info_loss[i][j]<min:
+                    min = self.avg_info_loss[i][j]
+                    x = i
+                    y = j
+        return x, y
 
     def save_clustering(self, out_file):
         """
@@ -249,12 +237,13 @@ class BrownClustering:
         :return:
         """
         # init cluster
-        self.clusters.append(Cluster(cluster_id,self.word_queue[self.next_word_index][0]))
+        next_word = self.word_queue[self.next_word_index][0]
+        self.clusters.append(Cluster(cluster_id,next_word))
         for cl in self.clusters:
             #iterate through all currently possible bigram combinations using introduced word
             for word in cl.words:
                 cl_id  = self.get_cluster_id(word)
-                count = self.word_bigram_count[(self.word_queue[self.next_word_index][0],word)]
+                count = self.word_bigram_count[(next_word,word)]
                 #if bigram exist update corresponding counts
                 if count > 0:
                     self.bigram_count[cluster_id][cl_id] += count
@@ -262,15 +251,19 @@ class BrownClustering:
                     self.as_suffix_count[cl_id] += count
                     self.non_zero_combination_prefix[cluster_id].add(cl_id)
                     self.non_zero_combination_suffix[cl_id].add(cluster_id)
+                else:
+                    self.word_bigram_count.pop((next_word, word))
                 # prevent double add of cluster_id,cluster_id
                 if cl_id != cluster_id:
-                    count = self.word_bigram_count[word,(self.word_queue[self.next_word_index][0])]
+                    count = self.word_bigram_count[(word,next_word)]
                     if count > 0:
                         self.bigram_count[cl_id][cluster_id] += count
                         self.as_prefix_count[cl_id] += count
                         self.as_suffix_count[cluster_id] += count
                         self.non_zero_combination_prefix[cl_id].add(cluster_id)
                         self.non_zero_combination_suffix[cluster_id].add(cl_id)
+                    else:
+                        self.word_bigram_count.pop((word,next_word))
         # calculate s and q values of new cluster
         ql = 0
         for suffix in self.non_zero_combination_prefix[cluster_id]:
@@ -446,7 +439,6 @@ class BrownClustering:
         total_merges = len(self.vocabulary)-self.desired_num_clusters+1
         print("first merge pair:" + str((cluster_id_a, cluster_id_b))+ " merge: " +str(merge_counter)+ "/" + str(total_merges))
         while len(self.clusters) > self.desired_num_clusters:
-
             self.avg_mut_info -= self.avg_info_loss[cluster_id_a][ cluster_id_b]
             # a,b --> a
             # update avg_info_loss, s by subtracting obsolete q values
@@ -493,7 +485,6 @@ class BrownClustering:
             for w in clb.words:
                 cla.words.append(w)
             self.clusters.remove(clb)
-
             # update bigram count and non_zero_combinations
             # update p where a/b are first entry p(a,*) -> p(a,*)+ p(b,*), p(b,*)->0
             for cl_id in self.non_zero_combination_prefix[cluster_id_b]:
@@ -559,7 +550,6 @@ class BrownClustering:
                 qr += self.q[cl_id][ cluster_id_a]
             qs = self.q[cluster_id_a][ cluster_id_a]
             self.s[cluster_id_a] = ql + qr - qs
-
             # calculate avg_info_loss(a,*/*,a)
             for cl in self.clusters:
                 if cl.cluster_id != cluster_id_a:
@@ -575,11 +565,12 @@ class BrownClustering:
 
             # set clusters for next merge
             if len(self.clusters) > 1:
-                best_merge_pair = get_min_index(self.avg_info_loss)
+                best_merge_pair = self.get_min_avg_info_loss()
                 merge_counter +=1
                 print("next merge pair: " + str(best_merge_pair)+ " merge: " +str(merge_counter)+ "/" + str(total_merges))
                 cluster_id_a = best_merge_pair[0]
                 cluster_id_b = best_merge_pair[1]
+
 
 
     def cluster_reordering(self):

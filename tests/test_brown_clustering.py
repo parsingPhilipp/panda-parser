@@ -1,4 +1,5 @@
 import unittest
+import objgraph
 import corpora.negra_parse as np
 from grammar.induction.brown_clustering import BrownClustering
 import pstats, cProfile
@@ -17,5 +18,5 @@ class BrownClusteringTest(unittest.TestCase):
     def test_min_corpus(self):
         bc = BrownClustering("min_corpus_test", 3, "min")
     def test_full_corpus(self):
-        bc = BrownClustering("tigertext",30,"test_moving", optimization=True)
+        bc = BrownClustering("tigertext",999,"test_moving", optimization=True)
 
